@@ -223,7 +223,7 @@ function id_move_template(templateIDs) {
 				action: 'id_generate_folders_select_ajax',
 			},
 			success: function (response) {
-				console.log(response);
+				console.log(JSON.stringify(response, null, 2));
 				jQuery('#moveToFolder').append(response.data.options);
 			}
 		});

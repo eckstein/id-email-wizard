@@ -16,59 +16,9 @@ jQuery(document).ready(function ($) {
 
 	//apply highlight to all <code> elements
 	hljs.highlightAll();
-	
-	
 
-	//custom sticky element
-	// Get the initial position of the element
-	if ($('.pre-sticky').length) {
-	  var stickyTop = $('.pre-sticky');
-	  var stickyScrolled = $('.pre-sticky').offset().top;
-	  var preStickyWidth = $('.pre-sticky').width();
-	  
-	  // Create a placeholder element with the same size and position as the sticky element
-	  var placeholder = $('<div>').css({
-		'position': 'relative',
-		'width': stickyTop.width() + 'px',
-		'height': stickyTop.height() + 'px',
-		'margin-top': stickyTop.css('margin-top'),
-		'margin-right': stickyTop.css('margin-right'),
-		'margin-bottom': stickyTop.css('margin-bottom'),
-		'margin-left': stickyTop.css('margin-left')
-	  });
-
-	  $(window).scroll(function () {
-		// Check if the user has scrolled past the element
-		if ($(window).scrollTop() >= stickyScrolled) {
-		  // Add a class to the element to make it sticky
-		  stickyTop.addClass('idSticky');
-		  
-		  //set the width to its un-sticky width
-		  stickyTop.width(preStickyWidth);
-		  
-		  
-		  // Replace the sticky element with the placeholder
-		  if (!stickyTop.prev().is(placeholder)) {
-			stickyTop.before(placeholder);
-		  }
-		} else {
-		  // Remove the class and margin to revert the element to its original position
-		  stickyTop.removeClass('idSticky');
-		  // Remove the placeholder and restore the sticky element
-		  if (stickyTop.prev().is(placeholder)) {
-			placeholder.remove();
-		  }
-		}
-	  });
-	}
-
-	
-
-
-// Call setupCategoriesView on page load
-setupCategoriesView();
-	
-
+	// Call setupCategoriesView on page load
+	setupCategoriesView();
 });
 
 //Global scope functions

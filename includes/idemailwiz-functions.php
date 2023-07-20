@@ -1,30 +1,25 @@
 <?php
 function iD_generate_chunk($chunk) {
-    $template_parts = [
-        'plain_text' => 'plain-text',
-        'full_width_image' => 'full-width-image',
-        'contained_image' => 'contained-image',
-        'html' => 'custom-html',
-        'two-column' => 'two-column',
-        'two-column-contained' => 'two-column-contained',
-        'three-column' => 'three-column',
-        'button' => 'button',
-        'spacer' => 'spacer',
-        'external_send_footer' => 'external-send-footer',
-    ];
+  // Convert the layout name from underscore to hyphen format
+  $template_name = str_replace('_', '-', $chunk['acf_fc_layout']);
 
-    // Verify that the acf_fc_layout value is in the array of template parts
-    if (!isset($template_parts[$chunk['acf_fc_layout']])) {
-        return '';
-    }
+  // Construct the path to the template file
+  $template_path = plugin_dir_path( dirname( __FILE__ ) ) . 'templates/chunks/' . $template_name . '.php';
 
-    // Include the template part and capture the output
-    ob_start();
-    include plugin_dir_path( dirname( __FILE__ ) ) . 'templates/chunks/' . $template_parts[$chunk['acf_fc_layout']] . '.php';
-    $return = ob_get_clean();
+  // Check if the template file exists
+  if (!file_exists($template_path)) {
+      return '';
+  }
 
-    return $return;
+  // Include the template part and capture the output
+  ob_start();
+  include $template_path;
+  $return = ob_get_clean();
+
+  return $return;
 }
+
+
 
 // Generates the list of folders on the template table sidebar
 function get_folder_list($current_folder_id=null) {
@@ -364,11 +359,11 @@ function id_generate_folders_select($parent_id = 0, $prefix = '') {
     
     foreach ($folders as $folder) {
 		//skips the trash folder if it exists
-		$trashTerm = get_option('templatefolderstrash');
-		if (!is_wp_error($trashTerm) && $folder->term_id == (int) $trashTerm) {
-				continue;
-		}
-		
+    if (!is_wp_error(get_option('templatefolderstrash'))) {
+        if ($folder->term_id == get_option('templatefolderstrash')) {
+          continue;
+        }
+    }
         $name = $folder->name;
         $options .= '<option value="' . $folder->term_id . '">' . $prefix . $name . '</option>';
         $options .= id_generate_folders_select($folder->term_id, '&nbsp;&nbsp;'.$prefix . '-&nbsp;&nbsp;');

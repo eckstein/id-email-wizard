@@ -90,14 +90,6 @@ function idemailwiz_create_template_post_type() {
     register_post_type('idemailwiz_template', $args);
 }
 
-
-// Custom rewrite rule
-function idemailwiz_custom_rewrite_rule() {
-    add_rewrite_rule('^template/([0-9]+)/([^/]+)/?', 'index.php?post_type=idemailwiz_template&p=$matches[1]', 'top');
-}
-add_action('init', 'idemailwiz_custom_rewrite_rule', 10);
-
-
 //Register folder taxonomy
 add_action( 'init', 'idemailwiz_create_folder_taxonomy', 10 );
 function idemailwiz_create_folder_taxonomy() {
@@ -131,6 +123,11 @@ function idemailwiz_create_folder_taxonomy() {
     register_taxonomy('idemailwiz_folder', 'idemailwiz_template', $args);
 }
 
+// Custom rewrite rule
+function idemailwiz_custom_rewrite_rule() {
+    add_rewrite_rule('^template/([0-9]+)/([^/]+)/?', 'index.php?post_type=idemailwiz_template&p=$matches[1]', 'top');
+}
+add_action('init', 'idemailwiz_custom_rewrite_rule', 10);
 
 
 
@@ -173,63 +170,41 @@ add_action('template_redirect', 'redirect_to_proper_url');
 
 add_action( 'wp_enqueue_scripts', 'idemailwiz_enqueue_assets' );
 function idemailwiz_enqueue_assets() {
+    $scripts = array(
+        'id-general' => array('/js/id-general.js', array('jquery')),
+        'folder-actions' => array('/js/folder-actions.js', array('jquery', 'id-general')),
+        'template-editor' => array('/js/template-editor.js', array('jquery', 'id-general')),
+        'template-actions' => array('/js/template-actions.js', array('jquery', 'id-general')),
+        'bulk-actions' => array('/js/bulk-actions.js', array('jquery', 'id-general', 'folder-actions', 'template-actions')),
+        'iterable-actions' => array('/js/iterable-actions.js', array('jquery', 'id-general', 'bulk-actions')),
+    );
+
     wp_enqueue_style( 'id-style',
         plugins_url( '/style.css', __FILE__ ), array()
     );
 
-    //enqueue jquery
     wp_enqueue_script( 'jquery' );
-
-    //custom swal pop-ups
     wp_enqueue_script( 'sweetalert2', 'https://cdn.jsdelivr.net/npm/sweetalert2@11', array(), '11.0', true );
 
-    //general js stuff
-    wp_enqueue_script( 'id-general', plugins_url( '/js/id-general.js', __FILE__ ), array( 'jquery' ), '1.0.0', false );
-
-    //folder actions
-    wp_enqueue_script( 'folder-actions', plugins_url( '/js/folder-actions.js', __FILE__ ), array( 'jquery', 'id-general' ), '1.0.0', true );
-
-    //template editor
-    wp_enqueue_script( 'template-editor', plugins_url( '/js/template-editor.js', __FILE__ ), array( 'jquery','id-general' ), '1.0.0', true );
-
-    //template functions
-    wp_enqueue_script( 'template-actions', plugins_url( '/js/template-actions.js', __FILE__ ), array( 'jquery','id-general' ), '1.0.0', true );
-
-    //bulk actions functions
-    wp_enqueue_script( 'bulk-actions', plugins_url( '/js/bulk-actions.js', __FILE__ ), array( 'jquery','id-general','folder-actions', 'template-actions' ), '1.0.0', true );
-
-    //iterable ajax
-    wp_enqueue_script( 'iterable-actions', plugins_url( '/js/iterable-actions.js', __FILE__ ), array( 'jquery','id-general','bulk-actions'), '1.0.0', true );
-
-    //code highlighter
-    wp_enqueue_script( 'highlighterjs', '//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js', array('jquery'), '11.7.0', true );
-
-    //code highlighter theme
-    wp_enqueue_style( 'highlighter-agate', plugins_url( '/styles/agate.css', __FILE__ ), array(), '11.7.0' );
-	
-	 // Localize script with your data
-		if ( function_exists( 'acf_form' ) ) {
-			ob_start();
-			acf_form(array(
-				'post_id' => 'options',
-				'fields' => array('field_640559a70cf51'), // Set the field(s) to be displayed in the form
-				'submit_value' => 'Select Folder', // Set the label for the submit button
-			));
-			$acfCatsForm = ob_get_clean();
-		} else {
-			$acfCatsForm = '';
-		}
-
-		$id_ajax_settings = array(
-			'plugin_url' => plugin_dir_url(__FILE__),
+    foreach($scripts as $handle => $script) {
+		wp_enqueue_script( $handle, plugins_url( $script[0], __FILE__ ), $script[1], '1.0.0', true );
+		wp_localize_script( $handle, 'idAjax', array(
+			'nonce' => wp_create_nonce( $handle ),
 			'ajaxurl' => esc_url( admin_url( 'admin-ajax.php' ) ),
 			'currentPost' => get_post( get_the_ID() ),
-			'nonce' => wp_create_nonce( 'id-nonce' ),
 			'stylesheet' => plugins_url( '', __FILE__ ),
-			'acfCatList' => $acfCatsForm,
-		);
+		));
+	}
 
-		wp_localize_script( 'id-general', 'idAjax', $id_ajax_settings );
+    wp_localize_script( 'id-general', 'idAjax', array(
+        'plugin_url' => plugin_dir_url(__FILE__),
+        'ajaxurl' => esc_url( admin_url( 'admin-ajax.php' ) ),
+        'currentPost' => get_post( get_the_ID() ),
+        'stylesheet' => plugins_url( '', __FILE__ ),
+    ));
+
+    wp_enqueue_script( 'highlighterjs', '//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js', array('jquery'), '11.7.0', true );
+    wp_enqueue_style( 'highlighter-agate', plugins_url( '/styles/agate.css', __FILE__ ), array(), '11.7.0' );
 }
 
 

@@ -105,8 +105,7 @@
 
 /*Code Repository*/
 #codeRepository .two-col-wrap {
-	margin-bottom: 20px;
-	max-height: 600px;
+	display: flex;
 }
 #codeRepository .two-col-wrap .left {
 	border: 1px solid #222;
@@ -119,7 +118,7 @@
 	color: #fff;
 	line-height: 1.1;
 	max-height: 100%;
-	overflow-y: scroll;
+	overflow-y: auto;
 	flex: 0 1 65%;
 }
 
@@ -165,7 +164,7 @@ body.single-idemailwiz_template #footer {
 }
 
 	#templateUI.two-col-wrap .left {
-		flex: 1 1 50%;
+		flex: 1 0 50%;
 		overflow-y: auto;
 	}
 		

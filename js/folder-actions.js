@@ -86,12 +86,13 @@ $(document).on('click', '.moveFolder', function(e) {
 	id_move_folder([$(this).attr('data-folderid')]);
 });
 
+//Delete a folder
 $('.deleteFolder').on('click', function () {
     var folderId = $(this).data('folderid');
     id_delete_folders([folderId]);
 });
 
-
+//Show and hide the sub-categories in the folder panel
   $('.showHideSubs').click(function(e) {
     e.stopPropagation(); // Prevent event bubbling
 

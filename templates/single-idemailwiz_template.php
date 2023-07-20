@@ -198,25 +198,18 @@ $mobHeight = $templateStyles['mobile_line_height'] ?? '24px';
 		if ($tempSettings['fine_print_disclaimer'] != "") {
 			ob_start();
 			include plugin_dir_path( dirname( __FILE__ ) ) . 'templates/chunks/email-before-disclaimer.php';
-			$beforeDisclaimer = ob_get_clean();
-			echo htmlspecialchars($beforeDisclaimer).'&#10;';
-			
-            ob_start();
 			include plugin_dir_path( dirname( __FILE__ ) ) . 'templates/chunks/fine-print-disclaimer.php';
-			$finePrintDisclaimer = ob_get_clean();
-			echo htmlspecialchars($finePrintDisclaimer);
-			
-			ob_start();
 			include plugin_dir_path( dirname( __FILE__ ) ) . 'templates/chunks/email-after-disclaimer.php';
-			$afterDisclaimer = ob_get_clean();
-			echo htmlspecialchars($afterDisclaimer);	
+			$beforeDisclaimer = ob_get_clean();
+			echo htmlspecialchars($beforeDisclaimer).'&#10;';	
 		}
 			ob_start();
 			include plugin_dir_path( dirname( __FILE__ ) ) . 'templates/chunks/email-closing-tags.php';
 			$closingTags = ob_get_clean();
 			echo htmlspecialchars($closingTags);
 ?>
-</code></pre>
+</code>
+</pre>
 </div>
 </div>
 
