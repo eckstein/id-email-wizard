@@ -7,10 +7,11 @@ jQuery(document).ready(function ($) {
 
 		$.post(idAjax.ajaxurl, {
 				action: "get_template_data_for_iterable",
+				security: idAjax_iterable_actions.nonce,
 				post_id
 			})
 			.done((response) => {
-				console.log(`get_template_date_for_iterable: ${JSON.stringify(response)}`);
+				//console.log(`get_template_date_for_iterable: ${JSON.stringify(response)}`);
 
 				if (response.status === "error") {
 					Swal.fire({
@@ -150,6 +151,7 @@ jQuery(document).ready(function ($) {
 			],
 			messageTypeId,
 			html: templateHtml,
+			security: idAjax_iterable_actions.nonce
 		};
 
 		console.log("Making AJAX API call...");
@@ -177,6 +179,7 @@ jQuery(document).ready(function ($) {
 							action: "update_template_after_sync",
 							post_id: postId,
 							template_id: itTemplateId[0],
+							security: idAjax_iterable_actions.nonce
 						},
 						success: function (afterSync) {
 							if (afterSync.status === 'success') {

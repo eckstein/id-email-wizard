@@ -373,6 +373,12 @@ function id_generate_folders_select($parent_id = 0, $prefix = '') {
 }
 
 function id_generate_folders_select_ajax() {
+    //check nonce (could be one of two files)
+    $nonceCheck = check_ajax_referer( 'folder-actions', 'security' , false);
+    if (!$nonceCheck) {
+      check_ajax_referer( 'template-actions', 'security' );
+    }
+
     $options = id_generate_folders_select();
     wp_send_json_success(array('options' => $options));
     wp_die();
@@ -725,6 +731,9 @@ return ob_get_clean();
 }
 
 function load_mobile_css() {
+  //check nonce
+  check_ajax_referer( 'template-editor', 'security' );
+
   $css_file = $_POST['css_file'];
   $output = '<link rel="stylesheet" href="' . $css_file . '" type="text/css" />';
   echo $output;

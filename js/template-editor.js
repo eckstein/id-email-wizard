@@ -18,6 +18,7 @@ jQuery(document).ready(function ($) {
 			data: {
 				action: 'load_mobile_css',
 				css_file: idAjax.plugin_url + '/styles/inlineStyles-mobile.css',
+				security: idAjax_template_editor.nonce
 			},
 			success: function (response) {
 				$('#inline-styles').html(response);
@@ -38,6 +39,7 @@ jQuery(document).ready(function ($) {
 			data: {
 				action: 'load_mobile_css',
 				css_file: idAjax.plugin_url + '/styles/inlineStyles.css',
+				security: idAjax_template_editor.nonce
 			},
 			success: function (response) {
 				$('#inline-styles').html(response);

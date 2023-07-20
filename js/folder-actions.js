@@ -33,6 +33,7 @@ $('#addNewFolder').on('click', function () {
 			url: idAjax.ajaxurl,
 			data: {
 				action: 'id_generate_folders_select_ajax',
+                security: idAjax_folder_actions.nonce
 			},
 			success: function (response) {
 				console.log(response);
@@ -49,7 +50,8 @@ $('#addNewFolder').on('click', function () {
                 data: {
                     action: 'id_add_new_folder',
                     folder_name: result.value.folder_name,
-                    parent_folder: result.value.parent_folder
+                    parent_folder: result.value.parent_folder,
+                    security: idAjax_folder_actions.nonce
                 },
                 success: function (response) {
                     // Show a success message and update the select field
@@ -142,6 +144,7 @@ function id_move_folder(folderIDs) {
 			url: idAjax.ajaxurl,
 			data: {
 				action: 'id_generate_folders_select_ajax',
+                security: idAjax_folder_actions.nonce
 			},
 			success: function (response) {
 				console.log(response);
@@ -160,7 +163,8 @@ function id_move_folder(folderIDs) {
                 data: {
                     action: 'id_move_folder',
                     this_folder: result.value.this_folder,
-                    move_into: result.value.move_into
+                    move_into: result.value.move_into,
+                    security: idAjax_folder_actions.nonce
                 },
                 success: function(response) {
                     // Show a success message and update the select field
@@ -204,6 +208,7 @@ async function id_delete_folders(folderIds) {
                 url: idAjax.ajaxurl,
                 data: {
                     action: 'id_generate_folders_select_ajax',
+                    security: idAjax_folder_actions.nonce
                 },
                 success: function (response) {
                     console.log(response);
@@ -223,6 +228,7 @@ async function id_delete_folders(folderIds) {
                         action: 'id_delete_folder',
                         this_folder: folderIds, // Pass array of folders
                         move_into: newCategoryId,
+                        security: idAjax_folder_actions.nonce
                     },
                     success: function (response) {
                         if (response.success) {

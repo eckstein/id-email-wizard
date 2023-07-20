@@ -1,7 +1,9 @@
 <?php
 //Get all the postdata needed to create or update a template in Iterable
 function get_template_data_for_iterable() {
-	
+	//check nonce
+    check_ajax_referer( 'iterable-actions', 'security' );
+
 	 // Check that post_id is defined
     if (!isset($_POST['post_id'])) {
         wp_send_json(array(
@@ -60,6 +62,11 @@ add_action('wp_ajax_nopriv_get_template_data_for_iterable', 'get_template_data_f
 
 //Update the template after it syncs to Iterable
 function update_template_after_sync() {
+
+	//check nonce
+    check_ajax_referer( 'iterable-actions', 'security' );
+
+
 	$post_id = $_POST['post_id'];
 	$template_id = $_POST['template_id'];
 	//check for existing itTemplateId

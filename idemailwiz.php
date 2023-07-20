@@ -188,14 +188,15 @@ function idemailwiz_enqueue_assets() {
 
     foreach($scripts as $handle => $script) {
 		wp_enqueue_script( $handle, plugins_url( $script[0], __FILE__ ), $script[1], '1.0.0', true );
-		wp_localize_script( $handle, 'idAjax', array(
+		$handle_underscore = str_replace('-', '_', $handle);
+		wp_localize_script( $handle, 'idAjax_' . $handle_underscore, array(
 			'nonce' => wp_create_nonce( $handle ),
 			'ajaxurl' => esc_url( admin_url( 'admin-ajax.php' ) ),
 			'currentPost' => get_post( get_the_ID() ),
 			'stylesheet' => plugins_url( '', __FILE__ ),
 		));
 	}
-
+	
     wp_localize_script( 'id-general', 'idAjax', array(
         'plugin_url' => plugin_dir_url(__FILE__),
         'ajaxurl' => esc_url( admin_url( 'admin-ajax.php' ) ),

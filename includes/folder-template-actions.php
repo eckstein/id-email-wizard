@@ -126,7 +126,10 @@ function id_restore_template( $post_id ) {
 
 //ajax requests for template actions
 //Delete, restore, duplicate 
-function id_ajax_template_actions() {	
+function id_ajax_template_actions() {
+	//check nonce
+    check_ajax_referer( 'template-actions', 'security' );
+
 	$action = $_POST['template_action'];
 	$post_id = $_POST['post_id'];
 	if (!$post_id || !$action) {
@@ -281,6 +284,10 @@ add_action('wp_ajax_nopriv_id_ajax_template_actions', 'id_ajax_template_actions'
 
 // Delete a folder and move its contents to where the user specified
 function id_delete_folder() {
+	//check nonce
+	check_ajax_referer( 'folder-actions', 'security' );
+
+
     $folder_ids = $_POST['this_folder']; // Can be an array
     $new_folder_id = (int) $_POST['move_into'];
 
@@ -382,6 +389,9 @@ add_action('wp_ajax_nopriv_id_delete_folder', 'id_delete_folder');
 
 // Add or remove a favorite template or folder from a user's profile
 function add_remove_user_favorite() {
+	//check nonce
+    check_ajax_referer( 'template-actions', 'security' );
+	
   // Ensure object_id and object_type are set
   $object_id = isset( $_POST['object_id'] ) ? intval( $_POST['object_id'] ) : 0;
   $object_type = isset( $_POST['object_type'] ) ? sanitize_text_field( $_POST['object_type'] ) : '';
@@ -457,6 +467,9 @@ add_action('wp_ajax_nopriv_add_remove_user_favorite', 'add_remove_user_favorite'
 
 //Add a new folder to the folder tree
 function id_add_new_folder() {
+	//check nonce
+    check_ajax_referer( 'folder-actions', 'security' );
+	
 	$folder_name = sanitize_text_field( $_POST['folder_name'] );
 	$parent_folder = $_POST['parent_folder'];
 	
@@ -470,6 +483,9 @@ add_action('wp_ajax_nopriv_id_add_new_folder', 'id_add_new_folder');
 
 //Move a template to another folder
 function id_move_template() {
+	//check nonce
+    check_ajax_referer( 'template-actions', 'security' );
+	
 	// Set the post ID and the new folder ID
 	$thisTemplate = $_POST['this_template'];
 	
@@ -499,6 +515,9 @@ add_action('wp_ajax_nopriv_id_move_template', 'id_move_template');
 
 //Move a folder to another folder
 function id_move_folder() {
+	//check nonce
+    check_ajax_referer( 'folder-actions', 'security' );
+	
     $thisFolder = $_POST['this_folder'];
     $moveInto = (int) $_POST['move_into'];
 	

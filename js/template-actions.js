@@ -41,6 +41,7 @@ $(".templateTable").on('click', '.restore-template', async function (e) {
 						action: "id_ajax_template_actions", //this function matches handler function in functions.php
 						template_action: "duplicate",
 						post_id: post_id,
+						security: idAjax_template_actions.nonce
 					},
 					success: function (response) {
 						console.log(response);
@@ -109,7 +110,8 @@ $(".templateTable").on('click', '.restore-template', async function (e) {
 						action: "id_ajax_template_actions",
 						template_action: "create_from_template",
 						post_id: post_id,
-						template_title: template_title
+						template_title: template_title,
+						security: idAjax_template_actions.nonce
 					},
 					success: function (response) {
 
@@ -147,7 +149,8 @@ $(".templateTable").on('click', '.restore-template', async function (e) {
 		  data: {
 			action: 'add_remove_user_favorite',
 			object_id: object_id,
-			object_type: object_type
+			object_type: object_type,
+			security: idAjax_template_actions.nonce
 		  },
 		  success: function(response) {
 			   if (response.success) {
@@ -221,6 +224,7 @@ function id_move_template(templateIDs) {
 			url: idAjax.ajaxurl,
 			data: {
 				action: 'id_generate_folders_select_ajax',
+				security: idAjax_template_actions.nonce
 			},
 			success: function (response) {
 				console.log(JSON.stringify(response, null, 2));
@@ -239,7 +243,8 @@ function id_move_template(templateIDs) {
 				data: {
 					action: 'id_move_template',
 					this_template: result.value.this_template,
-					move_into: result.value.move_into
+					move_into: result.value.move_into,
+					security: idAjax_template_actions.nonce
 				},
 				success: function(response) {
 					// Show a success message and update the select field
@@ -286,6 +291,7 @@ async function id_delete_templates(post_ids) {
                     action: 'id_ajax_template_actions',
                     template_action: 'delete',
                     post_id: post_ids[i],
+					security: idAjax_template_actions.nonce
                 },
             });
 
@@ -350,6 +356,7 @@ async function id_restore_templates(templateIDs) {
                     action: 'id_ajax_template_actions',
                     template_action: 'restore',
                     post_id: templateIDs[i],
+					security: idAjax_template_actions.nonce
                 },
             });
 
