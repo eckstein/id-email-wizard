@@ -162,7 +162,7 @@ jQuery(document).ready(function ($) {
 					xhr.setRequestHeader("Api-Key", config.API_KEY);
 				},
 				success: function (result) {
-					console.log("POST template success:", result);  // log the result of the POST request
+					//console.log("POST template success:", result);  // log the result of the POST request
 					if (!templateId) {
 					function extractID(s) {
 						var match = s.match(/\b(\d+)$/);
@@ -183,8 +183,11 @@ jQuery(document).ready(function ($) {
 							security: idAjax_iterable_actions.nonce
 						},
 						success: function (afterSync) {
+							console.log('After Sync result: ' + afterSync);
 							if (afterSync.status === 'success') {
 								resolve(templateId);
+							} else {
+								reject('Post meta update after sync was not succesful.');
 							}
 						},
 						error: function (xhr, status, error) {
@@ -242,10 +245,10 @@ jQuery(document).ready(function ($) {
 			}).then((result) => {
 				if (result.isConfirmed) {
 					create_or_update_iterable_template(response.fields, result.value)
-						.then((makeTemplate) => {
+						.then((returnedTemplateId) => {
 							Swal.fire({
 								title: "Sync complete",
-								html: `Sync was successful!<br/><a style="text-decoration:underline;" href="https://app.iterable.com/templates/editor?templateId=${makeTemplate}" target="_blank">Click here to go to Iterable template</a>.`,
+								html: `Sync was successful!<br/><a style="text-decoration:underline;" href="https://app.iterable.com/templates/editor?templateId=${returnedTemplateId}" target="_blank">Click here to go to Iterable template</a>.`,
 								showConfirmButton: true,
 								allowOutsideClick: true,
 							}).then(() => {
@@ -255,6 +258,7 @@ jQuery(document).ready(function ($) {
 							});
 						})
 						.catch((error) => {
+							console.log(response);
 							Swal.fire({
 								title: "Sync failed!",
 								html: error,

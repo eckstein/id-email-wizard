@@ -77,6 +77,14 @@ add_action('wp_ajax_nopriv_get_template_data_for_iterable', 'get_template_data_f
 		//add new template_id to post meta
 		update_post_meta($post_id,'itTemplateId',$template_id);
 		
+		//add last updated date/time to post meta
+		date_default_timezone_set('America/Los_Angeles');
+
+		$dateTime = new DateTime();
+		$formattedDateTime = $dateTime->format('n/j/Y \at g:ia');
+		
+		update_post_meta($post_id,'lastIterableSync',$formattedDateTime);
+		
 		$response = array(
 			'status' => 'success',
 			'message' => 'itTemplateId updated in post meta!',

@@ -17,7 +17,8 @@ $itTemplateId = get_post_meta(get_the_ID(),'itTemplateId',true) ?? '';
 	<div class="left" id="builder">
 	<div class="iDbreadcrumb">Located in: <?php echo display_template_folder_hierarchy(get_the_ID()); ?> | 
 	<?php if ($itTemplateId){
-		echo '<strong>Last synced to Iterable template <a target="_blank" href="https://app.iterable.com/templates/editor?templateId='.$itTemplateId.'">'.$itTemplateId.'</a></strong>';
+		$lastIterableSync = get_post_meta(get_the_ID(), 'lastIterableSync', true) ?? '<em>an unknown date and time.</em>';
+		echo 'Last synced to Iterable template <a target="_blank" href="https://app.iterable.com/templates/editor?templateId='.$itTemplateId.'">'.$itTemplateId.'</a> on '.$lastIterableSync;
 		} else { 
 			echo '<em>Not synced.</em>';
 		} ?>
