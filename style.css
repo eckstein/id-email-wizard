@@ -125,7 +125,7 @@
 
 
 .iDbreadcrumb {
-	margin-bottom: 10px;
+	margin: 10px 0px;
 	font-size: 12px;
 	font-style: italic;
 }	
@@ -297,7 +297,7 @@ body.single-idemailwiz_template #footer {
 			background-color: #efefef;
 			position: sticky;
 			top: 0;
-			z-index: 999;
+			z-index: 989;
 		}
 		.moveFolder, .deleteFolder {
 			cursor: pointer;

@@ -61,28 +61,28 @@ add_action('wp_ajax_nopriv_get_template_data_for_iterable', 'get_template_data_f
 
 
 //Update the template after it syncs to Iterable
-function update_template_after_sync() {
-
-	//check nonce
-    check_ajax_referer( 'iterable-actions', 'security' );
-
-
-	$post_id = $_POST['post_id'];
-	$template_id = $_POST['template_id'];
-	//check for existing itTemplateId
-	if (!get_post_meta($post_id,'itTemplateId', true)) {
-		//add template_id to post meta if not existent yet
-		delete_post_meta($post_id,'itTemplateId');
+	function update_template_after_sync() {
+		//check nonce
+		check_ajax_referer( 'iterable-actions', 'security' );
+	
+		$post_id = $_POST['post_id'];
+		$template_id = $_POST['template_id'];
+		
+		//check for existing itTemplateId
+		if (get_post_meta($post_id,'itTemplateId', true)) {
+			//delete old template_id from post meta if it exists
+			delete_post_meta($post_id,'itTemplateId');
+		}
+	
+		//add new template_id to post meta
 		update_post_meta($post_id,'itTemplateId',$template_id);
-		$message = 'itTemplateId added to post meta!';
-	} else {
-		$message = 'itTemplateId already exists, moving on...';
+		
+		$response = array(
+			'status' => 'success',
+			'message' => 'itTemplateId updated in post meta!',
+		);
+		wp_send_json($response);
 	}
-	$response = array(
-		'status' => 'success',
-		'message' => $message,
-	);
-	wp_send_json($response);
-}
-add_action('wp_ajax_update_template_after_sync', 'update_template_after_sync');
-add_action('wp_ajax_nopriv_update_template_after_sync', 'update_template_after_sync');
+	add_action('wp_ajax_update_template_after_sync', 'update_template_after_sync');
+	add_action('wp_ajax_nopriv_update_template_after_sync', 'update_template_after_sync');
+	

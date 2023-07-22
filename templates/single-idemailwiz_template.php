@@ -8,12 +8,20 @@ $emailSettings = get_field('email_settings');
 $dtSize = $templateStyles['desktop_font_size'] ?? '18px';
 $dtHeight = $templateStyles['desktop_line_height'] ?? '26px';
 $mobSize = $templateStyles['mobile_font_size'] ?? '16px';
-$mobHeight = $templateStyles['mobile_line_height'] ?? '24px';
+$mobHeight = $templateStyles['mobile_line_height'] ?? '24px';	
+$current_user = wp_get_current_user();
+$itTemplateId = get_post_meta(get_the_ID(),'itTemplateId',true) ?? '';
 ?>
 
-<div id="templateUI" class="two-col-wrap">
+<div id="templateUI" class="two-col-wrap" data-iterableid="<?php echo $itTemplateId; ?>">
 	<div class="left" id="builder">
-	<div class="iDbreadcrumb">Located in: <?php echo display_template_folder_hierarchy(get_the_ID()); ?></div>
+	<div class="iDbreadcrumb">Located in: <?php echo display_template_folder_hierarchy(get_the_ID()); ?> | 
+	<?php if ($itTemplateId){
+		echo '<strong>Last synced to Iterable template <a target="_blank" href="https://app.iterable.com/templates/editor?templateId='.$itTemplateId.'">'.$itTemplateId.'</a></strong>';
+		} else { 
+			echo '<em>Not synced.</em>';
+		} ?>
+	</div>
 		<?php
 		$acfForm = array(
 			'id' => 'id-chunks-creator',
@@ -27,11 +35,7 @@ $mobHeight = $templateStyles['mobile_line_height'] ?? '24px';
 	</div>
 	
 	<div class="right" id="preview" type="text/html">
-		<?php 
 		
-		$current_user = wp_get_current_user();
-		$itTemplateId = get_post_meta(get_the_ID(),'itTemplateId',true);
-		?>
 		
 		<div id="templateActions" class="pre-sticky">
 			
