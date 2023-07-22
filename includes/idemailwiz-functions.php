@@ -1,4 +1,24 @@
 <?php
+//Insert overlay and spinner into header
+function insert_overlay_loader() {
+  if (is_single() && get_post_type() == 'idemailwiz_template') {
+  ?>
+  <div id="iDoverlay"></div>
+  <div id="iDspinner" class="loader"></div>
+  <script type="text/javascript">
+    // Function to show and hide overlays and spinners
+  const toggleOverlay = (show = true) => {
+    jQuery("#iDoverlay")[show ? "show" : "hide"]();
+    jQuery("#iDspinner")[show ? "show" : "hide"]();
+    };
+    // Call toggleOverlay() as soon as the script is executed
+      toggleOverlay();
+  </script>
+  <?php
+  }
+}
+add_action('wp_head', 'insert_overlay_loader');
+
 function iD_generate_chunk($chunk) {
   // Convert the layout name from underscore to hyphen format
   $template_name = str_replace('_', '-', $chunk['acf_fc_layout']);

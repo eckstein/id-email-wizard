@@ -1,12 +1,15 @@
 <?php
 $height = ( get_sub_field('spacer_height') != '' ) ? get_sub_field('spacer_height') : '20';
 $bgColor = ( get_sub_field('background_color') != '' ) ? get_sub_field('background_color') : '#FFFFFF';
-$mobileVis = ( get_sub_field('mobile_visibility') != '' ) ? get_sub_field('mobile_visibility') : true;
+
+$chunkSettings = get_sub_field('chunk_settings');
+
+$mobileVis = $chunkSettings['mobile_visibility'] != '' ? $chunkSettings['mobile_visibility'] : true;
 	$hideMobile = '';
 	if ($mobileVis == false) {
 		$hideMobile = 'hide-mobile';
 	}
-  $desktopVis = ( get_sub_field('desktop_visibility') != '' ) ? get_sub_field('desktop_visibility') : true;
+  $desktopVis = $chunkSettings['desktop_visibility'] != '' ? $chunkSettings['desktop_visibility'] : true;
 	$hideDesktop = '';
 	if ($desktopVis == false) {
 		$hideDesktop = 'hide-mobile';

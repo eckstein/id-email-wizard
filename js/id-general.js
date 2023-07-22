@@ -1,4 +1,11 @@
+
+
+
 jQuery(document).ready(function ($) {
+	// Call toggleOverlay(false) once everything (including images, iframes, scripts, etc.) has finished loading
+    $(window).on('load', function() {
+        toggleOverlay(false);
+    });
 	
 	//Global function to reload an element in the dom
 	(function($) {
@@ -43,3 +50,4 @@ function setupCategoriesView() {
 	jQuery('.current-cat').find('> .showHideSubs').removeClass('fa-angle-down').addClass('fa-angle-up');
   }
 }
+

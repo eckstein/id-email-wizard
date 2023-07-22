@@ -22,11 +22,7 @@ jQuery(document).ready(function ($) {
 	  .fail(() => handleAjaxError());
 	});
   
-	// Function to show and hide overlays and spinners
-	const toggleOverlay = (show = true) => {
-	  $("#iDoverlay")[show ? "show" : "hide"]();
-	  $("#iDspinner")[show ? "show" : "hide"]();
-	};
+	
   
 	// Error handling function
 	const handleAjaxError = (hideOverlay = true) => {

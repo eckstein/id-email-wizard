@@ -220,7 +220,7 @@ function id_ajax_template_actions() {
 			
 			// Update the post title and slug
 			$slug = sanitize_title($template_title); // Generate a slug from the post title
-			$unique_slug = wp_unique_post_slug($slug, $post_ID, get_post_status($post_ID), 'idemailwiz_template', 0); // Generate a unique slug
+			$unique_slug = wp_unique_post_slug($slug, $post_id, get_post_status($post_id), 'idemailwiz_template', 0); // Generate a unique slug
 			
 			$post_data = array(
 				'ID' => $dID,

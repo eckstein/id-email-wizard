@@ -7,10 +7,15 @@ $chunkSettings = get_sub_field('chunk_settings');
 	$magicWrap = $chunkSettings['magic_wrap'] ?? false;
 	
 
-$mobileVis = get_sub_field('mobile_visibility');
+$mobileVis = $chunkSettings['mobile_visibility'];
 	$hideMobile = '';
 	if ($mobileVis == false) {
 		$hideMobile = 'hide-mobile';
+	}
+	$desktopVis = $chunkSettings['desktop_visibility'];
+	$hideDesktop = '';
+	if ($desktopVis == false) {
+		$hideDesktop = 'hide-desktop';
 	}
 
 
@@ -124,7 +129,7 @@ switch ($layout) {
 ?>
 
 <!-- 2x Column Contained -->
-<table role="presentation" border="0" width="100%" align="center" cellpadding="0" cellspacing="0" style="width:100%;max-width:100%;" class="<?php echo $hideMobile; ?>">
+<table role="presentation" border="0" width="100%" align="center" cellpadding="0" cellspacing="0" style="width:100%;max-width:100%;" class="<?php echo $hideMobile.' '.$hideDesktop; ?>">
   <tr>
     <td align="center" valign="top">
       <table role="presentation" border="0" width="100%" align="center" cellpadding="0" cellspacing="0" class="row" style="width:100%;max-width:100%;">

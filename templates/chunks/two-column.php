@@ -7,12 +7,12 @@ $chunkSettings = get_sub_field('chunk_settings');
 	$magicWrap = $chunkSettings['magic_wrap'] ?? false;
 	
 
-$mobileVis = get_sub_field('mobile_visibility');
+$mobileVis = $chunkSettings['mobile_visibility'];
 	$hideMobile = '';
 	if ($mobileVis == false) {
 		$hideMobile = 'hide-mobile';
 	}
-$desktopVis = get_sub_field('desktop_visibility');
+$desktopVis = $chunkSettings['desktop_visibility'];
 	$hideDesktop = '';
 	if ($desktopVis == false) {
 		$hideDesktop = 'hide-desktop';

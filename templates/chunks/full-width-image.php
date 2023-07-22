@@ -9,7 +9,7 @@ if (get_sub_field('mobile_image') == true || $onRepo == true) {
 }
 $altTag = ( get_sub_field('alt_tag') != '' ) ? get_sub_field('alt_tag') : '';
 $imageLink = ( get_sub_field('image_link') != '' ) ? get_sub_field('image_link') : 'https://www.idtech.com';
-$mobileVis = get_sub_field('mobile_visibility');
+
 
 $dtClass = '';
 if (get_sub_field('mobile_image') == true || $onRepo == true) {
@@ -17,13 +17,15 @@ if (get_sub_field('mobile_image') == true || $onRepo == true) {
 } else {
 	$dtClass = '';
 }
-//if we're hiding the whole block on mobile
+$chunkSettings = get_sub_field('chunk_settings');
+//if we're hiding the whole block on mobile or desktop
 $hideMobile = '';
+$mobileVis = $chunkSettings['mobile_visibility'] ?? true;
 if ($mobileVis == false) {
 	$hideMobile = 'hide-mobile';
 }
-$desktopVis = get_sub_field('desktop_visibility');
 $hideDesktop = '';
+$desktopVis = $chunkSettings['desktop_visibility'] ?? true;
 if ($desktopVis == false) {
 	$hideDesktop = 'hide-desktop';
 }

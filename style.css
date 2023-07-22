@@ -652,8 +652,8 @@ body.single-idemailwiz_template #footer {
 	z-index: 99;
 }
 .acf-color-picker .button {
-	border: 0;
-	border-radius: 3px;
+	border: 1px solid #eee!important;
+	border-radius: 5px;
 	line-height: 1!important;
 }
 .acf-color-picker .wp-color-result.wp-picker-open {
@@ -673,12 +673,27 @@ body.single-idemailwiz_template #footer {
 	background-color: #666;
 }
 
+.acf-accordion-title,
+.acf-accordion-title label {
+	cursor: pointer!important;
+}
+.acf-accordion-title label .dashicons {
+	margin-right: 10px;
+}
+.acf-accordion.-open .acf-accordion-title {
+	background-color: #f3f4f5!important;
+}
+.acf-accordion-content, 
+.acf-accordion .acf-fields, 
+.acf-accordion .acf-field {
+	background-color: #f3f4f5!important;
+}
 /*tinymce stuff*/
 .mce-container .mce-txt {
 	color: #222!important;
 }
 .mce-container button {
-	background-color: #eee!important;
+	background-color: #f3f4f5!important;
 	color: #222;
 }
 
@@ -761,8 +776,20 @@ body.single-idemailwiz_template #footer {
 	bottom: 0;
 	left: 0;
 	right: 0;
-	background-color:rgba(0,0,0,.9);
+	background-color:rgba(0,0,0,.95);
 	z-index: 990;
+}
+#iDoverlay:after {
+	content: "Loading wizard....";
+	position: fixed;
+	top: 40%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 995;
+	color: #fff;
+	font-size: 32px;
+	font-weight: bold;
+	font-style: italic;
 }
 #iDspinner {
 	display: none;

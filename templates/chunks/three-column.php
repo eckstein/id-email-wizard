@@ -2,12 +2,13 @@
 //Chunk Settings
 $chunkSettings = get_sub_field('chunk_settings');
 	$bgColor = $chunkSettings['background_color'] ?? '#FFFFFF';
-$mobileVis = get_sub_field('mobile_visibility');
+$mobileVis = $chunkSettings['mobile_visibility'] ?? true;
+$hideMobile = $mobileVis ? '' : 'hide-mobile';;
 	$hideMobile = '';
 	if ($mobileVis == false) {
 		$hideMobile = 'hide-mobile';
 	}
-$desktopVis = get_sub_field('desktop_visibility');
+$desktopVis = $chunkSettings['desktop_visibility'] ?? true;
 	$hideDesktop = '';
 	if ($desktopVis == false) {
 		$hideDesktop = 'hide-desktop';
