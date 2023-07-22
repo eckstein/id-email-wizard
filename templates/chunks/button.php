@@ -10,10 +10,15 @@ $chunkSettings = get_sub_field('chunk_settings');
 	$borderSize = $chunkSettings['border_size'] ?? '1px';
 	$borderRad = $chunkSettings['border_radius'] ?? '3px';
 	$mobileVis = $chunkSettings['mobile_visibility'] ?? true;
+	$desktopVis = $chunkSettings['desktop_visibility'] ?? true;
 	$spacing = $chunkSettings['spacing'] ?? array('top','bottom');
 	$hideMobile = '';
+	$hideDesktop = '';
 	if ($mobileVis == false) {
 		$hideMobile = 'hide-mobile';
+	}
+  if ($desktopVis == false) {
+		$hideDesktop = 'hide-desktop';
 	}
 	$topSpacing = false;
 	$btmSpacing = false;
@@ -26,7 +31,7 @@ $chunkSettings = get_sub_field('chunk_settings');
 ?>
 
 <!-- Button -->
-<table border="0" width="100%" align="center" cellpadding="0" cellspacing="0" style="width:100%;max-width:100%;" class="iDbutton <?php echo $hideMobile; ?>">
+<table border="0" width="100%" align="center" cellpadding="0" cellspacing="0" style="width:100%;max-width:100%;" class="iDbutton <?php echo $hideMobile.' '.$hideDesktop; ?>">
   <tbody>
     <tr>
       <td class="text-2" align="center" valign="top">

@@ -25,13 +25,19 @@ if (in_array('bottom',$spacing)) {
 $btmSpacing = true;
 }
 $mobileVis = $chunkSettings['mobile_visibility'] ?? $defaultSettings['mobile_visibility'];
+$desktopVis = $chunkSettings['desktop_visibility'] ?? $defaultSettings['desktop_visibility'];
 $hideMobile = '';
+$hideDesktop = '';
 if ($mobileVis == false) {
 $hideMobile = 'hide-mobile';
-}?>
+}
+if ($desktopVis == false) {
+$hideDesktop = 'hide-desktop';
+}
+?>
 
 <!-- Plain Text -->
-<table role="presentation" border="0" width="100%" align="center" cellpadding="0" cellspacing="0" style="width: 100%; max-width: 100%;" class="<?php echo $hideMobile; ?>">
+<table role="presentation" border="0" width="100%" align="center" cellpadding="0" cellspacing="0" style="width: 100%; max-width: 100%;" class="<?php echo $hideMobile.' '.$hideDesktop; ?>">
   <tr>
     <td align="center" valign="top">
       <table role="presentation" border="0" width="100%" align="center" cellpadding="0" cellspacing="0" class="row" style="width: 100%; max-width: 100%;">

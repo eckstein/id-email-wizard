@@ -164,7 +164,8 @@ body.single-idemailwiz_template #footer {
 }
 
 	#templateUI.two-col-wrap .left {
-		flex: 1 0 50%;
+		flex: 50%;
+		max-width:calc(100% - 820px);
 		overflow-y: auto;
 	}
 		
@@ -637,7 +638,40 @@ body.single-idemailwiz_template #footer {
 	color: #fff!important;
 	padding: 20px!important;
 }
-
+.acf-field.acf-field-color-picker .acf-label {
+	
+}
+.acf-field.acf-field-color-picker {
+	
+}
+.acf-color-picker .wp-picker-container.wp-picker-active {
+	padding: 10px;
+	border-radius: 5px;
+	background-color: #fff;
+	box-shadow: 0px 0px 8px 0px rgba(0,0,0,0.59);
+	z-index: 99;
+}
+.acf-color-picker .button {
+	border: 0;
+	border-radius: 3px;
+	line-height: 1!important;
+}
+.acf-color-picker .wp-color-result.wp-picker-open {
+	border: 1px solid #eee;
+}
+.acf-color-picker .wp-color-result-text {
+	border: 1px solid #222;
+}
+.acf-color-picker .wp-color-result:focus {
+	box-shadow: none;
+}
+.acf-color-picker button.wp-picker-clear {
+	line-height: 1;
+	cursor: pointer;
+}
+.acf-color-picker .wp-picker-clear:hover {
+	background-color: #666;
+}
 
 /*tinymce stuff*/
 .mce-container .mce-txt {

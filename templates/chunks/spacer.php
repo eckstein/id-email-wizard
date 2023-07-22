@@ -6,10 +6,15 @@ $mobileVis = ( get_sub_field('mobile_visibility') != '' ) ? get_sub_field('mobil
 	if ($mobileVis == false) {
 		$hideMobile = 'hide-mobile';
 	}
+  $desktopVis = ( get_sub_field('desktop_visibility') != '' ) ? get_sub_field('desktop_visibility') : true;
+	$hideDesktop = '';
+	if ($desktopVis == false) {
+		$hideDesktop = 'hide-mobile';
+	}
 ?>
 
 <!-- Spacer -->
-<table role="presentation" border="0" width="100%" align="center" cellpadding="0" cellspacing="0" style="width:100%;max-width:100%;" class="<?php echo $hideMobile; ?>">
+<table role="presentation" border="0" width="100%" align="center" cellpadding="0" cellspacing="0" style="width:100%;max-width:100%;" class="<?php echo $hideMobile.' '.$hideDesktop; ?>">
   <tr>
     <td class="text-2" align="center" valign="top">
       <table role="presentation" border="0" width="100%" align="center" cellpadding="0" cellspacing="0" class="row" style="width:100%;max-width:100%;">

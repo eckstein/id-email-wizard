@@ -12,6 +12,11 @@ $mobileVis = get_sub_field('mobile_visibility');
 	if ($mobileVis == false) {
 		$hideMobile = 'hide-mobile';
 	}
+$desktopVis = get_sub_field('desktop_visibility');
+	$hideDesktop = '';
+	if ($desktopVis == false) {
+		$hideDesktop = 'hide-desktop';
+	}
 
 
 
@@ -123,7 +128,7 @@ switch ($layout) {
 ?>
 
 <!-- 2x Column -->
-<table role="presentation" border="0" width="100%" align="center" cellpadding="0" cellspacing="0" style="width:100%;max-width:100%;" class="<?php echo $hideMobile; ?>">
+<table role="presentation" border="0" width="100%" align="center" cellpadding="0" cellspacing="0" style="width:100%;max-width:100%;" class="<?php echo $hideMobile.' '.$hideDesktop; ?>">
   <tr>
     <td align="center" valign="top">
       <table role="presentation" border="0" width="100%" align="center" cellpadding="0" cellspacing="0" class="row" style="width:100%;max-width:100%;">
