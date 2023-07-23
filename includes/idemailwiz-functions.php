@@ -5,6 +5,9 @@ function insert_overlay_loader() {
   ?>
   <div id="iDoverlay"></div>
   <div id="iDspinner" class="loader"></div>
+  <?php
+  }
+  ?>
   <script type="text/javascript">
     // Function to show and hide overlays and spinners
   const toggleOverlay = (show = true) => {
@@ -15,7 +18,6 @@ function insert_overlay_loader() {
       toggleOverlay();
   </script>
   <?php
-  }
 }
 add_action('wp_head', 'insert_overlay_loader');
 
@@ -38,6 +40,7 @@ function iD_generate_chunk($chunk) {
 
   return $return;
 }
+
 
 
 

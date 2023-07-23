@@ -165,9 +165,54 @@ function redirect_to_proper_url() {
         exit;
     }
 }
-add_action('template_redirect', 'redirect_to_proper_url');
+add_action('template_redirect', 'redirect_to_proper_url', 11);
+
+//Custom endpoint for iframe email template preview src
+function idemailwiz_custom_template_preview_endpoint() {
+    add_rewrite_endpoint('build-template', EP_ROOT);
+}
+//custom endpoint callback
+add_action('init', 'idemailwiz_custom_template_preview_endpoint');
+
+//Handle what happens when the custom endpoint is called (which is via the src parameter of the preview iframe)
+function idemailwiz_handle_build_template_request() {
+    global $wp_query;
+    
+    // If this is not a request for build-template then bail
+    if (!isset($wp_query->query_vars['build-template']))
+        return;
+
+    // Get the template ID from the query vars
+    $template_id = intval($wp_query->query_vars['build-template']);
+
+    // Define the path of the build-template.php file
+    $template_file = plugin_dir_path( __FILE__ ) . 'templates/build-template.php';
+
+    // Check if the file exists
+    if (!file_exists($template_file)) {
+        return;
+    }
+
+    // Include the build-template.php file
+    ob_start();
+    include $template_file;
+    $template = ob_get_clean();
+
+    // Output the correct HTTP headers
+    header("HTTP/1.1 200 OK");
+    header("Content-Type: text/html");
+
+    // Display the template
+    echo $template;
+
+    // Stop execution
+    exit;
+}
+add_action('template_redirect', 'idemailwiz_handle_build_template_request');
 
 
+
+//Enqueue stuff
 add_action( 'wp_enqueue_scripts', 'idemailwiz_enqueue_assets' );
 function idemailwiz_enqueue_assets() {
     $scripts = array(

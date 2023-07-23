@@ -1,33 +1,32 @@
 <?php
-$onRepo = false;
-if (is_page('366')) {
-	$onRepo = true;
-}
-$dtImage = ( get_sub_field('desktop_image_url') != '' ) ? get_sub_field('desktop_image_url') : 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/full-width-image.jpg';
-if (get_sub_field('mobile_image') == true || $onRepo == true) {
-	$mobImage = ( get_sub_field('mobile_image_url') != '' ) ? get_sub_field('mobile_image_url') : 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/full-width-mobile-image.jpg';
-}
-$altTag = ( get_sub_field('alt_tag') != '' ) ? get_sub_field('alt_tag') : '';
-$imageLink = ( get_sub_field('image_link') != '' ) ? get_sub_field('image_link') : 'https://www.idtech.com';
+$chunkSettings = $chunk['chunk_settings'];
 
+$useMobileAlt = $chunk['mobile_image'] ?? false;
 
-$dtClass = '';
-if (get_sub_field('mobile_image') == true || $onRepo == true) {
+$desktopImage = $chunk['desktop_image_url'];
+$mobileImage = $chunk['mobile_image_url'];
+
+$imageLink = $chunk['image_link'];
+$imageAltTag = $chunk['alt_tag'] ?? '';
+
+//conditionally apply hide-mobile class to desktop image if mobile image is enabled
+if (isset($chunk['mobile_image'])) {
 	$dtClass = 'hide-mobile';
 } else {
 	$dtClass = '';
 }
-$chunkSettings = get_sub_field('chunk_settings');
-//if we're hiding the whole block on mobile or desktop
-$hideMobile = '';
-$mobileVis = $chunkSettings['mobile_visibility'] ?? true;
-if ($mobileVis == false) {
-	$hideMobile = 'hide-mobile';
+
+$showOnDesktop = $chunkSettings['desktop_visibility'] ?? true;
+if (!$showOnDesktop){
+  $hideDesktop = 'hide-desktop';
+} else {
+  $hideDesktop = '';
 }
-$hideDesktop = '';
-$desktopVis = $chunkSettings['desktop_visibility'] ?? true;
-if ($desktopVis == false) {
-	$hideDesktop = 'hide-desktop';
+$showOnMobile = $chunkSettings['mobile_visibility'] ?? true;
+if (!$showOnMobile){
+  $hideMobile = 'hide-mobile';
+} else {
+  $hideMobile = '';
 }
 ?>
 
@@ -53,15 +52,15 @@ if ($desktopVis == false) {
                       <td align="center" valign="top" class="img-responsive img800">
                         <a href="<?php echo $imageLink; ?>"><img style=
                           "display:block;width:100%;max-width:800px;display:block;border:0px;" src=
-                          "<?php echo $dtImage; ?>"
+                          "<?php echo $desktopImage; ?>"
                           width="800" border="0" alt=
-                          "<?php echo $altTag; ?>" /></a>
+                          "<?php echo $imageAltTag; ?>" /></a>
                       </td>
                     </tr>
                   </table>
                   <!-- /End Desktop Image-->
 
-<?php if (get_sub_field('mobile_image') == true || $onRepo == true) { ?>
+<?php if ($useMobileAlt) { ?>
                   <!--Mobile Image-->
                   <!-- the .hide-desktop class is always present since we'll never want to show mobile images on desktop -->
                   <!-- If Outlook (mso), always exclude the mobile image since it lacks @media support-->
@@ -72,9 +71,9 @@ if ($desktopVis == false) {
                       <td align="center" valign="top" class="img-responsive img800">
                         <a href="<?php echo $imageLink; ?>"><img style=
                           "display:block;width:100%;max-width:800px;display:block;border:0px;" src=
-                          "<?php echo $mobImage; ?>"
+                          "<?php echo $mobileImage; ?>"
                           width="800" border="0" alt=
-                          "<?php echo $altTag; ?>" /></a>
+                          "<?php echo $imageAltTag; ?>" /></a>
                       </td>
                     </tr>
                   </table>

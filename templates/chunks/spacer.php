@@ -1,8 +1,8 @@
 <?php
-$height = ( get_sub_field('spacer_height') != '' ) ? get_sub_field('spacer_height') : '20';
-$bgColor = ( get_sub_field('background_color') != '' ) ? get_sub_field('background_color') : '#FFFFFF';
+$height = $chunk['spacer_height'] ?? '20';
+$bgColor = $chunk['background_color'] ?? '#FFFFFF';
 
-$chunkSettings = get_sub_field('chunk_settings');
+$chunkSettings = $chunk['chunk_settings'];
 
 $mobileVis = $chunkSettings['mobile_visibility'] != '' ? $chunkSettings['mobile_visibility'] : true;
 	$hideMobile = '';

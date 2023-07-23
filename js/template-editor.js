@@ -13,45 +13,11 @@ jQuery(document).ready(function ($) {
 
 	//Show mobile preview
 	$('#showMobile').click(function () {
-		$.ajax({
-			url: idAjax.ajaxurl,
-			type: 'POST',
-			data: {
-				action: 'load_mobile_css',
-				css_file: idAjax.plugin_url + '/styles/inlineStyles-mobile.css',
-				security: idAjax_template_editor.nonce
-			},
-			success: function (response) {
-				$('#inline-styles').html(response);
-				$('#templatePreview').addClass('mobileMode');
-				$('#showMobile').addClass('active');
-				$('#showDesktop').removeClass('active');
-			},
-			error: function (xhr, status, error) {
-				console.log('Error: ' + error);
-			}
-		});
+		$('#previewFrame').addClass('mobile-preview');		
 	});
 	//Show desktop preview
 	$('#showDesktop').click(function () {
-		$.ajax({
-			url: idAjax.ajaxurl,
-			type: 'POST',
-			data: {
-				action: 'load_mobile_css',
-				css_file: idAjax.plugin_url + '/styles/inlineStyles.css',
-				security: idAjax_template_editor.nonce
-			},
-			success: function (response) {
-				$('#inline-styles').html(response);
-				$('#templatePreview').removeClass('mobileMode');
-				$('#showDesktop').addClass('active');
-				$('#showMobile').removeClass('active');
-			},
-			error: function (xhr, status, error) {
-				console.log('Error: ' + error);
-			}
-		});
+		$('#previewFrame').removeClass('mobile-preview');  
 	});
 
 	//Save ACF form on click outside of form
@@ -69,9 +35,9 @@ jQuery(document).ready(function ($) {
 		tempInput.select();
 		document.execCommand("copy");
 		document.body.removeChild(tempInput);
-		$('.copyConfirm').fadeIn(1000, function () {
+		$(this).text('Code copied!', function () {
 			setTimeout(function () {
-				$('.copyConfirm').fadeOut(1000);
+				$(this).text('Copy code');
 			}, 5000);
 		});
 	});
@@ -137,43 +103,49 @@ jQuery(document).ready(function ($) {
 
 	});
 
-//When a chunk of preview is clicked, we open the chunk editor
-$('.chunkWrap').on('click', function (e) {
-	e.preventDefault();
-	chunkWrapActivate(this);
+// Wait until the iframe has loaded before setting up event handlers
+$("iframe#previewFrame").on('load', function() {
+    var preview = $(this).contents();
+
+    preview.find('.chunkWrap').on('click', function (e) {
+        e.preventDefault();
+        chunkWrapActivate(preview, this);
+    });
 });
-//Activate the ACF chunk when a preview chunk is clicked
-function chunkWrapActivate(chunk) {
+
+function chunkWrapActivate(preview, chunk) {
     // If the layout is already activated, ignore the click
     if ($(chunk).hasClass('active')) {
         return;
     }
 
     var editorID = $(chunk).attr('data-id');
-    var attachedEditor = $('.layout[data-id="' + editorID + '"');
+    var attachedEditor = $('.layout[data-id="' + editorID + '"]');
 
     if (attachedEditor.length === 0) {
         console.log('No editor found with ID: ' + editorID);
         return;
     }
 
-    $('.layout').addClass('-collapsed');
-    $('.chunkWrap').removeClass('active');
+    // Remove the active class from all chunkWraps in the iframe
+    preview.find('.chunkWrap').removeClass('active');
+
+    // Add the active class to the clicked chunkWrap
     $(chunk).addClass('active');
+
+    // Collapse all layouts and expand the attachedEditor
+    $('.layout').addClass('-collapsed');
     attachedEditor.removeClass('-collapsed').trigger('editorActivated');
 
     // Switch to the main editor tab if we're on the settings tab
     $('a[data-key="field_63e3d761ed5b4"]').click();
 
-    // Scroll the #builder div to the bottom of the expanded .layout element
+    // Scroll the #builder div to the expanded .layout element
     // with a 40px offset from the top
     var builder = $('#builder');
     var scrollPos = attachedEditor.offset().top - builder.offset().top - 40;
     smoothScroll(builder[0], scrollPos, 500); // animate over 500ms
 }
-
-
-
 
 
 // When ACF layout field is clicked
@@ -182,32 +154,34 @@ $('.acf-fc-layout-handle').on('click', function () {
     var layout = $(this).parent('.layout');
     layout.siblings('.layout').addClass('-collapsed');
 
-    // Deactivate all chunkWraps before activating the corresponding one
-    $('.chunkWrap').removeClass('active');
+    var previewPane = $("iframe#previewFrame").contents();
 
-    var correspondingChunkWrap = $('.chunkWrap[data-id="' + chunkID + '"]');
+    // Deactivate all chunkWraps before activating the corresponding one
+    previewPane.find('.chunkWrap').removeClass('active');
+
+    var correspondingChunkWrap = previewPane.find('.chunkWrap[data-id="' + chunkID + '"]');
     correspondingChunkWrap.addClass('active');
 
+    // Calculate the scroll position relative to the iframe's body
+    var scrollPos = correspondingChunkWrap.offset().top - 40;
+
+    // Animate the scroll position of the iframe's body
+    previewPane.find('body, html').animate({ scrollTop: scrollPos }, 500);
+
     if (layout.hasClass('-collapsed')) {
-        var previewPane = $('#preview');
-        var newScrollTop = correspondingChunkWrap.offset().top - previewPane.offset().top + previewPane.scrollTop();
-
-        previewPane.animate({
-            scrollTop: newScrollTop - 100
-        }, 500);
-
         // Delay the scroll operation to give the layout time to expand
         setTimeout(function() {
             // Scroll the #builder div to the bottom of the expanded .layout element
             // with a 40px offset from the top
             var builder = $('#builder');
             var scrollPos = layout.offset().top - builder.offset().top - 40;
-            smoothScroll(builder[0], scrollPos, 250); // animate over #ms
+            smoothScroll(builder[0], scrollPos, 250); // animate over 250ms
         }, 200); // 200 ms delay, adjust as needed
     } else {
         correspondingChunkWrap.removeClass('active');
     }
 });
+
 
 //collapse all acf groups on page load
 $('.layout').addClass('-collapsed');

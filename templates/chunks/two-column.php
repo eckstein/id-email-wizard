@@ -1,6 +1,6 @@
 <?php
 //Chunk Settings
-$chunkSettings = get_sub_field('chunk_settings');
+$chunkSettings = $chunk['chunk_settings'];
 	$bgColor = $chunkSettings['background_color'] ?? '#FFFFFF';
 	$mobileImgSetting = $chunkSettings['mobile_images'] ?? 'alt';
 	$layout = $chunkSettings['layout'] ?? 'ltr';
@@ -26,8 +26,8 @@ $desktopVis = $chunkSettings['desktop_visibility'];
 	$colRight = '';
 switch ($layout) {
 	case 'ltr':
-		$image = get_sub_field('left_image') ? get_sub_field('left_image') : array('left_image_url'=>'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/square-image.jpg','left_image_link'=>'https://www.idtech.com','left_image_alt'=>'','left_image_url_mobile'=>'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/square-image.jpg');
-		$text = get_sub_field('right_text') ?? array('text_content'=>'Your content here!','align'=>'center','text_color'=>'#000000','center_on_mobile'=>true);
+		$image = $chunk['left_image'] ? $chunk['left_image'] : array('left_image_url'=>'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/square-image.jpg','left_image_link'=>'https://www.idtech.com','left_image_alt'=>'','left_image_url_mobile'=>'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/square-image.jpg');
+		$text = $chunk['right_text'] ?? array('text_content'=>'Your content here!','align'=>'center','text_color'=>'#000000','center_on_mobile'=>true);
 		if (isset($text['add_button']) && $text['add_button'] != false) {
 			$inlineButton = $text['inline_button'];
 		} else {
@@ -51,8 +51,8 @@ switch ($layout) {
 		}
 	break;
 	case 'rtl':
-			$image = get_sub_field('right_image');
-			$text = get_sub_field('left_text') ?? array('text_content'=>'Your content here!','align'=>'center','text_color'=>'#000000','center_on_mobile'=>true);
+			$image = $chunk['right_image'];
+			$text = $chunk['left_text'] ?? array('text_content'=>'Your content here!','align'=>'center','text_color'=>'#000000','center_on_mobile'=>true);
 			if (isset($text['add_button']) && $text['add_button'] != false) {
 				$inlineButton = $text['inline_button'];
 			} else {
@@ -79,8 +79,8 @@ switch ($layout) {
 	break;
 	case 'img':
 		
-		$image = get_sub_field('left_image');
-		$image2 = get_sub_field('right_image');
+		$image = $chunk['left_image'];
+		$image2 = $chunk['right_image'];
 		if ($magicWrap) {
 			$layoutDirLeft = 'right';
 			$colRight = fillImage($image['left_image_url'],$image['left_image_link'],$image['left_image_alt'],$mobileImgSetting,$image['left_image_url_mobile'],'400');
@@ -92,8 +92,8 @@ switch ($layout) {
 		}
 	break;
 	case 'txt':
-		$text = get_sub_field('left_text') ? get_sub_field('left_text') : array('text_content'=>'Your content here!','align'=>'center','text_color'=>'#000000','center_on_mobile'=>true);
-		$text2 = get_sub_field('right_text') ? get_sub_field('right_text') : array('text_content'=>'Your content here!','align'=>'center','text_color'=>'#000000','center_on_mobile'=>true);
+		$text = $chunk['left_text'] ? $chunk['left_text'] : array('text_content'=>'Your content here!','align'=>'center','text_color'=>'#000000','center_on_mobile'=>true);
+		$text2 = $chunk['right_text'] ? $chunk['right_text'] : array('text_content'=>'Your content here!','align'=>'center','text_color'=>'#000000','center_on_mobile'=>true);
 		if ($text['add_button'] != false) {
 			$inlineButton = $text['inline_button'];
 		} else {

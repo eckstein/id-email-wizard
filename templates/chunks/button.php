@@ -1,8 +1,7 @@
 <?php
-
-$ctaText = ( get_sub_field('cta_text') != '' ) ? get_sub_field('cta_text') : 'Click Here';
-$ctaUrl = ( get_sub_field('cta_url') != '' ) ? get_sub_field('cta_url') : 'https://www.idtech.com';
-$chunkSettings = get_sub_field('chunk_settings');
+$chunkSettings = $chunk['chunk_settings'];
+	$ctaText = $chunkSettings['cta_text'] ?? 'Click here';
+	$ctaUrl = $chunkSettings['cta_url'] ?? 'https://www.idtech.com';
 	$bgColor = $chunkSettings['button_background_color'] ?? '#94d500';
 	$chunkBgColor = $chunkSettings['chunk_background_color'] ?? '#FFFFFF';
 	$textColor = $chunkSettings['text_color'] ?? '#FFFFFF';
@@ -30,6 +29,7 @@ $chunkSettings = get_sub_field('chunk_settings');
 }
 ?>
 
+
 <!-- Button -->
 <table border="0" width="100%" align="center" cellpadding="0" cellspacing="0" style="width:100%;max-width:100%;" class="iDbutton <?php echo $hideMobile.' '.$hideDesktop; ?>">
   <tbody>
@@ -55,7 +55,7 @@ $chunkSettings = get_sub_field('chunk_settings');
                                         <table border="0" width="100%" cellpadding="0" cellspacing="0" align="center" style="width:100%;max-width:100%;">
                                           <tbody>
                                             <tr>
-                                              <td valign="middle" align="center" style="font-family:Roboto, Arial, Helvetica, sans-serif;font-size:14px;line-height:19px;font-weight:bolder;font-style:normal;color:<?php echo $textColor; ?>;text-decoration:none;letter-spacing:0px;">
+                                              <td valign="middle" align="center">
 <?php if($topSpacing) {?>
                                                <!-- Optional Top Space -->
                                                <table border="0" width="100%" align="center" cellpadding="0" cellspacing="0" style="width:100%;max-width:100%;background-color:<?php echo $chunkBgColor; ?>;">

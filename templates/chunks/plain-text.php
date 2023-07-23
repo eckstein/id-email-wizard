@@ -5,13 +5,9 @@ $defaultSettings = array(
 'background_color' => '#FFFFFF',
 'mobile_visibility' => true,
 );
-$chunkSettings = get_sub_field('chunk_settings') ?? $defaultSettings;
-if (get_sub_field('plain_text_content')) {
-$textContent = get_sub_field('plain_text_content');
-} else {
-$textContent = 'Your content goes here! 
-';
-}
+$chunkSettings = $chunk['chunk_settings'];
+$textContent = $chunk['plain_text_content'] ?? 'Your content goes here!';
+
 $contentAlign = $chunkSettings['align_content'] ?? 'center';
 $textColor = $chunkSettings['text_color'] ?? '#000000';
 $bgColor = $chunkSettings['background_color'] ?? '#FFFFFF';
@@ -51,7 +47,7 @@ $hideDesktop = 'hide-desktop';
                       <td align="center" valign="top" class="container-padding">
                         <table role="presentation" border="0" width="100%" cellpadding="0" cellspacing="0" align="center" style="width: 100%; max-width: 100%;">
                           <tr>
-                            <td class="text responsive-text <?php echo $contentAlign; ?>-text" valign="middle" align="<?php echo $contentAlign; ?>" style="font-family:Poppins, sans-serif;color:<?php echo $textColor ?? '[TEXTCOLOR]'; ?>!important;text-decoration:none;">
+                            <td class="text responsive-text <?php echo $contentAlign; ?>-text" valign="middle" align="<?php echo $contentAlign; ?>" style="font-family:Poppins, sans-serif;color:<?php echo $textColor; ?>!important;text-decoration:none;">
 <?php if($topSpacing) {?>
                               <!-- Optional Top Space -->
                               <table role="presentation" border="0" width="100%" align="center" cellpadding="0" cellspacing="0" style="width:100%;max-width:100%;background-color:<?php echo $bgColor; ?>;">

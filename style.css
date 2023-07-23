@@ -171,7 +171,6 @@ body.single-idemailwiz_template #footer {
 		
 	#templateUI.two-col-wrap .right {
 		flex: 0 0 820px;
-		overflow-y: auto; 
 		position: relative;
 	}
 	
@@ -230,55 +229,21 @@ body.single-idemailwiz_template #footer {
 	background-color: #f4f4f4;
 	box-sizing: border-box!important;
 	font-family:Poppins, sans-serif!important;
+	height: 100%;
+	display: flex;
 }
-#templatePreview.mobileMode {
-	width: 370px;
-	margin: 20px auto 0 auto;
-	height: 600px;
-	overflow-y:scroll;
-	border-radius: 10px;
-	border: 3px solid #343434;
-	padding: 20px;
+#previewFrame {
+	width: 100%;
+	height: 92%;
+	background-color: #fff;
+	color: #000;
 }
-#templatePreview p, #templatePreview td p {
-	margin-bottom: 0!important;
-}
-#templatePreview table, #templatePreview tr, #templatePreview td, #templatePreview div, #templatePreview span, #templatePreview p, #templatePreview a{
-	font-family:Poppins, sans-serif!important;
-}
-#templatePreview a:not(.button-link) {
-	text-decoration: underline!important;
-	color: blue!important;
-}
-#templatePreview a.button-link {
-	text-decoration: none!important;
-}
-#templatePreview td {
-	border: 0;
-	padding: 0;
-}
-	
-#templatePreview table, .wp-block-table {
-	min-width: 0;
-}
-	#templatePreview > table.iDbutton > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td > table.center-float {
-		width: auto!important;
-	}
-#templatePreview table.center-float {
-	width: auto!important;
-}
-#templatePreview .finePrint {
-	text-align: center;
-	color: #666;
-	padding: 0 20px 20px 20px;
-	font-size: 12px;
-	background-color: #F4F4F4;
-}
-@media screen and (max-width: 768px) {
-	#templatePreview .responsive-text {
-		padding-left: 10px!important;
-		padding-right: 10px!important;
-	}
+#previewFrame.mobile-preview {
+	height: 667px;
+	width: 375px;
+	margin: 40px auto 0;
+	border-radius: 20px;
+	border: 10px solid #222;
 }
 
 /* Edit Template, Template Actions */
@@ -296,8 +261,7 @@ body.single-idemailwiz_template #footer {
 		
 		#templateActions {
 			background-color: #efefef;
-			position: sticky;
-			top: 0;
+			
 			z-index: 989;
 		}
 		.moveFolder, .deleteFolder {
@@ -787,7 +751,7 @@ body.single-idemailwiz_template #footer {
 	transform: translate(-50%, -50%);
 	z-index: 995;
 	color: #fff;
-	font-size: 32px;
+	font-size: 24px;
 	font-weight: bold;
 	font-style: italic;
 }
@@ -820,39 +784,7 @@ body.single-idemailwiz_template #footer {
 	display: none;
 }
 
-.chunkWrap {
-	border: 2px solid rgba(255,255,255,0);
-	position:relative;
-	cursor: pointer;
-}
-	.chunkWrap:hover {
-		border: 2px solid #666;
-	}
-	.chunkWrap.active {
-		border: 2px solid #000!important;
-	}
-.chunkWrap:hover .chunkOverlay {
-	display: block;
-}
-.chunkOverlay {
-	display: none;
-	position: absolute;
-	top: 5px;
-	right: 5px;
-}
-	.chunkOverlay .chunk-label {
-		font-size: 12px;
-		padding: 5px;
-		background-color: rgba(0,0,0,.9);
-		color: #fff;
-		display: inline-block;
-		margin-right: 10px;
-	}
-.showChunkCode:hover {
-	background-color: #222!important;
-	color: #fff!important;
-	border-color: #222!important;
-}
+
 
 
 
@@ -863,8 +795,8 @@ body.single-idemailwiz_template #footer {
   color: #ffffff;
   font-size: 20px;
   margin: 100px auto;
-  width: 1em;
-  height: 1em;
+  width: .5em;
+  height: .5em;
   border-radius: 50%;
   position: relative;
   text-indent: -9999em;
