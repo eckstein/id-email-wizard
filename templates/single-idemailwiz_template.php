@@ -23,6 +23,7 @@ $itTemplateId = get_post_meta(get_the_ID(),'itTemplateId',true) ?? '';
 			echo '<em>Not synced.</em>';
 		} ?>
 	</div>
+	<div id="builder-chunks">
 		<?php
 		$acfForm = array(
 			'id' => 'id-chunks-creator',
@@ -32,7 +33,8 @@ $itTemplateId = get_post_meta(get_the_ID(),'itTemplateId',true) ?? '';
 		);
 		acf_form( $acfForm ); 
 		?>
-		<div id="stopScroll"></div>
+		<div id="builder-chunks-scrollspace"></div>
+	</div>
 	</div>
 	
 	<div class="right" id="preview" type="text/html">

@@ -166,7 +166,7 @@ body.single-idemailwiz_template #footer {
 	#templateUI.two-col-wrap .left {
 		flex: 50%;
 		max-width:calc(100% - 820px);
-		overflow-y: auto;
+		overflow: hidden;
 	}
 		
 	#templateUI.two-col-wrap .right {
@@ -196,9 +196,16 @@ body.single-idemailwiz_template #footer {
 	font-size: 20px;
 }
 
-
+#builder-chunks {
+	overflow-y: auto;
+	height: 96%;
+}
+	#builder-chunks-scrollspace {
+		height: 100%;
+	}
 #id-chunks-creator {
 	background-color: #fff;
+	
 }
 #id-chunks-creator .layout {
 	margin-top: 0!important;
