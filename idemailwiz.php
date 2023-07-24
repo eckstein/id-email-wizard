@@ -64,6 +64,9 @@ function idemailwiz_deactivate() {
 
 //require files
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-functions.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/template-builder.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/chunk-helpers.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/folder-tree.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/folder-template-actions.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-wysiwyg.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/iterable-functions.php');
@@ -179,31 +182,12 @@ function idemailwiz_handle_build_template_request() {
     global $wp_query;
     
     // If this is not a request for build-template then bail
-    if (!isset($wp_query->query_vars['build-template']))
-        return;
-
-    // Get the template ID from the query vars
-    $template_id = intval($wp_query->query_vars['build-template']);
-
-    // Define the path of the build-template.php file
-    $template_file = plugin_dir_path( __FILE__ ) . 'templates/build-template.php';
-
-    // Check if the file exists
-    if (!file_exists($template_file)) {
+    if (!isset($wp_query->query_vars['build-template'])) {
         return;
     }
 
-    // Include the build-template.php file
-    ob_start();
-    include $template_file;
-    $template = ob_get_clean();
-
-    // Output the correct HTTP headers
-    header("HTTP/1.1 200 OK");
-    header("Content-Type: text/html");
-
     // Display the template
-    echo $template;
+    idemailwiz_build_template();
 
     // Stop execution
     exit;
@@ -239,6 +223,7 @@ function idemailwiz_enqueue_assets() {
 			'ajaxurl' => esc_url( admin_url( 'admin-ajax.php' ) ),
 			'currentPost' => get_post( get_the_ID() ),
 			'stylesheet' => plugins_url( '', __FILE__ ),
+            'plugin_url' => plugin_dir_url(__FILE__),
 		));
 	}
 	

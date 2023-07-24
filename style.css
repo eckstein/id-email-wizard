@@ -200,7 +200,7 @@ body.single-idemailwiz_template #footer {
 	overflow-y: auto;
 	height: 96%;
 }
-	#builder-chunks-scrollspace {
+	.builder-scrollspace {
 		height: 100%;
 	}
 #id-chunks-creator {

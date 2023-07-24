@@ -103,21 +103,13 @@ jQuery(document).ready(function ($) {
 
 	});
 
-//collapse all acf groups on page load
+//collapse all acf layout groups on page load
 $('.layout').addClass('-collapsed');
 //collapse all accordion on page load
 $('.acf-accordion.-open').removeClass('-open');
 $('.acf-accordion .acf-accordion-content').hide();
 
 	
-
-$('#templateTable').on('click', '.folderMenu i', function() {
-	$('.archive.category .aboveTemplateTable .folderMenu ul').slideToggle();
-});
-
-
-
-
 function scrollPanes(preview, chunk, layout) {
     // Calculate the scroll position for the preview pane
     var previewScrollPos = $(chunk).offset().top - 80;
@@ -186,6 +178,37 @@ $('.acf-fc-layout-handle').on('click', function () {
 });
 
 
+
+var timeoutId;
+
+$('#id-chunks-creator .acf-field').on('input change', function() {
+    var $field = $(this);  // Preserve context
+
+    clearTimeout(timeoutId);  // Clear the previous timer
+
+    timeoutId = setTimeout(function() {
+        console.log('form changed!');
+        var $form = $field.closest('.acf-form').clone();
+        var formData = new FormData($form[0]);
+        formData.append('action', 'idemailwiz_build_template');
+        
+        $.ajax({
+            url: idAjax.ajaxurl,
+            type: 'POST',
+            data: formData,
+            processData: false,  // tell jQuery not to process the data
+            contentType: false,  // tell jQuery not to set contentType
+            success: function(previewHtml) {
+                var iframe = $('#previewFrame')[0];
+                var iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
+                iframeDocument.open();
+                iframeDocument.write(previewHtml);
+                iframeDocument.close();
+            }
+        });
+
+    }, 500);  // Wait for 500ms of inactivity before calling the function
+});
 
 
 

@@ -1,10 +1,5 @@
 <?php 
-$defaultSettings = array(
-'spacing' => array('top','bottom'),
-'text_color' => '#000000',
-'background_color' => '#FFFFFF',
-'mobile_visibility' => true,
-);
+
 $chunkSettings = $chunk['chunk_settings'];
 $textContent = $chunk['plain_text_content'] ?? 'Your content goes here!';
 
@@ -20,8 +15,8 @@ $topSpacing = true;
 if (in_array('bottom',$spacing)) {
 $btmSpacing = true;
 }
-$mobileVis = $chunkSettings['mobile_visibility'] ?? $defaultSettings['mobile_visibility'];
-$desktopVis = $chunkSettings['desktop_visibility'] ?? $defaultSettings['desktop_visibility'];
+$mobileVis = $chunkSettings['mobile_visibility'] ?? true;
+$desktopVis = $chunkSettings['desktop_visibility'] ?? true;
 $hideMobile = '';
 $hideDesktop = '';
 if ($mobileVis == false) {

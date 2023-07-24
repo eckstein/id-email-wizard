@@ -33,7 +33,7 @@ $itTemplateId = get_post_meta(get_the_ID(),'itTemplateId',true) ?? '';
 		);
 		acf_form( $acfForm ); 
 		?>
-		<div id="builder-chunks-scrollspace"></div>
+		<div class="builder-scrollspace"></div>
 	</div>
 	</div>
 	
@@ -63,6 +63,7 @@ $itTemplateId = get_post_meta(get_the_ID(),'itTemplateId',true) ?? '';
 		<div id="templatePreview">
 		<iframe id="previewFrame" src="<?php echo home_url('build-template/' . get_the_ID()); ?>"></iframe>
 		</div>
+		
 	</div>
 </div>
 
