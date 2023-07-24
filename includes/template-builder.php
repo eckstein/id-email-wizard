@@ -1,15 +1,4 @@
 <?php
-function load_mobile_css() {
-  //check nonce
-  check_ajax_referer( 'template-editor', 'security' );
-
-  $css_file = $_POST['css_file'];
-  $output = '<link rel="stylesheet" href="' . $css_file . '" type="text/css" />';
-  echo $output;
-  die();
-}
-add_action('wp_ajax_load_mobile_css', 'load_mobile_css');
-
 
 add_action('wp_ajax_idemailwiz_build_template', 'idemailwiz_build_template');
 function idemailwiz_build_template() {
@@ -20,6 +9,7 @@ function idemailwiz_build_template() {
       //Strip slashes from text (since we're not making sql requests or anything dangerous)
       //Prevents slashes from showing in editor during ajax update to text fields.
       $formData = array_map('stripslashes_deep', $_POST);
+        //convert the acf keys to the field slugs so they will work in our chunk templates
         $formData = convert_keys_to_names($formData);
       $template_id = $formData['_acf_post_id'];
       $validated = $formData['_acf_validation'];
@@ -29,7 +19,9 @@ function idemailwiz_build_template() {
       $templateSettings = $fields['template_settings'];
       $templateFonts = $fields['template_styles'];
       $emailSettings = $fields['email_settings'];
+
   } else {
+    //Not a live update, just a regular page load, so we get the database values
       global $wp_query;
       $template_id = intval($wp_query->query_vars['build-template']);
       //TODO: Add settings fields to map settings to fields for better flexibility
@@ -38,7 +30,7 @@ function idemailwiz_build_template() {
       $templateFonts = get_field('field_63e3d784ed5b5', $template_id);
       $emailSettings = get_field('field_63e898c6dcd23', $template_id);
 
-      $chunks = convert_keys_to_names($chunks);
+      //$chunks = convert_keys_to_names($chunks);
   }
 
    //Preview pane styles
@@ -71,8 +63,12 @@ function idemailwiz_build_template() {
      $file = dirname(plugin_dir_path( __FILE__ )) . '/templates/chunks/' . $chunkFileName . '.php';
       if (file_exists($file)) {
           echo '<div class="chunkWrap" data-id="row-'.$i.'" data-chunk-layout="'.$chunk['acf_fc_layout'].'">';
+          ob_start();
           include($file);
+          $html = ob_get_contents();
+          ob_end_flush();
           echo '<div class="chunkOverlay"><span class="chunk-label">Chunk Type: '.$chunk['acf_fc_layout'].'</span><button class="showChunkCode" data-id="row-'.$i.'">Get Code</button></div>';
+          echo '<div class="chunkCode">'.htmlspecialchars($html).'</div>';
           echo '</div>';
       }
       $i++;
@@ -126,6 +122,74 @@ function idemailwiz_build_template() {
     return $new_array;
 }
 
+
+//Generate all the HTML for a template
+add_action('wp_ajax_idemailwiz_generate_template_html', 'idemailwiz_generate_template_html');
+function idemailwiz_generate_template_html() {
+    $template_id = $_POST['template_id'];
+    $chunks = get_field('field_63e3c7cfc01c6', $template_id);
+    $templateSettings = get_field('field_63e3d8d8cfd3a', $template_id);
+    $templateFonts = get_field('field_63e3d784ed5b5', $template_id);
+    $emailSettings = get_field('field_63e898c6dcd23', $template_id);
+    ob_start();
+
+    //Start Template
+    //Default email header (<head>, open tags, styles, etc)
+    include( dirname( plugin_dir_path( __FILE__ ) ) . '/templates/chunks/email-top.php' );
+    include(dirname(plugin_dir_path( __FILE__ ) ) . '/templates/chunks/css.php');
+    include(dirname(plugin_dir_path( __FILE__ ) ) . '/templates/chunks/end-email-top.php');
+    
+    
+    //Standard email header snippet, if active
+    if ($templateSettings['id_tech_header'] == true) {
+        include(dirname(plugin_dir_path( __FILE__ ) ) . '/templates/chunks/standard-email-header.php');
+        //include(dirname(plugin_dir_path( __FILE__ ) ) . '/templates/chunks/preview-header.html');
+    }
+    
+    
+
+    //Start Chunk Content
+    $i=0;
+    foreach ($chunks as $chunk) {
+        
+        
+        $chunkFileName = str_replace('_', '-', $chunk['acf_fc_layout']);
+        $file = dirname(plugin_dir_path( __FILE__ )) . '/templates/chunks/' . $chunkFileName . '.php';
+        if (file_exists($file)) {
+            echo '<div class="chunkWrap" data-id="row-'.$i.'" data-chunk-layout="'.$chunk['acf_fc_layout'].'">';
+            ob_start();
+            include($file);
+            $html = ob_get_contents();
+            ob_end_flush();
+            echo '<div class="chunkOverlay"><span class="chunk-label">Chunk Type: '.$chunk['acf_fc_layout'].'</span><button class="showChunkCode" data-id="row-'.$i.'">Get Code</button></div>';
+            echo '<div class="chunkCode">'.htmlspecialchars($html).'</div>';
+            echo '</div>';
+        }
+        $i++;
+    }
+    
+    //Email footer (close tags, disclaimer)
+    if ($templateSettings['id_tech_footer'] == true) {
+        //Standard email footer snippet (social links, unsub, etc)
+        include(dirname(plugin_dir_path( __FILE__ ) ) . '/templates/chunks/standard-email-footer.php');
+        //include(dirname(plugin_dir_path( __FILE__ ) ) . '/templates/chunks/preview-footer.html');
+    }
+    
+    //Fine print/disclaimer text
+    if (!empty($templateSettings['fine_print_disclaimer'])) {
+        include(dirname(plugin_dir_path( __FILE__ ) ) . '/templates/chunks/email-before-disclaimer.php');
+        include(dirname(plugin_dir_path( __FILE__ ) ) . '/templates/chunks/fine-print-disclaimer.php');
+        include(dirname(plugin_dir_path( __FILE__ ) ) . '/templates/chunks/email-after-disclaimer.php');
+    }
+    
+    
+    ?>
+    <div class="preview-scrollspace"></div>
+    <?php
+    $generatedHTML = ob_get_clean();
+    echo htmlspecialchars(html_entity_decode($generatedHTML));
+    wp_die();
+}
 
 //Add chunk elements to the acf chunk title area for easy IDing of content
 function id_filter_acf_chunk_title($title, $field, $layout, $i) {

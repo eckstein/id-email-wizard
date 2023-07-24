@@ -356,6 +356,7 @@ body.single-idemailwiz_template #footer {
 				#deviceSwitcher i:hover {
 					color: #222;
 				}
+	
 				
 				
 /*Template Folders (cat archive and search results)*/
@@ -690,9 +691,8 @@ body.single-idemailwiz_template #footer {
 	.acf-field-group .acf-fields {
 		border: 0!important;
 	}
-.showChunkCode {
-	font-size: 12px;
-}
+
+
 
 /*Generate HTML Styles*/
 #fullScreenCode {
@@ -751,7 +751,7 @@ body.single-idemailwiz_template #footer {
 	z-index: 990;
 }
 #iDoverlay:after {
-	content: "Loading wizard....";
+	content: "Loading...";
 	position: fixed;
 	top: 40%;
 	left: 50%;

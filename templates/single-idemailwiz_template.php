@@ -51,7 +51,7 @@ $itTemplateId = get_post_meta(get_the_ID(),'itTemplateId',true) ?? '';
 			  ?>
 			<i title="Add/Remove Favorite" class="addRemoveFavorite <?php echo  $fileStarClass; ?> fa-star" data-objecttype="Template"  data-objectid="<?php echo get_the_ID(); ?>"></i>
 			<a title="Save Template" class="button green" id="saveTemplate"><i class="fa-solid fa-floppy-disk"></i>&nbsp;&nbsp;Save</a>
-			<a title="Get Template Code"  class="button" id="showFullCode"><i class="fa-solid fa-code"></i>&nbsp;&nbsp;Get Code</a>
+			<a title="Get Template Code"  class="button" id="showFullCode" data-postid="<?php echo get_the_id(); ?>"><i class="fa-solid fa-code"></i>&nbsp;&nbsp;Get Code</a>
 			<a title="Sync to Iterable"  class="button" id="sendToIterable" data-postid="<?php echo get_the_id(); ?>"><img src="http://localhost/wp-content/uploads/2023/03/Iterable_square_logo-e1677898367554.png" />&nbsp;&nbsp;Sync to Iterable</a>
 			<a title="Duplicate Template"  class="button duplicate-template" data-postid="<?php echo get_the_ID(); ?>"><i class="fa-solid fa-copy"></i></a>
 			<a title="Delete Template"  class="button delete-template" data-postid="<?php echo get_the_ID(); ?>"><i class="fa-solid fa-trash"></i></a>
@@ -66,7 +66,16 @@ $itTemplateId = get_post_meta(get_the_ID(),'itTemplateId',true) ?? '';
 		
 	</div>
 </div>
-
+<div id="fullScreenCode">
+<div class="fullScreenButtons"><button id="copyCode">Copy Code</button>&nbsp;&nbsp;<span class="copyConfirm">Copied!</span><button id="hideFullCode">X</button></div>
+<div id="generatedHTML">
+	<pre id="generatedCode" >
+	<code class="language-html">
+		Code here.
+	</code>
+	</pre>
+	</div>
+</div>
 <?php
 get_footer();
 ?>
