@@ -45,6 +45,8 @@ function scrollPanes(preview, chunk, layout) {
     // Animate the scroll position of the builder
     builder.animate({scrollTop: scrollPosBuilder}, 200);
 }
+
+//On acf layout click
 $('.acf-fc-layout-handle').on('click', function () {
     var chunkID = $(this).parent('.layout').attr('data-id');
     var layout = $(this).parent('.layout');
@@ -55,10 +57,14 @@ $('.acf-fc-layout-handle').on('click', function () {
     // Deactivate all chunkWraps before activating the corresponding one
     previewPane.find('.chunkWrap').removeClass('active');
 
-    var correspondingChunkWrap = previewPane.find('.chunkWrap[data-id="' + chunkID + '"]');
-    correspondingChunkWrap.addClass('active');
+	//Only activate the chunk and scroll if the layout accordian is opening (not collapsing)
+	if ($(this).closest('.layout').hasClass('-collapsed')) {
+		var correspondingChunkWrap = previewPane.find('.chunkWrap[data-id="' + chunkID + '"]');
+		correspondingChunkWrap.addClass('active');
+		scrollPanes(previewPane, correspondingChunkWrap, layout);
+	}
 
-    scrollPanes(previewPane, correspondingChunkWrap, layout);
+    
 });
 
 
@@ -140,16 +146,37 @@ $("iframe#previewFrame").on('load', function() {
         scrollPanes(preview, this, attachedEditor);
     });
 
-	// Show the code for a single chunk
+
+
+
+	//Show the full template code 
 	preview.on('click', '.showChunkCode', function (e) {
 		e.preventDefault(); // Prevent the default link behavior
 		toggleOverlay(true);
-		// Get the content of the .chunkCode element
-		var chunkCodeContent = $(this).closest('.chunkWrap').find('.chunkCode').html();
-		var codeBox = $('#generatedCode code');
-		codeBox.html(chunkCodeContent);
-		$('#fullScreenCode').show();
-		hljs.highlightElement(codeBox[0]);
+		var templateId = $(this).data('templateid');
+		var row_id = $(this).data('id');//like "row-0", "row-1", etc
+		$.ajax({
+			type: "POST",
+			url: idAjax.ajaxurl,
+			data: {
+				action: 'idemailwiz_generate_chunk_html',
+				template_id: templateId,
+				row_id: row_id,
+				security: idAjax_template_editor.nonce,
+				
+			},
+			success: function (html) {
+				//console.log(html);
+				var codeBox = $('#generatedCode code');
+				codeBox.html(html);
+				hljs.highlightElement(codeBox[0]);
+				$('#fullScreenCode').show();
+				$('#generatedHTML').scrollTop(0);
+			},
+			error: function (xhr, status, error) {
+				reject(false);
+			}
+		});	
 	});
 
 

@@ -32,7 +32,7 @@ function idemailwiz_build_template() {
 
       //$chunks = convert_keys_to_names($chunks);
   }
-
+    //echo '<pre>';print_r($chunks);echo '</pre>';
    //Preview pane styles
    include( dirname( plugin_dir_path( __FILE__ ) ) . '/styles/preview-pane-styles.html' );
   
@@ -62,13 +62,12 @@ function idemailwiz_build_template() {
      $chunkFileName = str_replace('_', '-', $chunk['acf_fc_layout']);
      $file = dirname(plugin_dir_path( __FILE__ )) . '/templates/chunks/' . $chunkFileName . '.php';
       if (file_exists($file)) {
-          echo '<div class="chunkWrap" data-id="row-'.$i.'" data-chunk-layout="'.$chunk['acf_fc_layout'].'">';
+          echo '<div class="chunkWrap" data-id="row-'.$i.'" data-templateid="'.$template_id.'" data-chunk-layout="'.$chunk['acf_fc_layout'].'">';
           ob_start();
           include($file);
           $html = ob_get_contents();
           ob_end_flush();
-          echo '<div class="chunkOverlay"><span class="chunk-label">Chunk Type: '.$chunk['acf_fc_layout'].'</span><button class="showChunkCode" data-id="row-'.$i.'">Get Code</button></div>';
-          echo '<div class="chunkCode">'.htmlspecialchars($html).'</div>';
+          echo '<div class="chunkOverlay"><span class="chunk-label">Chunk Type: '.$chunk['acf_fc_layout'].'</span><button class="showChunkCode" data-id="row-'.$i.'" data-templateid="'.$template_id.'">Get Code</button></div>';
           echo '</div>';
       }
       $i++;
@@ -123,6 +122,35 @@ function idemailwiz_build_template() {
 }
 
 
+//Generate HTML for a single chunk
+add_action('wp_ajax_idemailwiz_generate_chunk_html', 'idemailwiz_generate_chunk_html');
+function idemailwiz_generate_chunk_html() {
+    $template_id = $_POST['template_id'];
+    $row_id = $_POST['row_id'];  // You need to send this with your AJAX request
+
+    $chunks = get_field('field_63e3c7cfc01c6', $template_id);
+
+    // Extract the row index from the row_id
+    $row_index = str_replace('row-', '', $row_id);
+    
+    // Check if the chunk at row_index exists
+    if (isset($chunks[$row_index])) {
+        $chunk = $chunks[$row_index];
+        $chunkFileName = str_replace('_', '-', $chunk['acf_fc_layout']);
+        $file = dirname(plugin_dir_path( __FILE__ )) . '/templates/chunks/' . $chunkFileName . '.php';
+
+        if (file_exists($file)) {
+            ob_start();
+            include($file);
+            $html = ob_get_clean();
+            echo htmlspecialchars(html_entity_decode($html));
+        }
+    }
+
+    wp_die();
+}
+
+
 //Generate all the HTML for a template
 add_action('wp_ajax_idemailwiz_generate_template_html', 'idemailwiz_generate_template_html');
 function idemailwiz_generate_template_html() {
@@ -156,14 +184,10 @@ function idemailwiz_generate_template_html() {
         $chunkFileName = str_replace('_', '-', $chunk['acf_fc_layout']);
         $file = dirname(plugin_dir_path( __FILE__ )) . '/templates/chunks/' . $chunkFileName . '.php';
         if (file_exists($file)) {
-            echo '<div class="chunkWrap" data-id="row-'.$i.'" data-chunk-layout="'.$chunk['acf_fc_layout'].'">';
             ob_start();
             include($file);
             $html = ob_get_contents();
             ob_end_flush();
-            echo '<div class="chunkOverlay"><span class="chunk-label">Chunk Type: '.$chunk['acf_fc_layout'].'</span><button class="showChunkCode" data-id="row-'.$i.'">Get Code</button></div>';
-            echo '<div class="chunkCode">'.htmlspecialchars($html).'</div>';
-            echo '</div>';
         }
         $i++;
     }
@@ -191,7 +215,7 @@ function idemailwiz_generate_template_html() {
     wp_die();
 }
 
-//Add chunk elements to the acf chunk title area for easy IDing of content
+//Add chunk element content to the acf layout chunk title area for easy IDing of content
 function id_filter_acf_chunk_title($title, $field, $layout, $i) {
     // Only modify title for specific layout
     if ($layout['name'] === 'full_width_image' || $layout['name'] === 'contained_image') {
