@@ -92,7 +92,6 @@ function idemailwiz_build_template() {
   <div class="preview-scrollspace"></div>
   <?php 
   echo ob_get_clean();
-  wp_die();
   }
   
   
@@ -213,6 +212,12 @@ function idemailwiz_generate_template_html() {
     $generatedHTML = ob_get_clean();
     echo htmlspecialchars(html_entity_decode($generatedHTML));
     wp_die();
+}
+
+//Replaced <p> tags with <br/> tags
+function idwiz_pReplace($content) {
+    $content = preg_replace(array('/<p>/', '/<\/p>/'), array('', '<br><br>'), $content);
+    return $content;
 }
 
 //Add chunk element content to the acf layout chunk title area for easy IDing of content

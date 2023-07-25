@@ -1,55 +1,37 @@
 <?php
 
-//remove curly brackets from wysiwyg
-function my_acf_remove_curly_quotes() {
-    remove_filter ('acf_the_content', 'wptexturize');
-}
-add_action('acf/init', 'my_acf_remove_curly_quotes');
-
-// Modify the default font family for all ACF WYSIWYG fields
-add_filter('tiny_mce_before_init', function($init) {
-  $init['content_style'] = "body { font-family: 'Poppins', sans-serif; }";
-  return $init;
-});
-
-//change <b> to <strong> in tinymce
-function custom_acf_wysiwyg_toolbars( $toolbars ) {
-  // Check if the 'items' index exists in the expected location
-  if ( isset( $toolbars['Basic'][1]['items'] ) ) {
-    // Modify the B button to wrap text with <strong> tags
-    $toolbars['Basic'][1]['items'] .= ',strong';
+ 
+  // Override wpautop filter and curly quotes for ACF WYSIWYG fields
+  function idemailwiz_acf_wywiwyg_custom() {
+      // Remove curly quotes
+      remove_filter ('acf_the_content', 'wptexturize');
+    
+      // Disable wpautop
+      //remove_filter('acf_the_content', 'wpautop');
+    
   }
-  return $toolbars;
+  add_action('init', 'idemailwiz_acf_wywiwyg_custom');
+  
+
+  
+ // Modify the default settings for ACF Tiny MCE fields
+function custom_acf_wysiwyg_toolbars( $toolbars ) {
+    // Check if the 'items' index exists in the expected location
+    if ( isset( $toolbars['Basic'][1]['items'] ) ) {
+        // Modify the B button to wrap text with <strong> tags
+        $toolbars['Basic'][1]['items'] .= ',strong';
+    }
+
+ 
+
+    
+
+    return $toolbars;
 }
 add_filter( 'acf/fields/wysiwyg/toolbars', 'custom_acf_wysiwyg_toolbars' );
 
-//custom editor styles
-add_editor_style('custom-editor.css');
 
-
-// Custom wpautop for ACF WYSIWYG fields
-function my_acf_wysiwyg_custom_wpautop($content) {
-    $content = wpautop($content, false);
-
-    // Replace </p> with two <br/> tags
-    $content = str_replace("</p>", "<br/>", $content);
-
-    // Remove <p> tags
-    $content = str_replace("<p>", "", $content);
-
-    return $content;
-}
-
-// Override wpautop filter for ACF WYSIWYG fields
-function my_acf_override_wpautop() {
-    remove_filter('acf_the_content', 'wpautop');
-    add_filter('acf_the_content', 'my_acf_wysiwyg_custom_wpautop');
-}
-add_action('init', 'my_acf_override_wpautop');
-
-
-
-//Setup up custom tinyMCE buttons and menu
+// Setup up custom tinyMCE buttons and menu for merge tags
 add_action( 'init', 'merge_tags_button' );
 
 function merge_tags_button() {
@@ -66,7 +48,6 @@ function register_merge_tags_button( $buttons ) {
     array_push( $buttons, 'merge_tags_button' );
     return $buttons;
 }
-
 
 
 

@@ -253,4 +253,6 @@ $mobHeight = $templateStyles['mobile_line_height'] ?? '24px';
           }
           
           /*]]>*/
+
+        
       </style>

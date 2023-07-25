@@ -59,7 +59,7 @@ if ($colContent['content_type'] == 'image') {
 <?php } elseif ($colContent['content_type'] == 'text') { ?>
 
                       <td class="text responsive-text <?php echo $colContent[$colKey.'_text']['align'] ?>-text" valign="middle" align="<?php echo $colContent[$colKey.'_text']['align'] ?>" style="font-family:Poppins, sans-serif;color:<?php echo $colContent[$colKey.'_text']['text_color'] ?>!important;text-decoration:none; width:266px;padding: 0 15px;">
-<?php echo'                      '.$colContent[$colKey.'_text']['text_content'] ?>
+<?php echo'                      '.idwiz_pReplace(wpautop($colContent[$colKey.'_text']['text_content'])); ?>
 
                       </td>
 <?php } echo

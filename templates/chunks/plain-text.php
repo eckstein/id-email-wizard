@@ -54,7 +54,7 @@ $hideDesktop = 'hide-desktop';
 <?php } ?>
                               
                               <!-- Chunk Content Start -->
-                              <?php echo $textContent; ?>
+                              <?php echo idwiz_pReplace(wpautop($textContent)); ?>
                               <!-- / End Chunk Content -->
                               
 <?php if($btmSpacing) {?>

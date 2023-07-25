@@ -64,11 +64,11 @@ function idemailwiz_deactivate() {
 
 //require files
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-functions.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-wysiwyg.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/template-builder.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/chunk-helpers.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/folder-tree.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/folder-template-actions.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-wysiwyg.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/iterable-functions.php');
 
 
@@ -170,12 +170,27 @@ function redirect_to_proper_url() {
 }
 add_action('template_redirect', 'redirect_to_proper_url', 11);
 
-//Custom endpoint for iframe email template preview src
 function idemailwiz_custom_template_preview_endpoint() {
     add_rewrite_endpoint('build-template', EP_ROOT);
 }
-//custom endpoint callback
 add_action('init', 'idemailwiz_custom_template_preview_endpoint');
+
+function idemailwiz_check_direct_access() {
+    global $wp;
+    $current_url = home_url(add_query_arg(array(), $wp->request));
+
+    //Check if the current URL contains '/build-template/'
+    if (strpos($current_url, '/build-template/') !== false && !isset($_SERVER['HTTP_REFERER'])) {
+        $dieMessage = 'Direct access to the template builder enpoint is not allowed!';
+        wp_die($dieMessage);
+    }
+}
+
+add_action('template_redirect', 'idemailwiz_check_direct_access');
+
+
+
+
 
 //Handle what happens when the custom endpoint is called (which is via the src parameter of the preview iframe)
 function idemailwiz_handle_build_template_request() {
