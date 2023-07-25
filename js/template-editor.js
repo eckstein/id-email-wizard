@@ -29,6 +29,7 @@ jQuery(document).ready(function ($) {
 	}
 
 	
+	//When a new layout field is added
 	acf.addAction('append', function($el){
 		// Wait for 1 second and then simulate a click on the new layout
 		setTimeout(function() {
@@ -39,6 +40,24 @@ jQuery(document).ready(function ($) {
 		$el.find('.acf-fc-layout-handle').on('click', function () {
 			idwiz_handle_layout_click($(this));
 		});
+	});
+
+	//When a layout field is drag/drog reordered
+	acf.addAction('sortstop', function($el){
+		console.log('sortstop');
+		console.log($el);
+		if (!$el.hasClass('-collapsed')) {
+			
+			setTimeout(function() {
+				$el.addClass('-collapsed');
+				//$el.find('.acf-fc-layout-handle').click();
+				//idwiz_handle_layout_click($el.find('.acf-fc-layout-handle'));
+				$el.find('.acf-fc-layout-handle').click();
+				$el.removeClass('-collapsed');
+			}, 1000);
+		}
+		
+
 	});
 	
 
