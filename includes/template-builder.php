@@ -3,36 +3,33 @@
 add_action('wp_ajax_idemailwiz_build_template', 'idemailwiz_build_template');
 function idemailwiz_build_template() {
   //Check for ajax updates from live form editor
-  if ($_POST && isset($_POST['action']) && $_POST['action'] == 'idemailwiz_build_template') {
-    
-      $formAction = $_POST['action']; //should be idemailwiz_build_template
-      //Strip slashes from text (since we're not making sql requests or anything dangerous)
-      //Prevents slashes from showing in editor during ajax update to text fields.
-      $formData = array_map('stripslashes_deep', $_POST);
-        //convert the acf keys to the field slugs so they will work in our chunk templates
-        $formData = convert_keys_to_names($formData);
-      $template_id = $formData['_acf_post_id'];
-      $validated = $formData['_acf_validation'];
-      $fields = $formData['acf'];
-      //echo '<pre>';print_r($fields);echo '</pre>';
-      $chunks = $fields['add_chunk'];
-      $templateSettings = $fields['template_settings'];
-      $templateFonts = $fields['template_styles'];
-      $emailSettings = $fields['email_settings'];
-
-  } else {
-    //Not a live update, just a regular page load, so we get the database values
-      global $wp_query;
-      $template_id = intval($wp_query->query_vars['build-template']);
-      //TODO: Add settings fields to map settings to fields for better flexibility
-      $chunks = get_field('field_63e3c7cfc01c6', $template_id);
-      $templateSettings = get_field('field_63e3d8d8cfd3a', $template_id);
-      $templateFonts = get_field('field_63e3d784ed5b5', $template_id);
-      $emailSettings = get_field('field_63e898c6dcd23', $template_id);
-
-      //$chunks = convert_keys_to_names($chunks);
+  if (!$_POST || !isset($_POST['action']) || !$_POST['action'] == 'idemailwiz_build_template') {
+     //Go back, nothing to see here yet!     
+     return false;
   }
+  $formAction = $_POST['action']; //should be idemailwiz_build_template
+    if ($formAction != 'idemailwiz_build_template') {
+        return false;
+    }
+
+  //We've got post data, let's build the template...
+
+    
+    //Strip slashes from text (since we're not making sql requests or anything dangerous)
+    //Prevents slashes from showing in editor during ajax update to text fields.
+    $formData = array_map('stripslashes_deep', $_POST);
+    //convert the acf keys to the field slugs so they will work in our chunk templates
+    $formData = convert_keys_to_names($formData);
+    $template_id = $formData['_acf_post_id'];
+    $validated = $formData['_acf_validation'];
+    $fields = $formData['acf'];
+    
+    $chunks = $fields['add_chunk'];
     //echo '<pre>';print_r($chunks);echo '</pre>';
+    $templateSettings = $fields['template_settings'];
+    $templateFonts = $fields['template_styles'];
+    $emailSettings = $fields['email_settings'];
+    
    //Preview pane styles
    include( dirname( plugin_dir_path( __FILE__ ) ) . '/styles/preview-pane-styles.html' );
   
@@ -55,23 +52,29 @@ function idemailwiz_build_template() {
   
 
   //Start Chunk Content
+  if (isset($chunks) && !empty($chunks)) {
+    //echo '<pre>';print_r($chunks);echo '</pre>';
   $i=0;
-  foreach ($chunks as $chunk) {
+  foreach ($chunks as $chunkId => $chunk) {
+    //echo 'chunk id: '.$chunkId;
     
     
      $chunkFileName = str_replace('_', '-', $chunk['acf_fc_layout']);
      $file = dirname(plugin_dir_path( __FILE__ )) . '/templates/chunks/' . $chunkFileName . '.php';
       if (file_exists($file)) {
-          echo '<div class="chunkWrap" data-id="row-'.$i.'" data-templateid="'.$template_id.'" data-chunk-layout="'.$chunk['acf_fc_layout'].'">';
+        echo '<div class="chunkWrap" data-id="'.$chunkId.'" data-templateid="'.$template_id.'" data-chunk-layout="'.$chunk['acf_fc_layout'].'">';
           ob_start();
           include($file);
           $html = ob_get_contents();
           ob_end_flush();
-          echo '<div class="chunkOverlay"><span class="chunk-label">Chunk Type: '.$chunk['acf_fc_layout'].'</span><button class="showChunkCode" data-id="row-'.$i.'" data-templateid="'.$template_id.'">Get Code</button></div>';
+          echo '<div class="chunkOverlay"><span class="chunk-label">Chunk Type: '.$chunk['acf_fc_layout'].'</span><button class="showChunkCode" data-id="'.$chunkId.'" data-templateid="'.$template_id.'">Get Code</button></div>';
           echo '</div>';
       }
       $i++;
   }
+} else {
+    echo '<div style="background-color: #fff; font-family: Poppins, Arial, Sans Serif; padding: 20px; font-size: 18px; text-align: center;"><strong>Choose a chunk to start building your layout here.</strong><br/><em>Hint: You can turn off the default header and footer sections from the settings tab.</em></div>';
+}
   
   //Email footer (close tags, disclaimer)
   if ($templateSettings['id_tech_footer'] == true) {

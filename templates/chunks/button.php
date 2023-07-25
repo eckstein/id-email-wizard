@@ -1,7 +1,7 @@
 <?php
 $chunkSettings = $chunk['chunk_settings'];
-	$ctaText = $chunkSettings['cta_text'] ?? 'Click here';
-	$ctaUrl = $chunkSettings['cta_url'] ?? 'https://www.idtech.com';
+	$ctaText = $chunk['cta_text'] ?? 'Click here';
+	$ctaUrl = $chunk['cta_url'] ?? 'https://www.idtech.com';
 	$bgColor = $chunkSettings['button_background_color'] ?? '#94d500';
 	$chunkBgColor = $chunkSettings['chunk_background_color'] ?? '#FFFFFF';
 	$textColor = $chunkSettings['text_color'] ?? '#FFFFFF';

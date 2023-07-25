@@ -188,6 +188,10 @@ body.single-idemailwiz_template #footer {
 .acf-fields > .acf-field.acf-field--post-title {
 	padding: 0!important;
 	margin-bottom: 10px;
+	z-index: 99;
+}
+#builder-chunks .acf-tab-wrap {
+	z-index: 99;
 }
 .acf-fields > .acf-field.acf-field--post-title label {
 	display: none;
