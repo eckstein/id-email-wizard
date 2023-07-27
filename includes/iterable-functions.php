@@ -93,4 +93,6 @@ add_action('wp_ajax_nopriv_get_template_data_for_iterable', 'get_template_data_f
 	}
 	add_action('wp_ajax_update_template_after_sync', 'update_template_after_sync');
 	add_action('wp_ajax_nopriv_update_template_after_sync', 'update_template_after_sync');
+
+	
 	

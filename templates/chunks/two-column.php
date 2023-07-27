@@ -40,15 +40,16 @@ switch ($layout) {
 		$textContent = $text['text_content'] ?? 'Your content here!';
 		if ($magicWrap) {
 			$layoutDirLeft = 'right';
-			$colLeft = fillImage($image['left_image_url'],$image['left_image_link'],$image['left_image_alt'],$mobileImgSetting,$image['left_image_url_mobile'],'400');
-			$colRight = fillText($textColor,$textAlign,$textColor,$bgColor,$centerOnMobile, $spacing, true);
-			$colRight .= inline_button($inlineButton);
+			$colRight = fillImage($image['left_image_url'],$image['left_image_link'],$image['left_image_alt'],$mobileImgSetting,$image['left_image_url_mobile'],'400');
+			$colLeft = fillText($textContent,$textAlign,$textColor,$bgColor,$centerOnMobile, $spacing, true);
+			$colLeft .= inline_button($inlineButton);
 		} else {
 			$layoutDirLeft = 'left';
 			$colLeft = fillImage($image['left_image_url'],$image['left_image_link'],$image['left_image_alt'],$mobileImgSetting,$image['left_image_url_mobile'],'400');
 			$colRight = fillText($textContent,$textAlign,$textColor,$bgColor,$centerOnMobile, $spacing, true);
 			$colRight .= inline_button($inlineButton);
 		}
+		
 	break;
 	case 'rtl':
 			$image = $chunk['right_image'];
