@@ -356,7 +356,7 @@ body.single-idemailwiz_template #footer {
 				background-color: #ffffff;
 				border-radius: 5px;
 				padding: 4px 8px;
-				display: inline-block;
+				display: flex;
 				margin-left: auto;
 			}
 				#deviceSwitcher i {
@@ -377,13 +377,23 @@ body.single-idemailwiz_template #footer {
 					color: #222;
 				}
 				#templateActions .fill-merge-tags {
+					text-align: center;
 					font-weight: bold;
+					cursor: pointer;
 				}
-			#templateActions .fill-merge-tags.active {
-				background-color: #4cb9ea!important;
-				color: #fff!important;
-			}
-				
+				#templateActions .fill-merge-tags i {
+					color: #666;
+					padding: 0;
+				}
+				#templateActions .fill-merge-tags.active i {
+					color: #94d40a!important;
+					
+				}
+				.templateActions-divider {
+					border-right: 1px solid #666;
+					margin: 0 12px 0 0;
+					display: inline-block;
+				}
 				
 /*Template Folders (cat archive and search results)*/
 .templateFolder {

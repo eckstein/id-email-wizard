@@ -131,11 +131,6 @@ jQuery(document).ready(function ($) {
 
 //Fill the merge tags in the template on click
 $('.fill-merge-tags').on('click', function() {
-	if ($(this).hasClass('active')){
-		$(this).html('{ <em>unmerged</em> }');
-	} else {
-		$(this).html('{ Merged }');
-	}
 	//Add a class to keep the merge tags consistent until turned off
 	$(this).toggleClass('active');
 	idwiz_updatepreview();

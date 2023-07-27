@@ -64,6 +64,7 @@ function idemailwiz_deactivate() {
 
 //require files
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-functions.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-shortcodes.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-wysiwyg.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/template-builder.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/chunk-helpers.php');

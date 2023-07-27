@@ -55,14 +55,21 @@ $itTemplateId = get_post_meta(get_the_ID(),'itTemplateId',true) ?? '';
 			  } 
 			  ?>
 			<i title="Add/Remove Favorite" class="addRemoveFavorite <?php echo  $fileStarClass; ?> fa-star" data-objecttype="Template"  data-objectid="<?php echo get_the_ID(); ?>"></i>
-			<a title="Save Template" class="button green" id="saveTemplate"><i class="fa-solid fa-floppy-disk"></i>&nbsp;&nbsp;Save Template</a>
-			<a title="Get Template Code"  class="button" id="showFullCode" data-postid="<?php echo get_the_id(); ?>"><i class="fa-solid fa-code"></i>&nbsp;&nbsp;Get Code</a>
-			<a title="Sync to Iterable"  class="button" id="sendToIterable" data-postid="<?php echo get_the_id(); ?>"><img style="width: 20px; height: 20px;" src="http://localhost/wp-content/uploads/2023/03/Iterable_square_logo-e1677898367554.png" /></a>
+			<a title="Save Template" class="button green" id="saveTemplate"><i class="fa-solid fa-floppy-disk"></i>&nbsp;&nbsp;Save</a>
+			<a title="Get Template Code"  class="button" id="showFullCode" data-postid="<?php echo get_the_id(); ?>"><i class="fa-solid fa-code"></i>&nbsp;&nbsp;Code</a>
+			<a title="Sync to Iterable"  class="button" id="sendToIterable" data-postid="<?php echo get_the_id(); ?>"><img style="width: 20px; height: 20px;" src="http://localhost/wp-content/uploads/2023/03/Iterable_square_logo-e1677898367554.png" />&nbsp;&nbsp Sync</a>
+			<span class="templateActions-divider"></span>
 			<a title="Duplicate Template"  class="button duplicate-template" data-postid="<?php echo get_the_ID(); ?>"><i class="fa-solid fa-copy"></i></a>
+			<a title="Move Template"  class="button moveTemplate" data-postid="<?php echo get_the_ID(); ?>"><i class="fa-solid fa-folder-tree"></i></i></a>
 			<a title="Delete Template"  class="button delete-template" data-postid="<?php echo get_the_ID(); ?>"><i class="fa-solid fa-trash"></i></a>
-			<a title="Fill Merge Tags"  class="button fill-merge-tags" data-postid="<?php echo get_the_ID(); ?>">{ <em>unmerged</em> }</a>
 			
-			<div id="deviceSwitcher"><i title="Desktop Preview" class="fas fa-desktop active" id="showDesktop"></i><i title="Mobile Preview" class="fas fa-mobile-alt" id="showMobile"></i></div>
+			
+			
+			<div id="deviceSwitcher">
+				<i title="Desktop Preview" class="fas fa-desktop active" id="showDesktop"></i>
+				<i title="Mobile Preview" class="fas fa-mobile-alt" id="showMobile"></i>
+				<div title="Fill Merge Tags"  class="fill-merge-tags" data-postid="<?php echo get_the_ID(); ?>">{<i class="fa-solid fa-power-off"></i>}</div>
+			</div>
 			
 			</div>
 		</div>
