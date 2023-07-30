@@ -1,6 +1,12 @@
 <?php
+
+function idwiz_itAPI() {
+	return '282da5d7dd77450eae45bdc715ead2a4';
+  }
+
+
 //Get all the postdata needed to create or update a template in Iterable
-function get_template_data_for_iterable() {
+function idemailwiz_get_template_data_for_iterable() {
 	//check nonce
     check_ajax_referer( 'iterable-actions', 'security' );
 
@@ -32,7 +38,7 @@ function get_template_data_for_iterable() {
 	);
 	
 	$missing = array();
-	$present = array();
+	
 	foreach ($reqTemplateFields as $key=>$field) {
 		if (!$field) {
 			$missing[] = $key;
@@ -56,8 +62,8 @@ function get_template_data_for_iterable() {
 	
 	wp_send_json($response);
 }
-add_action('wp_ajax_get_template_data_for_iterable', 'get_template_data_for_iterable');
-add_action('wp_ajax_nopriv_get_template_data_for_iterable', 'get_template_data_for_iterable');
+add_action('wp_ajax_idemailwiz_get_template_data_for_iterable', 'idemailwiz_get_template_data_for_iterable');
+add_action('wp_ajax_nopriv_idemailwiz_get_template_data_for_iterable', 'idemailwiz_get_template_data_for_iterable');
 
 
 //Update the template after it syncs to Iterable
@@ -94,5 +100,7 @@ add_action('wp_ajax_nopriv_get_template_data_for_iterable', 'get_template_data_f
 	add_action('wp_ajax_update_template_after_sync', 'update_template_after_sync');
 	add_action('wp_ajax_nopriv_update_template_after_sync', 'update_template_after_sync');
 
-	
-	
+
+
+
+

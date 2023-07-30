@@ -87,8 +87,12 @@ jQuery(document).ready(function ($) {
 	var timeoutId;
 	//Update preview on page load
 	$(function(){
-		idwiz_updatepreview();
+		// Check for the chunks creator, indicating we're on a template edit page
+		if ($('#id-chunks-creator').length > 0) {
+			idwiz_updatepreview();
+		}
 	});
+
 	//update preview on form update
 	$('#id-chunks-creator .acf-field').on('input change', function() {
 		idwiz_updatepreview();

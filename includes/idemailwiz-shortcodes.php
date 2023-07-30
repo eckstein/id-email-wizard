@@ -12,3 +12,10 @@ function idemailwiz_dashboard_shortcode() {
 	return ob_get_clean();
 }
 add_shortcode('idwiz_dashboard', 'idemailwiz_dashboard_shortcode');
+
+function idemailwiz_metrics_shortcode() {
+	ob_start();
+	include (dirname(plugin_dir_path( __FILE__ )) . '/templates/idemailwiz-metrics.php');
+	return ob_get_clean();
+}
+add_shortcode('idwiz_metrics', 'idemailwiz_metrics_shortcode');

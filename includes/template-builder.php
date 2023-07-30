@@ -3,6 +3,9 @@
 add_action('wp_ajax_idemailwiz_build_template', 'idemailwiz_build_template');
 function idemailwiz_build_template() {
   //Check for ajax updates from live form editor
+  if (!wp_doing_ajax() && !get_query_var('build-template')) {
+        return;
+    }
   if (!$_POST || !isset($_POST['action']) || !$_POST['action'] == 'idemailwiz_build_template') {
      //Go back, nothing to see here yet!     
      return false;
@@ -13,7 +16,7 @@ function idemailwiz_build_template() {
     }
 
     //Merge Tags Toggle
-    $mergetags = false;
+    $mergeTags = false;
     if (isset($_POST['mergetags']) && $_POST['mergetags'] == 'true') {
         $mergeTags = true;
     }

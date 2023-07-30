@@ -20,6 +20,9 @@ add_action('wp_head', 'idwizacfheader');
 register_activation_hook(__FILE__, 'idemailwiz_activate');
 function idemailwiz_activate() {
 	
+    //Create custom databases
+    idemailwiz_create_databases();
+
 	// Schedule an event to run on the next page load
     wp_schedule_single_event( time(), 'idemailwiz_on_next_page_load' );
 	
@@ -65,6 +68,7 @@ function idemailwiz_deactivate() {
 //require files
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-functions.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-shortcodes.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-databases.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-wysiwyg.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/template-builder.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/chunk-helpers.php');

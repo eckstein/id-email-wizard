@@ -14,7 +14,7 @@ jQuery(document).ready(function ($) {
 	  toggleOverlay();
   
 	  $.post(idAjax.ajaxurl, {
-		action: "get_template_data_for_iterable",
+		action: "idemailwiz_get_template_data_for_iterable",
 		security: idAjax_iterable_actions.nonce,
 		post_id: post_id
 	  })
