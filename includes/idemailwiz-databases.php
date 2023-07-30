@@ -168,59 +168,9 @@ function to_camel_case($string) {
 // Include WordPress' database functions
 global $wpdb;
 
-function idwiz_get_campaign_by_id($id) {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'idemailwiz_campaigns';
 
-    // Query the database for a campaign with the given ID
-    $campaign = $wpdb->get_row("SELECT * FROM {$table_name} WHERE id = {$id}");
-    if ($campaign) {
-        return $campaign;
-    } else {
-        return $wpdb->last_error;
-    }
 
-   
-}
 
-function idwiz_get_template_by_id($id) {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'idemailwiz_templates';
-
-    // Query the database for a template with the given ID
-    $template = $wpdb->get_row("SELECT * FROM {$table_name} WHERE templateId = {$id}");
-    if ($template) {
-        return $template;
-    } else {
-        return $wpdb->last_error;
-    }
-}
-
-function idwiz_get_metrics_by_campaign_id($campaign_id) {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'idemailwiz_metrics';
-
-    // Query the database for metrics with the given campaign ID
-    $metrics = $wpdb->get_results("SELECT * FROM {$table_name} WHERE id = {$campaign_id}");
-    if ($metrics) {
-        return $metrics;
-    } else {
-        return $wpdb->last_error;
-    }
-}
-
-function idwiz_get_purchase_by_id($id) {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'idemailwiz_purchases';
-
-    // Query the database for a purchase with the given ID
-    $purchase = $wpdb->get_row("SELECT * FROM {$table_name} WHERE id = {$id}");
-    if ($purchase) {
-        return $purchase;
-    } else {
-        return $wpdb->last_error;
-    }
-}
 
 
 function idemailwiz_iterable_curl_call($apiURL) {
@@ -547,7 +497,223 @@ function idemailwiz_update_records($fetch_function, $table_name, $table_key) {
     }
 }
 
+function get_idwiz_campaign_by_id($id) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_campaigns';
 
+    // Query the database for a campaign with the given ID
+    $campaign = $wpdb->get_row("SELECT * FROM {$table_name} WHERE id = {$id}");
+    if ($campaign) {
+        return $campaign;
+    } else {
+        return $wpdb->last_error;
+    }
+  
+}
+
+function get_idwiz_template_by_id($id) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_templates';
+
+    // Query the database for a template with the given ID
+    $template = $wpdb->get_row("SELECT * FROM {$table_name} WHERE templateId = {$id}");
+    if ($template) {
+        return $template;
+    } else {
+        return $wpdb->last_error;
+    }
+}
+
+function get_idwiz_metrics_by_campaign_id($campaign_id) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_metrics';
+
+    // Query the database for metrics with the given campaign ID
+    $metrics = $wpdb->get_results("SELECT * FROM {$table_name} WHERE id = {$campaign_id}");
+    if ($metrics) {
+        return $metrics;
+    } else {
+        return $wpdb->last_error;
+    }
+}
+function get_idwiz_campaigns($args = []) {
+    global $wpdb;
+
+    $type = isset($args['type']) ? $args['type'] : null;
+    $templateId = isset($args['templateId']) ? $args['templateId'] : null;
+    $messageMedium = isset($args['messageMedium']) ? $args['messageMedium'] : null;
+    $startAtStart = isset($args['startAt_start']) ? $args['startAt_start'] : null;
+    $startAtEnd = isset($args['startAt_end']) ? $args['startAt_end'] : null;
+    $limit = isset($args['limit']) ? (int)$args['limit'] : null;
+    $sortBy = isset($args['sortBy']) ? $args['sortBy'] : null;
+    $sort = isset($args['sort']) ? $args['sort'] : null;
+
+    $table_name = $wpdb->prefix . 'idemailwiz_campaigns';
+
+    $sql = "SELECT * FROM $table_name WHERE 1=1";
+
+    if ($type) {
+        $sql .= $wpdb->prepare(" AND type = %s", $type);
+    }
+    if ($templateId) {
+        $sql .= $wpdb->prepare(" AND templateId = %s", $templateId);
+    }
+    if ($messageMedium) {
+        $sql .= $wpdb->prepare(" AND messageMedium = %s", $messageMedium);
+    }
+    if ($startAtStart) {
+        //Reminder: dates are stored as milliseconds in the database
+        try {
+            $startAtStart = (new DateTime($startAtStart))->getTimestamp() * 1000;
+            $sql .= $wpdb->prepare(" AND startAt >= %d", $startAtStart);
+        } catch (Exception $e) {
+            return array('error'=> $e);
+        }
+    }
+    if ($startAtEnd) {
+        try {
+            $startAtEnd = (new DateTime($startAtEnd))->getTimestamp() * 1000;
+            $sql .= $wpdb->prepare(" AND startAt <= %d", $startAtEnd);
+        } catch (Exception $e) {
+            return array('error'=> $e);
+        }
+    }
+
+    // Add orderBy clause based on sortBy parameter
+    if ($sortBy === 'startAt' || $sortBy === 'id') {
+        if ($sort === 'ASC' || $sortBy === 'DESC') {
+            $sql .= " ORDER BY $sortBy $sort";
+        } else {
+            $sql .= " ORDER BY $sortBy DESC";
+        }
+    }
+    
+    if ($limit) {
+        $sql .= $wpdb->prepare(" LIMIT %d", $limit);
+    }
+
+    $campaigns = $wpdb->get_results($sql, ARRAY_A);
+
+    return $campaigns;
+    //return $sql;
+}
+
+
+function get_idwiz_templates($args = []) {
+    global $wpdb;
+
+    $templateId = isset($args['templateId']) ? $args['templateId'] : null;
+    $campaignId = isset($args['campaignId']) ? $args['campaignId'] : null;
+    $limit = isset($args['limit']) ? (int)$args['limit'] : null;
+    $sortBy = isset($args['sortBy']) ? $args['sortBy'] : null;
+    $sort = isset($args['sort']) ? $args['sort'] : null;
+
+    $table_name = $wpdb->prefix . 'idemailwiz_campaigns';
+
+    $sql = "SELECT * FROM $table_name WHERE 1=1";
+
+    if ($templateId) {
+        $sql .= $wpdb->prepare(" AND templateId = %s", $templateId);
+    }
+    if ($campaignId) {
+        $sql .= $wpdb->prepare(" AND campaignId = %s", $campaignId);
+    }
+
+    // Add orderBy clause based on sortBy parameter
+    if ($sortBy === 'templateId' || $sortBy === 'campaignId' || $sortBy === 'fromName') {
+        if ($sort === 'ASC' || $sortBy === 'DESC') {
+            $sql .= " ORDER BY $sortBy $sort";
+        } else {
+            $sql .= " ORDER BY $sortBy DESC";
+        }
+    }
+    
+    if ($limit) {
+        $sql .= $wpdb->prepare(" LIMIT %d", $limit);
+    }
+
+    $templates = $wpdb->get_results($sql, ARRAY_A);
+
+    return $templates;
+    //return $sql;
+}
+
+function get_idwiz_purchases($args = []) {
+    global $wpdb;
+
+    $purchaseId = isset($args['id']) ? $args['id'] : null;
+    $orderId = isset($args['orderId']) ? $args['orderId'] : null;
+    $campaignId = isset($args['campaignId']) ? $args['campaignId'] : null;
+    $purchaseDateStart = isset($args['purchaseDateStart']) ? $args['purchaseDateStart'] : null;
+    $purchaseDateEnd = isset($args['purchaseDateEnd']) ? $args['purchaseDateEnd'] : null;
+    $discountCode = isset($args['discountCode']) ? $args['discountCode'] : null;
+    $divisionName = isset($args['divisionName']) ? $args['divisionName'] : null;
+    $userId = isset($args['userId']) ? $args['userId'] : null;
+
+    $limit = isset($args['limit']) ? (int)$args['limit'] : null;
+    $sortBy = isset($args['sortBy']) ? $args['sortBy'] : null;
+    $sort = isset($args['sort']) ? $args['sort'] : null;
+
+    $table_name = $wpdb->prefix . 'idemailwiz_purchases';
+
+    $sql = "SELECT * FROM $table_name WHERE 1=1";
+
+    if ($purchaseId) {
+        $sql .= $wpdb->prepare(" AND purchaseId = %s", $purchaseId);
+    }
+    if ($orderId) {
+        $sql .= $wpdb->prepare(" AND orderId = %s", $orderId);
+    }
+    if ($campaignId) {
+        $sql .= $wpdb->prepare(" AND campaignId = %s", $campaignId);
+    }
+    if ($discountCode) {
+        $sql .= $wpdb->prepare(" AND shoppingCartItems_discountCode = %s", $discountCode);
+    }
+    if ($divisionName) {
+        $sql .= $wpdb->prepare(" AND shoppingCartItems_divisionName = %s", $divisionName);
+    }
+    if ($userId) {
+        $sql .= $wpdb->prepare(" AND userId = %s", $userId);
+    }
+
+    if ($purchaseDateStart) {
+        try {
+            $purchaseDateStart = (new DateTime($purchaseDateStart))->format('Y-m-d');
+            $sql .= $wpdb->prepare(" AND purchaseDate >= %s", $purchaseDateStart);
+        } catch (Exception $e) {
+            return array('error'=> $e);
+        }
+    }
+    if ($purchaseDateEnd) {
+        try {
+            $purchaseDateEnd = (new DateTime($purchaseDateEnd))->format('Y-m-d');
+            $sql .= $wpdb->prepare(" AND purchaseDate <= %s", $purchaseDateEnd);
+        } catch (Exception $e) {
+            return array('error'=> $e);
+        }
+    }
+    
+   
+
+    // Add orderBy clause based on sortBy parameter
+    if ($sortBy === 'templateId' || $sortBy === 'campaignId' || $sortBy === 'fromName') {
+        if ($sort === 'ASC' || $sortBy === 'DESC') {
+            $sql .= " ORDER BY $sortBy $sort";
+        } else {
+            $sql .= " ORDER BY $sortBy DESC";
+        }
+    }
+    
+    if ($limit) {
+        $sql .= $wpdb->prepare(" LIMIT %d", $limit);
+    }
+
+    $purchases = $wpdb->get_results($sql, ARRAY_A);
+
+    return $purchases;
+    //return $sql;
+}
 
 
 
