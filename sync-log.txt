@@ -1,0 +1,48 @@
+[2023-08-05 00:18:34]
+Syncing 1796 campaigns...
+[2023-08-05 00:18:34]
+0 campaigns to insert.
+[2023-08-05 00:18:34]
+0 campaigns to update.
+[2023-08-05 00:18:34]
+Adding/Updating campaigns...
+[2023-08-05 00:18:34]
+Sync complete! See results below:
+[2023-08-05 00:18:34]
+{"type":"campaigns","inserted":{"success":[],"errors":[]},"updated":{"success":[],"errors":[]}}
+[2023-08-05 00:18:34]
+=====================================
+[2023-08-05 00:18:34]
+Syncing 35 templates...
+[2023-08-05 00:18:34]
+0 templates to insert.
+[2023-08-05 00:18:34]
+0 templates to update.
+[2023-08-05 00:18:34]
+Sync complete! See results below:
+[2023-08-05 00:18:34]
+{"type":"templates","inserted":{"success":[],"errors":[]},"updated":{"success":[],"errors":[]}}
+[2023-08-05 00:18:34]
+=====================================
+[2023-08-05 00:18:34]
+Retrieved 1 purchases...
+[2023-08-05 00:18:35]
+1 purchases to insert.
+[2023-08-05 00:18:35]
+Sync complete! See results below:
+[2023-08-05 00:18:35]
+{"type":"purchases","inserted":{"success":["Insert operation on item with id 84e597e8fd6f4d3bb1eebe90eaf8bf5a in wp_idemailwiz_purchases was successful. Rows affected: 1."],"errors":[]}}
+[2023-08-05 00:18:35]
+=====================================
+[2023-08-05 00:18:35]
+Syncing 1 metrics...
+[2023-08-05 00:18:35]
+0 metrics to insert.
+[2023-08-05 00:18:35]
+0 metrics to update.
+[2023-08-05 00:18:35]
+Sync complete! See results below:
+[2023-08-05 00:18:35]
+{"type":"metrics","inserted":{"success":[],"errors":[]},"updated":{"success":[],"errors":[]}}
+[2023-08-05 00:18:35]
+=====================================

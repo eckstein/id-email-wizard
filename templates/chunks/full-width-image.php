@@ -10,20 +10,20 @@ $imageLink = $chunk['image_link'];
 $imageAltTag = $chunk['alt_tag'] ?? '';
 
 //conditionally apply hide-mobile class to desktop image if mobile image is enabled
-if (isset($chunk['mobile_image'])) {
+if (isset($chunk['mobile_image']) && $chunk['mobile_image'] == true) {
 	$dtClass = 'hide-mobile';
 } else {
 	$dtClass = '';
 }
 
 $showOnDesktop = $chunkSettings['desktop_visibility'] ?? true;
-if (!$showOnDesktop){
+if ($showOnDesktop == false){
   $hideDesktop = 'hide-desktop';
 } else {
   $hideDesktop = '';
 }
 $showOnMobile = $chunkSettings['mobile_visibility'] ?? true;
-if (!$showOnMobile){
+if ($showOnMobile == false){
   $hideMobile = 'hide-mobile';
 } else {
   $hideMobile = '';
