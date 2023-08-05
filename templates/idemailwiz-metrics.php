@@ -2,7 +2,6 @@
 <?php
 global $wpdb;
 
-
 $campaigns = idemailwiz_fetch_campaigns();
 $templates = idemailwiz_fetch_templates();
 $purchases = idemailwiz_fetch_purchases();

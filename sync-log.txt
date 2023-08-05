@@ -1,48 +1,48 @@
-[2023-08-05 00:18:34]
+[2023-08-05 00:39:55]
 Syncing 1796 campaigns...
-[2023-08-05 00:18:34]
+[2023-08-05 00:39:55]
 0 campaigns to insert.
-[2023-08-05 00:18:34]
+[2023-08-05 00:39:55]
 0 campaigns to update.
-[2023-08-05 00:18:34]
+[2023-08-05 00:39:55]
 Adding/Updating campaigns...
-[2023-08-05 00:18:34]
+[2023-08-05 00:39:55]
 Sync complete! See results below:
-[2023-08-05 00:18:34]
-{"type":"campaigns","inserted":{"success":[],"errors":[]},"updated":{"success":[],"errors":[]}}
-[2023-08-05 00:18:34]
+[2023-08-05 00:39:55]
+{"type":"metrics","inserted":0,"updated":0,"insert_errors":0,"update_errors":0}
+[2023-08-05 00:39:55]
 =====================================
-[2023-08-05 00:18:34]
+[2023-08-05 00:39:55]
 Syncing 35 templates...
-[2023-08-05 00:18:34]
+[2023-08-05 00:39:56]
 0 templates to insert.
-[2023-08-05 00:18:34]
+[2023-08-05 00:39:56]
 0 templates to update.
-[2023-08-05 00:18:34]
+[2023-08-05 00:39:56]
 Sync complete! See results below:
-[2023-08-05 00:18:34]
-{"type":"templates","inserted":{"success":[],"errors":[]},"updated":{"success":[],"errors":[]}}
-[2023-08-05 00:18:34]
+[2023-08-05 00:39:56]
+{"type":"metrics","inserted":0,"updated":0,"insert_errors":0,"update_errors":0}
+[2023-08-05 00:39:56]
 =====================================
-[2023-08-05 00:18:34]
-Retrieved 1 purchases...
-[2023-08-05 00:18:35]
-1 purchases to insert.
-[2023-08-05 00:18:35]
+[2023-08-05 00:39:56]
+Retrieved 3 purchases...
+[2023-08-05 00:39:57]
+2 purchases to insert.
+[2023-08-05 00:39:57]
 Sync complete! See results below:
-[2023-08-05 00:18:35]
-{"type":"purchases","inserted":{"success":["Insert operation on item with id 84e597e8fd6f4d3bb1eebe90eaf8bf5a in wp_idemailwiz_purchases was successful. Rows affected: 1."],"errors":[]}}
-[2023-08-05 00:18:35]
+[2023-08-05 00:39:57]
+{"type":"metrics","inserted":2,"insert_errors":0}
+[2023-08-05 00:39:57]
 =====================================
-[2023-08-05 00:18:35]
-Syncing 1 metrics...
-[2023-08-05 00:18:35]
+[2023-08-05 00:39:57]
+Syncing 634 metrics...
+[2023-08-05 00:39:57]
 0 metrics to insert.
-[2023-08-05 00:18:35]
-0 metrics to update.
-[2023-08-05 00:18:35]
+[2023-08-05 00:39:57]
+634 metrics to update.
+[2023-08-05 00:39:59]
 Sync complete! See results below:
-[2023-08-05 00:18:35]
-{"type":"metrics","inserted":{"success":[],"errors":[]},"updated":{"success":[],"errors":[]}}
-[2023-08-05 00:18:35]
+[2023-08-05 00:39:59]
+{"type":"metrics","inserted":0,"updated":634,"insert_errors":0,"update_errors":0}
+[2023-08-05 00:39:59]
 =====================================

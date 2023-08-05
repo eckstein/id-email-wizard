@@ -409,14 +409,26 @@ function idemailwiz_sync_campaigns($campaigns) {
 
     // Combine the results
     $result = [
-        'type' => 'campaigns',
-        'inserted' => $insert_results,
-        'updated' => $update_results,
+        'type' => 'metrics',
+        'inserted' => count($insert_results['success']),
+        'updated' => count($update_results['success']),
+        'insert_errors' => count($insert_results['errors']),
+        'update_errors' => count($update_results['errors']),
     ];
-   
+
     wiz_log( 'Sync complete! See results below:' );
     wiz_log( json_encode($result) );
+
+    // Log any error messages
+    foreach ($insert_results['errors'] as $error) {
+        wiz_log($error);
+    }
+    foreach ($update_results['errors'] as $error) {
+        wiz_log($error);
+    }
+
     wiz_log( '=====================================' );
+    
     return $result;
 }
 
@@ -461,16 +473,28 @@ function idemailwiz_sync_templates($templates) {
     $insert_results = idemailwiz_update_insert_api_data($records_to_insert, 'insert', $table_name);
     $update_results = idemailwiz_update_insert_api_data($records_to_update, 'update', $table_name);
 
-    // Combine the results
+   // Combine the results
     $result = [
-        'type' => 'templates',
-        'inserted' => $insert_results,
-        'updated' => $update_results,
+        'type' => 'metrics',
+        'inserted' => count($insert_results['success']),
+        'updated' => count($update_results['success']),
+        'insert_errors' => count($insert_results['errors']),
+        'update_errors' => count($update_results['errors']),
     ];
-   
+
     wiz_log( 'Sync complete! See results below:' );
     wiz_log( json_encode($result) );
+
+    // Log any error messages
+    foreach ($insert_results['errors'] as $error) {
+        wiz_log($error);
+    }
+    foreach ($update_results['errors'] as $error) {
+        wiz_log($error);
+    }
+
     wiz_log( '=====================================' );
+
     return $result;
 }
 
@@ -508,15 +532,22 @@ function idemailwiz_sync_purchases($purchases) {
     // Process new records
     $insert_results = idemailwiz_update_insert_api_data($records_to_insert, 'insert', $table_name);
 
-    // Combine the results
     $result = [
-        'type' => 'purchases',
-        'inserted' => $insert_results,
+        'type' => 'metrics',
+        'inserted' => count($insert_results['success']),
+        'insert_errors' => count($insert_results['errors']),
     ];
-   
+
     wiz_log( 'Sync complete! See results below:' );
     wiz_log( json_encode($result) );
+
+    // Log any error messages
+    foreach ($insert_results['errors'] as $error) {
+        wiz_log($error);
+    }
+
     wiz_log( '=====================================' );
+
     return $result;
 }
 
@@ -563,14 +594,25 @@ function idemailwiz_sync_metrics($metrics) {
     // Combine the results
     $result = [
         'type' => 'metrics',
-        'inserted' => $insert_results,
-        'updated' => $update_results,
+        'inserted' => count($insert_results['success']),
+        'updated' => count($update_results['success']),
+        'insert_errors' => count($insert_results['errors']),
+        'update_errors' => count($update_results['errors']),
     ];
-   
+
     wiz_log( 'Sync complete! See results below:' );
     wiz_log( json_encode($result) );
+
+    // Log any error messages
+    foreach ($insert_results['errors'] as $error) {
+        wiz_log($error);
+    }
+    foreach ($update_results['errors'] as $error) {
+        wiz_log($error);
+    }
+
     wiz_log( '=====================================' );
-    
+
     return $result;
 }
 
