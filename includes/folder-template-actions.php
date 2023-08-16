@@ -69,7 +69,8 @@ function duplicate_email_template( $post_id, $returnPHP=false ) {
 		}
 	}
 	if (empty($folderIDs)) {
-		$folderIDs = array((int) get_option( 'templatefoldersroot' ));
+		$options = get_option('idemailwiz_settings');
+		$folderIDs = array((int) $options['folder_base']);
 	}
 	$setTemplateTerms = wp_set_object_terms( $dupedID, $folderIDs, 'idemailwiz_folder' );
 	if (is_wp_error($setTemplateTerms)) {
@@ -127,8 +128,17 @@ function id_restore_template( $post_id ) {
 //ajax requests for template actions
 //Delete, restore, duplicate 
 function id_ajax_template_actions() {
+
 	//check nonce
     check_ajax_referer( 'template-actions', 'security' );
+
+	//get global options
+	$options = get_option('idemailwiz_settings');
+	$trashTerm = $options['folder_trash'];
+	if (!isset($options['folder_trash'])){
+		wp_send_json(array('success'=>false, 'actionResponse'=>'Trash folder term was not found!'));
+		die();
+	}
 
 	$action = $_POST['template_action'];
 	$post_id = $_POST['post_id'];
@@ -136,7 +146,6 @@ function id_ajax_template_actions() {
 		wp_send_json(false);
 	}
 	$doAction = false;
-	$trashTerm = get_option('templatefolderstrash');
 	$actionResponse = '';
 	switch ($action) {
         case 'delete':			
@@ -203,7 +212,7 @@ function id_ajax_template_actions() {
 				wp_send_json(array('success'=>false, 'actionResponse'=>$trashTerm->get_error_message()));
 				die();
 			}
-			wp_remove_object_terms($post_id, get_option('templatefolderstrash'), 'idemailwiz_folder');
+			wp_remove_object_terms($post_id, $trashTerm, 'idemailwiz_folder');
 			//wp_set_post_terms( $post_id, array( 1 ), 'idemailwiz_folder', false );
 			$doAction = true;
 			$actionResponse = $post_id;
@@ -239,7 +248,8 @@ function id_ajax_template_actions() {
 			//update the folder to the root
 			// Get the current folder terms for the post
 			$current_folders = wp_get_post_terms($dID, 'idemailwiz_folder');
-			$folderRootTerm = (int) get_option('templatefoldersroot');
+			$options = get_option('idemailwiz_settings');
+			$folderRootTerm = (int) $options['folder_base'];
 			
 			// Set the terms to the new folder
 			$setFolders = wp_set_post_terms($dID, array($folderRootTerm), 'idemailwiz_folder');

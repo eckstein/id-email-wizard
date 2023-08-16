@@ -44,7 +44,8 @@ function get_folder_list($current_folder_id=null) {
     );
 	
 	//skips the trash folder if it exists
-	$trashTerm = get_option('templatefolderstrash');
+	$options = get_option('idemailwiz_settings');
+	  $trashTerm = (int) $options['folder_trash'];
 	if (!is_wp_error($trashTerm)) {
 		$args['exclude'] = array((int) $trashTerm);
 	}
@@ -71,14 +72,15 @@ function get_folder_list($current_folder_id=null) {
 		
 		//Add trashed
 		
-		$trashedFolderId = (int) get_option('templatefolderstrash');
+		$options = get_option('idemailwiz_settings');
+		$trashedFolderId = (int) $options['folder_trash'];
 		$trashLink = get_term_link($trashedFolderId, 'idemailwiz_folder');
 		if (!is_wp_error($trashLink)) {
 			$folder_list .= '<ul style="margin-top: auto;"><li><a href="' . $trashLink . '"><i class="fa fa-trash"></i>&nbsp;&nbsp;Trash</a></li></ul>';
 		} else {
 			$folder_list .= '<ul style="margin-top: auto;"><li><em>Error! Trash term not detected.</em></li></ul>';
 		}
-		$templateRoot = (int) get_option('templatefoldersroot');
+		$templateRoot = (int) $options['folder_base'];
 		if (!is_wp_error($templateRoot)) {
 			$folder_list .= '<ul style="margin-top: auto;"><li>Template Root: ' . $templateRoot . '</li></ul>';
 		} else {

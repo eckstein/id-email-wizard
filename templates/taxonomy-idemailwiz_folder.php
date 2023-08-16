@@ -4,7 +4,8 @@
   // Get the current post type or term
   $queried_object = get_queried_object();
   
-  $trashTerm = get_option('templatefolderstrash');
+  $options = get_option('idemailwiz_settings');
+  $trashTerm = (int) $options['folder_trash'];
 
   // Check if the current page is a post type archive or a term in a taxonomy
   if ( is_post_type_archive() ) {
@@ -51,8 +52,9 @@
       <th><center><i class="fa-solid fa-folder-open"></i></center></th>
       <th class="single-folder-title" colspan="3"><?php echo display_folder_hierarchy(); ?></th>
       <th><?php 
-	  $folderRoot = get_option('templatefoldersroot');
-	  $trashTerm = get_option('templatefolderstrash');
+	  $options = get_option('idemailwiz_settings');
+	  $folderRoot = (int) $options['folder_base'];
+	  $trashTerm = (int) $options['folder_trash'];
 	  
 	  if ((!is_wp_error($folderRoot) && $current_folder_id == $folderRoot) || (!is_wp_error($trashTerm) && $current_folder_id == $trashTerm)) {
 		//show nothing for all templates or trash folder to prevent move/dupe/and delete of them.

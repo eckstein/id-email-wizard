@@ -1,3 +1,4 @@
+<?php get_header(); ?>
 <div id="startUI">
 <div class="startOptions">
     <div id="recentTemplates">
@@ -118,3 +119,4 @@
 </div>
 
 </div>
+<?php get_footer(); ?>

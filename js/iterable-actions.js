@@ -11,7 +11,7 @@ jQuery(document).ready(function ($) {
 	// Function to handle click event
 	$("#sendToIterable").on("click", function () {
 	  const post_id = $(this).data("postid");
-	  toggleOverlay();
+	  toggleOverlay(true);
   
 	  $.post(idAjax.ajaxurl, {
 		action: "idemailwiz_get_template_data_for_iterable",

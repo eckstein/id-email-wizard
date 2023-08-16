@@ -1,7 +1,9 @@
 <?php
 //Insert overlay and spinner into header
 function insert_overlay_loader() {
-  if (is_single() && get_post_type() == 'idemailwiz_template') {
+  $options = get_option('idemailwiz_settings');
+  $metricsPage = $options['metrics_page'];
+  if ((is_single() && get_post_type() == 'idemailwiz_template')) {
   ?>
   <div id="iDoverlay"></div>
   <div id="iDspinner" class="loader"></div>
@@ -19,7 +21,14 @@ function insert_overlay_loader() {
   </script>
   <?php
 }
-add_action('wp_head', 'insert_overlay_loader');
+add_action('wp_head', 'idemailwiz_head');
+function idemailwiz_head() {
+  // Preload overlay stuff so it happens fast
+  insert_overlay_loader();
+
+  //Add meta to prevent scaling on mobile (for DataTables)
+  echo '<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">'; 
+}
 
 
 // Determine if a template or folder is in the current user's favorites
@@ -105,11 +114,11 @@ function id_generate_folders_select($parent_id = 0, $prefix = '') {
     
     foreach ($folders as $folder) {
 		//skips the trash folder if it exists
-    if (!is_wp_error(get_option('templatefolderstrash'))) {
-        if ($folder->term_id == get_option('templatefolderstrash')) {
-          continue;
-        }
-    }
+    $options = get_option('idemailwiz_settings');
+	  $trashTerm = (int) $options['folder_trash'];
+      if ($folder->term_id == $trashTerm) {
+        continue;
+      }
         $name = $folder->name;
         $options .= '<option value="' . $folder->term_id . '">' . $prefix . $name . '</option>';
         $options .= id_generate_folders_select($folder->term_id, '&nbsp;&nbsp;'.$prefix . '-&nbsp;&nbsp;');
@@ -131,7 +140,6 @@ function id_generate_folders_select_ajax() {
 }
 
 add_action('wp_ajax_id_generate_folders_select_ajax', 'id_generate_folders_select_ajax');
-add_action('wp_ajax_nopriv_id_generate_folders_select_ajax', 'id_generate_folders_select_ajax');
 
 
 

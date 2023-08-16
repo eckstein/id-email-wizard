@@ -54,12 +54,11 @@ function id_pre_get_posts( $query ) {
 		
 		//include trashed posts, but only on the trash term page
 		$queried_object = get_queried_object();
-		$trashTerm = get_option('templatefolderstrash');
-		if (!is_wp_error($trashTerm)) {
-			if ($queried_object->term_id === (int) $trashTerm) {
-				$query->set('post_status', array('trash'));
-			}
-		}
+		$options = get_option('idemailwiz_settings');
+	    $trashTerm = (int) $options['folder_trash'];
+        if ($queried_object->term_id == (int) $trashTerm) {
+            $query->set('post_status', array('trash'));
+        }
 
         // Get the current user ID
         $current_user_id = get_current_user_id();
