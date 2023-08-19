@@ -626,7 +626,7 @@ function idemailwiz_sync_metrics($metrics=null) {
             $records_to_update[] = $metric;
         }
 
-        $wizMetric = get_idwiz_metrics($metric['id']);  
+        $wizMetric = get_idwiz_metric($metric['id']);  
         if ($wizMetric) {
             // Update the existing metric row 
             if (!in_array($metric, $records_to_update)) {

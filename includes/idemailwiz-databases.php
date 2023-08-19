@@ -282,7 +282,14 @@ function idemailwiz_simplify_templates_array($template) {
 
 
 
-
+function get_idwiz_campaign($campaignID) {
+    $campaign = get_idwiz_campaigns(array('id'=>$campaignID));
+    if ($campaign) {
+        return $campaign[0];
+    } else {
+        return false;
+    }
+}
 // Function to query campaigns from the database based on args
 function get_idwiz_campaigns($args = []) {
     global $wpdb;
@@ -368,6 +375,14 @@ function get_idwiz_campaigns($args = []) {
     //return $sql;
 }
 
+function get_idwiz_template($templateID) {
+    $template = get_idwiz_templates(array('templateId'=>$templateID));
+    if ($template) {
+        return $template[0];
+    } else {
+        return false;
+    }
+}
 // Function the query templates from the database based on args
 function get_idwiz_templates($args = []) {
     global $wpdb;
@@ -377,7 +392,7 @@ function get_idwiz_templates($args = []) {
     $limit = isset($args['limit']) ? (int)$args['limit'] : null;
     $sortBy = isset($args['sortBy']) ? $args['sortBy'] : null;
     $sort = isset($args['sort']) ? $args['sort'] : null;
-    $fields = isset($args['field']) ? $args['field'] : '*';
+    $fields = isset($args['fields']) ? $args['fields'] : '*';
 
     if (is_array($fields)) {
         $fields = implode(',', $fields);
@@ -417,6 +432,14 @@ function get_idwiz_templates($args = []) {
     //return $sql or false
 }
 
+function get_idwiz_purchase($purchaseID) {
+    $purchase = get_idwiz_purchases(array('id'=>$purchaseID));
+    if ($purchase) {
+        return $purchase[0];
+    } else {
+        return false;
+    }
+}
 // Function the query purchases from the database based on args
 function get_idwiz_purchases($args = []) {
     global $wpdb;
@@ -433,7 +456,7 @@ function get_idwiz_purchases($args = []) {
     $limit = isset($args['limit']) ? (int)$args['limit'] : null;
     $sortBy = isset($args['sortBy']) ? $args['sortBy'] : null;
     $sort = isset($args['sort']) ? $args['sort'] : null;
-    $fields = isset($args['field']) ? $args['field'] : '*';
+    $fields = isset($args['fields']) ? $args['fields'] : '*';
 
     if (is_array($fields)) {
         $fields = implode(',', $fields);
@@ -442,7 +465,7 @@ function get_idwiz_purchases($args = []) {
     $table_name = $wpdb->prefix . 'idemailwiz_purchases';
 
     $sql = "SELECT $fields FROM $table_name WHERE 1=1";
-
+    
     if ($purchaseId) {
         $sql .= $wpdb->prepare(" AND id = %s", $purchaseId);
     }
@@ -500,15 +523,31 @@ function get_idwiz_purchases($args = []) {
     //return $sql or false;
 }
 
+function get_idwiz_metric($campaignID) {
+    $metric = get_idwiz_metrics(array('id'=>$campaignID));
+    if ($metric) {
+        return $metric[0];
+    } else {
+        return false;
+    }
+}
 // Function to get all metrics or get one campaign's metric, if campaignId is present
-function get_idwiz_metrics($campaignId=null) {
+function get_idwiz_metrics($args=[]) {
     global $wpdb;
+
+    $campaignId = isset($args['id']) ? $args['id'] : null;
+    $limit = isset($args['limit']) ? (int)$args['limit'] : null;
+    $fields = isset($args['fields']) ? $args['fields'] : '*';
 
     $table_name = $wpdb->prefix . 'idemailwiz_metrics';
 
-    $sql = "SELECT * FROM $table_name WHERE 1=1";
+    $sql = "SELECT $fields FROM $table_name WHERE 1=1";
+    
     if ($campaignId) {
         $sql .= $wpdb->prepare(" AND id = %s", $campaignId);
+    }
+    if ($limit) {
+        $sql .= $wpdb->prepare(" LIMIT %d", $limit);
     }
 
     $metrics = $wpdb->get_results($sql, ARRAY_A);
@@ -520,7 +559,7 @@ function get_idwiz_metrics($campaignId=null) {
 
 
 
-function idwiz_metrics_by_campaigns($campaign_ids) {
+function get_idwiz_metrics_by_campaigns($campaign_ids) {
     global $wpdb;
     $table_name = $wpdb->prefix . 'idemailwiz_metrics';
 

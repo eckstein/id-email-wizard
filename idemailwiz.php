@@ -164,9 +164,14 @@ function idemailwiz_create_folder_taxonomy() {
 
 // Custom rewrite rule
 function idemailwiz_custom_rewrite_rule() {
+    // Template editor re-write
     add_rewrite_rule('^template/([0-9]+)/([^/]+)/?', 'index.php?post_type=idemailwiz_template&p=$matches[1]', 'top');
+    
+    // Campaign metrics rewrite
+    add_rewrite_endpoint('metrics/campaign', EP_ROOT);
 }
 add_action('init', 'idemailwiz_custom_rewrite_rule', 10);
+
 
 
 
@@ -182,6 +187,11 @@ function idemailwiz_template_chooser($template) {
 	if(get_post_type() == 'idemailwiz_template' && is_single()) {
 		return dirname(__FILE__) . '/templates/single-idemailwiz_template.php';
 	}
+
+    if (strpos($_SERVER['REQUEST_URI'], '/metrics/campaign') !== false) {
+        return dirname(__FILE__) . '/templates/metrics-campaign.php';
+    }
+    
 
     // Set templates based on plugin settings
     $options = get_option('idemailwiz_settings');
