@@ -26,8 +26,16 @@ jQuery(document).ready(function ($) {
 
 	// Call setupCategoriesView on page load
 	setupCategoriesView();
-});
 
+	// New Template popup interface
+	$('.show-new-template-ui').on('click', function() {
+		$('#new-template-popup').show();
+	});
+	$('.close-new-template-ui').on('click', function(){
+		$('#new-template-popup').hide();
+	});
+});
+	
 //Global scope functions
 function setupCategoriesView() {
   if (jQuery('.folderList').is(':visible')) {

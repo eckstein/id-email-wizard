@@ -1,5 +1,5 @@
 /*.wiz-button */
-.wiz.wiz-button {
+.wiz-button {
 	border-radius: 3px!important;
 	font-weight: bold;
 	z-index: 980;
@@ -13,11 +13,11 @@
 
 
 
-.wiz.wiz-button.green{
+.wiz-button.green{
 	background-color: #94D40A;
 	color: #fff!important;
 }
-	.wiz.wiz-button.green:hover{
+	.wiz-button.green:hover{
 		background-color:#77b900;
 	}
 	
@@ -270,7 +270,26 @@ body.single-idemailwiz_template #footer {
 	display: none;
 }
 
-
+#id-chunks-creator .acf-field-flexible-content .acf-actions .button-primary {
+	background-color: #94D40A;
+	color: #fff;
+	padding: 10px 20px;
+	border-radius: 5px;
+	text-decoration: none;
+	font-weight: bold;
+	margin-right: 20px;
+}
+#id-chunks-creator .acf-field-flexible-content .acf-actions .button-primary:before {
+	content: "+";
+	font-size: 2em;
+	font-weight: normal;
+	padding-right: 5px;
+	position: relative;
+	top: 5px;
+}
+#id-chunks-creator .acf-field-flexible-content .acf-actions .button-primary:hover {
+	background-color: #343434;
+}
 
 /*Template Preview Pane*/
 #templatePreview {
@@ -422,6 +441,9 @@ body.single-idemailwiz_template #footer {
 					display: inline-block;
 				}
 				
+
+
+
 /*Template Folders (cat archive and search results)*/
 .templateFolder {
 	display: flex;
@@ -543,7 +565,20 @@ body.single-idemailwiz_template #footer {
 		color: #efdb43;
 		font-size: 1.2em;
 	}
-		
+	.templateTable .templateToolbar {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 10px;
+	}
+		.templateTable #bulkActionsSelect {
+			padding: 5px 20px;
+		}
+		.templateTable #bulkActionsSelect option {
+			padding: 5px 20px;
+			font-size: 18px;
+		}
+
 	.templateFolder .templateTable {
 		flex: 1 1 auto;
 		margin-left: 30px;
@@ -611,7 +646,7 @@ body.single-idemailwiz_template #footer {
 				
 		
 			
-	/* Folder Archives page */	
+	/* Pagination */	
 	.archive.category .pagination {
 		margin-top: 20px;
 		text-align: right;
@@ -631,6 +666,42 @@ body.single-idemailwiz_template #footer {
 			font-size: 18px;
 			padding: 0 5px;
 		}
+
+/* New Template Popup */
+#new-template-popup {
+	position: absolute;
+	top: 80px;
+	bottom: 80px;
+	left: 80px;
+	right: 80px;
+	background-color: #fff;
+	border-radius: 5px;
+	box-shadow:0 0 10px 5px rgba(0, 0, 0, 0.3);
+	z-index: 99;
+	display: none;
+}
+	#new-template-popup .new-template-header {
+		display: flex;
+		justify-content: space-between;
+		padding: 15px 30px;
+		font-size: 18px;
+		background-color: #eee;
+		border-top-right-radius: 5px;
+		border-top-left-radius: 5px;
+		align-items: center;
+	}
+	#new-template-popup .new-template-header .fa-close {
+		cursor: pointer;
+	}
+	#new-template-popup .new-template-content {
+		padding: 30px;
+		overflow-y: auto;
+		max-height: calc(100% - 75px);
+	}
+	#new-template-popup h3 {
+		margin-bottom: 0!important;
+		margin-top: 0!important;
+	}
 
 
 	
@@ -771,12 +842,7 @@ body.single-idemailwiz_template #footer {
 	background-color: #eee;
 	padding: 20px;
 }
-	#fullScreenCode .fullScree.wiz-buttons {
-		margin-bottom: 10px;
-	}
-	#fullScreenCode .fullScree.wiz-buttons #hideFullCode {
-		float: right;
-	}
+
 	#generatedHTML {
 		background-color: #282C34;
 		font-size: 14px;
@@ -950,7 +1016,9 @@ body.single-idemailwiz_template #footer {
 	display: flex;
   }
   .idemailwiz_table_container {
-	height: 600px;
+	min-height: 700px;
+	resize: vertical;
+	overflow: hidden;
   }
 
   .idemailwiz_table_wrapper #wiztable_status_sync_details {

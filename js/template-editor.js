@@ -32,9 +32,9 @@ jQuery(document).ready(function ($) {
 	//When a new layout field is added
 	acf.addAction('append', function($el){
 		// Wait for 1 second and then simulate a click on the new layout
-		setTimeout(function() {
-			$el.find('.acf-fc-layout-handle').click();
-		}, 1000);
+		//setTimeout(function() {
+			//$el.find('.acf-fc-layout-handle').click();
+		//}, 1000);
 	
 		// Look within $el for .acf-fc-layout-handle elements and attach event handlers
 		$el.find('.acf-fc-layout-handle').on('click', function () {

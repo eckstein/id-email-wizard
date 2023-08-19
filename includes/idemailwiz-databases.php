@@ -101,12 +101,14 @@ function idemailwiz_create_databases() {
         totalHostedUnsubscribeClicks FLOAT,
         uniqueHostedUnsubscribeClicks FLOAT,
         lastWizUpdate BIGINT,
+        wizDeliveryRate FLOAT,
         wizOpenRate FLOAT,
         wizCtr FLOAT,
         wizCto FLOAT,
         wizUnsubRate FLOAT,
         wizCompRate FLOAT,
         wizCvr FLOAT,
+        wizAov FLOAT,
         PRIMARY KEY  (id)
     ) $charset_collate;";
 
@@ -178,7 +180,7 @@ function idemailwiz_create_view() {
     global $wpdb;
     
     $sql = "
-    CREATE VIEW IF NOT EXISTS idwiz_campaign_view AS
+    CREATE OR REPLACE VIEW idwiz_campaign_view AS
     SELECT 
         campaigns.id as campaign_id,
         campaigns.type as campaign_type,
@@ -189,6 +191,8 @@ function idemailwiz_create_view() {
         templates.subject as template_subject,
         templates.preheaderText as template_preheader,
         metrics.uniqueEmailSends as unique_email_sends,
+        metrics.uniqueEmailsDelivered as unique_delivered,
+        metrics.wizDeliveryRate as wiz_delivery_rate,
         metrics.uniqueEmailOpens as unique_email_opens,
         metrics.wizOpenRate as wiz_open_rate,
         metrics.uniqueEmailClicks as unique_email_clicks,
@@ -199,11 +203,13 @@ function idemailwiz_create_view() {
         metrics.wizCvr as wiz_cvr,
         metrics.revenue as revenue
     FROM 
-        wp_idemailwiz_campaigns AS campaigns
-    JOIN 
-        wp_idemailwiz_metrics AS metrics ON campaigns.id = metrics.id
-    JOIN 
-        wp_idemailwiz_templates AS templates ON campaigns.templateId = templates.templateId";
+        " . $wpdb->prefix . "idemailwiz_campaigns AS campaigns
+    LEFT JOIN 
+        " . $wpdb->prefix . "idemailwiz_metrics AS metrics ON campaigns.id = metrics.id
+    LEFT JOIN 
+        " . $wpdb->prefix . "idemailwiz_templates AS templates ON campaigns.templateId = templates.templateId
+    WHERE metrics.uniqueEmailSends > 5
+        ";
 
     $wpdb->query($sql);
 }
@@ -269,43 +275,7 @@ function idemailwiz_simplify_templates_array($template) {
 
 
 
-// Calculate percentage metrics
-// Takes a row of metrics data from the api call
-function idemailwiz_calculate_metrics($metrics) {
 
-    // Check for required fields and set to 0 if not set
-    $requiredFields = ['uniqueEmailSends', 'uniqueEmailOpens', 'uniqueEmailClicks', 'uniqueUnsubscribes', 'totalComplaints', 'uniquePurchases'];
-  
-    foreach ($requiredFields as $field) {
-      if (!isset($metrics[$field]) || $metrics[$field] === null) {
-        $metrics[$field] = 0; 
-      }
-    }
-  
-    // Check for divide by zero
-    if ($metrics['uniqueEmailSends'] > 0) {
-      $metrics['wizOpenRate'] = ($metrics['uniqueEmailOpens'] / $metrics['uniqueEmailSends']) * 100;
-      $metrics['wizCtr'] = ($metrics['uniqueEmailClicks'] / $metrics['uniqueEmailSends']) * 100; 
-      $metrics['wizUnsubRate'] = ($metrics['uniqueUnsubscribes'] / $metrics['uniqueEmailSends']) * 100;
-      $metrics['wizCompRate'] = ($metrics['totalComplaints'] / $metrics['uniqueEmailSends']) * 100;
-      $metrics['wizCvr'] = ($metrics['uniquePurchases'] / $metrics['uniqueEmailSends']) * 100;
-    } else {
-      $metrics['wizOpenRate'] = 0;
-      $metrics['wizCtr'] = 0;
-      $metrics['wizUnsubRate'] = 0;
-      $metrics['wizCompRate'] = 0;
-      $metrics['wizCvr'] = 0; 
-    }
-  
-    if ($metrics['uniqueEmailOpens'] > 0) {
-      $metrics['wizCto'] = ($metrics['uniqueEmailClicks'] / $metrics['uniqueEmailOpens']) * 100;
-    } else {
-      $metrics['wizCto'] = 0;
-    }
-  
-    return $metrics;
-  
-  }
 
 
 
@@ -474,7 +444,7 @@ function get_idwiz_purchases($args = []) {
     $sql = "SELECT $fields FROM $table_name WHERE 1=1";
 
     if ($purchaseId) {
-        $sql .= $wpdb->prepare(" AND purchaseId = %s", $purchaseId);
+        $sql .= $wpdb->prepare(" AND id = %s", $purchaseId);
     }
     if ($orderId) {
         $sql .= $wpdb->prepare(" AND orderId = %s", $orderId);
@@ -527,7 +497,7 @@ function get_idwiz_purchases($args = []) {
     $purchases = $wpdb->get_results($sql, ARRAY_A);
 
     return $purchases;
-    //return $sql;
+    //return $sql or false;
 }
 
 // Function to get all metrics or get one campaign's metric, if campaignId is present
@@ -544,6 +514,7 @@ function get_idwiz_metrics($campaignId=null) {
     $metrics = $wpdb->get_results($sql, ARRAY_A);
 
     return $metrics;
+    //return $sql or false
 }
 
 
@@ -569,8 +540,13 @@ function idwiz_metrics_by_campaigns($campaign_ids) {
 
 function idwiz_get_campaign_table_view() {
     global $wpdb;
+
+    // Bail early without valid nonce
+    if (!check_ajax_referer('data-tables', 'security')) return;
+    
     // Fetch data from your view
     $results = $wpdb->get_results("SELECT * FROM idwiz_campaign_view", ARRAY_A);
+    //wiz_log(print_r($results, true));
 
     // Iterate through the results and unserialize specific columns
     foreach ($results as &$row) {

@@ -249,7 +249,7 @@ function id_ajax_template_actions() {
 			// Get the current folder terms for the post
 			$current_folders = wp_get_post_terms($dID, 'idemailwiz_folder');
 			$options = get_option('idemailwiz_settings');
-			$folderRootTerm = (int) $options['folder_base'];
+			$folderRootTerm = $options['folder_base'];
 			
 			// Set the terms to the new folder
 			$setFolders = wp_set_post_terms($dID, array($folderRootTerm), 'idemailwiz_folder');
@@ -259,12 +259,13 @@ function id_ajax_template_actions() {
 			}
 
 			// Remove the post from all other categories
-			foreach ($current_folders as $folder_id) {	
+			foreach ($current_folders as $folder) {	
+				$folder_id = $folder->term_id;
 				if (is_wp_error($folderRootTerm)) {
 						wp_send_json(array('success'=>false, 'actionResponse'=>$folderRootTerm->get_error_message()));
 						die();
 					}
-				if ($folder_id != $folderRootTerm) {
+				if ($folder_id != (int)$folderRootTerm) {
 					$removeFromFolders = wp_remove_object_terms($dID, $folder_id, 'idemailwiz_folder');
 					if (is_wp_error($removeFromFolders)) {
 						wp_send_json(array('success'=>false, 'actionResponse'=>$removeFromFolders->get_error_message()));

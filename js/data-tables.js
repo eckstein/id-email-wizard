@@ -9,17 +9,30 @@ jQuery(document).ready(function ($) {
             url: idAjax.ajaxurl,
             serverSide: true,
             data: {
-                'action':'idwiz_get_campaign_table_view',
+                action:'idwiz_get_campaign_table_view',
+                security: idAjax_data_tables.nonce
             },
             success:function(data) {
                 // Parse the data to a JavaScript object
                 var parsedData = JSON.parse(data);
         
                 // Initialize DataTables with the parsed data
-                $('.idemailwiz_table').DataTable({
+                var table = $('.idemailwiz_table').DataTable({
                     data: parsedData,
-                    "order": [[ 2, 'asc' ], [ 1, 'desc' ]],
+                    "order": [[ 3, 'asc' ], [ 2, 'desc' ]],
+                    "autoWidth" : false,
+                    fixedColumns: {
+                        left: 2
+                    },
                     columns: [
+                        {
+                            "className": 'row-counter',
+                            "title": '#',
+                            "name": 'row-counter',
+                            "orderable": false,
+                            "data": null,
+                            "width": "20px"
+                        },
                         {
                             "className": 'details-control',
                             "name": 'details-control',
@@ -62,7 +75,7 @@ jQuery(document).ready(function ($) {
                             "data": "campaign_name",
                             "name": "campaign_name",
                             "title": "Campaign Name",
-                            "render": $.fn.dataTable.render.ellipsis(40, true),
+                            "render": $.fn.dataTable.render.ellipsis(50, true),
                             "className": "idwiz_searchBuilder_enabled",
                             "searchBuilderType": "string",
                         },
@@ -77,7 +90,25 @@ jQuery(document).ready(function ($) {
                             "data": "unique_email_sends",
                             "name": "unique_email_sends",
                             "title": "Sends",
+                            "type": "num",
                             "render": $.fn.dataTable.render.number(',', ''),
+                            "className": "idwiz_searchBuilder_enabled",
+                            "searchBuilderType": "num-fmt",
+                        },
+                        { 
+                            "data": "unique_delivered",
+                            "name": "unique_delivered",
+                            "title": "Delivered",
+                            "type": "num",
+                            "render": $.fn.dataTable.render.number(',', ''),
+                            "className": "idwiz_searchBuilder_enabled",
+                            "searchBuilderType": "num-fmt",
+                        },
+                        { 
+                            "data": "wiz_delivery_rate",
+                            "name": "wiz_delivery_rate",
+                            "title": "Deliv. Rate",
+                            "render": function (data) { return parseFloat(data).toFixed(2) + '%'; },
                             "className": "idwiz_searchBuilder_enabled",
                             "searchBuilderType": "num-fmt",
                         },
@@ -172,7 +203,6 @@ jQuery(document).ready(function ($) {
                             "render": $.fn.dataTable.render.ellipsis(40, true),
                             "className": "idwiz_searchBuilder_enabled",
                             "searchBuilderType": "string",
-                            "visible": false
                         },
                         { 
                             "data": "template_preheader",
@@ -181,7 +211,6 @@ jQuery(document).ready(function ($) {
                             "render": $.fn.dataTable.render.ellipsis(40, true),
                             "className": "idwiz_searchBuilder_enabled",
                             "searchBuilderType": "string",
-                            "visible": false
                         },
                         { 
                             "data": "campaign_id",
@@ -190,12 +219,11 @@ jQuery(document).ready(function ($) {
                             "className": "idwiz_searchBuilder_enabled",
                             "searchBuilderType": "num",
                             "searchBuilder.defaultConditions": "==",
-                            "visible": false
                         },
                         
                     ],
                     
-                    dom: '<"#wiztable_top_wrapper"><"wiztable_toolbar" <"#wiztable_top_search" f><"#wiztable_top_dates">  B>t<"wiztable_footer"i>',
+                    dom: '<"#wiztable_top_wrapper"><"wiztable_toolbar" <"#wiztable_top_search" f><"#wiztable_top_dates">  B>t',
                     fixedHeader: {
                         header: true,
                         footer: false
@@ -205,7 +233,7 @@ jQuery(document).ready(function ($) {
                     },
                     scroller: true,
                     scrollX: true,
-                    scrollY: '600px',
+                    scrollY: '700px',
                     paging: true,
                     scrollResize: true,
                     scrollCollapse: true,
@@ -262,6 +290,11 @@ jQuery(document).ready(function ($) {
                                     attr:  {
                                         "data-sync-db": 'metrics',
                                     },
+                                    autoClose: true,
+                                },
+                                {
+                                    text: 'View sync log',
+                                    className: 'wiztable_view_sync_details',
                                     autoClose: true,
                                 },
                                 
@@ -429,9 +462,10 @@ jQuery(document).ready(function ($) {
                         searchPlaceholder: 'Quick search',
                         
                     },
-                    // Draw and initi callback functions
+                    // Draw and init callback functions
                     drawCallback: idwiz_dt_draw_callback,                                                                                                                                    
                     initComplete: idwiz_dt_init_callback,
+                    
 
                 });
                 
@@ -481,6 +515,7 @@ jQuery(document).ready(function ($) {
             $('.idemailwiz_table').DataTable().draw();
         });
 
+        
 
 
 
@@ -518,24 +553,36 @@ jQuery(document).ready(function ($) {
           });
     }
 
+    
+    
+
     function idwiz_dt_draw_callback(settings, json) {
-        
+        var api = this.api();
+
         // Hide the loader
         $('#idemailwiz_tableLoader').hide();
 
         // Move some buttons
         var advSearch = $('.btn-advanced-search').closest('.dt-button');
         advSearch.insertAfter('#wiztable_top_dates');
-        //$('#wiztable_top_search').append(advSearch);
         
         //Change width of popup for advanced search
         $('btn-advanced-search').on('click', function() {
             $('.dtb-collection-closeable').css('width: 800px');
         });
 
-        var api = this.api();
-
         
+        // Create the counter column
+        var info = api.page.info();
+        var start = info.start;
+        api.column(0, { page: 'current' }).nodes().each(function (cell, i) {
+            cell.innerHTML = i + 1 + start;
+        });
+
+        api.columns.adjust();
+
+        // Get current record count
+        var recordCount = api.rows({search:'applied'}).count();
 
         // Define a function to calculate the sum of a column
         var sumColumn = function(columnName) {
@@ -555,6 +602,7 @@ jQuery(document).ready(function ($) {
 
         // Calculate the totals
         var totalSends = sumColumn('unique_email_sends');
+        var totalDelivered = sumColumn('unique_delivered');
         var totalOpens = sumColumn('unique_email_opens');
         var totalClicks = sumColumn('unique_email_clicks');
         var totalPurchases = sumColumn('unique_purchases'); 
@@ -562,6 +610,7 @@ jQuery(document).ready(function ($) {
 
         // Calculate the rates
         var openRate = calculateRatio(totalOpens, totalSends);
+        var delivRate = calculateRatio(totalDelivered, totalSends);
         var clickRate = calculateRatio(totalClicks, totalSends);
         var cto = calculateRatio(totalClicks, totalOpens);
         var cvr = calculateRatio(totalPurchases, totalOpens);
@@ -569,10 +618,13 @@ jQuery(document).ready(function ($) {
         // Update the HTML element with the calculated total and rates
         $('#wiztable_view_metrics').html(
             '<table id="wiztable_view_metrics_table"><tr>' +
+            '<td><span class="metric_view_label">Campaigns</span><span class="metric_view_value">' + recordCount.toLocaleString() + '</span></td>' +
             '<td><span class="metric_view_label">Sends</span><span class="metric_view_value">' + totalSends.toLocaleString() + '</span></td>' +
+            '<td><span class="metric_view_label">Delivered</span><span class="metric_view_value">' + totalDelivered.toLocaleString() + '</span></td>' +
+            '<td><span class="metric_view_label">Deliv. Rate</span><span class="metric_view_value">' + delivRate.toFixed(2) + '%' + '</span></td>' +
             '<td><span class="metric_view_label">Opens</span><span class="metric_view_value"> ' + totalOpens.toLocaleString() +  '</span></td>' +
-            '<td><span class="metric_view_label">Clicks</span><span class="metric_view_value"> ' + totalClicks.toLocaleString() +  '</span></td>' +
             '<td><span class="metric_view_label">Open Rate</span><span class="metric_view_value"> ' + openRate.toFixed(2) + '%' +  '</span></td>' +
+            '<td><span class="metric_view_label">Clicks</span><span class="metric_view_value"> ' + totalClicks.toLocaleString() +  '</span></td>' +
             '<td><span class="metric_view_label">CTR</span><span class="metric_view_value"> ' + clickRate.toFixed(2) + '%' +  '</span></td>' +
             '<td><span class="metric_view_label">CTO</span><span class="metric_view_value"> ' + cto.toFixed(2) + '%' +  '</span></td>' +
             '<td><span class="metric_view_label">Purchases</span><span class="metric_view_value"> ' + totalPurchases.toLocaleString() +
@@ -586,14 +638,22 @@ jQuery(document).ready(function ($) {
 
     $(document).on('click', '.sync-db', function() {
 
-        $('#wiztable_status_updates').addClass('active').slideDown();
-        $('#wiztable_status_updates .wiztable_update').text('Preparing sync...');
-        $('#wiztable_status_sync_details').load(idAjax.plugin_url + '/sync-log.txt');
+        
 
         // For security, define only possible dbs
         var dbs = ['campaigns', 'templates', 'metrics', 'purchases'];
-    
+
+        // Get the type of db we're updating
         var syncDb = $(this).attr('data-sync-db');
+
+        // Notice and logging
+        $('#wiztable_status_updates').addClass('active').slideDown();
+        $('#wiztable_status_updates .wiztable_update').text('Preparing ' + syncDb + ' sync...');
+
+        
+
+       
+
         if (syncDb === 'everything') {
             // Sync all dbs if 'everything' is clicked
             $('#wiztable_status_updates .wiztable_update').text('Syncing blasts, templates, metrics, and purchases...');
@@ -607,6 +667,22 @@ jQuery(document).ready(function ($) {
             return;
         }
         
+        // Write initialization to log
+        $.ajax({
+            type: "POST",
+            url: idAjax.ajaxurl,
+            data: {
+                action: "ajax_to_wiz_log",
+                log_data: "Initializing " + syncDb + " sync. Please wait a few moments...",
+                timestamp: true,
+                security: idAjax_data_tables.nonce
+            },
+            success: function(result) {
+                $('#wiztable_status_sync_details').load(idAjax.plugin_url + '/sync-log.txt');
+            }
+        });
+
+
         $.ajax({
             type: "POST",
             url: idAjax.ajaxurl,
@@ -637,24 +713,7 @@ jQuery(document).ready(function ($) {
         $(this).find('i').toggleClass('fa-chevron-down fa-chevron-up');
     });
 
-    // Defunct for now in favor of cron
-    /* $(document).on('click', '.sync-triggered', function() {
-        
-        $.ajax({
-            type: "POST",
-            url: idAjax.ajaxurl,
-            data: {
-                action: "idemailwiz_update_triggered_sends",
-                security: idAjax_data_tables.nonce
-            },
-            success: function(result) {
-                console.log('Sync result: ' + JSON.stringify(result));
-            },
-            error: function(xhr, status, error) {
-                console.log(error);
-            }
-        });
-    }); */
+
     
 
     

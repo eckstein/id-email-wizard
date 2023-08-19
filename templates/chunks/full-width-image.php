@@ -3,10 +3,10 @@ $chunkSettings = $chunk['chunk_settings'];
 
 $useMobileAlt = $chunk['mobile_image'] ?? false;
 
-$desktopImage = $chunk['desktop_image_url'];
-$mobileImage = $chunk['mobile_image_url'];
+$desktopImage = $chunk['desktop_image_url'] ?? '';
+$mobileImage = $chunk['mobile_image_url'] ?? '';
 
-$imageLink = $chunk['image_link'];
+$imageLink = $chunk['image_link'] ?? '';
 $imageAltTag = $chunk['alt_tag'] ?? '';
 
 //conditionally apply hide-mobile class to desktop image if mobile image is enabled

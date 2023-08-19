@@ -17,6 +17,8 @@
   }
   ?>
 
+
+
 <div class="templateFolder">
 <div class="folderList">
 
@@ -27,15 +29,20 @@
 </div>
 
 <div class="templateTable">
-<select id="bulkActionsSelect" name="bulkActionsSelect" disabled=true>
-	<option disabled selected="true">Bulk Actions</option>
-	<?php if (!is_wp_error($trashTerm) && $current_folder_id == (int) $trashTerm) { ?>
-	<option value="restore">Restore</option>
-	<?php } else { ?>
-	<option value="move">Move</option>
-	<option value="delete">Delete</option>
-	<?php } ?>
-</select>
+<div class="templateToolbar">
+	<select id="bulkActionsSelect" name="bulkActionsSelect" disabled=true>
+		<option disabled selected="true">Bulk Actions</option>
+		<?php if (!is_wp_error($trashTerm) && $current_folder_id == (int) $trashTerm) { ?>
+		<option value="restore">Restore</option>
+		<?php } else { ?>
+		<option value="move">Move</option>
+		<option value="delete">Delete</option>
+		<?php } ?>
+	</select>
+	<div id="templates-tools">
+		<div class="wiz-button green show-new-template-ui"><i class="fa fa-plus"></i>&nbsp;&nbsp;New Template</div>
+	</div>
+</div>
 <table>
   <thead class="folder-header">
 	
@@ -211,5 +218,66 @@
 	} ?>
 </div>
 </div>
-
+<div id="new-template-popup">
+	<div class="new-template-header">
+	<h3>New Template</h3>
+	<i class="fa fa-close close-new-template-ui"></i>
+	</div>
+	<div class="new-template-content">
+	<div id="templateSelect">
+        <div class="templateSelectWrap">
+            <div class="startTemplate" data-postid="608">
+                <h4>Plain Text</h4>
+                <span>Non-Letter</span>
+                <a href="<?php echo get_bloginfo('wpurl')?>/plain-text/?action=duplicate&post=282"></a>
+            </div>
+            <div class="startTemplate" data-postid="678">
+                <h4>Plain Letter</h4>
+                <span>Plain text with Sig</span>
+                <a href=""></a>
+            </div>
+            <div class="startTemplate" data-postid="682">
+                <h4>Full Graphic</h4>
+                <span>Desktop Only Assets</span>
+                <a href=""></a>
+            </div>
+            <div class="startTemplate" data-postid="685">
+                <h4>Full Graphic Resp.</h4>
+                <span>With Mobile-Alt Assets</span>
+                <a href=""></a>
+            </div>
+            <div class="startTemplate" data-postid="687">
+                <h4>Two-Col with Header</h4>
+                <span>Header | Text | 2-Col (x3)</span>
+                <a href=""></a>
+            </div>
+            <div class="startTemplate" data-postid="1806">
+                <h4>Two-Col Contained with Header</h4>
+                <span>Header | Text | 2-Col (x3)</span>
+                <a href=""></a>
+            </div>
+            <div class="startTemplate" data-postid="691">
+                <h4>Zig-Zag with Header</h4>
+                <span>Header | Text | ZZ-Cols (x1)</span>
+                <a href=""></a>
+            </div>
+            <div class="startTemplate" data-postid="1798">
+                <h4>Zig-Zag Contained with Header</h4>
+                <span>Header | Text | ZZ-Cols (x1)</span>
+                <a href=""></a>
+            </div>
+            <div class="startTemplate" data-postid="695">
+                <h4>Three-Col with Header</h4>
+                <span>Header | Text | 3-Col (x1)</span>
+                <a href=""></a>
+            </div>
+            <div class="startTemplate" data-postid="699">
+                <h4>(blank)</h4>
+                <span>Start from scratch!</span>
+                <a href=""></a>
+            </div>
+        </div>
+    </div>
+	</div>
+</div>
 <?php get_footer(); ?>
