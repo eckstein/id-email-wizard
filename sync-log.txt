@@ -1,234 +1,177 @@
-==========[2023-08-18 21:42:21]==============================<br />
-Updated 86 send times.<br />
-Skipped 0 campaigns.<br />
-Encountered 0 errors<br />
+==========[2023-08-18 22:38:34]==============================<br />
+No inserts or updates needed.<br />
 ========================================<br />
 <br />
-==========[2023-08-18 21:42:21]==============================<br />
-Campaign 7296375 send date/time needs updated from 08/10/23 5:08pm to 08/17/23 5:16pm <br />
-Campaign 7286553 send date/time needs updated from 08/10/23 5:06pm to 08/17/23 5:13pm <br />
-Campaign 7286545 send date/time needs updated from 08/07/23 5:01pm to 08/14/23 5:17pm <br />
-Campaign 7286559 send date/time needs updated from 08/07/23 5:00pm to 08/14/23 5:00pm <br />
-Campaign 7286547 send date/time needs updated from 08/07/23 5:01pm to 08/14/23 5:03pm <br />
-Campaign 7286546 send date/time needs updated from 08/07/23 5:02pm to 08/14/23 5:10pm <br />
-Campaign 7286544 send date/time needs updated from 08/06/23 5:01pm to 08/13/23 5:00pm <br />
-Campaign 7286543 send date/time needs updated from 08/06/23 5:01pm to 08/13/23 5:00pm <br />
-Campaign 7245313 send date/time needs updated from 08/07/23 5:01pm to 08/14/23 5:00pm <br />
-Campaign 7195400 send date/time needs updated from 08/10/23 5:04pm to 08/17/23 5:02pm <br />
-Campaign 7195398 send date/time needs updated from 08/07/23 5:02pm to 08/14/23 5:00pm <br />
-Campaign 7195492 send date/time needs updated from 08/06/23 5:04pm to 08/13/23 5:05pm <br />
-Campaign 7195486 send date/time needs updated from 08/10/23 5:06pm to 08/17/23 5:11pm <br />
-Campaign 7195467 send date/time needs updated from 08/07/23 5:01pm to 08/14/23 5:03pm <br />
-Campaign 7195397 send date/time needs updated from 07/30/23 5:00pm to 08/13/23 5:01pm <br />
-Campaign 7195313 send date/time needs updated from 08/06/23 5:01pm to 08/13/23 5:01pm <br />
-Campaign 7195303 send date/time needs updated from 08/06/23 5:01pm to 08/13/23 5:00pm <br />
-Campaign 7195302 send date/time needs updated from 08/06/23 5:01pm to 08/13/23 5:00pm <br />
-Campaign 7029077 send date/time needs updated from 07/16/23 5:00pm to 08/13/23 5:01pm <br />
-Campaign 6968443 send date/time needs updated from 07/17/23 5:00pm to 08/14/23 5:00pm <br />
-Campaign 6968448 send date/time needs updated from 08/06/23 5:01pm to 08/13/23 5:01pm <br />
-Campaign 6968452 send date/time needs updated from 07/20/23 5:01pm to 08/17/23 5:00pm <br />
-Campaign 6852940 send date/time needs updated from 08/18/23 8:21pm to 08/19/23 4:16am <br />
-Campaign 7360317 send date/time needs updated from 08/18/23 10:23pm to 08/19/23 1:57am <br />
-Campaign 6763619 send date/time needs updated from 01/01/70 12:00am to 08/18/23 10:14pm <br />
-Campaign 6721073 send date/time needs updated from 08/18/23 10:26pm to 08/19/23 2:51am <br />
-Campaign 4318828 send date/time needs updated from 01/01/70 12:00am to 08/18/23 4:23am <br />
-Campaign 4318807 send date/time needs updated from 01/01/70 12:00am to 04/12/23 5:19pm <br />
-Campaign 4318827 send date/time needs updated from 01/01/70 12:00am to 06/16/22 10:50pm <br />
-Campaign 4318818 send date/time needs updated from 01/01/70 12:00am to 02/17/23 7:12pm <br />
-Campaign 4318819 send date/time needs updated from 01/01/70 12:00am to 02/17/23 7:12pm <br />
-Campaign 4318814 send date/time needs updated from 01/01/70 12:00am to 04/12/23 5:23pm <br />
-Campaign 4318810 send date/time needs updated from 01/01/70 12:00am to 04/12/23 5:23pm <br />
-Campaign 4318812 send date/time needs updated from 01/01/70 12:00am to 04/12/23 5:23pm <br />
-Campaign 4318821 send date/time needs updated from 01/01/70 12:00am to 06/16/22 10:27pm <br />
-Campaign 2335982 send date/time needs updated from 08/18/23 9:55pm to 08/19/23 4:06am <br />
-Campaign 2326186 send date/time needs updated from 08/18/23 10:40pm to 08/19/23 3:55am <br />
-Campaign 2335981 send date/time needs updated from 08/18/23 10:44pm to 08/19/23 4:20am <br />
-Campaign 4146635 send date/time needs updated from 08/18/23 6:39pm to 08/19/23 4:19am <br />
-Campaign 4937826 send date/time needs updated from 08/18/23 10:39pm to 08/19/23 1:36am <br />
-Campaign 4933728 send date/time needs updated from 08/18/23 9:40pm to 08/19/23 4:25am <br />
-Campaign 4933888 send date/time needs updated from 08/18/23 9:46pm to 08/19/23 3:13am <br />
-Campaign 3180384 send date/time needs updated from 08/18/23 10:39pm to 08/19/23 12:56am <br />
-Campaign 4107570 send date/time needs updated from 01/01/70 12:00am to 03/14/23 3:27pm <br />
-Campaign 5554671 send date/time needs updated from 08/09/23 9:46pm to 08/16/23 5:06pm <br />
-Campaign 6208303 send date/time needs updated from 01/01/70 12:00am to 02/17/23 7:26pm <br />
-Campaign 6208262 send date/time needs updated from 01/01/70 12:00am to 02/18/23 2:31pm <br />
-Campaign 4841125 send date/time needs updated from 08/10/23 10:11am to 08/16/23 10:09am <br />
-Campaign 4933695 send date/time needs updated from 08/18/23 10:24pm to 08/19/23 4:16am <br />
-Campaign 6512101 send date/time needs updated from 01/01/70 12:00am to 08/01/23 11:51pm <br />
-Campaign 6512115 send date/time needs updated from 01/01/70 12:00am to 08/08/23 7:41pm <br />
-Campaign 6512654 send date/time needs updated from 01/01/70 12:00am to 05/02/23 6:37pm <br />
-Campaign 6512151 send date/time needs updated from 01/01/70 12:00am to 04/12/23 5:19pm <br />
-Campaign 6512668 send date/time needs updated from 01/01/70 12:00am to 05/02/23 6:37pm <br />
-Campaign 6511900 send date/time needs updated from 01/01/70 12:00am to 08/09/23 6:40pm <br />
-Campaign 6512135 send date/time needs updated from 01/01/70 12:00am to 08/08/23 7:10pm <br />
-Campaign 4428759 send date/time needs updated from 08/18/23 5:10pm to 08/18/23 11:15pm <br />
-Campaign 2335983 send date/time needs updated from 08/18/23 10:31pm to 08/19/23 4:12am <br />
-Campaign 3968127 send date/time needs updated from 08/18/23 10:36pm to 08/19/23 12:24am <br />
-Campaign 3221560 send date/time needs updated from 01/01/70 12:00am to 11/20/21 12:31am <br />
-Campaign 5555142 send date/time needs updated from 08/04/23 7:13pm to 08/17/23 3:43pm <br />
-Campaign 5554657 send date/time needs updated from 08/18/23 7:37pm to 08/19/23 1:37am <br />
-Campaign 6079270 send date/time needs updated from 01/01/70 12:00am to 03/14/23 3:27pm <br />
-Campaign 5554673 send date/time needs updated from 08/09/23 12:06am to 08/16/23 7:02pm <br />
-Campaign 5554669 send date/time needs updated from 08/01/23 8:04pm to 08/15/23 3:06am <br />
-Campaign 5554656 send date/time needs updated from 08/18/23 9:06pm to 08/19/23 3:10am <br />
-Campaign 3904821 send date/time needs updated from 01/01/70 12:00am to 04/19/22 6:24pm <br />
-Campaign 4318824 send date/time needs updated from 01/01/70 12:00am to 06/16/22 10:50pm <br />
-Campaign 4318816 send date/time needs updated from 01/01/70 12:00am to 02/17/23 7:12pm <br />
-Campaign 4318811 send date/time needs updated from 01/01/70 12:00am to 04/12/23 5:23pm <br />
-Campaign 4318809 send date/time needs updated from 01/01/70 12:00am to 04/12/23 5:19pm <br />
-Campaign 3896196 send date/time needs updated from 01/01/70 12:00am to 03/16/22 11:28pm <br />
-Campaign 3639707 send date/time needs updated from 01/01/70 12:00am to 03/16/22 11:24pm <br />
-Campaign 4318808 send date/time needs updated from 01/01/70 12:00am to 04/12/23 5:19pm <br />
-Campaign 7286554 send date/time needs updated from 01/01/70 12:00am to 08/13/23 5:01pm <br />
-Campaign 7286558 send date/time needs updated from 01/01/70 12:00am to 08/13/23 5:05pm <br />
-Campaign 7286551 send date/time needs updated from 01/01/70 12:00am to 08/13/23 5:00pm <br />
-Campaign 7286548 send date/time needs updated from 01/01/70 12:00am to 08/13/23 5:00pm <br />
-Campaign 7259834 send date/time needs updated from 01/01/70 12:00am to 08/18/23 10:14am <br />
-Campaign 7195399 send date/time needs updated from 01/01/70 12:00am to 08/13/23 5:00pm <br />
-Campaign 7443916 send date/time needs updated from 01/01/70 12:00am to 08/18/23 10:02am <br />
-Campaign 7443822 send date/time needs updated from 01/01/70 12:00am to 08/19/23 4:32am <br />
-Campaign 7487540 send date/time needs updated from 01/01/70 12:00am to 08/19/23 12:16am <br />
-Campaign 7483526 send date/time needs updated from 01/01/70 12:00am to 08/19/23 4:34am <br />
-Campaign 7487797 send date/time needs updated from 01/01/70 12:00am to 08/19/23 3:29am <br />
-Campaign 7234277 send date/time needs updated from 01/01/70 12:00am to 08/18/23 10:27am <br />
-<br />
+==========[2023-08-18 22:38:34]==============================<br />
+Initializing purchases sync. Please wait a few moments...<br />
 ========================================<br />
 <br />
-==========[2023-08-18 21:22:02]==============================<br />
-Requested 224 triggered campaigns from Iterable. 0 errors encountered.<br />
-Proceeding to retrieve campaign data (another few minutes here).<br />
+==========[2023-08-18 22:38:30]==============================<br />
+No inserts or updates needed.<br />
 ========================================<br />
 <br />
-==========[2023-08-18 21:16:14]==============================<br />
-Starting emailSend API calls (this will take a few minutes due to API rate limits).<br />
+==========[2023-08-18 22:38:28]==============================<br />
+Initializing campaigns sync. Please wait a few moments...<br />
 ========================================<br />
 <br />
-==========[2023-08-18 20:47:57]==============================<br />
-114 metrics to update.<br />
+==========[2023-08-18 22:38:16]==============================<br />
+No inserts or updates needed.<br />
+========================================<br />
 <br />
+==========[2023-08-18 22:38:15]==============================<br />
+Initializing purchases sync. Please wait a few moments...<br />
+========================================<br />
+<br />
+==========[2023-08-18 22:37:52]==============================<br />
+3 metrics to insert.<br />
+131 metrics to update.<br />
+Success (insert): Successfully performed insert on 'Cohort #1 / Brochure Email' (ID: 7487540).<br />
+Success (insert): Successfully performed insert on 'Cohort #2' (ID: 7487797).<br />
+Success (insert): Successfully performed insert on 'Welcome Series Email #1' (ID: 7483526).<br />
+Success (update): Successfully performed update on '0429 | V3: VTC Formers | Last Chance for Summer Programs' (ID: 7346762).<br />
 Success (update): Successfully performed update on 'Welcome Series Email #1' (ID: 2326185).<br />
-Success (update): Successfully performed update on '350 Badge' (ID: 5554699).<br />
-Success (update): Successfully performed update on 'OPL Subscription Renewal' (ID: 5555104).<br />
 Success (update): Successfully performed update on '0438 | 2019 IPC Formers | Secure Summer Memories (Formers Phase)' (ID: 7464092).<br />
-Success (update): Successfully performed update on 'Send Course Unlock 13YO' (ID: 6249097).<br />
-Success (update): Successfully performed update on 'Size Change Confirm' (ID: 5555142).<br />
 Success (update): Successfully performed update on 'Pause Confirmation' (ID: 4387146).<br />
-Success (update): Successfully performed update on 'Pause Ending Soon' (ID: 4610653).<br />
 Success (update): Successfully performed update on 'Welcome Series Email #3' (ID: 2335981).<br />
-Success (update): Successfully performed update on 'CC Expires this Month' (ID: 5423726).<br />
-Success (update): Successfully performed update on 'Send thx for VTC Interest' (ID: 6316590).<br />
 Success (update): Successfully performed update on '0429 | V4: Global (everyone else) IPC | Last Chance for Summer Programs' (ID: 7346803).<br />
 Success (update): Successfully performed update on '0426 | Global | Riding the Coding Wave' (ID: 7283316).<br />
-Success (update): Successfully performed update on 'Send Long Form OPL Response' (ID: 5384147).<br />
-Success (update): Successfully performed update on 'Send IPC No Jumpstart AB' (ID: 5709488).<br />
-Success (update): Successfully performed update on 'OTA Welcome Series Email #2' (ID: 4146636).<br />
-Success (update): Successfully performed update on 'LessonBalance3' (ID: 5555126).<br />
 Success (update): Successfully performed update on 'OTA Welcome Series Email #4' (ID: 4146634).<br />
-Success (update): Successfully performed update on '30 Badge' (ID: 5554660).<br />
 Success (update): Successfully performed update on '0435 | 2023 Campers | The clock is ticking (Early Access Phase)' (ID: 7455601).<br />
 Success (update): Successfully performed update on 'OTA Welcome Series Email #3' (ID: 4146635).<br />
 Success (update): Successfully performed update on '0432 | V3: IPC Location Prospects | Last Chance for Camp' (ID: 7411621).<br />
 Success (update): Successfully performed update on 'General Version' (ID: 6634541).<br />
 Success (update): Successfully performed update on 'Send Regular (non late) Lesson Cancel' (ID: 4933888).<br />
-Success (update): Successfully performed update on 'OPL Expiring' (ID: 5423724).<br />
 Success (update): Successfully performed update on 'Send VTC No Jumpstart' (ID: 6300345).<br />
 Success (update): Successfully performed update on '0437 | 2023 Campers | Thanks for the memories (Early Access Phase)' (ID: 7463901).<br />
-Success (update): Successfully performed update on '15 Badge' (ID: 5554657).<br />
 Success (update): Successfully performed update on 'Send Waitlist Confirmation' (ID: 6852940).<br />
-Success (update): Successfully performed update on 'OTA Welcome Series Email #5' (ID: 6411022).<br />
-Success (update): Successfully performed update on 'Send Post Discovery Lesson Email' (ID: 7002696).<br />
-Success (update): Successfully performed update on 'Welcome to Subscriptions' (ID: 3968127).<br />
-Success (update): Successfully performed update on 'CC Expires this Week' (ID: 5423722).<br />
-Success (update): Successfully performed update on 'OTA Welcome Series Email #1' (ID: 4146637).<br />
+Success (update): Successfully performed update on 'Replied 4 (OPL) to SMS Welcome' (ID: 6512135).<br />
+Success (update): Successfully performed update on 'More OTA Reminder' (ID: 6968452).<br />
 Success (update): Successfully performed update on 'Send Client No Show' (ID: 6721073).<br />
-Success (update): Successfully performed update on 'On Campus Version' (ID: 6634469).<br />
-Success (update): Successfully performed update on '40 Badge' (ID: 5554661).<br />
-Success (update): Successfully performed update on 'Send Late Lesson Cancel' (ID: 4933744).<br />
-Success (update): Successfully performed update on 'Subscription Suspended' (ID: 4841125).<br />
 Success (update): Successfully performed update on '0431 | Global | Social Impact: Microsoft' (ID: 7393146).<br />
-Success (update): Successfully performed update on '0429 | V3: VTC Formers | Last Chance for Summer Programs' (ID: 7346762).<br />
-Success (update): Successfully performed update on '150 Badge' (ID: 5554673).<br />
 Success (update): Successfully performed update on '0432 | V2: 2019 IPC Formers | Last Chance for Camp' (ID: 7411563).<br />
 Success (update): Successfully performed update on 'Welcome Series Email #4' (ID: 2335982).<br />
 Success (update): Successfully performed update on '0439 | Global | Minecraft + Reminder' (ID: 7464129).<br />
 Success (update): Successfully performed update on 'Send Lesson Scheduled' (ID: 4933695).<br />
 Success (update): Successfully performed update on '0430 | Global | Sophie takes a VTC' (ID: 7368110).<br />
-Success (update): Successfully performed update on '100 Badge' (ID: 5554671).<br />
+Success (update): Successfully performed update on 'Replied 3 (OTA) to SMS Welcome' (ID: 6512115).<br />
+Success (update): Successfully performed update on 'Fallback (Reply = anything else)' (ID: 6763619).<br />
+Success (update): Successfully performed update on 'Replied 2 (VTC) to SMS Welcome' (ID: 6512101).<br />
 Success (update): Successfully performed update on '0434 | 2023 Campers | Sign up for VIP (Early Access Phase)' (ID: 7418925).<br />
 Success (update): Successfully performed update on '0441 | Global | Parent Prep Series | Turning passions into careers' (ID: 7506365).<br />
-Success (update): Successfully performed update on 'Shopping Cart Abandon Email' (ID: 4428548).<br />
 Success (update): Successfully performed update on 'Quiz Confirmation' (ID: 3180384).<br />
+Success (update): Successfully performed update on 'Incoming: "Support"' (ID: 4318828).<br />
 Success (update): Successfully performed update on 'Send Lesson Scheduled Reminder' (ID: 4937826).<br />
-Success (update): Successfully performed update on 'Topic Change Confirm' (ID: 5555153).<br />
 Success (update): Successfully performed update on 'A La Carte Jumpstart' (ID: 7360317).<br />
 Success (update): Successfully performed update on 'Welcome Series Email #5' (ID: 2335983).<br />
 Success (update): Successfully performed update on '0438 | 2022 IPC Formers | Secure Summer Memories (Formers Phase)' (ID: 7463947).<br />
-Success (update): Successfully performed update on 'Follow Up Email' (ID: 6614074).<br />
-Success (update): Successfully performed update on 'Send CMG Guide Email' (ID: 6591285).<br />
+Success (update): Successfully performed update on 'Replied 1 (IPC) to SMS Welcome' (ID: 6511900).<br />
 Success (update): Successfully performed update on '0428 | Global | Last Minute Legend Last Chance' (ID: 7303595).<br />
 Success (update): Successfully performed update on '0433 | Global | OPL Instructor Feature' (ID: 7412498).<br />
 Success (update): Successfully performed update on '0429 | V1: Teens | Last Chance for Summer Programs' (ID: 7311901).<br />
-Success (update): Successfully performed update on 'Send Long Form CODING Response' (ID: 5322547).<br />
 Success (update): Successfully performed update on '0429 | V2: OPL Inactives/Formers | Last Chance for Summer Programs' (ID: 7346663).<br />
 Success (update): Successfully performed update on 'Welcome Series Email #2' (ID: 2326186).<br />
 Success (update): Successfully performed update on '0436 | Global | Roblox + Topics Campaign Launch' (ID: 7455625).<br />
 Success (update): Successfully performed update on 'Send Short Form Response' (ID: 5222416).<br />
-Success (update): Successfully performed update on 'Send Battlebots Email' (ID: 6461444).<br />
 Success (update): Successfully performed update on 'Reminder Email' (ID: 6480394).<br />
 Success (update): Successfully performed update on 'Send Lesson Rescheduled' (ID: 4933728).<br />
 Success (update): Successfully performed update on '0432 | V1: 2022 IPC Formers | Last Chance for Camp' (ID: 7409501).<br />
-Success (update): Successfully performed update on 'Send Last Chance to Make Changes' (ID: 6503135).<br />
-Success (update): Successfully performed update on '70 Badge' (ID: 5554665).<br />
-Success (update): Successfully performed update on 'Send Location Specific Long Form' (ID: 5680082).<br />
 Success (update): Successfully performed update on 'Balance 0 Add Purchase' (ID: 5555092).<br />
 Success (update): Successfully performed update on '0440 | Global | Last Chance for Topics' (ID: 7464260).<br />
-Success (update): Successfully performed update on '400 Badge' (ID: 5554701).<br />
-Success (update): Successfully performed update on 'Cancel Confirmation' (ID: 4428759).<br />
-Success (update): Successfully performed update on '80 Badge' (ID: 5554668).<br />
+Success (update): Successfully performed update on 'Send VIP Early Access Online' (ID: 6968434).<br />
 Success (update): Successfully performed update on '0427 | Global | Last Minute Legend Launch' (ID: 7303408).<br />
 Success (update): Successfully performed update on '1 Badge' (ID: 5554475).<br />
 Success (update): Successfully performed update on 'Lesson Balance Zero' (ID: 5200252).<br />
-Success (update): Successfully performed update on '90 Badge' (ID: 5554669).<br />
+Success (update): Successfully performed update on 'Early Access #2 Try OPL no VIP' (ID: 7286551).<br />
+Success (update): Successfully performed update on 'Early Access #2 Try OPL no VIP' (ID: 7286548).<br />
+Success (update): Successfully performed update on 'Early Access #2 Try OPL' (ID: 7286558).<br />
 Success (update): Successfully performed update on '10 Badge' (ID: 5554656).<br />
-Success (update): Successfully performed update on '125 Badge' (ID: 5554672).<br />
+Success (update): Successfully performed update on 'Shopping Cart Abandon Email' (ID: 7443916).<br />
 Success (update): Successfully performed update on 'Birthday Email' (ID: 4419701).<br />
-Success (update): Successfully performed update on '175 Badge' (ID: 5554675).<br />
-Success (update): Successfully performed update on '5 Badge' (ID: 5554654).<br />
-Success (update): Successfully performed update on '60 Badge' (ID: 5554663).<br />
-Success (update): Successfully performed update on '200 Badge' (ID: 5554678).<br />
-Success (update): Successfully performed update on '250 Badge' (ID: 5554688).<br />
-Success (update): Successfully performed update on 'Subscription Paused Indefinitely' (ID: 5199841).<br />
-Success (update): Successfully performed update on '50 Badge' (ID: 5554662).<br />
+Success (update): Successfully performed update on 'Off Season Version' (ID: 7443822).<br />
+Success (update): Successfully performed update on 'LessonBalance3' (ID: 5555126).<br />
+Success (update): Successfully performed update on 'Early Access #2 Try OPL no VIP' (ID: 7195399).<br />
+Success (update): Successfully performed update on 'Early Access #2 Try OPL' (ID: 7286554).<br />
 Success (update): Successfully performed update on '20 Badge' (ID: 5554659).<br />
+Success (update): Successfully performed update on 'Schedule Lessons Reminder 2' (ID: 7234277).<br />
+Success (update): Successfully performed update on 'Lesson Balance Zero Reminder' (ID: 7259834).<br />
 ========================================<br />
 <br />
-==========[2023-08-18 20:47:38]==============================<br />
+==========[2023-08-18 22:37:28]==============================<br />
 Initializing metrics sync. Please wait a few moments...<br />
 ========================================<br />
 <br />
-==========[2023-08-18 17:23:21]==============================<br />
-All triggered send times are already up to date.<br />
+==========[2023-08-18 22:35:44]==============================<br />
+Initializing metrics sync. Please wait a few moments...<br />
 ========================================<br />
 <br />
-==========[2023-08-18 17:09:55]==============================<br />
-Requested 224 triggered campaigns from Iterable. 0 errors encountered.<br />
-Proceeding to retrieve campaign data (another few minutes here).<br />
+==========[2023-08-18 22:35:44]==============================<br />
+No inserts or updates needed.<br />
 ========================================<br />
 <br />
-==========[2023-08-18 17:04:12]==============================<br />
-Starting emailSend API calls (this will take a few minutes due to API rate limits).<br />
+==========[2023-08-18 22:25:33]==============================<br />
+Initializing metrics sync. Please wait a few moments...<br />
 ========================================<br />
 <br />
-==========[2023-08-18 17:01:22]==============================<br />
-All triggered send times are already up to date.<br />
+==========[2023-08-18 22:25:33]==============================<br />
+No inserts or updates needed.<br />
 ========================================<br />
 <br />
-==========[2023-08-18 16:47:37]==============================<br />
-Requested 224 triggered campaigns from Iterable. 0 errors encountered.<br />
-Proceeding to retrieve campaign data (another few minutes here).<br />
+==========[2023-08-18 22:24:37]==============================<br />
+No inserts or updates needed.<br />
 ========================================<br />
 <br />
-==========[2023-08-18 16:42:08]==============================<br />
-Starting emailSend API calls (this will take a few minutes due to API rate limits).<br />
+==========[2023-08-18 22:24:35]==============================<br />
+Initializing purchases sync. Please wait a few moments...<br />
+========================================<br />
+<br />
+==========[2023-08-18 22:24:27]==============================<br />
+No inserts or updates needed.<br />
+========================================<br />
+<br />
+==========[2023-08-18 22:24:25]==============================<br />
+Initializing campaigns sync. Please wait a few moments...<br />
+========================================<br />
+<br />
+==========[2023-08-18 22:23:18]==============================<br />
+No inserts or updates needed.<br />
+========================================<br />
+<br />
+==========[2023-08-18 22:23:16]==============================<br />
+Initializing templates sync. Please wait a few moments...<br />
+========================================<br />
+<br />
+==========[2023-08-18 22:22:57]==============================<br />
+No inserts or updates needed.<br />
+========================================<br />
+<br />
+==========[2023-08-18 22:22:57]==============================<br />
+Initializing metrics sync. Please wait a few moments...<br />
+========================================<br />
+<br />
+==========[2023-08-18 22:19:09]==============================<br />
+No inserts or updates needed.<br />
+========================================<br />
+<br />
+==========[2023-08-18 22:19:09]==============================<br />
+Initializing metrics sync. Please wait a few moments...<br />
+========================================<br />
+<br />
+==========[2023-08-18 22:18:56]==============================<br />
+2 purchases to insert.<br />
+Success (insert): Successfully performed insert on '' (ID: 1d9b34879c7f4c3bae038b08d1fcabe2).<br />
+Success (insert): Successfully performed insert on '' (ID: 4013f25704c4417a87b08cdbb34990ca).<br />
+<br />
+========================================<br />
+<br />
+==========[2023-08-18 22:18:55]==============================<br />
+Initializing purchases sync. Please wait a few moments...<br />
+========================================<br />
+<br />
+==========[2023-08-18 22:18:49]==============================<br />
+No inserts or updates needed.<br />
+========================================<br />
+<br />
+==========[2023-08-18 22:18:47]==============================<br />
+Initializing campaigns sync. Please wait a few moments...<br />
 ========================================<br />
 <br />

@@ -2,7 +2,7 @@
 
 
 
-<?php get_idwiz_templates(); ?>
+<?php //print_r(get_idwiz_campaigns()); ?>
 <div class="idemailwiz_table_wrapper">
     <h1 id="wiztable_title">Campaign Table</h1>
     <div id="wiztable_status_updates"><span class="wiztable_update"></span><span class="wiztable_view_sync_details">View sync log&nbsp;<i class="fa-solid fa-chevron-down"></i></span></div>
