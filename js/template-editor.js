@@ -2,11 +2,15 @@ jQuery(document).ready(function ($) {
 	toggleOverlay(false);
 
 	$('#showMobile').click(function () {
-		$('#previewFrame').addClass('mobile-preview');		
+		$('#previewFrame').addClass('mobile-preview');
+		$(this).addClass('active');
+		$('#showDesktop').removeClass('active');		
 	});
 
 	$('#showDesktop').click(function () {
-		$('#previewFrame').removeClass('mobile-preview');  
+		$('#previewFrame').removeClass('mobile-preview'); 
+		$(this).addClass('active');
+		$('#showMobile').removeClass('active'); 
 	});
 
 	$('#saveTemplate').on('click', function () {
@@ -106,12 +110,22 @@ jQuery(document).ready(function ($) {
 		} else {
 			var mergetags = false;
 		}
+
+		//check for separators toggle
+		var sepsToggle = $('.toggle-separators.active');
+		if (sepsToggle[0]) {
+			var showseps = true;
+		} else {
+			var showseps = false;
+		}
+
 		clearTimeout(timeoutId);
 		timeoutId = setTimeout(function() {
 			var $form = $('#id-chunks-creator');
 			var formData = new FormData($form[0]);
 			formData.append('action', 'idemailwiz_build_template');
 			formData.append('mergetags', mergetags);
+			formData.append('showseps', showseps);
 			
 			$.ajax({
 				url: idAjax.ajaxurl,
@@ -139,6 +153,13 @@ $('.fill-merge-tags').on('click', function() {
 	$(this).toggleClass('active');
 	idwiz_updatepreview();
 });
+
+// Hide the separators in the preview
+$('.toggle-separators').on('click', function() {
+	$(this).toggleClass('active');
+	idwiz_updatepreview();
+});
+
 
 //Retrieve, generate, and show the full template HTML
 $('#showFullCode').on('click', function () {

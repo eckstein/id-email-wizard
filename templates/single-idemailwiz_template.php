@@ -60,7 +60,7 @@ $itTemplateId = get_post_meta(get_the_ID(),'itTemplateId',true) ?? '';
 			<a title="Sync to Iterable"  class="wiz-button" id="sendToIterable" data-postid="<?php echo get_the_id(); ?>"><img style="width: 20px; height: 20px;" src="http://localhost/wp-content/uploads/2023/03/Iterable_square_logo-e1677898367554.png" />&nbsp;&nbsp Sync</a>
 			<span class="templateActions-divider"></span>
 			<a title="Duplicate Template"  class="wiz-button duplicate-template" data-postid="<?php echo get_the_ID(); ?>"><i class="fa-solid fa-copy"></i></a>
-			<a title="Move Template"  class="wiz-button moveTemplate" data-postid="<?php echo get_the_ID(); ?>"><i class="fa-solid fa-folder-tree"></i></i></a>
+			<a title="Move Template"  class="wiz-button green moveTemplate" data-postid="<?php echo get_the_ID(); ?>"><i class="fa-solid fa-folder-tree"></i></i></a>
 			<a title="Delete Template"  class="wiz-button delete-template" data-postid="<?php echo get_the_ID(); ?>"><i class="fa-solid fa-trash"></i></a>
 			
 			
@@ -68,7 +68,8 @@ $itTemplateId = get_post_meta(get_the_ID(),'itTemplateId',true) ?? '';
 			<div id="deviceSwitcher">
 				<i title="Desktop Preview" class="fas fa-desktop active" id="showDesktop"></i>
 				<i title="Mobile Preview" class="fas fa-mobile-alt" id="showMobile"></i>
-				<div title="Fill Merge Tags"  class="fill-merge-tags" data-postid="<?php echo get_the_ID(); ?>">{<i class="fa-solid fa-power-off"></i>}</div>
+				<div title="Toggle Separators"  class="toggle-separators active"><i class="fa-solid fa-xmarks-lines"></i></div>
+				<div title="Fill Merge Tags"  class="fill-merge-tags" data-postid="<?php echo get_the_ID(); ?>">&nbsp;{<i class="fa-solid fa-power-off"></i>}&nbsp;</div>
 			</div>
 			
 			</div>
@@ -80,7 +81,7 @@ $itTemplateId = get_post_meta(get_the_ID(),'itTemplateId',true) ?? '';
 	</div>
 </div>
 <div id="fullScreenCode">
-<div class="fullScreenButtons"><div class="wiz-button" id="copyCode">Copy Code</button>&nbsp;&nbsp;<span class="copyConfirm">Copied!</span></div> <button class="wiz-button" id="hideFullCode">X</button></div>
+<div class="fullScreenButtons"><div class="wiz-button green" id="copyCode">Copy Code</button>&nbsp;&nbsp;<span class="copyConfirm">Copied!</span></div> <button class="wiz-button" id="hideFullCode">X</button></div>
 <div id="generatedHTML">
 	<pre id="generatedCode" >
 	<code class="language-html">

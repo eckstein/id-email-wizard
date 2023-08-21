@@ -1,51 +1,31 @@
-==========[2023-08-18 22:38:34]==============================<br />
-No inserts or updates needed.<br />
-========================================<br />
+==========[2023-08-21 16:38:57]==============================<br />
+136 metrics to update.<br />
 <br />
-==========[2023-08-18 22:38:34]==============================<br />
-Initializing purchases sync. Please wait a few moments...<br />
-========================================<br />
-<br />
-==========[2023-08-18 22:38:30]==============================<br />
-No inserts or updates needed.<br />
-========================================<br />
-<br />
-==========[2023-08-18 22:38:28]==============================<br />
-Initializing campaigns sync. Please wait a few moments...<br />
-========================================<br />
-<br />
-==========[2023-08-18 22:38:16]==============================<br />
-No inserts or updates needed.<br />
-========================================<br />
-<br />
-==========[2023-08-18 22:38:15]==============================<br />
-Initializing purchases sync. Please wait a few moments...<br />
-========================================<br />
-<br />
-==========[2023-08-18 22:37:52]==============================<br />
-3 metrics to insert.<br />
-131 metrics to update.<br />
-Success (insert): Successfully performed insert on 'Cohort #1 / Brochure Email' (ID: 7487540).<br />
-Success (insert): Successfully performed insert on 'Cohort #2' (ID: 7487797).<br />
-Success (insert): Successfully performed insert on 'Welcome Series Email #1' (ID: 7483526).<br />
+Success (update): Successfully performed update on 'Welcome Series Email #3' (ID: 2335981).<br />
+Success (update): Successfully performed update on 'Send Late Lesson Cancel' (ID: 4933744).<br />
+Success (update): Successfully performed update on 'Send VIP Early Access IPC' (ID: 6968481).<br />
 Success (update): Successfully performed update on '0429 | V3: VTC Formers | Last Chance for Summer Programs' (ID: 7346762).<br />
-Success (update): Successfully performed update on 'Welcome Series Email #1' (ID: 2326185).<br />
+Success (update): Successfully performed update on 'More VTC Email 1' (ID: 6968435).<br />
+Success (update): Successfully performed update on '0443 | Global | Why OPL?' (ID: 7517378).<br />
 Success (update): Successfully performed update on '0438 | 2019 IPC Formers | Secure Summer Memories (Formers Phase)' (ID: 7464092).<br />
 Success (update): Successfully performed update on 'Pause Confirmation' (ID: 4387146).<br />
-Success (update): Successfully performed update on 'Welcome Series Email #3' (ID: 2335981).<br />
+Success (update): Successfully performed update on 'Send VIP Confirmation' (ID: 6969902).<br />
 Success (update): Successfully performed update on '0429 | V4: Global (everyone else) IPC | Last Chance for Summer Programs' (ID: 7346803).<br />
-Success (update): Successfully performed update on '0426 | Global | Riding the Coding Wave' (ID: 7283316).<br />
+Success (update): Successfully performed update on 'Send Long Form OPL Response' (ID: 5384147).<br />
 Success (update): Successfully performed update on 'OTA Welcome Series Email #4' (ID: 4146634).<br />
+Success (update): Successfully performed update on '30 Badge' (ID: 5554660).<br />
 Success (update): Successfully performed update on '0435 | 2023 Campers | The clock is ticking (Early Access Phase)' (ID: 7455601).<br />
-Success (update): Successfully performed update on 'OTA Welcome Series Email #3' (ID: 4146635).<br />
 Success (update): Successfully performed update on '0432 | V3: IPC Location Prospects | Last Chance for Camp' (ID: 7411621).<br />
 Success (update): Successfully performed update on 'General Version' (ID: 6634541).<br />
 Success (update): Successfully performed update on 'Send Regular (non late) Lesson Cancel' (ID: 4933888).<br />
+Success (update): Successfully performed update on 'OPL Expiring' (ID: 5423724).<br />
 Success (update): Successfully performed update on 'Send VTC No Jumpstart' (ID: 6300345).<br />
 Success (update): Successfully performed update on '0437 | 2023 Campers | Thanks for the memories (Early Access Phase)' (ID: 7463901).<br />
+Success (update): Successfully performed update on '15 Badge' (ID: 5554657).<br />
 Success (update): Successfully performed update on 'Send Waitlist Confirmation' (ID: 6852940).<br />
-Success (update): Successfully performed update on 'Replied 4 (OPL) to SMS Welcome' (ID: 6512135).<br />
-Success (update): Successfully performed update on 'More OTA Reminder' (ID: 6968452).<br />
+Success (update): Successfully performed update on 'OTA Welcome Series Email #5' (ID: 6411022).<br />
+Success (update): Successfully performed update on 'Send Post Discovery Lesson Email' (ID: 7002696).<br />
+Success (update): Successfully performed update on 'Welcome to Subscriptions' (ID: 3968127).<br />
 Success (update): Successfully performed update on 'Send Client No Show' (ID: 6721073).<br />
 Success (update): Successfully performed update on '0431 | Global | Social Impact: Microsoft' (ID: 7393146).<br />
 Success (update): Successfully performed update on '0432 | V2: 2019 IPC Formers | Last Chance for Camp' (ID: 7411563).<br />
@@ -53,18 +33,17 @@ Success (update): Successfully performed update on 'Welcome Series Email #4' (ID
 Success (update): Successfully performed update on '0439 | Global | Minecraft + Reminder' (ID: 7464129).<br />
 Success (update): Successfully performed update on 'Send Lesson Scheduled' (ID: 4933695).<br />
 Success (update): Successfully performed update on '0430 | Global | Sophie takes a VTC' (ID: 7368110).<br />
-Success (update): Successfully performed update on 'Replied 3 (OTA) to SMS Welcome' (ID: 6512115).<br />
-Success (update): Successfully performed update on 'Fallback (Reply = anything else)' (ID: 6763619).<br />
-Success (update): Successfully performed update on 'Replied 2 (VTC) to SMS Welcome' (ID: 6512101).<br />
+Success (update): Successfully performed update on 'More iDTC Email 1' (ID: 6968442).<br />
 Success (update): Successfully performed update on '0434 | 2023 Campers | Sign up for VIP (Early Access Phase)' (ID: 7418925).<br />
 Success (update): Successfully performed update on '0441 | Global | Parent Prep Series | Turning passions into careers' (ID: 7506365).<br />
+Success (update): Successfully performed update on '0442 | Campers & Formers | Last Chance! (Discount phase)' (ID: 7517490).<br />
+Success (update): Successfully performed update on 'Shopping Cart Abandon Email' (ID: 4428548).<br />
 Success (update): Successfully performed update on 'Quiz Confirmation' (ID: 3180384).<br />
-Success (update): Successfully performed update on 'Incoming: "Support"' (ID: 4318828).<br />
 Success (update): Successfully performed update on 'Send Lesson Scheduled Reminder' (ID: 4937826).<br />
 Success (update): Successfully performed update on 'A La Carte Jumpstart' (ID: 7360317).<br />
 Success (update): Successfully performed update on 'Welcome Series Email #5' (ID: 2335983).<br />
+Success (update): Successfully performed update on 'Follow Up Email' (ID: 6614074).<br />
 Success (update): Successfully performed update on '0438 | 2022 IPC Formers | Secure Summer Memories (Formers Phase)' (ID: 7463947).<br />
-Success (update): Successfully performed update on 'Replied 1 (IPC) to SMS Welcome' (ID: 6511900).<br />
 Success (update): Successfully performed update on '0428 | Global | Last Minute Legend Last Chance' (ID: 7303595).<br />
 Success (update): Successfully performed update on '0433 | Global | OPL Instructor Feature' (ID: 7412498).<br />
 Success (update): Successfully performed update on '0429 | V1: Teens | Last Chance for Summer Programs' (ID: 7311901).<br />
@@ -75,103 +54,108 @@ Success (update): Successfully performed update on 'Send Short Form Response' (I
 Success (update): Successfully performed update on 'Reminder Email' (ID: 6480394).<br />
 Success (update): Successfully performed update on 'Send Lesson Rescheduled' (ID: 4933728).<br />
 Success (update): Successfully performed update on '0432 | V1: 2022 IPC Formers | Last Chance for Camp' (ID: 7409501).<br />
+Success (update): Successfully performed update on 'Send Last Chance to Make Changes' (ID: 6503135).<br />
+Success (update): Successfully performed update on '70 Badge' (ID: 5554665).<br />
+Success (update): Successfully performed update on 'Early Access #2 Try VTC' (ID: 6968448).<br />
+Success (update): Successfully performed update on 'Welcome Series Email #1' (ID: 2326185).<br />
 Success (update): Successfully performed update on 'Balance 0 Add Purchase' (ID: 5555092).<br />
 Success (update): Successfully performed update on '0440 | Global | Last Chance for Topics' (ID: 7464260).<br />
+Success (update): Successfully performed update on 'Cancel Confirmation' (ID: 4428759).<br />
 Success (update): Successfully performed update on 'Send VIP Early Access Online' (ID: 6968434).<br />
 Success (update): Successfully performed update on '0427 | Global | Last Minute Legend Launch' (ID: 7303408).<br />
 Success (update): Successfully performed update on '1 Badge' (ID: 5554475).<br />
 Success (update): Successfully performed update on 'Lesson Balance Zero' (ID: 5200252).<br />
 Success (update): Successfully performed update on 'Early Access #2 Try OPL no VIP' (ID: 7286551).<br />
-Success (update): Successfully performed update on 'Early Access #2 Try OPL no VIP' (ID: 7286548).<br />
 Success (update): Successfully performed update on 'Early Access #2 Try OPL' (ID: 7286558).<br />
 Success (update): Successfully performed update on '10 Badge' (ID: 5554656).<br />
 Success (update): Successfully performed update on 'Shopping Cart Abandon Email' (ID: 7443916).<br />
+Success (update): Successfully performed update on 'Cohort #1 / Brochure Email' (ID: 7487540).<br />
 Success (update): Successfully performed update on 'Birthday Email' (ID: 4419701).<br />
+Success (update): Successfully performed update on '5 Badge' (ID: 5554654).<br />
+Success (update): Successfully performed update on 'Send Location Specific Long Form' (ID: 5680082).<br />
+Success (update): Successfully performed update on 'OPL Subscription Renewal' (ID: 5555104).<br />
 Success (update): Successfully performed update on 'Off Season Version' (ID: 7443822).<br />
 Success (update): Successfully performed update on 'LessonBalance3' (ID: 5555126).<br />
-Success (update): Successfully performed update on 'Early Access #2 Try OPL no VIP' (ID: 7195399).<br />
+Success (update): Successfully performed update on 'Cohort #2' (ID: 7487797).<br />
+Success (update): Successfully performed update on 'Send VIP Early Access Online' (ID: 7286556).<br />
 Success (update): Successfully performed update on 'Early Access #2 Try OPL' (ID: 7286554).<br />
+Success (update): Successfully performed update on '50 Badge' (ID: 5554662).<br />
+Success (update): Successfully performed update on 'Welcome Series Email #1' (ID: 7483526).<br />
 Success (update): Successfully performed update on '20 Badge' (ID: 5554659).<br />
 Success (update): Successfully performed update on 'Schedule Lessons Reminder 2' (ID: 7234277).<br />
 Success (update): Successfully performed update on 'Lesson Balance Zero Reminder' (ID: 7259834).<br />
+Success (update): Successfully performed update on 'Welcome Series Email #2' (ID: 7483524).<br />
 ========================================<br />
 <br />
-==========[2023-08-18 22:37:28]==============================<br />
+==========[2023-08-21 16:38:40]==============================<br />
 Initializing metrics sync. Please wait a few moments...<br />
 ========================================<br />
 <br />
-==========[2023-08-18 22:35:44]==============================<br />
-Initializing metrics sync. Please wait a few moments...<br />
+==========[2023-08-21 16:38:37]==============================<br />
+26 purchases to insert.<br />
+Success (insert): Successfully performed insert on '' (ID: e7e28755d66548cb970d5afd73aee68f).<br />
+Success (insert): Successfully performed insert on '' (ID: da176898da2043d8bd8bfd8ccc8b3420).<br />
+Success (insert): Successfully performed insert on '' (ID: 7f327b7c62d84c868242f93036dd1b97).<br />
+Success (insert): Successfully performed insert on '' (ID: 636df719fbf5445690fe1666c45af7e5).<br />
+Success (insert): Successfully performed insert on '' (ID: f7fdb066665b4ce9b13230b47d4d1946).<br />
+Success (insert): Successfully performed insert on '' (ID: d1eba702daec479cae74397f3a553936).<br />
+Success (insert): Successfully performed insert on '' (ID: f1a8202279484280840a23fdaea44325).<br />
+Success (insert): Successfully performed insert on '' (ID: c6452204f20d4f87a70213c483a319c6).<br />
+Success (insert): Successfully performed insert on '' (ID: 0cba7dedaccc45938b236ce4615f418c).<br />
+Success (insert): Successfully performed insert on '' (ID: b62da9b1c41040d286c810b8bb9950d5).<br />
+Success (insert): Successfully performed insert on '' (ID: 66d46ae58dc34cf58c72e02605592b25).<br />
+Success (insert): Successfully performed insert on '' (ID: 56a5f54e8f3a4f91b115cfd37adeb9b0).<br />
+Success (insert): Successfully performed insert on '' (ID: a99d02fe07ef4c6a86222169558c3252).<br />
+Success (insert): Successfully performed insert on '' (ID: e5ea806b5d014c6ba4e4b1c8e9533a38).<br />
+Success (insert): Successfully performed insert on '' (ID: 86f1d12e852d4af99c47a94f507e5808).<br />
+Success (insert): Successfully performed insert on '' (ID: af403f522c844ac782851619539f885f).<br />
+Success (insert): Successfully performed insert on '' (ID: 24534e024c98448682fff137635fb345).<br />
+Success (insert): Successfully performed insert on '' (ID: 758eddb1a88946faa62cf3c7248d6be4).<br />
+Success (insert): Successfully performed insert on '' (ID: 70cdd481f2e34168b0dfda82f2286335).<br />
+Success (insert): Successfully performed insert on '' (ID: 3b95eee7203f4523b6c05096ef725fea).<br />
+Success (insert): Successfully performed insert on '' (ID: e047a02ff4664af0ad68cadc5811c88a).<br />
+Success (insert): Successfully performed insert on '' (ID: c5ed7b29e3b64ce28527ce59a12fe6f3).<br />
+Success (insert): Successfully performed insert on '' (ID: ace090dec7ac444aa93b96c878a975b1).<br />
+Success (insert): Successfully performed insert on '' (ID: b8c6515213454ba4b4913b500d440a10).<br />
+Success (insert): Successfully performed insert on '' (ID: 374ed19ebcd742e4bb308ff8497d16b1).<br />
+Success (insert): Successfully performed insert on '' (ID: 764a7cf47a964e81bb6e3c723b5c8b12).<br />
+<br />
 ========================================<br />
 <br />
-==========[2023-08-18 22:35:44]==============================<br />
-No inserts or updates needed.<br />
-========================================<br />
-<br />
-==========[2023-08-18 22:25:33]==============================<br />
-Initializing metrics sync. Please wait a few moments...<br />
-========================================<br />
-<br />
-==========[2023-08-18 22:25:33]==============================<br />
-No inserts or updates needed.<br />
-========================================<br />
-<br />
-==========[2023-08-18 22:24:37]==============================<br />
-No inserts or updates needed.<br />
-========================================<br />
-<br />
-==========[2023-08-18 22:24:35]==============================<br />
+==========[2023-08-21 16:38:35]==============================<br />
 Initializing purchases sync. Please wait a few moments...<br />
 ========================================<br />
 <br />
-==========[2023-08-18 22:24:27]==============================<br />
+==========[2023-08-21 16:37:57]==============================<br />
 No inserts or updates needed.<br />
 ========================================<br />
 <br />
-==========[2023-08-18 22:24:25]==============================<br />
-Initializing campaigns sync. Please wait a few moments...<br />
-========================================<br />
-<br />
-==========[2023-08-18 22:23:18]==============================<br />
-No inserts or updates needed.<br />
-========================================<br />
-<br />
-==========[2023-08-18 22:23:16]==============================<br />
+==========[2023-08-21 16:37:27]==============================<br />
 Initializing templates sync. Please wait a few moments...<br />
 ========================================<br />
 <br />
-==========[2023-08-18 22:22:57]==============================<br />
-No inserts or updates needed.<br />
-========================================<br />
-<br />
-==========[2023-08-18 22:22:57]==============================<br />
-Initializing metrics sync. Please wait a few moments...<br />
-========================================<br />
-<br />
-==========[2023-08-18 22:19:09]==============================<br />
-No inserts or updates needed.<br />
-========================================<br />
-<br />
-==========[2023-08-18 22:19:09]==============================<br />
-Initializing metrics sync. Please wait a few moments...<br />
-========================================<br />
-<br />
-==========[2023-08-18 22:18:56]==============================<br />
-2 purchases to insert.<br />
-Success (insert): Successfully performed insert on '' (ID: 1d9b34879c7f4c3bae038b08d1fcabe2).<br />
-Success (insert): Successfully performed insert on '' (ID: 4013f25704c4417a87b08cdbb34990ca).<br />
+==========[2023-08-21 16:37:17]==============================<br />
+1 campaigns to insert.<br />
+Success (insert): Successfully performed insert on 'More OPL Email 1' (ID: 7286550).<br />
 <br />
 ========================================<br />
 <br />
-==========[2023-08-18 22:18:55]==============================<br />
-Initializing purchases sync. Please wait a few moments...<br />
-========================================<br />
-<br />
-==========[2023-08-18 22:18:49]==============================<br />
-No inserts or updates needed.<br />
-========================================<br />
-<br />
-==========[2023-08-18 22:18:47]==============================<br />
+==========[2023-08-21 16:37:16]==============================<br />
 Initializing campaigns sync. Please wait a few moments...<br />
+========================================<br />
+<br />
+==========[2023-08-21 16:36:54]==============================<br />
+No inserts or updates needed.<br />
+========================================<br />
+<br />
+==========[2023-08-21 16:36:54]==============================<br />
+Array<br />
+(<br />
+)<br />
+<br />
+========================================<br />
+<br />
+==========[2023-08-21 16:36:42]==============================<br />
+Initializing experiments sync. Please wait a few moments...<br />
 ========================================<br />
 <br />

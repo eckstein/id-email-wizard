@@ -21,8 +21,17 @@ function idemailwiz_build_template() {
         $mergeTags = true;
     }
 
+    //Chunk separators Toggle
+    $chunkSeps = false;
+    if (isset($_POST['showseps']) && $_POST['showseps'] == 'true') {
+        $chunkSeps = true;
+    }
     
-
+    // Determine whether to show separators in template preview
+    $chunkSepsClass = '';
+    if (!$chunkSeps) {
+        $chunkSepsClass = 'hide-seps';
+    }
     
 
   //We've got ajax post data, let's build the template...   
@@ -45,6 +54,7 @@ function idemailwiz_build_template() {
     
    //Preview pane styles
    include( dirname( plugin_dir_path( __FILE__ ) ) . '/styles/preview-pane-styles.html' );
+  
   
   
   ob_start();
@@ -75,7 +85,7 @@ if (isset($chunks) && !empty($chunks)) {
         $chunkFileName = str_replace('_', '-', $chunk['acf_fc_layout']);
         $file = dirname(plugin_dir_path( __FILE__ )) . '/templates/chunks/' . $chunkFileName . '.php';
         if (file_exists($file)) {
-            echo '<div class="chunkWrap" data-id="'.$chunkId.'" data-templateid="'.$template_id.'" data-chunk-layout="'.$chunk['acf_fc_layout'].'">';
+            echo '<div class="chunkWrap ' . $chunkSepsClass .'" data-id="'.$chunkId.'" data-templateid="'.$template_id.'" data-chunk-layout="'.$chunk['acf_fc_layout'].'">';
             ob_start();
             include($file);
             $html = ob_get_clean(); // Get the buffer contents and delete the buffer

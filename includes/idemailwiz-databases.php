@@ -21,6 +21,7 @@ function idemailwiz_create_databases() {
         sendSize INT,
         recurringCampaignId INT,
         workflowId INT,
+        experimentIds VARCHAR (255),
         listIds VARCHAR(255),
         suppressionListIds VARCHAR(255),
         type VARCHAR(20),
@@ -49,6 +50,7 @@ function idemailwiz_create_databases() {
         utmTerm VARCHAR(40),
         clientTemplateId INT,
         utmContent VARCHAR(40),
+        html MEDIUMTEXT,
         PRIMARY KEY  (templateId)
     ) $charset_collate;";
 
@@ -112,6 +114,72 @@ function idemailwiz_create_databases() {
         PRIMARY KEY  (id)
     ) $charset_collate;";
 
+    // Define Experiments table
+    $experiments_table_name = $wpdb->prefix . 'idemailwiz_experiments';
+    $experiments_sql = "CREATE TABLE IF NOT EXISTS $experiments_table_name (
+        campaignId INT,
+        experimentId INT,
+        templateId INT,
+        name VARCHAR(255),
+        type VARCHAR(50),
+        createdBy VARCHAR(50),
+        creationDate BIGINT(20),
+        lastModified BIGINT(20),
+        subject VARCHAR(255),
+        improvement FLOAT,
+        confidence FLOAT,
+        totalEmailSends INT,
+        uniqueEmailSends INT,
+        emailDeliveryRate FLOAT,
+        totalEmailsDelivered INT,
+        uniqueEmailsDelivered INT,
+        totalEmailOpens INT,
+        totalEmailOpensFiltered INT,
+        uniqueEmailOpens INT,
+        uniqueEmailOpensFiltered INT,
+        uniqueEmailOpensOrClicks INT,
+        emailOpenRate FLOAT,
+        totalEmailsClicked INT,
+        uniqueEmailClicks INT,
+        clicksOpens FLOAT,
+        emailClickRate FLOAT,
+        totalHostedUnsubscribeClicks INT,
+        uniqueHostedUnsubscribeClicks INT,
+        totalComplaints INT,
+        complaintRate FLOAT,
+        totalEmailsBounced INT,
+        uniqueEmailsBounced INT,
+        emailBounceRate FLOAT,
+        totalEmailHoldout INT,
+        totalEmailSendSkips INT,
+        totalUnsubscribes INT,
+        uniqueUnsubscribes INT,
+        emailUnsubscribeRate FLOAT,
+        revenue FLOAT,
+        totalPurchases INT,
+        uniquePurchases INT,
+        averageOrderValue FLOAT,
+        purchasesMEmail FLOAT,
+        revenueMEmail FLOAT,
+        totalCustomConversions INT,
+        uniqueCustomConversions INT,
+        averageCustomConversionValue FLOAT,
+        conversionsEmailHoldOuts FLOAT,
+        conversionsUniqueEmailsDelivered FLOAT,
+        sumOfCustomConversions FLOAT,
+        wizDeliveryRate FLOAT,
+        wizOpenRate FLOAT,
+        wizCtr FLOAT,
+        wizCto FLOAT,
+        wizUnsubRate FLOAT,
+        wizCompRate FLOAT,
+        wizCvr FLOAT,
+        wizAov FLOAT,
+        PRIMARY KEY (templateId),
+        INDEX idx_experimentId (experimentId),
+        INDEX idx_campaignId (campaignId)
+    ) $charset_collate;";
+
     // Define Purchases table
     $purchase_table_name = $wpdb->prefix . 'idemailwiz_purchases';
     $purchase_sql = "CREATE TABLE IF NOT EXISTS $purchase_table_name (
@@ -161,7 +229,8 @@ function idemailwiz_create_databases() {
         templateId VARCHAR(40),
         total VARCHAR(20),
         userId VARCHAR(40),
-        PRIMARY KEY  (id)
+        PRIMARY KEY  (id),
+        INDEX idx_campaignId (campaignId)
     ) $charset_collate;";
 
 
@@ -170,7 +239,9 @@ function idemailwiz_create_databases() {
     dbDelta( $campaign_sql );
     dbDelta( $template_sql );
     dbDelta( $metrics_sql );
+    dbDelta( $experiments_sql );
     dbDelta( $purchase_sql );
+
 
     //Create our custom view
     idemailwiz_create_view();
@@ -199,6 +270,7 @@ function idemailwiz_create_view() {
         metrics.wizCtr as wiz_ctr,
         metrics.wizCto as wiz_cto,
         metrics.uniqueUnsubscribes as unique_unsubscribes,
+        metrics.wizUnsubRate as wiz_unsub_rate,
         metrics.uniquePurchases as unique_purchases,
         metrics.wizCvr as wiz_cvr,
         metrics.revenue as revenue
@@ -224,6 +296,7 @@ function to_camel_case($string) {
     $camelCaseString = implode('', $words); // Join the words back together
     return lcfirst($camelCaseString); // Make the first letter lowercase and return
 }
+
 
 
 
@@ -262,7 +335,7 @@ function idemailwiz_simplify_templates_array($template) {
         // Add the rest of the keys to the result
         foreach ($template as $key => $value) {
             // Skip the excluded keys and the keys we've already added
-            $excludeKeys = array('html','plainText', 'cacheDataFeed', 'mergeDataFeedContext', 'utm_term', 'utm_content', 'createdAt', 'updatedAt', 'ccEmails', 'bccEmails', 'dataFeedIds');
+            $excludeKeys = array('plainText', 'cacheDataFeed', 'mergeDataFeedContext', 'utm_term', 'utm_content', 'createdAt', 'updatedAt', 'ccEmails', 'bccEmails', 'dataFeedIds');
             if ($key !== 'metadata' && $key !== 'linkParams' && !in_array($key, $excludeKeys)) {
                 $result[$key] = $value;
             }
@@ -288,9 +361,10 @@ function build_idwiz_query($args, $table_name) {
 
     $sql = "SELECT $fields FROM $table_name WHERE 1=1";
 
-    // Copy the args array and remove the 'fields' key, so it doesn't get used in the WHERE clause
+    // Copy the args array and remove the 'fields' and 'limit' keys, so they doesn't get used in the WHERE clause
     $where_args = $args;
     unset($where_args['fields']);
+    unset($where_args['limit']);
 
     foreach ($where_args as $key => $value) {
         if ($value !== null && $value !== '') {
@@ -368,6 +442,13 @@ function get_idwiz_metrics($args = []) {
     return execute_idwiz_query($sql);
 }
 
+function get_idwiz_experiments($args = []) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_experiments';
+    $sql = build_idwiz_query($args, $table_name);
+    return execute_idwiz_query($sql);
+}
+
 function get_idwiz_campaign($campaignID) {
     $campaigns = get_idwiz_campaigns(['id' => $campaignID]);
     return $campaigns ? $campaigns[0] : false;
@@ -384,11 +465,10 @@ function get_idwiz_metric($campaignID) {
     $metrics = get_idwiz_metrics(['id' => $campaignID]);
     return $metrics ? $metrics[0] : false;
 }
-
-
-
-
-
+function get_idwiz_experiment($templateId) {
+    $experiments = get_idwiz_experiments(['templateId' => $templateId]);
+    return $experiments ? $experiments[0] : false;
+}
 
 
 function get_idwiz_metrics_by_campaigns($campaign_ids) {
@@ -403,6 +483,19 @@ function get_idwiz_metrics_by_campaigns($campaign_ids) {
 
     if ($metrics) {
         return $metrics;
+    } else {
+        return $wpdb->last_error;
+    }
+}
+
+function get_idwiz_purchases_by_campaign($campaignId) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_purchases';
+
+    // Query the database for metrics with the given campaign IDs
+    $purchases = $wpdb->get_results("SELECT * FROM {$table_name} WHERE campaignId = $campaignId");
+    if ($purchases) {
+        return $purchases;
     } else {
         return $wpdb->last_error;
     }

@@ -149,7 +149,9 @@ add_action('wp_ajax_id_generate_folders_select_ajax', 'id_generate_folders_selec
 function idemailwiz_mergemap() {
   
   $mergeMapping = array(
-      '{{{snippet "FirstName" "your child"}}}' => 'Andrew',
+      '{{{snippet "FirstName" "your child"}}}' => 'Garfield',
+      '{{{snippet "FirstName" "Your child"}}}' => 'Garfield',
+      '{{{snippet "FirstName" "Your Child"}}}' => 'Garfield',
       '{{{snippet "pronoun" GenderCode "S"}}}'  => 'he',
       '{{{snippet "pronoun" GenderCode "O"}}}'  => 'him',
       '{{{snippet "pronoun" GenderCode "SP"}}}'  => 'his',

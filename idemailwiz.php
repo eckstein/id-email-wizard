@@ -97,9 +97,9 @@ function idemailwiz_deactivate() {
 //require files
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-functions.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-shortcodes.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-table-mapping.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-databases.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-sync.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-charts.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-wysiwyg.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/template-builder.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/chunk-helpers.php');
@@ -290,13 +290,11 @@ function idemailwiz_enqueue_assets() {
 
     wp_enqueue_script( 'jquery' );
     wp_enqueue_script( 'sweetalert2', 'https://cdn.jsdelivr.net/npm/sweetalert2@11', array(), '11.0', true );
-    //wp_enqueue_script( 'DataTables', '//cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js', array(), '1.13.6', true );
-    //wp_enqueue_script( 'DataTables', 'https://cdn.datatables.net/v/ju/jszip-3.10.1/dt-1.13.6/b-2.4.1/b-colvis-2.4.1/b-html5-2.4.1/cr-1.7.0/date-1.5.1/fc-4.3.0/fh-3.4.0/kt-2.10.0/r-2.5.0/rg-1.4.0/rr-1.4.1/sc-2.2.0/sb-1.5.0/sl-1.7.0/sr-1.3.0/datatables.min.js', array() );
+    wp_enqueue_script('charts-js', 'https://cdn.jsdelivr.net/npm/chart.js', array('jquery'), null, true);
     wp_enqueue_script( 'DataTables', plugin_dir_url(__FILE__) . 'vendors/DataTables/datatables.min.js', array() );
     wp_enqueue_script( 'DataTablesScrollResize', plugin_dir_url(__FILE__) . 'vendors/DataTables/ScrollResize/dataTables.scrollResize.min.js', array() );
     wp_enqueue_script( 'DataTablesEllips', '//cdn.datatables.net/plug-ins/1.13.6/dataRender/ellipsis.js', array() );
-    
-    //wp_enqueue_style( 'DataTablesCss', 'https://cdn.datatables.net/v/ju/jszip-3.10.1/dt-1.13.6/b-2.4.1/b-colvis-2.4.1/b-html5-2.4.1/cr-1.7.0/date-1.5.1/fc-4.3.0/fh-3.4.0/kt-2.10.0/r-2.5.0/rg-1.4.0/rr-1.4.1/sc-2.2.0/sb-1.5.0/sl-1.7.0/sr-1.3.0/datatables.min.css', array());
+
     wp_enqueue_style( 'DataTablesCss', plugin_dir_url(__FILE__) . 'vendors/DataTables/datatables.css', array());
 
     // Activate wordpress image uploader for settings pages
@@ -315,6 +313,7 @@ function idemailwiz_enqueue_assets() {
         'bulk-actions' => array('/js/bulk-actions.js', array('jquery', 'id-general', 'folder-actions', 'template-actions')),
         'iterable-actions' => array('/js/iterable-actions.js', array('jquery', 'id-general', 'bulk-actions')),
         'data-tables' => array('/js/data-tables.js', array('jquery', 'id-general')),
+        'wiz-charts' => array('/js/wiz-charts.js', array('jquery', 'id-general', 'charts-js')),
         
     );
 

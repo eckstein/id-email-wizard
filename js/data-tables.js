@@ -35,6 +35,7 @@ jQuery(document).ready(function ($) {
                         },
                         {
                             "className": 'details-control',
+                            "title": '<i class="fa-solid fa-arrow-up-right-from-square"></i>',
                             "name": 'details-control',
                             "orderable": false,
                             "data": null,
@@ -293,6 +294,14 @@ jQuery(document).ready(function ($) {
                                     autoClose: true,
                                 },
                                 {
+                                    text: 'Sync Experiments (20 sec)',
+                                    className: 'sync-db sync-experiments',
+                                    attr:  {
+                                        "data-sync-db": 'experiments',
+                                    },
+                                    autoClose: true,
+                                },
+                                {
                                     text: 'View sync log',
                                     className: 'wiztable_view_sync_details',
                                     autoClose: true,
@@ -523,33 +532,15 @@ jQuery(document).ready(function ($) {
             var table = $('.idemailwiz_table').DataTable();
             var tr = $(this).closest('tr');
             var row = table.row(tr);
-        
-            // Get the data for the clicked row
-            var rowData = row.data();
-        
-            // Construct the content for the modal
-            var modalContent = '<div class="idwiz-modal-content">';
-            modalContent += '<span class="idwiz-modal-close">&times;</span>';
-            modalContent += '<p>Campaign Name: ' + rowData.campaign_name + '</p>';
-            modalContent += '<p>Type: ' + rowData.campaign_type + '</p>';
-            // You can add more content here based on rowData
-            modalContent += '</div>';
-        
-            // Create a div element to hold the modal overlay and content
-            var modalDiv = document.createElement('div');
-            modalDiv.innerHTML = modalContent;
-            modalDiv.className = 'idwiz-modal-overlay';
-            modalDiv.style.display = 'block';
-        
-            // Append the modal overlay and content to the body
-            document.body.appendChild(modalDiv);
-        
-            // Handle click on the close button or overlay to close the modal
-            modalDiv.addEventListener('click', function(event) {
-              if (event.target.className === 'idwiz-modal-overlay' || event.target.className === 'idwiz-modal-close') {
-                modalDiv.style.display = 'none';
-              }
-            });
+
+            // Access the campaign_id from the row's data
+            var campaignId = row.data().campaign_id;
+
+            // Construct the URL
+            var url = "https://localhost/metrics/campaign/?id=" + campaignId;
+
+            // Open the URL in a new tab
+            window.open(url, '_blank');
           });
     }
 
@@ -641,7 +632,7 @@ jQuery(document).ready(function ($) {
         
 
         // For security, define only possible dbs
-        var dbs = ['campaigns', 'templates', 'metrics', 'purchases'];
+        var dbs = ['campaigns', 'templates', 'metrics', 'purchases', 'experiments'];
 
         // Get the type of db we're updating
         var syncDb = $(this).attr('data-sync-db');
@@ -656,7 +647,7 @@ jQuery(document).ready(function ($) {
 
         if (syncDb === 'everything') {
             // Sync all dbs if 'everything' is clicked
-            $('#wiztable_status_updates .wiztable_update').text('Syncing blasts, templates, metrics, and purchases...');
+            $('#wiztable_status_updates .wiztable_update').text('Syncing blasts, templates, metrics, experiments, and purchases...');
         } else if (dbs.includes(syncDb)) {
             // We're only syncing one table if this is set
             dbs = [syncDb];

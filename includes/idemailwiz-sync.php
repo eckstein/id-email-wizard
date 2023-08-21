@@ -88,17 +88,47 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name) {
     $id_field = 'id'; // Default ID field
     $name_field = 'name'; // Default name field
 
-    if ($table_name == 'wp_idemailwiz_templates') {
+    if ($table_name == 'wp_idemailwiz_templates' || $table_name == 'wp_idemailwiz_experiments') {
         $id_field = 'templateId';
     }
-    
 
     foreach ($items as $key => $item) {
-        //wiz_log(print_r($items, true));
+        // Add 'name' to the metrics array
         if ($table_name == 'wp_idemailwiz_metrics') {
             $metricCampaign = get_idwiz_campaigns(array('id'=>$item['id']));
             $metricName = $metricCampaign[0]['name'];
         }
+
+        //If this is an experiment record, we check if the corrosponding campaign in the campaign table has the experiment ID present. If not, add it.
+        if ($table_name == 'wp_idemailwiz_experiments') {
+            $experimentId = $item['experimentId']; // Retrieve the current experiment ID
+
+            // Check for or add the experiment ID to the campaign table
+            $experimentCampaign = get_idwiz_campaign($item['campaignId']);
+
+            // Get the existing experimentIds, if any
+            $existingExperimentIds = $experimentCampaign['experimentIds'];
+            $experimentIdsArray = $existingExperimentIds ? unserialize($existingExperimentIds) : array();
+
+            // Add the new experimentId if it doesn't already exist in the array
+            if (!in_array($experimentId, $experimentIdsArray)) {
+                $experimentIdsArray[] = $experimentId;
+            }
+
+            // Serialize the updated array
+            $serializedExperimentIds = serialize($experimentIdsArray);
+
+            // Using prepare to safely insert values into the query
+            $sql = $wpdb->prepare(
+                "UPDATE wp_idemailwiz_campaigns SET experimentIds = %s WHERE id = %d",
+                $serializedExperimentIds,
+                $item['campaignId']
+            );
+            $wpdb->query($sql);
+        }
+
+
+
         // Serialize values that are arrays
         foreach ($item as $childKey => $childValue) {
             if (is_array($childValue)) {
@@ -270,6 +300,77 @@ function idemailwiz_fetch_templates() {
     return $allTemplates;
 }
 
+function idemailwiz_fetch_experiments() {
+    $today = new DateTime();
+    $startFetchDate = $today->modify('-4 weeks')->format('Y-m-d');
+
+    $allCampaigns = get_idwiz_campaigns(
+        array(
+            'messageMedium'=>'Email', 
+            'type'=>'Blast',
+            'startAt_start' => $startFetchDate
+            )
+        );
+    
+    $data = [];
+
+    foreach ($allCampaigns as $campaign) {
+        $url = 'https://api.iterable.com/api/experiments/metrics?campaignId='.$campaign['id'];
+        try {
+            $response = idemailwiz_iterable_curl_call($url);
+        } catch (Exception $e) {
+            if ($e->getMessage() === "CONSECUTIVE_400_ERRORS") {
+                // Stop execution if more than 5 consecutive 400 errors
+                wiz_log("More than 5 consecutive HTTP 400 errors. Stopping execution.");
+                return;
+            }
+        }
+        if ($response['response']) {     
+
+        // Split the CSV data into lines
+            $lines = explode("\n", $response['response']);
+
+            // Parse the header line into headers
+            $headers = str_getcsv($lines[0]);
+
+            // Replace spaces and slashes with underscores, remove parentheses, remove leading/trailing whitespace, and convert to CamelCase
+            $headers = array_map(function($header) {
+                $header = str_replace([' ', '/'], '_', $header);
+                $header = str_replace('(', '', $header);
+                $header = str_replace(')', '', $header);
+                $header = trim($header);
+                $header = ucwords(strtolower($header), "_");
+                $header = str_replace('_', '', $header);
+                $header = lcfirst($header);
+                return $header;
+            }, $headers);
+
+            // Iterate over the non-header lines
+            for ($i = 1; $i < count($lines); $i++) {
+                // Parse the line into values
+                $values = str_getcsv($lines[$i]);
+
+                // Check if the number of headers and values matches
+                if (count($headers) != count($values)) {
+                    continue;
+                }
+
+                // Combine headers and values into an associative array
+                $lineArray = array_combine($headers, $values);
+
+                // Calculate the additional percentage metrics
+                $metrics = idemailwiz_calculate_metrics($lineArray);
+
+                // Merge the metrics with the existing data
+                $data[] = $metrics;
+            }
+            $data = $data + $data;
+        }
+    }
+
+     // Return the data array
+    return $data;
+}
 function idemailwiz_fetch_metrics() {
 
     $today = new DateTime();
@@ -371,10 +472,17 @@ function idemailwiz_fetch_metrics() {
 // Takes a row of metrics data from the api call
 function idemailwiz_calculate_metrics($metrics) {
 
-    // Check the campaign medium
+    
+    // Check if this is an experiment metrics object
+    if (isset($metrics['confidence'])) { // Only experiments have the 'confidence' key (since Iterable gives us no other way to check)
+        $wiz_campaign = get_idwiz_campaigns(array('id'=>$metrics['campaignId']));
+    } else {
+        $wiz_campaign = get_idwiz_campaigns(array('id'=>$metrics['id']));
+    }
+
     // Campaign must already be in database for metrics to be added/updated
-    $wiz_campaign = get_idwiz_campaigns(array('id'=>$metrics['id']));
     if ($wiz_campaign) {
+        // Check the campaign medium
         $medium = $wiz_campaign[0]['messageMedium'];
     } else {
         return false;
@@ -601,6 +709,36 @@ function idemailwiz_sync_purchases($purchases=null) {
     // Does our wiz_logging and returns the returns data about the insert/update
     return idemailwiz_process_and_log_sync($table_name, $records_to_insert, null);
   
+}
+
+function idemailwiz_sync_experiments($experiments = null) {
+    if (!$experiments) {
+        $experiments = idemailwiz_fetch_experiments();
+    }
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_experiments';
+
+    // Prepare arrays for comparison
+    $records_to_update = [];
+    $records_to_insert = [];
+
+    foreach($experiments as $experiment) {
+        $wizExperiment = get_idwiz_experiment($experiment['templateId']);
+
+        // Check for experiment in database
+        if ($wizExperiment) {
+            // Mark existing rows for update
+            if (!in_array($experiment, $records_to_update)) {
+                 $records_to_update[] = $experiment;
+            }
+             
+        } else {
+            // experiment not in db, we'll add it
+            $records_to_insert[] = $experiment;
+        }
+    }
+    // Does our wiz_logging and returns the returns data about the insert/update
+    return idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update);
 }
 
 function idemailwiz_sync_metrics($metrics=null) {
@@ -894,7 +1032,7 @@ function idemailwiz_update_triggered_startAt($campaignTimestamps) {
 function idemailwiz_ajax_sync() {
 
     $dbs = json_decode(stripslashes($_POST['dbs']), true);
-    $allowed_dbs = ['campaigns', 'templates', 'metrics', 'purchases'];
+    $allowed_dbs = ['campaigns', 'templates', 'metrics', 'purchases', 'experiments'];
 
     if(empty($dbs) || !is_array($dbs) || !array_diff($dbs, $allowed_dbs) === []) {
         wp_send_json_error('Invalid database list'); 
