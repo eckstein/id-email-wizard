@@ -453,7 +453,47 @@ function idemailwiz_save_template_title() {
 }
 add_action('wp_ajax_idemailwiz_save_template_title', 'idemailwiz_save_template_title');
 
+function generate_idwizcampaign_heatmap_overlay($csv_file) {
+    // Read the CSV file
+    $data = file_get_contents($csv_file);
+    $rows = str_getcsv($data, "\n");
+    $header = str_getcsv(array_shift($rows));
 
+    // Start the heatmap overlay div
+    $overlay_html = '<div class="heatmap-overlay">';
+  $overlay_html .= '<div class="heatmap-tooltips"></div>';
+
+    // Iterate through the rows and generate heatmap points
+    foreach ($rows as $row) {
+        // Create an associative array for the row
+        $data = array_combine($header, str_getcsv($row));
+
+        // Extract the required fields
+        $x = floatval($data['x']) - 100;
+        $y = floatval($data['y']) - 20;
+        $opacity = $data['uniqueClickRate'];
+
+        // Transform the opacity value, e.g., by applying a logarithmic scale or using a minimum threshold
+        $adjusted_opacity = max(0.5, log($opacity + 1) * 0.5); // You can adjust the formula as needed
+
+        // Create a heatmap point
+       $unique_clicks = $data['uniqueCount'];
+        $unique_click_rate = number_format($data['uniqueClickRate'] * 100, 2) . '%'; // Format as percentage with 2 decimal places
+        $url = $data['url'];
+
+        $overlay_html .= "<div class=\"heatmap-point\" style=\"left: {$x}px; top: {$y}px; opacity: {$adjusted_opacity};\" data-unique-clicks=\"{$unique_clicks}\" data-unique-click-rate=\"{$unique_click_rate}\" data-url=\"{$url}\"></div>";
+        
+    }
+
+    // Close the heatmap overlay div
+    $overlay_html .= '</div>';
+
+    return $overlay_html;
+}
+
+
+  //Add custom meta metabox back to edit screens 	
+  add_filter('acf/settings/remove_wp_meta_box', '__return_false');
 
 
   ?>

@@ -98,6 +98,7 @@ function idemailwiz_deactivate() {
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-functions.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-shortcodes.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-databases.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-initiatives.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-sync.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-charts.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-wysiwyg.php');
@@ -111,14 +112,14 @@ require_once(plugin_dir_path(__FILE__) . 'includes/iterable-functions.php');
 // Register custom post type 
 add_action( 'init', 'idemailwiz_create_template_post_type', 0 );
 function idemailwiz_create_template_post_type() {
-    $labels = array(
+    $templateLabels = array(
         'name' => 'Templates',
 		'singular_name' => 'Template',
         // Add other labels as needed
     );
 
-    $args = array(
-        'labels' => $labels,
+    $templateArgs = array(
+        'labels' => $templateLabels,
         'public' => true,
         'has_archive' => true,
         'supports' => array('title', 'editor', 'thumbnail', 'custom-fields'),
@@ -126,7 +127,61 @@ function idemailwiz_create_template_post_type() {
 		
     );
 
-    register_post_type('idemailwiz_template', $args);
+    register_post_type('idemailwiz_template', $templateArgs);
+
+    $initiativeLabels = array(
+        'name'                  => _x('Initiatives', 'Post Type General Name', 'idemailwiz'),
+        'singular_name'         => _x('Initiative', 'Post Type Singular Name', 'idemailwiz'),
+        'menu_name'             => __('Initiatives', 'idemailwiz'),
+        'name_admin_bar'        => __('Initiative', 'idemailwiz'),
+        'archives'              => __('Initiative Archives', 'idemailwiz'),
+        'attributes'            => __('Initiative Attributes', 'idemailwiz'),
+        'parent_item_colon'     => __('Parent Initiative:', 'idemailwiz'),
+        'all_items'             => __('All Initiatives', 'idemailwiz'),
+        'add_new_item'          => __('Add New Initiative', 'idemailwiz'),
+        'add_new'               => __('Add New', 'idemailwiz'),
+        'new_item'              => __('New Initiative', 'idemailwiz'),
+        'edit_item'             => __('Edit Initiative', 'idemailwiz'),
+        'update_item'           => __('Update Initiative', 'idemailwiz'),
+        'view_item'             => __('View Initiative', 'idemailwiz'),
+        'view_items'            => __('View Initiatives', 'idemailwiz'),
+        'search_items'          => __('Search Initiative', 'idemailwiz'),
+        'not_found'             => __('Not found', 'idemailwiz'),
+        'not_found_in_trash'    => __('Not found in Trash', 'idemailwiz'),
+        'featured_image'        => __('Featured Image', 'idemailwiz'),
+        'set_featured_image'    => __('Set featured image', 'idemailwiz'),
+        'remove_featured_image' => __('Remove featured image', 'idemailwiz'),
+        'use_featured_image'    => __('Use as featured image', 'idemailwiz'),
+        'insert_into_item'      => __('Insert into initiative', 'idemailwiz'),
+        'uploaded_to_this_item' => __('Uploaded to this initiative', 'idemailwiz'),
+        'items_list'            => __('Initiatives list', 'idemailwiz'),
+        'items_list_navigation' => __('Initiatives list navigation', 'idemailwiz'),
+        'filter_items_list'     => __('Filter initiatives list', 'idemailwiz'),
+    );
+
+    $initiativeArgs = array(
+        'label'                 => __('Initiative', 'idemailwiz'),
+        'description'           => __('Initiative Description', 'idemailwiz'),
+        'labels'                => $initiativeLabels,
+        'supports'              => array('title', 'editor', 'thumbnail', 'custom-fields', 'revisions', 'page-attributes'),
+        'taxonomies'            => array('category', 'post_tag'), // Optional
+        'hierarchical'          => true,
+        'public'                => true,
+        'show_ui'               => true,
+        'show_in_menu'          => true,
+        'menu_position'         => 5,
+        'show_in_admin_bar'     => true,
+        'show_in_nav_menus'     => true,
+        'can_export'            => true,
+        'has_archive'           => true,
+        'exclude_from_search'   => false,
+        'publicly_queryable'    => true,
+        'rewrite'               => array('slug' => 'initiative'),
+        'capability_type'       => 'post',
+        'show_in_rest'          => true, // Enable Gutenberg editor
+    );
+
+    register_post_type('idwiz_initiative', $initiativeArgs);
 }
 
 //Register folder taxonomy
@@ -160,6 +215,7 @@ function idemailwiz_create_folder_taxonomy() {
     );
 
     register_taxonomy('idemailwiz_folder', 'idemailwiz_template', $args);
+    
 }
 
 // Custom rewrite rule
@@ -186,6 +242,10 @@ function idemailwiz_template_chooser($template) {
 	
 	if(get_post_type() == 'idemailwiz_template' && is_single()) {
 		return dirname(__FILE__) . '/templates/single-idemailwiz_template.php';
+	}
+
+    if(get_post_type() == 'idwiz_initiative' && is_single()) {
+		return dirname(__FILE__) . '/templates/single-initiative.php';
 	}
 
     if (strpos($_SERVER['REQUEST_URI'], '/metrics/campaign') !== false) {
@@ -290,12 +350,14 @@ function idemailwiz_enqueue_assets() {
 
     wp_enqueue_script( 'jquery' );
     wp_enqueue_script( 'sweetalert2', 'https://cdn.jsdelivr.net/npm/sweetalert2@11', array(), '11.0', true );
+    wp_enqueue_script( 'select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array(), '4.1.0', true );
     wp_enqueue_script('charts-js', 'https://cdn.jsdelivr.net/npm/chart.js', array('jquery'), null, true);
     wp_enqueue_script( 'DataTables', plugin_dir_url(__FILE__) . 'vendors/DataTables/datatables.min.js', array() );
     wp_enqueue_script( 'DataTablesScrollResize', plugin_dir_url(__FILE__) . 'vendors/DataTables/ScrollResize/dataTables.scrollResize.min.js', array() );
     wp_enqueue_script( 'DataTablesEllips', '//cdn.datatables.net/plug-ins/1.13.6/dataRender/ellipsis.js', array() );
 
     wp_enqueue_style( 'DataTablesCss', plugin_dir_url(__FILE__) . 'vendors/DataTables/datatables.css', array());
+    wp_enqueue_style( 'select2css', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css', array());
 
     // Activate wordpress image uploader for settings pages
     if (isset($_GET['page']) && $_GET['page'] == 'idemailwiz_settings') {
@@ -314,6 +376,8 @@ function idemailwiz_enqueue_assets() {
         'iterable-actions' => array('/js/iterable-actions.js', array('jquery', 'id-general', 'bulk-actions')),
         'data-tables' => array('/js/data-tables.js', array('jquery', 'id-general')),
         'wiz-charts' => array('/js/wiz-charts.js', array('jquery', 'id-general', 'charts-js')),
+        'wiz-metrics' => array('/js/metrics.js', array('jquery', 'id-general', 'wiz-charts', 'data-tables')),
+        'initiatives' => array('/js/initiatives.js', array('jquery', 'id-general', 'wiz-charts', 'data-tables')),
         
     );
 

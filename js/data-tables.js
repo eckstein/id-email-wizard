@@ -1,494 +1,495 @@
-jQuery(document).ready(function ($) {
+jQuery(document).ready(function ($) {    
 
     //Date sort plugin
     $.fn.dataTable.moment('x');
 
-    //Only run when there's a table on the page
+    //Only run when the table is on the page
     if ($('.idemailwiz_table_wrapper').length) {
-        $.ajax({
-            url: idAjax.ajaxurl,
-            serverSide: true,
-            data: {
-                action:'idwiz_get_campaign_table_view',
-                security: idAjax_data_tables.nonce
+        idemailwiz_do_ajax('idwiz_get_campaign_table_view', idAjax_data_tables.nonce, {}, campaign_table_success_response, campaign_table_error_response);
+    } // end if table exists
+
+    function campaign_table_success_response(data) {
+        console.log('success callback');
+
+        // Initialize DataTables with the parsed data
+        var table = $('.idemailwiz_table').DataTable({
+            data: data,
+            //serverSide: true,
+            "order": [[ 3, 'asc' ], [ 2, 'desc' ]],
+            "autoWidth" : false,
+            fixedColumns: {
+                left: 2
             },
-            success:function(data) {
-                // Parse the data to a JavaScript object
-                var parsedData = JSON.parse(data);
-        
-                // Initialize DataTables with the parsed data
-                var table = $('.idemailwiz_table').DataTable({
-                    data: parsedData,
-                    "order": [[ 3, 'asc' ], [ 2, 'desc' ]],
-                    "autoWidth" : false,
-                    fixedColumns: {
-                        left: 2
+            columns: [
+                {
+                    "className": 'row-counter',
+                    "title": '#',
+                    "name": 'row-counter',
+                    "orderable": false,
+                    "data": null,
+                    "width": "20px"
+                },
+                {
+                    "className": 'details-control',
+                    "title": '<i class="fa-solid fa-arrow-up-right-from-square"></i>',
+                    "name": 'details-control',
+                    "orderable": false,
+                    "data": null,
+                    "defaultContent": '<i class="fa-solid fa-circle-info"></i>'
+                },
+                {
+                    "data": "campaign_start",
+                    "name": "campaign_start",
+                    "title": "Sent At",
+                    "render": function(data) {
+                        return new Date(parseInt(data))
+                            .toLocaleString('en-US', {
+                            month: 'numeric',
+                            day: 'numeric', 
+                            year: 'numeric',
+                            hour: 'numeric',
+                            minute: 'numeric', 
+                            hour12: true  
+                            });
+                        },
+                        "type": "date",
+                },
+                { 
+                    "data": "campaign_type",
+                    "name": "campaign_type",
+                    "title": "Type",
+                    "className": "idwiz_searchBuilder_enabled",
+                    "searchBuilderType": "string",
+                },
+                { 
+                    "data": "message_medium",
+                    "name": "message_medium",
+                    "title": "Medium",
+                    "className": "idwiz_searchBuilder_enabled",
+                    "searchBuilderType": "string",
+                },
+                { 
+                    "data": "campaign_name",
+                    "name": "campaign_name",
+                    "title": "Campaign Name",
+                    "render": $.fn.dataTable.render.ellipsis(50, true),
+                    "className": "idwiz_searchBuilder_enabled",
+                    "searchBuilderType": "string",
+                },
+                { 
+                    "data": "campaign_labels",
+                    "name": "campaign_labels",
+                    "title": "Labels",
+                    "className": "idwiz_searchBuilder_enabled",
+                    "searchBuilderType": "string",
+                },
+                
+                { 
+                    "data": "unique_email_sends",
+                    "name": "unique_email_sends",
+                    "title": "Sends",
+                    "type": "num",
+                    "render": $.fn.dataTable.render.number(',', ''),
+                    "className": "idwiz_searchBuilder_enabled",
+                    "searchBuilderType": "num-fmt",
+                },
+                { 
+                    "data": "unique_delivered",
+                    "name": "unique_delivered",
+                    "title": "Delivered",
+                    "type": "num",
+                    "render": $.fn.dataTable.render.number(',', ''),
+                    "className": "idwiz_searchBuilder_enabled",
+                    "searchBuilderType": "num-fmt",
+                },
+                { 
+                    "data": "wiz_delivery_rate",
+                    "name": "wiz_delivery_rate",
+                    "title": "Deliv. Rate",
+                    "render": function (data) { return parseFloat(data).toFixed(2) + '%'; },
+                    "className": "idwiz_searchBuilder_enabled",
+                    "searchBuilderType": "num-fmt",
+                },
+                { 
+                    "data": "unique_email_opens",
+                    "name": "unique_email_opens",
+                    "title": "Opens",
+                    "render": $.fn.dataTable.render.number(',', ''),
+                    "className": "idwiz_searchBuilder_enabled",
+                    "searchBuilderType": "num-fmt",
+                },
+                { 
+                    "data": "wiz_open_rate",
+                    "name": "wiz_open_rate",
+                    "title": "Open Rate",
+                    "render": function (data) { return parseFloat(data).toFixed(2) + '%'; },
+                    "className": "idwiz_searchBuilder_enabled",
+                    "searchBuilderType": "num-fmt",
+                },
+                { 
+                    "data": "unique_email_clicks",
+                    "name": "unique_email_clicks",
+                    "title": "Clicks",
+                    "render": $.fn.dataTable.render.number(',', ''),
+                    "className": "idwiz_searchBuilder_enabled",
+                    "searchBuilderType": "num-fmt",
+                },
+                { 
+                    "data": "wiz_ctr",
+                    "name": "wiz_ctr",
+                    "title": "CTR",
+                    "render": function (data) { return parseFloat(data).toFixed(2) + '%'; },
+                    "className": "idwiz_searchBuilder_enabled",
+                    "searchBuilderType": "num-fmt",
+                },
+                { 
+                    "data": "wiz_cto",
+                    "name": "wiz_cto",
+                    "title": "CTO",
+                    "render": function (data) { return parseFloat(data).toFixed(2) + '%'; },
+                    "className": "idwiz_searchBuilder_enabled",
+                    "searchBuilderType": "num-fmt",
+                },
+                { 
+                    "data": "unique_unsubscribes",
+                    "name": "unique_unsubscribes",
+                    "title": "Unsubs.",
+                    "render": function(data, type, row) {
+                        return $.fn.dataTable.render.number(',', '').display(data);
                     },
-                    columns: [
-                        {
-                            "className": 'row-counter',
-                            "title": '#',
-                            "name": 'row-counter',
-                            "orderable": false,
-                            "data": null,
-                            "width": "20px"
-                        },
-                        {
-                            "className": 'details-control',
-                            "title": '<i class="fa-solid fa-arrow-up-right-from-square"></i>',
-                            "name": 'details-control',
-                            "orderable": false,
-                            "data": null,
-                            "defaultContent": '<i class="fa-solid fa-circle-info"></i>'
-                        },
-                        {
-                            "data": "campaign_start",
-                            "name": "campaign_start",
-                            "title": "Sent At",
-                            "render": function(data) {
-                                return new Date(parseInt(data))
-                                  .toLocaleString('en-US', {
-                                    month: 'numeric',
-                                    day: 'numeric', 
-                                    year: 'numeric',
-                                    hour: 'numeric',
-                                    minute: 'numeric', 
-                                    hour12: true  
-                                  });
-                              },
-                              "type": "date",
-                        },
-                        { 
-                            "data": "campaign_type",
-                            "name": "campaign_type",
-                            "title": "Type",
-                            "className": "idwiz_searchBuilder_enabled",
-                            "searchBuilderType": "string",
-                        },
-                        { 
-                            "data": "message_medium",
-                            "name": "message_medium",
-                            "title": "Medium",
-                            "className": "idwiz_searchBuilder_enabled",
-                            "searchBuilderType": "string",
-                        },
-                        { 
-                            "data": "campaign_name",
-                            "name": "campaign_name",
-                            "title": "Campaign Name",
-                            "render": $.fn.dataTable.render.ellipsis(50, true),
-                            "className": "idwiz_searchBuilder_enabled",
-                            "searchBuilderType": "string",
-                        },
-                        { 
-                            "data": "campaign_labels",
-                            "name": "campaign_labels",
-                            "title": "Labels",
-                            "className": "idwiz_searchBuilder_enabled",
-                            "searchBuilderType": "string",
-                        },
-                        { 
-                            "data": "unique_email_sends",
-                            "name": "unique_email_sends",
-                            "title": "Sends",
-                            "type": "num",
-                            "render": $.fn.dataTable.render.number(',', ''),
-                            "className": "idwiz_searchBuilder_enabled",
-                            "searchBuilderType": "num-fmt",
-                        },
-                        { 
-                            "data": "unique_delivered",
-                            "name": "unique_delivered",
-                            "title": "Delivered",
-                            "type": "num",
-                            "render": $.fn.dataTable.render.number(',', ''),
-                            "className": "idwiz_searchBuilder_enabled",
-                            "searchBuilderType": "num-fmt",
-                        },
-                        { 
-                            "data": "wiz_delivery_rate",
-                            "name": "wiz_delivery_rate",
-                            "title": "Deliv. Rate",
-                            "render": function (data) { return parseFloat(data).toFixed(2) + '%'; },
-                            "className": "idwiz_searchBuilder_enabled",
-                            "searchBuilderType": "num-fmt",
-                        },
-                        { 
-                            "data": "unique_email_opens",
-                            "name": "unique_email_opens",
-                            "title": "Opens",
-                            "render": $.fn.dataTable.render.number(',', ''),
-                            "className": "idwiz_searchBuilder_enabled",
-                            "searchBuilderType": "num-fmt",
-                        },
-                        { 
-                            "data": "wiz_open_rate",
-                            "name": "wiz_open_rate",
-                            "title": "Open Rate",
-                            "render": function (data) { return parseFloat(data).toFixed(2) + '%'; },
-                            "className": "idwiz_searchBuilder_enabled",
-                            "searchBuilderType": "num-fmt",
-                        },
-                        { 
-                            "data": "unique_email_clicks",
-                            "name": "unique_email_clicks",
-                            "title": "Clicks",
-                            "render": $.fn.dataTable.render.number(',', ''),
-                            "className": "idwiz_searchBuilder_enabled",
-                            "searchBuilderType": "num-fmt",
-                        },
-                        { 
-                            "data": "wiz_ctr",
-                            "name": "wiz_ctr",
-                            "title": "CTR",
-                            "render": function (data) { return parseFloat(data).toFixed(2) + '%'; },
-                            "className": "idwiz_searchBuilder_enabled",
-                            "searchBuilderType": "num-fmt",
-                        },
-                        { 
-                            "data": "wiz_cto",
-                            "name": "wiz_cto",
-                            "title": "CTO",
-                            "render": function (data) { return parseFloat(data).toFixed(2) + '%'; },
-                            "className": "idwiz_searchBuilder_enabled",
-                            "searchBuilderType": "num-fmt",
-                        },
-                        { 
-                            "data": "unique_unsubscribes",
-                            "name": "unique_unsubscribes",
-                            "title": "Unsubs.",
-                            "render": function(data, type, row) {
-                                return $.fn.dataTable.render.number(',', '').display(data);
-                            },
-                            "className": "idwiz_searchBuilder_enabled",
-                            "searchBuilderType": "num-fmt",
-                        },
-                        { 
-                            "data": "wiz_unsub_rate",
-                            "name": "wiz_unsub_rate",
-                            "title": "Unsub. Rate",
-                            "render": function (data) { return parseFloat(data).toFixed(2) + '%'; },
-                            "className": "idwiz_searchBuilder_enabled",
-                            "searchBuilderType": "num-fmt",
-                        },
-                        { 
-                            "data": "unique_purchases",
-                            "name": "unique_purchases",
-                            "title": "Purchases",
-                            "render": function(data, type, row) {
-                                return $.fn.dataTable.render.number(',', '').display(data);
-                            },
-                            "className": "idwiz_searchBuilder_enabled",
-                            "searchBuilderType": "num-fmt",
-                        },
-                        { 
-                            "data": "wiz_cvr",
-                            "name": "wiz_cvr",
-                            "title": "CVR",
-                            "render": function (data) { return parseFloat(data).toFixed(2) + '%'; },
-                            "className": "idwiz_searchBuilder_enabled",
-                            "searchBuilderType": "num-fmt",
-                        },
-                        { 
-                            "data": "revenue",
-                            "name": "revenue",
-                            "title": "Revenue",
-                            "render": function (data) { return '$' + parseFloat(data).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); },
-                            "className": "idwiz_searchBuilder_enabled",
-                            "searchBuilderType": "num-fmt",
-                        },
-                        { 
-                            "data": "template_subject",
-                            "name": "template_subject",
-                            "title": "Subject Line",
-                            "render": $.fn.dataTable.render.ellipsis(40, true),
-                            "className": "idwiz_searchBuilder_enabled",
-                            "searchBuilderType": "string",
-                        },
-                        { 
-                            "data": "template_preheader",
-                            "name": "template_preheader",
-                            "title": "Pre Header",
-                            "render": $.fn.dataTable.render.ellipsis(40, true),
-                            "className": "idwiz_searchBuilder_enabled",
-                            "searchBuilderType": "string",
-                        },
-                        { 
-                            "data": "campaign_id",
-                            "name": "campaign_id",
-                            "title": "ID",
-                            "className": "idwiz_searchBuilder_enabled",
-                            "searchBuilderType": "num",
-                            "searchBuilder.defaultConditions": "==",
-                        },
-                        
-                    ],
-                    
-                    dom: '<"#wiztable_top_wrapper"><"wiztable_toolbar" <"#wiztable_top_search" f><"#wiztable_top_dates">  B>t',
-                    fixedHeader: {
-                        header: true,
-                        footer: false
+                    "className": "idwiz_searchBuilder_enabled",
+                    "searchBuilderType": "num-fmt",
+                },
+                { 
+                    "data": "wiz_unsub_rate",
+                    "name": "wiz_unsub_rate",
+                    "title": "Unsub. Rate",
+                    "render": function (data) { return parseFloat(data).toFixed(2) + '%'; },
+                    "className": "idwiz_searchBuilder_enabled",
+                    "searchBuilderType": "num-fmt",
+                },
+                { 
+                    "data": "unique_purchases",
+                    "name": "unique_purchases",
+                    "title": "Purchases",
+                    "render": function(data, type, row) {
+                        return $.fn.dataTable.render.number(',', '').display(data);
                     },
-                    colReorder: {
-                        realtime: false
+                    "className": "idwiz_searchBuilder_enabled",
+                    "searchBuilderType": "num-fmt",
+                },
+                { 
+                    "data": "wiz_cvr",
+                    "name": "wiz_cvr",
+                    "title": "CVR",
+                    "render": function (data) { return parseFloat(data).toFixed(2) + '%'; },
+                    "className": "idwiz_searchBuilder_enabled",
+                    "searchBuilderType": "num-fmt",
+                },
+                { 
+                    "data": "revenue",
+                    "name": "revenue",
+                    "title": "Revenue",
+                    "render": function (data) { return '$' + parseFloat(data).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); },
+                    "className": "idwiz_searchBuilder_enabled",
+                    "searchBuilderType": "num-fmt",
+                },
+                { 
+                    "data": "template_subject",
+                    "name": "template_subject",
+                    "title": "Subject Line",
+                    "render": $.fn.dataTable.render.ellipsis(40, true),
+                    "className": "idwiz_searchBuilder_enabled",
+                    "searchBuilderType": "string",
+                },
+                { 
+                    "data": "template_preheader",
+                    "name": "template_preheader",
+                    "title": "Pre Header",
+                    "render": $.fn.dataTable.render.ellipsis(40, true),
+                    "className": "idwiz_searchBuilder_enabled",
+                    "searchBuilderType": "string",
+                },
+                {
+                    "data": "experiment_ids",
+                    "name": "experiment_ids",
+                    "title": 'Experiment Ids.',
+                    "className": "idwiz_searchBuilder_enabled",
+                    "type": "string",
+                },
+                { 
+                    "data": "campaign_id",
+                    "name": "campaign_id",
+                    "title": "ID",
+                    "className": "idwiz_searchBuilder_enabled",
+                    "searchBuilderType": "num",
+                    "searchBuilder.defaultConditions": "==",
+                },
+                
+            ],
+            
+            dom: '<"#wiztable_top_wrapper"><"wiztable_toolbar" <"#wiztable_top_search" f><"#wiztable_top_dates">  B>t',
+            fixedHeader: {
+                header: true,
+                footer: false
+            },
+            colReorder: {
+                realtime: false
+            },
+            scroller: true,
+            scrollX: true,
+            scrollY: '700px',
+            paging: true,
+            scrollResize: true,
+            scrollCollapse: true,
+            processing: true,
+            select: {
+                selector: "td:not(:first-child)",
+            },
+            buttons: [
+                {
+                    extend: 'collection',
+                    text: '<i class="fa-solid fa-rotate"></i>',
+                    className: 'sync-buttons wiz-dt-button',
+                    attr: {
+                        'title': 'Sync data from Iterable',
                     },
-                    scroller: true,
-                    scrollX: true,
-                    scrollY: '700px',
-                    paging: true,
-                    scrollResize: true,
-                    scrollCollapse: true,
-                    processing: true,
-                    select: {
-                        selector: "td:not(:first-child)",
-                    },
+                    background: false,
+                    autoClose: true,
                     buttons: [
                         {
-                            extend: 'collection',
-                            text: '<i class="fa-solid fa-rotate"></i>',
-                            className: 'sync-buttons wiz-dt-button',
-                            attr: {
-                                'title': 'Sync data from Iterable',
+                            text: 'Sync All (1 min)',
+                            className: 'sync-db sync-everything',
+                            attr:  {
+                                "data-sync-db": 'everything',
                             },
-                            background: false,
                             autoClose: true,
-                            buttons: [
-                                {
-                                    text: 'Sync All (1 min)',
-                                    className: 'sync-db sync-everything',
-                                    attr:  {
-                                        "data-sync-db": 'everything',
-                                    },
-                                    autoClose: true,
-                                },
-                                {
-                                    text: 'Sync Campaigns (5 sec)',
-                                    className: 'sync-db sync-campaigns',
-                                    attr:  {
-                                        "data-sync-db": 'campaigns',
-                                    },
-                                    autoClose: true,
-                                },
-                                {
-                                    text: 'Sync Purchases (5 sec)',
-                                    className: 'sync-db sync-purchases',
-                                    attr:  {
-                                        "data-sync-db": 'purchases',
-                                    },
-                                    autoClose: true,
-                                },
-                                {
-                                    text: 'Sync Templates (25 sec)',
-                                    className: 'sync-db sync-templates',
-                                    attr:  {
-                                        "data-sync-db": 'templates',
-                                    },
-                                    autoClose: true,
-                                },
-                                {
-                                    text: 'Sync Metrics (25 sec)',
-                                    className: 'sync-db sync-metrics',
-                                    attr:  {
-                                        "data-sync-db": 'metrics',
-                                    },
-                                    autoClose: true,
-                                },
-                                {
-                                    text: 'Sync Experiments (20 sec)',
-                                    className: 'sync-db sync-experiments',
-                                    attr:  {
-                                        "data-sync-db": 'experiments',
-                                    },
-                                    autoClose: true,
-                                },
-                                {
-                                    text: 'View sync log',
-                                    className: 'wiztable_view_sync_details',
-                                    autoClose: true,
-                                },
-                                
-                            ]
-                        },
-                                              
-                        {
-                            extend: 'searchBuilder',
-                            background: false,
-                            text: '<i class="fa-solid fa-sliders"></i> Filters',
-                            className: 'btn-advanced-search wiz-dt-button',
-                            attr: {
-                                'title': 'Advanced search and filter',
-                            },
-                            config: {
-                                columns: '.idwiz_searchBuilder_enabled',
-                            },
-                            // Add a class to the popover for SearchBuilder so we can resize it with CSS
-                            action: function (e, dt, node, config) {
-                                this.popover(config._searchBuilder.getNode(), {
-                                  collectionLayout: 'wiz_sbpopover'
-                                });
-                                // Need to redraw the contents to calculate the correct positions for the elements
-                                if (config._searchBuilder.s.topGroup !== undefined) {
-                                    config._searchBuilder.s.topGroup.dom.container.trigger('dtsb-redrawContents');
-                                }
-                                if (config._searchBuilder.s.topGroup.s.criteria.length === 0) {
-                                    $('.' + $.fn.dataTable.Group.classes.add).click();
-                                }
-                            },
-                            
-
                         },
                         {
-                            extend: 'collection',
-                            text: '<i class="fa-solid fa-table-columns"></i>',
-                            className: 'wiz-dt-button',
-                            attr: {
-                                'title': 'Show/hide columns',
+                            text: 'Sync Campaigns (5 sec)',
+                            className: 'sync-db sync-campaigns',
+                            attr:  {
+                                "data-sync-db": 'campaigns',
                             },
-                            align: 'button-right',
-                            buttons: [ 
-                                'colvis',
-                                {
-                                 extend: 'colvisRestore',
-                                 text: 'Restore Defaults',
-                                 className: 'wizcols_restore',
-                                 align: 'button-right',
-                                }
-                            ],
-                            background: false,
-                        },
-                        {
-                            extend: 'collection',
-                            text: '<i class="fa-regular fa-hand-pointer"></i>',
-                            className: 'wiz-dt-button',
-                            attr: {
-                                'title': 'Selection mode',
-                            },
-                            align: 'button-right',
                             autoClose: true,
-                            buttons: [ 
-                                'selectNone',
-                                'selectRows',
-                                'selectColumns',
-                                'selectCells',
-                            ],
-                            background: false,
+                        },
+                        {
+                            text: 'Sync Purchases (5 sec)',
+                            className: 'sync-db sync-purchases',
+                            attr:  {
+                                "data-sync-db": 'purchases',
+                            },
+                            autoClose: true,
+                        },
+                        {
+                            text: 'Sync Templates (25 sec)',
+                            className: 'sync-db sync-templates',
+                            attr:  {
+                                "data-sync-db": 'templates',
+                            },
+                            autoClose: true,
+                        },
+                        {
+                            text: 'Sync Metrics (25 sec)',
+                            className: 'sync-db sync-metrics',
+                            attr:  {
+                                "data-sync-db": 'metrics',
+                            },
+                            autoClose: true,
+                        },
+                        {
+                            text: 'Sync Experiments (20 sec)',
+                            className: 'sync-db sync-experiments',
+                            attr:  {
+                                "data-sync-db": 'experiments',
+                            },
+                            autoClose: true,
+                        },
+                        {
+                            text: 'View sync log',
+                            className: 'wiztable_view_sync_details',
+                            autoClose: true,
                         },
                         
-                        {
-                            extend: 'collection',
-                            text: '<i class="fa-solid fa-eye"></i>',
-                            className: 'wiz-dt-button',
-                            attr: {
-                                'title': 'Saves views',
-                            },
-                            align: 'button-right',
-                            
-                            buttons: [ 
-                                'createState', 
-                                { 
-                                    extend: 'savedStates',
-                                    config: {
-                                        creationModal: true,
-                                    },
-                                    collectionLayout: 'fixed',
-                                } 
-                            ],
-                            background: false,
-                        },
-                        {
-                            extend: 'collection',
-                            text: '<i class="fa-solid fa-file-arrow-down"></i>',
-                            className: 'wiz-dt-button',
-                            attr: {
-                                'title': 'Export current view',
-                            },
-                            align: 'button-right',
-                            autoClose: true,
-                            buttons: [ 
-                                'copy',
-                                'csv', 
-                                'excel' ],
-                            background: false,
-                        },
-                        
+                    ]
+                },
+                                        
+                {
+                    extend: 'searchBuilder',
+                    background: false,
+                    text: '<i class="fa-solid fa-sliders"></i> Filters',
+                    className: 'btn-advanced-search wiz-dt-button',
+                    attr: {
+                        'title': 'Advanced search and filter',
+                    },
+                    config: {
+                        columns: '.idwiz_searchBuilder_enabled',
+                    },
+                    // Add a class to the popover for SearchBuilder so we can resize it with CSS
+                    action: function (e, dt, node, config) {
+                        this.popover(config._searchBuilder.getNode(), {
+                            collectionLayout: 'wiz_sbpopover'
+                        });
+                        // Need to redraw the contents to calculate the correct positions for the elements
+                        if (config._searchBuilder.s.topGroup !== undefined) {
+                            config._searchBuilder.s.topGroup.dom.container.trigger('dtsb-redrawContents');
+                        }
+                        if (config._searchBuilder.s.topGroup.s.criteria.length === 0) {
+                            $('.' + $.fn.dataTable.Group.classes.add).click();
+                        }
+                    },
+                    
 
+                },
+                {
+                    extend: 'collection',
+                    text: '<i class="fa-solid fa-table-columns"></i>',
+                    className: 'wiz-dt-button',
+                    attr: {
+                        'title': 'Show/hide columns',
+                    },
+                    align: 'button-right',
+                    buttons: [ 
+                        'colvis',
+                        {
+                            extend: 'colvisRestore',
+                            text: 'Restore Defaults',
+                            className: 'wizcols_restore',
+                            align: 'button-right',
+                        }
                     ],
-                    
-
-                    stateRestore: {
-                        create: true, // Enable the creation of new states
-                        remove: true, // Enable the removal of states
-                        rename: true, // Enable the renaming of states
-                        save: true, // Enable the saving of states
-                    }, 
-                    //stateSave: true,
- 
-                    stateSaveParams: function(settings, data) {
-                        // Save the current values of the date pickers
-                        data.startDate = $('#wiztable_startDate').val();
-                        data.endDate = $('#wiztable_endDate').val();
-                        
+                    background: false,
+                },
+                {
+                    extend: 'collection',
+                    text: '<i class="fa-regular fa-hand-pointer"></i>',
+                    className: 'wiz-dt-button',
+                    attr: {
+                        'title': 'Selection mode',
                     },
-                    stateLoadParams: function(settings, data) {
-
-                    // Delay the restoration of the date picker values
-                    setTimeout(function() {
-                        $('#wiztable_startDate').val(data.startDate);
-                        $('#wiztable_endDate').val(data.endDate);
-                    }, 500);
-
-                       
-                        
-                        
+                    align: 'button-right',
+                    autoClose: true,
+                    buttons: [ 
+                        'selectNone',
+                        'selectRows',
+                        'selectColumns',
+                        'selectCells',
+                    ],
+                    background: false,
+                },
+                
+                {
+                    extend: 'collection',
+                    text: '<i class="fa-solid fa-eye"></i>',
+                    className: 'wiz-dt-button',
+                    attr: {
+                        'title': 'Saves views',
                     },
+                    align: 'button-right',
                     
-                    
-                    language: {
-                        buttons: {
-                            createState: 'Create view',
-                            removeState: 'Delete view',
-                            renameState: 'Rename view',
-                            savedStates: 'Saved views',
-                        },
-                        stateRestore: {
-                            creationModal:{
-                                title: 'Create new view',
-                                button: 'Create view'
+                    buttons: [ 
+                        'createState', 
+                        { 
+                            extend: 'savedStates',
+                            config: {
+                                creationModal: true,
                             },
-                            emptyError: 'Please enter a valid name!',
-                            removeError: 'Error removing view.',
-                            removeTitle: 'Delete view'
-                        },
-                        searchBuilder: {
-                            data: 'Select column...',
-                            title: 'Advanced Campaign Filter',
-                            button: {
-                                0: '<i class="fa-solid fa-sliders"></i> Filters',
-                                _: '<i class="fa-solid fa-sliders"></i> Filters (%d)'
-                            }
-                        },
-                        search: '',
-                        searchPlaceholder: 'Quick search',
-                        
+                            collectionLayout: 'fixed',
+                        } 
+                    ],
+                    background: false,
+                },
+                {
+                    extend: 'collection',
+                    text: '<i class="fa-solid fa-file-arrow-down"></i>',
+                    className: 'wiz-dt-button',
+                    attr: {
+                        'title': 'Export current view',
                     },
-                    // Draw and init callback functions
-                    drawCallback: idwiz_dt_draw_callback,                                                                                                                                    
-                    initComplete: idwiz_dt_init_callback,
-                    
+                    align: 'button-right',
+                    autoClose: true,
+                    buttons: [ 
+                        'copy',
+                        'csv', 
+                        'excel' ],
+                    background: false,
+                },
+                
 
-                });
+            ],
+            
+
+            stateRestore: {
+                create: true, // Enable the creation of new states
+                remove: true, // Enable the removal of states
+                rename: true, // Enable the renaming of states
+                save: true, // Enable the saving of states
+            }, 
+            //stateSave: true,
+
+            stateSaveParams: function(settings, data) {
+                // Save the current values of the date pickers
+                data.startDate = $('#wiztable_startDate').val();
+                data.endDate = $('#wiztable_endDate').val();
+                
+            },
+            stateLoadParams: function(settings, data) {
+
+            // Delay the restoration of the date picker values
+            setTimeout(function() {
+                $('#wiztable_startDate').val(data.startDate);
+                $('#wiztable_endDate').val(data.endDate);
+            }, 500);
+
+                
+                
                 
             },
             
-            error: function(errorThrown){
-                console.log(errorThrown);
-            }
-        });
+            
+            language: {
+                buttons: {
+                    createState: 'Create view',
+                    removeState: 'Delete view',
+                    renameState: 'Rename view',
+                    savedStates: 'Saved views',
+                },
+                stateRestore: {
+                    creationModal:{
+                        title: 'Create new view',
+                        button: 'Create view'
+                    },
+                    emptyError: 'Please enter a valid name!',
+                    removeError: 'Error removing view.',
+                    removeTitle: 'Delete view'
+                },
+                searchBuilder: {
+                    data: 'Select column...',
+                    title: 'Advanced Campaign Filter',
+                    button: {
+                        0: '<i class="fa-solid fa-sliders"></i> Filters',
+                        _: '<i class="fa-solid fa-sliders"></i> Filters (%d)'
+                    }
+                },
+                search: '',
+                searchPlaceholder: 'Quick search',
+                
+            },
+            // Draw and init callback functions
+            drawCallback: idwiz_dt_draw_callback,                                                                                                                                    
+            initComplete: idwiz_dt_init_callback,
+            
 
+        });
         
+    }
+    
+    function campaign_table_error_response(errorThrown){
+        console.log(errorThrown);
+    }
         
     
-    } // end if table exists
+    
 
     function idwiz_dt_init_callback(settings, json) {
         //Append date range into DataTables dom
@@ -511,9 +512,6 @@ jQuery(document).ready(function ($) {
                     if (startDateInput && campaignDate < startDateInput) return false;
                     if (endDateInput && campaignDate > endDateInput) return false;
                 }
-                
-                
-
                 return true;
             }
         );
@@ -525,9 +523,7 @@ jQuery(document).ready(function ($) {
         });
 
         
-
-
-
+        // Add click to single campaign page on info icon
         $('.idemailwiz_table').on('click', 'td.details-control', function() {
             var table = $('.idemailwiz_table').DataTable();
             var tr = $(this).closest('tr');
@@ -542,9 +538,9 @@ jQuery(document).ready(function ($) {
             // Open the URL in a new tab
             window.open(url, '_blank');
           });
-    }
 
     
+    } // End DT Init callback   
     
 
     function idwiz_dt_draw_callback(settings, json) {
@@ -563,6 +559,7 @@ jQuery(document).ready(function ($) {
         });
 
         
+
         // Create the counter column
         var info = api.page.info();
         var start = info.start;
@@ -608,7 +605,7 @@ jQuery(document).ready(function ($) {
 
         // Update the HTML element with the calculated total and rates
         $('#wiztable_view_metrics').html(
-            '<table id="wiztable_view_metrics_table"><tr>' +
+            '<table class="wiztable_view_metrics_table"><tr>' +
             '<td><span class="metric_view_label">Campaigns</span><span class="metric_view_value">' + recordCount.toLocaleString() + '</span></td>' +
             '<td><span class="metric_view_label">Sends</span><span class="metric_view_value">' + totalSends.toLocaleString() + '</span></td>' +
             '<td><span class="metric_view_label">Delivered</span><span class="metric_view_value">' + totalDelivered.toLocaleString() + '</span></td>' +
@@ -623,13 +620,11 @@ jQuery(document).ready(function ($) {
             '<td><span class="metric_view_label">CVR</span><span class="metric_view_value"> ' + cvr.toFixed(2) + '%' + '</span></td>' +
             '</tr></table>'
         );
-    }
+    } // End DT draw callback
     
 
-
+    // Sync buttons
     $(document).on('click', '.sync-db', function() {
-
-        
 
         // For security, define only possible dbs
         var dbs = ['campaigns', 'templates', 'metrics', 'purchases', 'experiments'];
@@ -640,10 +635,6 @@ jQuery(document).ready(function ($) {
         // Notice and logging
         $('#wiztable_status_updates').addClass('active').slideDown();
         $('#wiztable_status_updates .wiztable_update').text('Preparing ' + syncDb + ' sync...');
-
-        
-
-       
 
         if (syncDb === 'everything') {
             // Sync all dbs if 'everything' is clicked
@@ -659,55 +650,48 @@ jQuery(document).ready(function ($) {
         }
         
         // Write initialization to log
-        $.ajax({
-            type: "POST",
-            url: idAjax.ajaxurl,
-            data: {
-                action: "ajax_to_wiz_log",
+        idemailwiz_do_ajax(
+            "ajax_to_wiz_log",
+            idAjax_data_tables.nonce,
+            {
                 log_data: "Initializing " + syncDb + " sync. Please wait a few moments...",
-                timestamp: true,
-                security: idAjax_data_tables.nonce
+                timestamp: true
             },
-            success: function(result) {
+            function(result) {
                 $('#wiztable_status_sync_details').load(idAjax.plugin_url + '/sync-log.txt');
-            }
-        });
-
-
-        $.ajax({
-            type: "POST",
-            url: idAjax.ajaxurl,
-            data: {
-                action: "idemailwiz_ajax_sync",
-                dbs: JSON.stringify(dbs),
-                security: idAjax_data_tables.nonce
             },
-            success: function(result) {
+            function(error) {
+                console.log(error);
+            }
+        );
 
+        idemailwiz_do_ajax(
+            "idemailwiz_ajax_sync",
+            idAjax_data_tables.nonce,
+            {
+                dbs: JSON.stringify(dbs)
+            },
+            function(result) {
                 $('#wiztable_status_updates .wiztable_update').text('Sync completed! Refresh the table for new data');
                 $('#wiztable_status_sync_details').load(idAjax.plugin_url + '/sync-log.txt');
-                
-
             },
-            error: function(xhr, status, error) {
+            function(error) {
                 console.log(error);
                 $('#wiztable_status_updates .wiztable_update').text('ERROR: Sync process failed with message: ' + error);
                 $('#wiztable_status_sync_details').load(idAjax.plugin_url + '/sync-log.txt');
             }
-            
-        });
+        );
+
+
+
     });
 
-
+    // Sync log toggle
     $(document).on('click', '.wiztable_view_sync_details', function() {
         $('#wiztable_status_sync_details').slideToggle();
         $(this).find('i').toggleClass('fa-chevron-down fa-chevron-up');
     });
 
 
-    
-
-    
-    
 
 });

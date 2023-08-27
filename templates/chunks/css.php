@@ -46,13 +46,22 @@ $mobHeight = $templateStyles['mobile_line_height'] ?? '24px';
           table td {
           border-collapse: collapse;
           }
-          
           strong {
           font-weight: bold !important;
           }
+
+          a {
+            color: #000;
+          }
+          a.light {
+            color: #fff;
+          }
           
           a:visited {
-          color: blue;
+          color: #000;
+          }
+          a.light:visited {
+            color: #eee;
           }
           
           td img {

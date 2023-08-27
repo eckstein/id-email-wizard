@@ -1,107 +1,244 @@
 <?php
+// Array of valid combinations
+$valid_combinations = [
+    'bar' => [
+        'Division' => [
+            ['label' => 'Purchases', 'type' => 'number'],
+            ['label' => 'Revenue', 'type' => 'money']
+        ],
+        'Date' => [
+            ['label' => 'Purchases', 'type' => 'number'],
+            ['label' => 'Revenue', 'type' => 'money']
+        ]
+    ],
+    'line' => [
+        'Division' => [
+            ['label' => 'Purchases', 'type' => 'number'],
+            ['label' => 'Revenue', 'type' => 'money'],
+            ['label' => 'Sends', 'type' => 'number'],
+            ['label' => 'Opens', 'type' => 'number']
+        ],
+        'Date' => [
+            ['label' => 'Purchases', 'type' => 'number'],
+            ['label' => 'Sends', 'type' => 'number']
+        ]
+    ],
+    'pie' => [
+        'Division' => [
+            ['label' => 'Division', 'type' => 'number']
+        ]
+    ]
+];
 
-function chart_wizpurchases_by_date() {
-    $campaigns = $_POST['campaignIds'];
 
-    // Bail early without valid nonce
-    if (!check_ajax_referer('wiz-charts', 'security')) return;
 
-    if (!$campaigns) {
-        wp_send_json_error('No Campaign Ids set!');
+function idwiz_fetch_flexible_chart_data() {
+    // Check for nonce and security
+    if (!check_ajax_referer('wiz-charts', 'security', false)) {
+        wp_send_json_error('Invalid nonce');
+        return;
     }
+    
+    // Fetch new data attributes
+    $chartType = $_POST['chartType'];
+    $xAxis = $_POST['xAxis'];
+    $yAxis = $_POST['yAxis'];
+    $dualYAxis = $_POST['dualYAxis'];
+    $campaignIds = $_POST['campaignIds'];  // Assuming this comes from the Ajax call
 
-    $allPurchases = array();
-    foreach ($campaigns as $campaignID) {
-       $wizCampaign = get_idwiz_campaign($campaignID);
-       $campaignPurchases = get_idwiz_purchases(array('campaignId'=>$wizCampaign['id'], 'fields'=>'purchaseDate,createdAt'));
-       $allPurchases = array_merge($allPurchases, $campaignPurchases);
-    }
+    // Validate the combination
+    global $valid_combinations;  // Bring the global array into scope
 
-    $purchasesByDate = array();
-    foreach ($allPurchases as $purchase) {
-        if (!empty($purchase['purchaseDate'])) {
-            $date = new DateTime($purchase['purchaseDate']);
-        } else {
-            $date = new DateTime($purchase['createdAt'], new DateTimeZone('UTC'));
-            $date->setTimezone(new DateTimeZone('America/Los_Angeles')); // Convert to Los Angeles time
+    if ($chartType === 'pie') {
+        $yAxisLabels = array_column($valid_combinations[$chartType], 'label');
+        if (!in_array($yAxis, $yAxisLabels)) {
+            wp_send_json_error('Invalid combination of chart type and axes for pie chart');
+            return;
         }
-        $formattedDate = $date->format('m/d/y');
-        
-        if (!isset($purchasesByDate[$formattedDate])) {
-            $purchasesByDate[$formattedDate] = 0;
+    } else {
+        if (!isset($valid_combinations[$chartType][$xAxis])) {
+            wp_send_json_error('Invalid x-axis for the given chart type');
+            return;
         }
-        $purchasesByDate[$formattedDate]++;
+
+        $yAxisLabels = array_column($valid_combinations[$chartType][$xAxis], 'label');
+
+        if (!in_array($yAxis, $yAxisLabels) ||
+            ($dualYAxis && !in_array($dualYAxis, $yAxisLabels))) {
+            wp_send_json_error('Invalid combination of chart type and axes');
+            return;
+        }
     }
 
 
-    // Prepare data for the chart
-    $data = array(
-        'labels' => array_keys($purchasesByDate),
-        'datasets' => array(
-            array(
-                'label' => '# of Purchases',
-                'data' => array_values($purchasesByDate),
-            )
-        )
-    );
 
+    // Initialize the data variable
+    $data = null;
+
+    // Fetch the data types based on the configuration
+    $yAxisType = $valid_combinations[$chartType][$xAxis][0]['type'];
+    $dualYAxisType = $valid_combinations[$chartType][$xAxis][1]['type'];
+
+    $data = idwiz_fetch_and_prepare_data($xAxis, $yAxis, $dualYAxis, $chartType, $campaignIds);
+
+    // Add data types to the response
+    $data['yAxisDataType'] = $yAxisType;
+    if ($dualYAxis) {
+        $data['dualYAxisDataType'] = $dualYAxisType;
+    }
+
+    // Send back the data
     wp_send_json_success($data);
+
 }
-add_action('wp_ajax_chart_wizpurchases_by_date', 'chart_wizpurchases_by_date');
+
+add_action('wp_ajax_idwiz_fetch_flexible_chart_data', 'idwiz_fetch_flexible_chart_data');
+
+function idwiz_fetch_and_prepare_data($xAxis, $yAxis, $dualYAxis, $chartType, $campaignIds) {
+
+    //error_log("xAxis: " . print_r($xAxis, true));
+    //error_log("yAxis: " . print_r($yAxis, true));
+    //error_log("dualYAxis: " . print_r($dualYAxis, true));
+    //error_log("chartType: " . print_r($chartType, true));
+    //error_log("campaignIds: " . print_r($campaignIds, true));
+
+    // Initialize an empty data array
+    $data = [];
+
+    $campaigns = get_idwiz_campaigns(array('campaignIds' => $campaignIds, 'sortBy'=>'startAt', 'sort'=>'ASC'));
+    $purchases = get_idwiz_purchases(array('campaignIds' => $campaignIds, 'sortBy'=> 'purchaseDate', 'sort'=>'ASC'));
+    $metrics = get_idwiz_metrics(array('campaignIds' => $campaignIds));
+
+    // Handle chart type 'bar' and 'line'
+    if ($chartType === 'bar' || $chartType === 'line') {
+        // Switch based on xAxis
+        switch ($xAxis) {
+            case 'Division':
+                $divisionData = []; // To hold summed up data for each division
+                
+                // Loop over purchases and sum them up based on division
+                foreach ($purchases as $purchase) {
+                    $division = $purchase['shoppingCartItems_divisionName'];
+
+                    // Transform divisions into shorter versions
+                    if ($division == 'iD Tech Camps') {
+                        $divLabel = 'IPC';
+                    } else if ($division == 'Online Private Lessons') {
+                        $divLabel = 'OPL';
+                    } else if ($division == 'Virtual Tech Camps') {
+                        $divLabel = 'VTC';
+                    } else if ($division == 'iD Teen Academies') {
+                        $divLabel = 'iDTA';
+                    } else if (strpos($division, 'Online Teen Academies') !== false) {
+                        $divLabel = 'OTA';
+                    }
 
 
-function chart_wizpurchases_by_division() {
+                    if (!isset($divisionData[$divLabel])) {
+                        $divisionData[$divLabel] = ['Purchases' => 0, 'Revenue' => 0];
+                    }
+                    $divisionData[$divLabel]['Purchases'] += 1;
+                    $divisionData[$divLabel]['Revenue'] += $purchase['total'];
+                }
 
-    $campaigns = $_POST['campaignIds'];
+                $data['labels'] = array_keys($divisionData);
+                $data['datasets'] = [
+                    [
+                        'label' => $yAxis,
+                        'data' => array_column($divisionData, $yAxis),
+                        'yAxisID' => 'y-axis-1'
+                    ]
+                ];
 
-    // Bail early without valid nonce
-    if (!check_ajax_referer('wiz-charts', 'security')) return;
+                // If dualYAxis is set, add it to datasets
+                if ($dualYAxis) {
+                    $data['datasets'][] = [
+                        'label' => $dualYAxis,
+                        'data' => array_column($divisionData, $dualYAxis),
+                        'yAxisID' => 'y-axis-2'
+                    ];
+                }
 
-    if (!$campaigns) {
-        //wp_send_json_success($data); 
-        wp_send_json_error( 'No Campaign Ids set!' );
-    }
+                break;
 
-    $allPurchases = array();
-    foreach ($campaigns as $campaignID) {
-       $wizCampaign = get_idwiz_campaign($campaignID);
-       $campaignPurchases = get_idwiz_purchases(array('campaignId'=>$wizCampaign['id'], 'fields'=>'shoppingCartItems_divisionName, shoppingCartItems_price'));
-       $allPurchases = array_merge($allPurchases, $campaignPurchases);
-    }
+            case 'Date':
+                $dateData = [];
 
-    // Group purchases by division and count them
-    $divisions = array();
-    $divisionRevenue = array();
-    foreach ($allPurchases as $purchase) {
-        $division_name = $purchase['shoppingCartItems_divisionName'];
-        if (!isset($divisions[$division_name])) {
-            $divisions[$division_name] = 0;
-            $divisionRevenue[$division_name] = 0; // Initialize revenue for the division
+                // Loop over purchases and sum them up based on date
+                foreach ($purchases as $purchase) {
+                    // Check for 'purchaseDate', then fallback to 'createdAt'
+                    $dateString = $purchase['purchaseDate'] ?? $purchase['createdAt'];
+                    
+                    // Create a DateTime object
+                    $dateObject = new DateTime($dateString);
+
+                    // If 'createdAt' was used, convert from UTC to Los Angeles time
+                    if (isset($purchase['createdAt']) && !isset($purchase['purchaseDate'])) {
+                        $utcTimeZone = new DateTimeZone('UTC');
+                        $laTimeZone = new DateTimeZone('America/Los_Angeles');
+                        
+                        $dateObject->setTimezone($utcTimeZone); // Explicitly set to UTC
+                        $dateObject->setTimezone($laTimeZone);  // Convert to Los Angeles time
+                    }
+
+                    // Format the date to 'm/d/Y'
+                    $formattedDate = $dateObject->format('m/d/Y');
+
+                    if (!isset($dateData[$formattedDate])) {
+                        $dateData[$formattedDate] = ['Purchases' => 0, 'Revenue' => 0];
+                    }
+                    $dateData[$formattedDate]['Purchases'] += 1;
+                    $dateData[$formattedDate]['Revenue'] += $purchase['total'];
+                }
+
+                $data['labels'] = array_keys($dateData);
+
+                $data['datasets'] = [
+                    [
+                        'label' => $yAxis,
+                        'data' => array_column($dateData, $yAxis),
+                        'yAxisID' => 'y-axis-1'
+                    ]
+                ];
+
+                // If dualYAxis is set, add it to datasets
+                if ($dualYAxis) {
+                    $data['datasets'][] = [
+                        'label' => $dualYAxis,
+                        'data' => array_column($dateData, $dualYAxis),
+                        'yAxisID' => 'y-axis-2'
+                    ];
+                }
+                break;
         }
-        $divisions[$division_name]++;
-        $divisionRevenue[$division_name] += $purchase['shoppingCartItems_price']; // Add the revenue for this purchase
     }
 
-    // Prepare data for the chart
-    $data = array(
-        'labels' => array_keys($divisions),
-        'datasets' => array(
-            array(
-                'label' => '# of Purchases',
-                'data' => array_values($divisions),
-                // Other properties for this dataset (e.g., color) can go here
-            ),
-            array(
-                'label' => 'Purchases Total',
-                'data' => array_values($divisionRevenue),
-                'yAxisID' => 'y-axis-revenue', // This associates the dataset with the right y-axis
-                // Other properties for this dataset (e.g., color) can go here
-            )
-        )
-    );
+    // Handle chart type 'pie'
+    if ($chartType === 'pie') {
+        if ($xAxis === 'Division') {
+            $divisionData = [];
 
+            // Loop over purchases and sum them up based on division
+            foreach ($purchases as $purchase) {
+                $division = $purchase['shoppingCartItems_divisionName'];
+                if (!isset($divisionData[$division])) {
+                    $divisionData[$division] = 0;
+                }
+                $divisionData[$division] += 1; // Pie chart will only consider 'Purchases'
+            }
 
-    wp_send_json_success($data);
-    //return $data;
+            $data['labels'] = array_keys($divisionData);
+            $data['datasets'] = [
+                [
+                    'data' => array_values($divisionData)
+                ]
+            ];
+        }
+    }
+
+    error_log('Send data: ' . print_r($data, true));
+
+    return $data;
 }
-add_action('wp_ajax_chart_wizpurchases_by_division', 'chart_wizpurchases_by_division');
+
+

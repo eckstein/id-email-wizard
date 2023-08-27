@@ -26,6 +26,7 @@ function idemailwiz_create_databases() {
         suppressionListIds VARCHAR(255),
         type VARCHAR(20),
         messageMedium VARCHAR(20),
+        initiatives VARCHAR (255),
         PRIMARY KEY  (id)
     ) $charset_collate;";
 
@@ -40,6 +41,7 @@ function idemailwiz_create_databases() {
         name VARCHAR(255),
         creatorUserId VARCHAR(40),
         messageTypeId INT,
+        messageMedium VARCHAR(20),
         campaignId INT,
         fromName VARCHAR(255),
         subject VARCHAR(255),
@@ -51,6 +53,8 @@ function idemailwiz_create_databases() {
         clientTemplateId INT,
         utmContent VARCHAR(40),
         html MEDIUMTEXT,
+        message MEDIUMTEXT,
+        imageUrl VARCHAR(255),
         PRIMARY KEY  (templateId)
     ) $charset_collate;";
 
@@ -259,6 +263,7 @@ function idemailwiz_create_view() {
         campaigns.name as campaign_name,
         campaigns.startAt as campaign_start,
         campaigns.labels as campaign_labels,
+        campaigns.experimentIds as experiment_ids,
         templates.subject as template_subject,
         templates.preheaderText as template_preheader,
         metrics.uniqueEmailSends as unique_email_sends,
@@ -305,41 +310,50 @@ function to_camel_case($string) {
 // Skips values we don't want in the database. Limits 'linkParams' keys to 2 (typically utm_term and utm_content)
 function idemailwiz_simplify_templates_array($template) {
 
+        if (isset($template['metadata'])) {
+            // Extract the desired keys from the 'metadata' array
+            if (isset($template['metadata']['campaignId'])) {
+                $result['campaignId'] = $template['metadata']['campaignId'];
+            }
+            if (isset($template['metadata']['createdAt'])) {
+                $result['createdAt'] = $template['metadata']['createdAt'];
+            }
+            if (isset($template['metadata']['updatedAt'])) {
+                $result['updatedAt'] = $template['metadata']['updatedAt'];
+            }
+            if (isset($template['metadata']['clientTemplateId'])) {
+                $result['clientTemplateId'] = $template['metadata']['clientTemplateId'];
+            }
+        }
 
-        // Extract the desired keys from the 'metadata' array
-        if (isset($template['metadata']['campaignId'])) {
-            $result['campaignId'] = $template['metadata']['campaignId'];
-        }
-        if (isset($template['metadata']['createdAt'])) {
-            $result['createdAt'] = $template['metadata']['createdAt'];
-        }
-        if (isset($template['metadata']['updatedAt'])) {
-            $result['updatedAt'] = $template['metadata']['updatedAt'];
-        }
-        if (isset($template['metadata']['clientTemplateId'])) {
-            $result['clientTemplateId'] = $template['metadata']['clientTemplateId'];
-        }
-
-        // Extract the desired keys from the 'linkParams' array
         if (isset($template['linkParams'])) {
-            foreach ($template['linkParams'] as $linkParam) {
-                if ($linkParam['key'] === 'utm_term') {
-                    $result['utmTerm'] = $linkParam['value'];
-                }
-                if ($linkParam['key'] === 'utm_content') {
-                    $result['utmContent'] = $linkParam['value'];
+            // Extract the desired keys from the 'linkParams' array
+            if (isset($template['linkParams'])) {
+                foreach ($template['linkParams'] as $linkParam) {
+                    if ($linkParam['key'] === 'utm_term') {
+                        $result['utmTerm'] = $linkParam['value'];
+                    }
+                    if ($linkParam['key'] === 'utm_content') {
+                        $result['utmContent'] = $linkParam['value'];
+                    }
                 }
             }
         }
 
-        // Add the rest of the keys to the result
-        foreach ($template as $key => $value) {
-            // Skip the excluded keys and the keys we've already added
-            $excludeKeys = array('plainText', 'cacheDataFeed', 'mergeDataFeedContext', 'utm_term', 'utm_content', 'createdAt', 'updatedAt', 'ccEmails', 'bccEmails', 'dataFeedIds');
-            if ($key !== 'metadata' && $key !== 'linkParams' && !in_array($key, $excludeKeys)) {
-                $result[$key] = $value;
+        
+            // Add the rest of the keys to the result
+            foreach ($template as $key => $value) {
+                if (!isset($template['message'])) { //if 'message' is set, it's an SMS, so this is for email
+                    // Skip the excluded keys and the keys we've already added
+                    $excludeKeys = array('plainText', 'cacheDataFeed', 'mergeDataFeedContext', 'utm_term', 'utm_content', 'createdAt', 'updatedAt', 'ccEmails', 'bccEmails', 'dataFeedIds');
+                } else {
+                    $excludeKeys = array('messageTypeId','trackingDomain','googleAnalyticsCampaignName');
+                }
+                if ($key !== 'metadata' && $key !== 'linkParams' && !in_array($key, $excludeKeys)) {
+                    $result[$key] = $value;
+                }
             }
-        }
+        
 
 
 
@@ -361,14 +375,25 @@ function build_idwiz_query($args, $table_name) {
 
     $sql = "SELECT $fields FROM $table_name WHERE 1=1";
 
-    // Copy the args array and remove the 'fields' and 'limit' keys, so they doesn't get used in the WHERE clause
+    // Copy the args array and remove the 'fields' and 'limit' keys, so they don't get used in the WHERE clause
     $where_args = $args;
     unset($where_args['fields']);
     unset($where_args['limit']);
+    unset($where_args['sortBy']);
+    unset($where_args['sort']);
 
     foreach ($where_args as $key => $value) {
         if ($value !== null && $value !== '') {
-            if ($key === 'startAt_start') {
+            if (($key === 'ids' || $key === 'campaignIds') && is_array($value)) {  // Special case for array of campaign IDs
+                $dbKey = 'id';
+                $placeholders = implode(',', array_fill(0, count($value), '%d'));
+                if ($table_name == $wpdb->prefix . 'idemailwiz_purchases' 
+                    || $table_name == $wpdb->prefix . 'idemailwiz_templates' 
+                    || $table_name == $wpdb->prefix . 'idemailwiz_experiments') {
+                    $dbKey = 'campaignId';
+                }
+                $sql .= $wpdb->prepare(" AND $dbKey IN ($placeholders)", $value);
+            } elseif ($key === 'startAt_start') {
                 try {
                     $value = (new DateTime($value))->getTimestamp() * 1000;
                     $sql .= $wpdb->prepare(" AND startAt >= %d", $value);
@@ -381,6 +406,13 @@ function build_idwiz_query($args, $table_name) {
                     $sql .= $wpdb->prepare(" AND startAt <= %d", $value);
                 } catch (Exception $e) {
                     return ['error' => $e];
+                }
+            } elseif ($key === 'serialized' && is_array($value)) {
+                foreach ($value as $serialized_column => $serialized_value) {
+                    // Check for string or integer to get a proper match
+                    $like_value_int = '%i:' . $wpdb->esc_like($serialized_value) . ';%'; 
+                    $like_value_str = '%"'.$wpdb->esc_like($serialized_value).'"%'; 
+                    $sql .= $wpdb->prepare(" AND ($serialized_column LIKE %s OR $serialized_column LIKE %s)", $like_value_int, $like_value_str);
                 }
             } else {
                 $sql .= $wpdb->prepare(" AND $key = %s", $value);
@@ -512,23 +544,39 @@ function idwiz_get_campaign_table_view() {
     $results = $wpdb->get_results("SELECT * FROM idwiz_campaign_view", ARRAY_A);
     //wiz_log(print_r($results, true));
 
-    // Iterate through the results and unserialize specific columns
+    
+
     foreach ($results as &$row) {
-        if (isset($row['campaign_labels']) && !empty($row['campaign_labels'])) {
-            $unserializedLabels = maybe_unserialize($row['campaign_labels']);
-            if (is_array($unserializedLabels)) {
-                $row['campaign_labels'] = implode(', ', $unserializedLabels);
+        // Iterate through the results
+        // Unserialize specific columns
+        $checkSerialized = ['campaign_labels', 'experiment_ids'];  // Add more column names as needed
+        foreach ($checkSerialized as $columnName) {
+            if (isset($row[$columnName]) && !empty($row[$columnName]) && idwiz_is_serialized($row[$columnName])) {
+                $unserializedData = maybe_unserialize($row[$columnName]);
+                if (is_array($unserializedData)) {
+                    $row[$columnName] = implode(', ', $unserializedData);
+                }
             }
         }
+        
     }
+    
 
     // Return data in JSON format
+    
     echo json_encode($results);
     wp_die();
 }
 
 add_action('wp_ajax_idwiz_get_campaign_table_view', 'idwiz_get_campaign_table_view');
-add_action('wp_ajax_nopriv_idwiz_get_campaign_table_view', 'idwiz_get_campaign_table_view');
+
+
+function idwiz_is_serialized($value) {
+    if (!is_string($value)) return false;
+    if (trim($value) == "") return false;
+    if (preg_match("/^(i|s|a|o|d):(.*);/si", $value)) return true;
+    return false;
+}
 
 
 

@@ -218,12 +218,13 @@
 	} ?>
 </div>
 </div>
-<div id="new-template-popup">
-	<div class="new-template-header">
+<div class="idwiz-modal-overlay"></div>
+<div id="new-template-popup" class="idwiz-modal-content">
+	<div class="idwiz-modal-header">
 	<h3>New Template</h3>
-	<i class="fa fa-close close-new-template-ui"></i>
+	<i class="fa fa-close idwiz-modal-close"></i>
 	</div>
-	<div class="new-template-content">
+	<div class="new-template-content idwiz-modal-body">
 	<div id="templateSelect">
         <div class="templateSelectWrap">
             <div class="startTemplate" data-postid="608">
