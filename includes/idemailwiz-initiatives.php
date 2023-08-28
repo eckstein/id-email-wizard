@@ -1,4 +1,48 @@
 <?php
+
+// Save initiative title when edited on the front end
+function idemailwiz_save_initiative_update() {
+    // Check for nonce and security
+    if (!check_ajax_referer('initiatives', 'security', false)) {
+        wp_send_json_error('Invalid nonce');
+        return;
+    }
+
+    // Fetch data from POST
+    $initiative = $_POST['initID'];
+    $updateType = $_POST['updateType'];
+
+    $updateContent = $_POST['updateContent'];
+
+    // Validate that the new title is not empty
+    if (empty($updateContent)) {
+        wp_send_json_error('The title/content cannot be empty');
+        return;
+    }
+
+    // Start the post data array with the ID
+    $post_data = array(
+        'ID' => $initiative,
+    );
+    if ($updateType == 'title') {
+        $post_data['post_title'] = $updateContent;
+    }
+
+    if ($updateType == 'content') {
+        $post_data['post_content'] = $updateContent;
+    }
+
+    $update_status = wp_update_post($post_data);
+
+    // Check if the update was successful
+    if ($update_status > 0) {
+        wp_send_json_success('Initiative updated successfully');
+    } else {
+        wp_send_json_error('Failed to update the initiative');
+    }
+}
+add_action('wp_ajax_idemailwiz_save_initiative_update', 'idemailwiz_save_initiative_update');
+
 function idemailwiz_get_campaigns_for_select() {
   check_ajax_referer('initiatives', 'security');
 

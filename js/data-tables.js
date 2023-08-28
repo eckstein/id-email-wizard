@@ -248,6 +248,31 @@ jQuery(document).ready(function ($) {
             },
             buttons: [
                 {
+                text: 'Current Month',
+                    action: function ( e, dt, node, config ) {
+                        var today = new Date();
+                        var firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+                        $('#wiztable_startDate').val(firstDayOfMonth);
+                        $('#wiztable_endDate').val(today.toISOString().split('T')[0]);
+                        $('.idemailwiz_table').DataTable().draw();
+                    },
+                    className: 'wiz-dt-button current-month',
+                },
+                {
+                    text: 'Current FY',
+                    action: function ( e, dt, node, config ) {
+                        var today = new Date();
+                        var fiscalYearStart = new Date(today.getFullYear(), 10, 1);
+                        if (today < fiscalYearStart) {
+                            fiscalYearStart.setFullYear(fiscalYearStart.getFullYear() - 1);
+                        }
+                        $('#wiztable_startDate').val(fiscalYearStart.toISOString().split('T')[0]);
+                        $('#wiztable_endDate').val(today.toISOString().split('T')[0]);
+                        $('.idemailwiz_table').DataTable().draw();
+                    },
+                    className: 'wiz-dt-button fiscal-year',
+                },
+                {
                     extend: 'collection',
                     text: '<i class="fa-solid fa-rotate"></i>',
                     className: 'sync-buttons wiz-dt-button',
@@ -257,6 +282,7 @@ jQuery(document).ready(function ($) {
                     background: false,
                     autoClose: true,
                     buttons: [
+                        
                         {
                             text: 'Sync All (1 min)',
                             className: 'sync-db sync-everything',
@@ -551,7 +577,13 @@ jQuery(document).ready(function ($) {
 
         // Move some buttons
         var advSearch = $('.btn-advanced-search').closest('.dt-button');
-        advSearch.insertAfter('#wiztable_top_dates');
+        advSearch.insertAfter('#wiztable_top_search');
+        
+        var FYbutton = $('.dt-button.fiscal-year')
+        var thisMonthButton = $('.dt-button.current-month');
+        thisMonthButton.insertAfter('#wiztable_top_dates');
+        FYbutton.insertAfter(thisMonthButton);
+        
         
         //Change width of popup for advanced search
         $('btn-advanced-search').on('click', function() {

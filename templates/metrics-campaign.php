@@ -41,8 +41,13 @@ $purchases = get_idwiz_purchases(array('campaignId'=>$campaign_id));
     <canvas class="purchByDate" data-campaignids="[<?php echo $campaign['id']; ?>]" data-charttype="bar" data-chart-x-axis="Date" data-chart-y-axis="Purchases" data-chart-dual-y-axis="Revenue"></canvas>
     </div>
     <div class="wizcampaign-section third inset">
-    <h4>Purchases by Division</h4>
-    <canvas class="purchByLOB" data-campaignids="[<?php echo $campaign['id']; ?>]" data-charttype="bar" data-chart-x-axis="Division" data-chart-y-axis="Purchases" data-chart-dual-y-axis="Revenue"></canvas>
+        <div class="wizcampaign-section-title-area">
+            <h4>Purchases by Division</h4>
+            <div class="wizcampaign-section-icons">
+                <i class="fa-solid fa-chart-simple active chart-type-switcher" data-chart-type="bar"></i><i class="fa-solid fa-chart-pie chart-type-switcher" data-chart-type="pie"></i>
+            </div>
+        </div>
+        <canvas class="purchByLOB" data-campaignids="[<?php echo $campaign['id']; ?>]" data-charttype="bar" data-chart-x-axis="Division" data-chart-y-axis="Purchases" data-chart-dual-y-axis="Revenue"></canvas>
     </div>
     <div class="wizcampaign-section third inset">
         <h4>Purchases by Product</h4>

@@ -109,7 +109,7 @@ require_once(plugin_dir_path(__FILE__) . 'includes/folder-template-actions.php')
 require_once(plugin_dir_path(__FILE__) . 'includes/iterable-functions.php');
 
 
-// Register custom post type 
+// Register custom post types
 add_action( 'init', 'idemailwiz_create_template_post_type', 0 );
 function idemailwiz_create_template_post_type() {
     $templateLabels = array(
@@ -173,16 +173,27 @@ function idemailwiz_create_template_post_type() {
         'show_in_admin_bar'     => true,
         'show_in_nav_menus'     => true,
         'can_export'            => true,
-        'has_archive'           => true,
         'exclude_from_search'   => false,
         'publicly_queryable'    => true,
-        'rewrite'               => array('slug' => 'initiative'),
+        'rewrite' =>            ['slug' => 'initiative'],
+        'has_archive'           => 'initiatives',
         'capability_type'       => 'post',
         'show_in_rest'          => true, // Enable Gutenberg editor
     );
 
     register_post_type('idwiz_initiative', $initiativeArgs);
 }
+
+add_post_type_support( 'idwiz_initiative', 'thumbnail' ); 
+
+function idemailwiz_custom_archive_templates($tpl){
+  if ( is_post_type_archive ( 'idwiz_initiative' ) ) {
+    $tpl = plugin_dir_path( __FILE__ ) . 'templates/archive-initiative.php';
+  }
+  return $tpl;
+}
+
+add_filter( 'archive_template', 'idemailwiz_custom_archive_templates' ) ;
 
 //Register folder taxonomy
 add_action( 'init', 'idemailwiz_create_folder_taxonomy', 10 );

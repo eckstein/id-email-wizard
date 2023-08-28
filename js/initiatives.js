@@ -1,5 +1,50 @@
 jQuery(document).ready(function ($) {
 
+    //Save the Initiative title when updated
+    $(document).on('change', '#initiative-title-editable', function() {
+        var initID = $('.wizinitiative_single').attr('data-initiativeid');
+        var value= $(this).val();
+        $.ajax({
+            type: "POST",
+            url: idAjax.ajaxurl,
+            data: {
+                action: 'idemailwiz_save_initiative_update',
+                initID: initID,
+                updateContent: value,
+                updateType: 'title',
+                security: idAjax_initiatives.nonce,
+            },
+            success: function (result) {
+                console.log(result);
+            },
+            error: function (xhr, status, error) {
+                console.log(error);
+            }
+        });	
+    });
+
+    //Save the Initiative title when updated
+    $(document).on('change', '#initiative-content-editable', function() {
+        var initID = $('.wizinitiative_single').attr('data-initiativeid');
+        var value= $(this).val();
+        $.ajax({
+            type: "POST",
+            url: idAjax.ajaxurl,
+            data: {
+                action: 'idemailwiz_save_initiative_update',
+                initID: initID,
+                updateContent: value,
+                updateType: 'content',
+                security: idAjax_initiatives.nonce,
+            },
+            success: function (result) {
+                console.log(result);
+            },
+            error: function (xhr, status, error) {
+                console.log(error);
+            }
+        });	
+    });
 
     // Fill our summary table on page load
     // Initialize variables for totals

@@ -24,8 +24,9 @@ $valid_combinations = [
         ]
     ],
     'pie' => [
-        'Division' => [
-            ['label' => 'Division', 'type' => 'number']
+        'yAxis' => [
+            ['label' => 'Purchases', 'type' => 'number'],
+            ['label' => 'Revenue', 'type' => 'money']
         ]
     ]
 ];
@@ -50,9 +51,9 @@ function idwiz_fetch_flexible_chart_data() {
     global $valid_combinations;  // Bring the global array into scope
 
     if ($chartType === 'pie') {
-        $yAxisLabels = array_column($valid_combinations[$chartType], 'label');
+        $yAxisLabels = array_column($valid_combinations[$chartType]['yAxis'], 'label');
         if (!in_array($yAxis, $yAxisLabels)) {
-            wp_send_json_error('Invalid combination of chart type and axes for pie chart');
+            wp_send_json_error('Invalid combination of chart type and yAxis for pie chart');
             return;
         }
     } else {
@@ -215,28 +216,24 @@ function idwiz_fetch_and_prepare_data($xAxis, $yAxis, $dualYAxis, $chartType, $c
 
     // Handle chart type 'pie'
     if ($chartType === 'pie') {
-        if ($xAxis === 'Division') {
-            $divisionData = [];
+        $divisionData = [];
 
-            // Loop over purchases and sum them up based on division
-            foreach ($purchases as $purchase) {
-                $division = $purchase['shoppingCartItems_divisionName'];
-                if (!isset($divisionData[$division])) {
-                    $divisionData[$division] = 0;
-                }
-                $divisionData[$division] += 1; // Pie chart will only consider 'Purchases'
+        // Loop over purchases and sum them up based on yAxis
+        foreach ($purchases as $purchase) {
+            $division = $purchase['shoppingCartItems_divisionName'];
+            if (!isset($divisionData[$division])) {
+                $divisionData[$division] = 0;
             }
-
-            $data['labels'] = array_keys($divisionData);
-            $data['datasets'] = [
-                [
-                    'data' => array_values($divisionData)
-                ]
-            ];
+            $divisionData[$division] += 1;  // Pie chart will only consider whatever yAxis is
         }
-    }
 
-    error_log('Send data: ' . print_r($data, true));
+        $data['labels'] = array_keys($divisionData);
+        $data['datasets'] = [
+            [
+                'data' => array_values($divisionData)
+            ]
+        ];
+    }
 
     return $data;
 }

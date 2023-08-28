@@ -2,7 +2,7 @@
 acf_form_head();
 get_header(); ?>
 
-<div class="wizinitiative_single has-wiz-chart">
+<div class="wizinitiative_single has-wiz-chart" data-initiativeid="<?php echo get_the_ID(); ?>">
     <?php if (get_field('initiative_color')) {
         $initStyle = 'style="color:'.get_field('initiative_color') . '"';
     } else {
@@ -18,7 +18,7 @@ get_header(); ?>
     ?>
     <div class="wizinitiative-title-area">
         <div class="wizinitiative-pretitle">Initiative</div>
-        <h1 <?php echo $initStyle; ?>><?php echo get_the_title(); ?></h1>
+        <input <?php echo $initStyle; ?> type="text" id="initiative-title-editable" value="<?php echo get_the_title(); ?>" />
         <?php
         $dateRange = get_field('date_range');
         $startDate = $dateRange['start_date'];
@@ -43,8 +43,10 @@ get_header(); ?>
 
     <div class="wizcampaign-sections">
         <div class="wizcampaign-section third inset">
-            <h4>About Initiative</h4>
-            <?php the_content(); ?>
+           <div class="wizcampaign-section-title-area">
+                <h4>About <?php the_title(); ?></h4>
+            </div>
+            <textarea id="initiative-content-editable"><?php echo strip_tags(get_the_content()); ?></textarea>
         </div>
         <div class="wizcampaign-section third inset">
             <h4>Purchases by Date</h4>
@@ -52,10 +54,13 @@ get_header(); ?>
             <canvas class="purchByDate" data-campaignids="<?php echo htmlspecialchars(json_encode($associated_campaign_ids)); ?>" data-charttype="bar" data-chart-x-axis="Date" data-chart-y-axis="Purchases" data-chart-dual-y-axis="Revenue"></canvas>
         </div>
         <div class="wizcampaign-section third inset">
-            <h4>Purchases by Division</h4>
+            <div class="wizcampaign-section-title-area">
+                <h4>Purchases by Division</h4>
+                <div class="wizcampaign-section-icons">
+                    <i class="fa-solid fa-chart-simple active chart-type-switcher" data-chart-type="bar"></i><i class="fa-solid fa-chart-pie chart-type-switcher" data-chart-type="pie"></i>
+                </div>
+            </div>
             <canvas class="purchByLOB" data-campaignids="<?php echo htmlspecialchars(json_encode($associated_campaign_ids)); ?>" data-charttype="bar" data-chart-x-axis="Division" data-chart-y-axis="Purchases" data-chart-dual-y-axis="Revenue"></canvas>
-            
-
         </div>
     </div>
     <div class="wizcampaign-sections">

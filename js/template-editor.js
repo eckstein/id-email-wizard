@@ -35,7 +35,8 @@ jQuery(document).ready(function ($) {
 	
 	//When a new layout field is added
 	acf.addAction('append', function($el){
-		// Wait for 1 second and then simulate a click on the new layout
+		// Wait for 1 second and then simulate a click on the new layout 
+		// This will auto-open the newly added field. Turned off for now since it's annoying
 		//setTimeout(function() {
 			//$el.find('.acf-fc-layout-handle').click();
 		//}, 1000);

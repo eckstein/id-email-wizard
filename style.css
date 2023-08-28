@@ -1114,31 +1114,28 @@ body.single-idemailwiz_template #content {
   .dataTables_wrapper .dataTables_filter {
 	float: none;
   }
-  .dataTables_wrapper .dataTables_filter input {
-	padding: 7px 10px;
-	font-size: 18px;
+  .dataTables_wrapper .dataTables_filter input, #idemailwiz_date_range input {
+	padding: 8px 10px;
+	font-size: 16px;
+	border-radius: 3px;
 	border: 1px solid #343434;
   }
+ #idemailwiz_date_range input {
+	font-weight: bold;
+	color: blue;
+ }
   #idemailwiz_date_range {
 	display: flex;
 	justify-content: space-between;
 	gap: 5px;
 	align-items: center;
   }
-  	#idemailwiz_date_range input {
-		padding: 7px 10px;
-		font-size: 16px;
-		border-radius: 3px;
-		border: 1px solid #343434;
-	}
+
 	#wiztable_top_search {
 		display: flex;
 		flex-direction: column;
 	}
 
-	.dt-button.btn-advanced-search {
-		margin-right: auto;
-	}
 	.wiz_sbpopover {
 		width: 65%!important;
 		left: 25%!important;
@@ -1174,14 +1171,21 @@ body.single-idemailwiz_template #content {
 			display: block;
 		}
 
-
+	.dt-buttons {
+		display: flex;
+		padding: 6px;
+		background-color: #eee;
+		border-radius: 5px;
+		margin-left: auto;
+	}
 		
 	.dt-button.wiz-dt-button {
 		background-color: #343434!important;
 		color: #fff!important;
 		border-radius: 3px!important;
 		border: 0!important;
-		padding: 5px 15px;
+		padding: 6px 15px!important;
+		line-height:1!important;
 		font-size: 14px;
 		cursor: pointer;
 		margin-bottom: 0!important;
@@ -1212,6 +1216,15 @@ body.single-idemailwiz_template #content {
 				font-size: 14px;
 				text-align: right;
 				text-decoration: none;
+			}
+		.wizcampaign-section-icons {
+			display: flex;
+			gap: 10px;
+			color: #aaaaaa;
+			cursor: pointer;
+		}
+			.wizcampaign-section-icons .active {
+				color: #94d40a;
 			}
 		.wizcampaign-section.flex {
 			display: flex;
@@ -1385,6 +1398,25 @@ body.single-idemailwiz_template #content {
 	text-align: center;
 	margin-bottom: 30px;
 }
+.wizinitiative-title-area input {
+	border: 0;
+	font-size: 2.5em;
+	font-weight: bold;
+	text-align: center;
+}
+.wizinitiative-title-area input:focus {
+	outline: thin dotted;
+}
+
+#initiative-content-editable {
+	border: 0;
+	resize: none;
+	width: 100%;
+	height: calc(100% - 30px);
+	font-family:Poppins, sans-serif;
+	font-size: 16px;
+}
+
 #initiative-campaigns-table {
 	width: 100%;
 	margin-top: 30px;
@@ -1462,3 +1494,35 @@ body.single-idemailwiz_template #content {
 	.initiative-add-campaign-form .add-to-table {
 		margin-top: 10px;
 	}
+
+/* Initiative Archive */
+.initiatives-grid-row {
+	display: flex;
+	overflow-x: auto;
+	gap: 20px;
+	padding: 30px;
+}
+.initiative-card {
+	display: flex;
+	flex: 0 0 300px;
+	flex-direction: column;
+	border-radius: 5px;
+	border: 1px solid #aaa;
+}
+	.initiative-card:hover {
+		border: 1px solid #94d40a;
+	}
+	.initiative-card-content {
+		flex: 0 0 4;
+		overflow: hidden;
+		border-top-right-radius: 5px;
+		border-top-left-radius: 5px;
+	}
+		.initiative-card-content img {
+			width: 100%;
+		}
+	.initiative-card-title {
+		flex: 0 0 1;
+		padding: 20px;
+	}
+
