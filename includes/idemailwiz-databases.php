@@ -26,8 +26,17 @@ function idemailwiz_create_databases() {
         suppressionListIds VARCHAR(255),
         type VARCHAR(20),
         messageMedium VARCHAR(20),
-        initiatives VARCHAR (255),
         PRIMARY KEY  (id)
+    ) $charset_collate;";
+
+    $campaign_init_table_name = $wpdb->prefix . 'idemailwiz_init_campaigns';
+    $campaign_init_sql = "CREATE TABLE IF NOT EXISTS $campaign_init_table_name (
+        id INT AUTO_INCREMENT,
+        initiativeId INT,
+        campaignId INT,
+        PRIMARY KEY  (id),
+        INDEX idx_campaignId (campaignId),
+        INDEX idx_initiativeId (initiativeId)
     ) $charset_collate;";
 
 
@@ -241,6 +250,7 @@ function idemailwiz_create_databases() {
   
     require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
     dbDelta( $campaign_sql );
+    dbDelta( $campaign_init_sql );
     dbDelta( $template_sql );
     dbDelta( $metrics_sql );
     dbDelta( $experiments_sql );
@@ -375,17 +385,36 @@ function build_idwiz_query($args, $table_name) {
 
     $sql = "SELECT $fields FROM $table_name WHERE 1=1";
 
-    // Copy the args array and remove the 'fields' and 'limit' keys, so they don't get used in the WHERE clause
+    // Filter out zero values from 'ids' and 'campaignIds' if they are present
+    // Prevents huge data calls in the purchases database
+    if (isset($args['id'])) {
+       if ($args['id'] == 0) {
+        return 'ID cannot equal 0!';
+       }
+    }
+    if (isset($args['ids'])) {
+        $args['ids'] = array_filter($args['ids'], function($id) {
+            return $id != 0;
+        });
+    }
+    if (isset($args['campaignIds'])) {
+        $args['campaignIds'] = array_filter($args['campaignIds'], function($id) {
+            return $id != 0;
+        });
+    }
+
+    // Copy the args array and remove certain keys so they don't get used in the WHERE clause
     $where_args = $args;
     unset($where_args['fields']);
     unset($where_args['limit']);
     unset($where_args['sortBy']);
     unset($where_args['sort']);
-
+    
     foreach ($where_args as $key => $value) {
         if ($value !== null && $value !== '') {
-            if (($key === 'ids' || $key === 'campaignIds') && is_array($value)) {  // Special case for array of campaign IDs
+            if (($key === 'ids' || $key === 'campaignIds')) {  // Special case for array of campaign IDs
                 $dbKey = 'id';
+                
                 $placeholders = implode(',', array_fill(0, count($value), '%d'));
                 if ($table_name == $wpdb->prefix . 'idemailwiz_purchases' 
                     || $table_name == $wpdb->prefix . 'idemailwiz_templates' 
@@ -428,8 +457,9 @@ function build_idwiz_query($args, $table_name) {
     if (isset($args['limit'])) {
         $sql .= $wpdb->prepare(" LIMIT %d", (int)$args['limit']);
     }
-
     return $sql;
+
+    
 }
 
 

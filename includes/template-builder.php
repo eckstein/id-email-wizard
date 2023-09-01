@@ -2,7 +2,11 @@
 
 add_action('wp_ajax_idemailwiz_build_template', 'idemailwiz_build_template');
 function idemailwiz_build_template() {
+
+
   //Check for ajax updates from live form editor
+  // Check nonce for security
+    check_ajax_referer('template-editor', 'security');
   if (!wp_doing_ajax() && !get_query_var('build-template')) {
         return;
     }
@@ -58,10 +62,6 @@ function idemailwiz_build_template() {
   
   
   ob_start();
-
-  
-
-  
 
   //Start Template
   //Default email header (<head>, open tags, styles, etc)

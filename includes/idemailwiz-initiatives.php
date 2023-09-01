@@ -66,11 +66,11 @@ add_action('wp_ajax_idemailwiz_get_campaigns_for_select', 'idemailwiz_get_campai
 
 
 function get_idwiz_initiative_daterange($initiative_post_id) {
-    $serialized_campaign_ids = get_post_meta($initiative_post_id, 'wiz_campaigns', true);
-    $campaign_ids = unserialize($serialized_campaign_ids);
+    $campaign_ids = idemailwiz_get_campaign_ids_for_initiative($initiative_post_id);
 
     if (empty($campaign_ids)) {
-        return 'No campaigns found for this initiative.';
+        $return['error'] = 'No campaigns found!';
+        return $return;
     }
 
     $campaigns = get_idwiz_campaigns(array('ids' => $campaign_ids));
@@ -78,106 +78,137 @@ function get_idwiz_initiative_daterange($initiative_post_id) {
     $min_start_date = min($start_dates);
     $max_start_date = max($start_dates);
 
-    $min_date_readable = date('m/d/Y', $min_start_date / 1000);
-    $max_date_readable = date('m/d/Y', $max_start_date / 1000);
+    $return['startDate'] = date('m/d/Y', $min_start_date / 1000);
+    $return['endDate'] = date('m/d/Y', $max_start_date / 1000);
 
-    return $min_date_readable . ' - ' . $max_date_readable;
+    return $return;
 }
 
 
-function idemailwiz_add_campaign_to_initiative($campaignID, $initiativeID, $table_name) {
+// Utility function to add a new campaign-initiative relationship to the database
+function idemailwiz_add_campaign_initiative_relationship($campaignID, $initiativeID) {
     global $wpdb;
-
-    // Fetch current initiatives
-    $current_initiatives = $wpdb->get_var($wpdb->prepare("SELECT initiative FROM $table_name WHERE id = %d", $campaignID));
-    $initiatives_array = maybe_unserialize($current_initiatives);
-
-    // Check if already added
-    if (in_array($initiativeID, $initiatives_array)) {
-        return 'This campaign has already been added!';
-    }
-
-    // Add initiative
-    $initiatives_array[] = $initiativeID;
-
-    // Re-serialize and update the database
-    $serialized_initiatives = maybe_serialize($initiatives_array);
-    $wpdb->update($table_name, array('initiative' => $serialized_initiatives), array('id' => $campaignID), array('%s'), array('%d'));
-
-    // Fetch and update initiative's campaigns
-    $current_campaigns = get_post_meta($initiativeID, 'wiz_campaigns', true);
-    $campaigns_array = maybe_unserialize($current_campaigns) ?: [];
-    if (!in_array($campaignID, $campaigns_array)) {
-        $campaigns_array[] = $campaignID;
-    }
-    update_post_meta($initiativeID, 'wiz_campaigns', maybe_serialize($campaigns_array));
-
-    return 'Campaign added successfully!';
+    $table_name = $wpdb->prefix . "idemailwiz_init_campaigns";
+    return $wpdb->insert($table_name, ['campaignId' => $campaignID, 'initiativeId' => $initiativeID], ['%d', '%d']);
 }
 
-function idemailwiz_remove_campaign_from_initiative($campaignID, $initiativeID, $table_name) {
+// Utility function to remove a campaign-initiative relationship from the database
+function idemailwiz_remove_campaign_initiative_relationship($campaignID, $initiativeID) {
     global $wpdb;
+    $table_name = $wpdb->prefix . "idemailwiz_init_campaigns";
+    return $wpdb->delete($table_name, ['campaignId' => $campaignID, 'initiativeId' => $initiativeID], ['%d', '%d']);
+}
 
-    // Fetch current initiatives
-    $current_initiatives = $wpdb->get_var($wpdb->prepare("SELECT initiative FROM $table_name WHERE id = %d", $campaignID));
-    $initiatives_array = maybe_unserialize($current_initiatives);
+// Utility function to check if a campaign-initiative relationship exists
+function idemailwiz_check_campaign_initiative_relationship($campaignID, $initiativeID) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . "idemailwiz_init_campaigns";
+    return $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE campaignId = %d AND initiativeId = %d", $campaignID, $initiativeID)) > 0;
+}
 
-    // Remove initiative
-    if (($key = array_search($initiativeID, $initiatives_array)) !== false) {
-        unset($initiatives_array[$key]);
+// Utility function to get all campaign IDs for a given initiative ID
+function idemailwiz_get_campaign_ids_for_initiative($initiativeID) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . "idemailwiz_init_campaigns";
+    return $wpdb->get_col($wpdb->prepare("SELECT campaignId FROM $table_name WHERE initiativeId = %d", $initiativeID));
+}
+
+// Utility function to get the initiative ID for a given campaign ID
+function idemailwiz_get_initiative_id_for_campaign($campaignID) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . "idemailwiz_init_campaigns";
+    return $wpdb->get_var($wpdb->prepare("SELECT initiativeId FROM $table_name WHERE campaignId = %d", $campaignID));
+}
+
+
+// Main function to handle adding or removing a campaign to/from an initiative
+function idemailwiz_manage_campaign_initiative_relationship($action, $campaignID, $initiativeID) {
+    $response = [
+        'success' => false,
+        'message' => ''
+    ];
+
+    $relationship_exists = idemailwiz_check_campaign_initiative_relationship($campaignID, $initiativeID);
+
+    if ($action === 'add') {
+        if (!$relationship_exists) {
+            if (idemailwiz_add_campaign_initiative_relationship($campaignID, $initiativeID)) {
+                $response['success'] = true;
+                $response['message'] = 'Successfully added campaign to initiative.';
+            } else {
+                $response['message'] = 'Failed to add campaign to initiative.';
+            }
+        } else {
+            $response['message'] = 'This campaign has already been added to the initiative!';
+        }
+    } elseif ($action === 'remove') {
+        if ($relationship_exists) {
+            if (idemailwiz_remove_campaign_initiative_relationship($campaignID, $initiativeID)) {
+                $response['success'] = true;
+                $response['message'] = 'Successfully removed campaign from initiative.';
+            } else {
+                $response['message'] = 'Failed to remove campaign from initiative.';
+            }
+        } else {
+            $response['message'] = 'This campaign is not part of the initiative.';
+        }
     }
 
-    // Re-serialize and update the database
-    $serialized_initiatives = maybe_serialize($initiatives_array);
-    $wpdb->update($table_name, array('initiative' => $serialized_initiatives), array('id' => $campaignID), array('%s'), array('%d'));
-
-    // Fetch and update initiative's campaigns
-    $current_campaigns = get_post_meta($initiativeID, 'wiz_campaigns', true);
-    $campaigns_array = maybe_unserialize($current_campaigns) ?: [];
-    if (($key = array_search($campaignID, $campaigns_array)) !== false) {
-        unset($campaigns_array[$key]);
-    }
-    update_post_meta($initiativeID, 'wiz_campaigns', maybe_serialize($campaigns_array));
-
-    return 'Campaign removed successfully!';
+    return $response;
 }
 
 
 function idemailwiz_add_remove_campaign_from_initiative() {
     global $wpdb;
+    $response = [
+        'success' => true,
+        'message' => '',
+        'data' => []
+    ];
 
-    // Check nonce for security
-    check_ajax_referer('initiatives', 'security');
-
-    // Get the provided campaign ID, initiative ID, and action
-    $campaignID = intval($_POST['campaign_id']);
-    $initiativeID = intval($_POST['initiative_id']);
-    $action = $_POST['campaignAction'];
-
-    // Validate action
-    if ($action != 'add' && $action != 'remove') {
-        wp_send_json_error(array('message' => 'Invalid action.'));
+    $isValidNonce = check_ajax_referer('data-tables', 'security', false) || check_ajax_referer('initiatives', 'security', false);
+    if (!$isValidNonce) {
+        wp_send_json_error(['message' => 'Invalid nonce.']);
         return;
     }
 
-    // Prepare table name
-    $table_name = $wpdb->prefix . "idemailwiz_campaigns";
+    $campaignIDs = $_POST['campaign_ids'];
+    if (!is_array($campaignIDs)) {
+        $campaignIDs = [$campaignIDs];
+    }
+    $initiativeID = intval($_POST['initiative_id']);
+    $action = $_POST['campaignAction'];
 
-    // Delegate to utility functions and get message
-    $message = '';
-    if ($action == 'add') {
-        $message = idemailwiz_add_campaign_to_initiative($campaignID, $initiativeID, $table_name);
-    } else { // remove
-        $message = idemailwiz_remove_campaign_from_initiative($campaignID, $initiativeID, $table_name);
+    if ($action != 'add' && $action != 'remove') {
+        wp_send_json_error(['message' => 'Invalid action.']);
+        return;
     }
 
-    // Response handling based on the message
-    if ($message === 'Campaign added successfully!' || $message === 'Campaign removed successfully!') {
-        wp_send_json_success(array('message' => $message));
+    $messages = [];
+    $successCount = 0;
+
+    foreach ($campaignIDs as $campaignID) {
+        $result = idemailwiz_manage_campaign_initiative_relationship($action, $campaignID, $initiativeID);
+        if ($result['success']) {
+            $successCount++;
+        }
+        $messages[] = $result['message'];
+    }
+
+    if ($successCount == count($campaignIDs)) {
+        $response['message'] = "All campaigns successfully processed for action: {$action}.";
     } else {
-        wp_send_json_error(array('message' => $message));
+        $response['success'] = false;
+        $response['message'] = "Some campaigns could not be processed for action: {$action}.";
     }
+
+    $response['data'] = [
+        'successCount' => $successCount,
+        'totalCount' => count($campaignIDs),
+        'messages' => $messages
+    ];
+
+    wp_send_json($response);
 }
 
 add_action('wp_ajax_idemailwiz_add_remove_campaign_from_initiative', 'idemailwiz_add_remove_campaign_from_initiative');
-

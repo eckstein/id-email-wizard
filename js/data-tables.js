@@ -4,7 +4,9 @@ jQuery(document).ready(function ($) {
     $.fn.dataTable.moment('x');
 
     //Only run when the table is on the page
-    if ($('.idemailwiz_table_wrapper').length) {
+    if ($('#idemailwiz_campaign_table').length) {
+        
+
         idemailwiz_do_ajax('idwiz_get_campaign_table_view', idAjax_data_tables.nonce, {}, campaign_table_success_response, campaign_table_error_response);
     } // end if table exists
 
@@ -12,7 +14,7 @@ jQuery(document).ready(function ($) {
         console.log('success callback');
 
         // Initialize DataTables with the parsed data
-        var table = $('.idemailwiz_table').DataTable({
+        var table = $('#idemailwiz_campaign_table').DataTable({
             data: data,
             //serverSide: true,
             "order": [[ 3, 'asc' ], [ 2, 'desc' ]],
@@ -245,21 +247,22 @@ jQuery(document).ready(function ($) {
             processing: true,
             select: {
                 selector: "td:not(:first-child)",
+                
             },
             buttons: [
                 {
-                text: 'Current Month',
+                text: '<i class="fa-regular fa-calendar"></i>  This Month',
                     action: function ( e, dt, node, config ) {
                         var today = new Date();
                         var firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
                         $('#wiztable_startDate').val(firstDayOfMonth);
-                        $('#wiztable_endDate').val(today.toISOString().split('T')[0]);
+                        $('#wiztable_endDate').val();
                         $('.idemailwiz_table').DataTable().draw();
                     },
                     className: 'wiz-dt-button current-month',
                 },
                 {
-                    text: 'Current FY',
+                    text: '<i class="fa-regular fa-calendar"></i>  This FY',
                     action: function ( e, dt, node, config ) {
                         var today = new Date();
                         var fiscalYearStart = new Date(today.getFullYear(), 10, 1);
@@ -267,7 +270,7 @@ jQuery(document).ready(function ($) {
                             fiscalYearStart.setFullYear(fiscalYearStart.getFullYear() - 1);
                         }
                         $('#wiztable_startDate').val(fiscalYearStart.toISOString().split('T')[0]);
-                        $('#wiztable_endDate').val(today.toISOString().split('T')[0]);
+                        $('#wiztable_endDate').val();
                         $('.idemailwiz_table').DataTable().draw();
                     },
                     className: 'wiz-dt-button fiscal-year',
@@ -343,7 +346,7 @@ jQuery(document).ready(function ($) {
                 {
                     extend: 'searchBuilder',
                     background: false,
-                    text: '<i class="fa-solid fa-sliders"></i> Filters',
+                    text: '<i class="fa-solid fa-sliders"></i>',
                     className: 'btn-advanced-search wiz-dt-button',
                     attr: {
                         'title': 'Advanced search and filter',
@@ -403,28 +406,110 @@ jQuery(document).ready(function ($) {
                     ],
                     background: false,
                 },
-                
                 {
-                    extend: 'collection',
-                    text: '<i class="fa-solid fa-eye"></i>',
+                    extend: 'selected',
+                    text: '<i class="fa-regular fa-square-check"></i>',
+                    name: 'Actions',
                     className: 'wiz-dt-button',
                     attr: {
-                        'title': 'Saves views',
+                        'title': 'Actions',
+                    },
+                    action: function(e, dt, node, config) {
+                    // Retrieve selected row indices
+                    let selectedRowIndices = dt.rows({ selected: true }).indexes().toArray();
+
+                    // Extract campaign IDs from selected rows
+                    let selectedCampaignIds = selectedRowIndices.map(index => {
+                        return dt.cell(index, 'campaign_id:name').data();
+                    });
+                    
+                    Swal.fire({
+                        title: 'Add to Initiative',
+                        html: '<select id="initiative-select"></select>',
+                        showCancelButton: true,
+                        cancelButtonText: 'Cancel',
+                        confirmButtonText: 'Add campaigns',  
+                        preConfirm: () => {
+                        let selectedInitiative = $('#initiative-select').val();
+                            // Perform AJAX call to add campaigns to the selected initiative
+                            idemailwiz_do_ajax(
+                                'idemailwiz_add_remove_campaign_from_initiative',
+                                idAjax_data_tables.nonce,
+                                {
+                                initiative_id: selectedInitiative,
+                                campaign_ids: selectedCampaignIds,
+                                campaignAction: 'add',
+                                },
+                                function(successData) {
+                                console.log(successData);
+                                alert('Campaigns have been added to initiative!');
+                                },
+                                function(errorData) {
+                                // Handle error
+                                console.error("Failed to add campaigns to initiative", errorData);
+                                }
+                            );
+                        },
+                        didOpen: () => {
+                        $('#initiative-select').select2({
+                            minimumInputLength: 3,
+                            placeholder: "Search initiatives...",
+                            allowClear: true,
+                            ajax: {
+                            delay: 250,
+                            transport: function(params, success, failure) {
+                                idemailwiz_do_ajax(
+                                'idemailwiz_get_initiatives_for_select',
+                                idAjax_data_tables.nonce, 
+                                {
+                                    q: params.data.term,
+                                },
+                                function(data) {
+                                    success({results: data});
+                                },
+                                function(error) {
+                                    console.error("Failed to fetch initiatives", error);
+                                    failure();
+                                }
+                                );
+                                 }
+                             }
+                             });
+                            }
+                        });
+                    }
+                },
+                {
+                    extend: 'collection',
+                    text: '<i class="fa-solid fa-floppy-disk"></i>',
+                    className: 'wiz-dt-button saved-views',
+                    attr: {
+                    'title': 'View options',
                     },
                     align: 'button-right',
-                    
-                    buttons: [ 
-                        'createState', 
-                        { 
-                            extend: 'savedStates',
-                            config: {
-                                creationModal: true,
-                            },
-                            collectionLayout: 'fixed',
-                        } 
-                    ],
-                    background: false,
+                    buttons: [
+                    {
+                        extend: 'createState',
+                        text: 'Create View',
+                        attr: {
+                        'title': 'Create view',
+                        },
+                        config: {    
+                        creationModal: true,
+
+                        }
+                    },
+                    {
+                        extend: 'savedStates',
+                        text: 'Saved Views',
+                        className: 'saved-views',
+                        attr: {
+                        'title': 'Saved views',
+                        },
+                    }
+                    ]
                 },
+                
                 {
                     extend: 'collection',
                     text: '<i class="fa-solid fa-file-arrow-down"></i>',
@@ -451,8 +536,11 @@ jQuery(document).ready(function ($) {
                 rename: true, // Enable the renaming of states
                 save: true, // Enable the saving of states
             }, 
-            //stateSave: true,
-
+            "stateLoaded": function (settings, data) {
+                if (currentStateName) {
+                    $('#saved_state_title').text('Saved view: ' + currentStateName);
+                }
+            },
             stateSaveParams: function(settings, data) {
                 // Save the current values of the date pickers
                 data.startDate = $('#wiztable_startDate').val();
@@ -461,33 +549,27 @@ jQuery(document).ready(function ($) {
             },
             stateLoadParams: function(settings, data) {
 
-            // Delay the restoration of the date picker values
-            setTimeout(function() {
-                $('#wiztable_startDate').val(data.startDate);
-                $('#wiztable_endDate').val(data.endDate);
-            }, 500);
-
-                
-                
-                
+                // Delay the restoration of the date picker values
+                setTimeout(function() {
+                    $('#wiztable_startDate').val(data.startDate);
+                    $('#wiztable_endDate').val(data.endDate);
+                }, 500);
             },
-            
-            
             language: {
                 buttons: {
-                    createState: 'Create view',
-                    removeState: 'Delete view',
-                    renameState: 'Rename view',
-                    savedStates: 'Saved views',
+                    createState: 'Create View',
+                    removeState: 'Delete View',
+                    renameState: 'Rename View',
+                    savedStates: 'Saved Views',
                 },
                 stateRestore: {
                     creationModal:{
-                        title: 'Create new view',
-                        button: 'Create view'
+                        title: 'Create new View',
+                        button: 'Create View'
                     },
                     emptyError: 'Please enter a valid name!',
-                    removeError: 'Error removing view.',
-                    removeTitle: 'Delete view'
+                    removeError: 'Error removing View.',
+                    removeTitle: 'Delete View'
                 },
                 searchBuilder: {
                     data: 'Select column...',
@@ -507,16 +589,42 @@ jQuery(document).ready(function ($) {
             
 
         });
+
+        // Inside datatables context
+        // table = datatables instance
+         // Enable "Actions" button when rows are selected
+        table.on('select', function (e, dt, type, indexes) {
+        if (type === 'row') {
+            table.button('Actions:name').enable();
+        }
+        });
+
+        // Disable "Actions" button when no rows are selected
+        table.on('deselect', function (e, dt, type, indexes) {
+            if (type === 'row') {
+                if (!table.rows({ selected: true }).any()) {
+                table.button('Actions:name').disable();
+                }
+            }
+        });
         
-    }
+    } // End of table success callback context
     
     function campaign_table_error_response(errorThrown){
         console.log(errorThrown);
     }
-        
     
-    
+    let currentStateName = ""; // To store the state name
 
+    $(document).on('click', 'div.dt-button-split > button.dt-button', function() {
+        // Check if this button is related to 'saved-views'
+        if ($(this).closest('.dt-button-collection').siblings('.saved-views').length) {
+            currentStateName = $(this).text().trim();
+            $('#saved_state_title').text('Saved view: "' + currentStateName + '"');
+        }
+    });
+
+    // Init callback
     function idwiz_dt_init_callback(settings, json) {
         //Append date range into DataTables dom
         var dateSelector = '<div id="idemailwiz_date_range"><label><input type="date" id="wiztable_startDate"></label>&nbsp;thru&nbsp;<label><input type="date" id="wiztable_endDate"></label></div>';
@@ -565,15 +673,23 @@ jQuery(document).ready(function ($) {
             window.open(url, '_blank');
           });
 
+        
+
     
     } // End DT Init callback   
     
 
+    // Draw callback
     function idwiz_dt_draw_callback(settings, json) {
         var api = this.api();
 
         // Hide the loader
         $('#idemailwiz_tableLoader').hide();
+
+        // Hide saved view title, if there
+        $('#saved_state_title').text('');
+
+        
 
         // Move some buttons
         var advSearch = $('.btn-advanced-search').closest('.dt-button');
@@ -599,6 +715,7 @@ jQuery(document).ready(function ($) {
             cell.innerHTML = i + 1 + start;
         });
 
+        // Readjust the column widths on each draw
         api.columns.adjust();
 
         // Get current record count
@@ -723,6 +840,9 @@ jQuery(document).ready(function ($) {
         $('#wiztable_status_sync_details').slideToggle();
         $(this).find('i').toggleClass('fa-chevron-down fa-chevron-up');
     });
+
+
+   
 
 
 

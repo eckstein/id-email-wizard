@@ -2,10 +2,9 @@
 /**
  * Template Name: Metrics Campaign Template
  */
-
-get_header();
-
-
+?>
+<?php get_header(); ?>
+<?php
 $campaign_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $campaign = get_idwiz_campaign($campaign_id);
 $metrics = get_idwiz_metric($campaign_id);
@@ -13,16 +12,22 @@ $template = get_idwiz_template($campaign['templateId']);
 $purchases = get_idwiz_purchases(array('campaignId'=>$campaign_id));
 
 ?>
-
-<div class="wizcampaign-single has-wiz-chart" data-campaignid="<?php echo $campaign_id; ?>">
-
-  <h1 class="single-wizcampaign-title"><?php echo $campaign['name']; ?></h1>
-  <?php
-
+<article id="campaign-<?php echo $campaign_id; ?>" class="wizcampaign-single has-wiz-chart" data-campaignid="<?php echo $campaign_id; ?>">
+<header class="header">
+<div class="entry-pre-title">Campaign</div>
+<h1 class="entry-title single-wizcampaign-title" itemprop="name"><?php echo $campaign['name']; ?></h1>
+<div id="wiztable_status_updates"><span class="wiztable_update">asdf</span></div>
+<?php
   date_default_timezone_set('America/Los_Angeles');
   $startAt = date('m/d/Y \a\t g:ia', $campaign['startAt'] / 1000);  ?>
   <h3 class="single-wizcampaign-startAt">Sent on <?php echo $startAt; ?></h3>
-<table class="wiztable_view_metrics_table">
+</header>
+<div class="entry-content" itemprop="mainContentOfPage">
+
+
+
+  
+    <table class="wiztable_view_metrics_table">
     <tr>
         <td><span class="metric_view_label">Sent</span><span class="metric_view_value"><?php echo number_format($metrics['uniqueEmailSends']); ?></span></td>
         <td><span class="metric_view_label">Open Rate</span><span class="metric_view_value"><?php echo number_format($metrics['wizOpenRate'], 2); ?>%</span></td>
@@ -33,9 +38,10 @@ $purchases = get_idwiz_purchases(array('campaignId'=>$campaign_id));
         <td><span class="metric_view_label">CVR</span><span class="metric_view_value"><?php echo number_format($metrics['wizCvr'], 2); ?>%</span></td>
         <td><span class="metric_view_label">AOV</span><span class="metric_view_value">$<?php echo number_format($metrics['wizAov'], 2); ?></span></td>
         <td><span class="metric_view_label">Unsub. Rate</span><span class="metric_view_value"><?php echo number_format($metrics['wizUnsubRate'], 2); ?>%</span></td>
+        <td><span class="metric_view_label">Sync</span><span class="metric_view_value"><button class="wiz-button sync-campaign" data-campaignid="<?php echo $campaign['id']; ?>"><i class="fa-solid fa-arrows-rotate"></i></button></span></td>
     </tr>
-</table>
-<div class="wizcampaign-sections">
+    </table>
+    <div class="wizcampaign-sections">
     <div class="wizcampaign-section third inset" id="email-info">
     <h4>Purchases by Date</h4>
     <canvas class="purchByDate" data-campaignids="[<?php echo $campaign['id']; ?>]" data-charttype="bar" data-chart-x-axis="Date" data-chart-y-axis="Purchases" data-chart-dual-y-axis="Revenue"></canvas>
@@ -95,11 +101,11 @@ $purchases = get_idwiz_purchases(array('campaignId'=>$campaign_id));
         ?>
         </div>
     </div>
-</div>
-<?php
-//Check for experiments
-$experiments = get_idwiz_experiments(array('campaignId'=>$campaign['id']));
-if ($experiments) {
+    </div>
+    <?php
+    //Check for experiments
+    $experiments = get_idwiz_experiments(array('campaignId'=>$campaign['id']));
+    if ($experiments) {
     ?>
     <div class="wizcampaign-section inset wizcampaign-experiments">
     <h3>Experiment Variations</h3>
@@ -132,23 +138,23 @@ if ($experiments) {
     ?>
     </div>
     <?php
-}
-?>
+    }
+    ?>
 
-<div class="wizcampaign-template-area">
+    <div class="wizcampaign-template-area">
 
-<?php
-$displayTemplates = [];
-if ($experiments) {
+    <?php
+    $displayTemplates = [];
+    if ($experiments) {
     foreach ($experiments as $experiment) {
         $displayTemplates[] = get_idwiz_template($experiment['templateId']);
     }
-} else {
+    } else {
     $displayTemplates = array($template);
-}
+    }
 
-foreach ($displayTemplates as $template) { ?>
-<div class="wizcampaign-template-html">
+    foreach ($displayTemplates as $template) { ?>
+    <div class="wizcampaign-template-html">
     <?php    
     
     if ($template['messageMedium'] == 'Email') {  
@@ -181,12 +187,14 @@ foreach ($displayTemplates as $template) { ?>
         <?php echo $template['message']; ?>
         </div>
         <?php }?>
-</div>
-<?php 
-} 
-?>
-</div>
+    </div>
+    <?php 
+    } 
+    ?>
+    </div>
 
-</div>
+    </div>
 
-<?php get_footer(); ?>
+    </div>
+    </article>
+    <?php get_footer(); ?>

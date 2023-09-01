@@ -43,7 +43,41 @@ jQuery(document).ready(function ($) {
 	});
 
 	
-	
+	// Select2 for template search
+    $('#live-template-search').select2({
+    minimumInputLength: 3,
+	placeholder: "Search templates...",
+    allowClear: true,
+    ajax: {
+        delay: 250,
+        transport: function(params, success, failure) {
+        idemailwiz_do_ajax(
+            'idemailwiz_get_templates_for_select',
+            idAjax_id_general.nonce, 
+            {
+            q: params.data.term,
+            },
+            function(data) {
+            success({results: data});
+            },
+            function(error) {
+            console.error("Failed to fetch templates", error);
+            failure();
+            }
+        );
+        }
+    }
+    });
+
+	 // Stop click events within the popover from propagating
+	$('#dt-popover-container').on('click', function(e) {
+		e.stopPropagation();
+	});
+
+	// Stop click events within the Select2 dropdown from propagating
+	$(document).on('click', '.select2-dropdown', function(e) {
+		e.stopPropagation();
+	});
 
 });
 	
@@ -98,6 +132,7 @@ function idemailwiz_do_ajax(actionFunctionName, nonceValue, additionalData, succ
         // Always executed regardless of response
     });
 }
+
 
 
 

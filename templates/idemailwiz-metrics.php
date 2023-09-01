@@ -3,10 +3,14 @@
 
 
 <?php //print_r(get_idwiz_campaigns()); ?>
-<div class="idemailwiz_table_wrapper">
-    <h1 id="wiztable_title">Campaign Table</h1>
+<header class="header">
+    <h1 id="wiztable_title" class="entry-title">Campaign Table</h1>
+    <h2 id="saved_state_title"></h2>
     <div id="wiztable_status_updates"><span class="wiztable_update"></span><span class="wiztable_view_sync_details">View sync log&nbsp;<i class="fa-solid fa-chevron-down"></i></span></div>
     <div id="wiztable_status_sync_details">Sync log will show here...</div>
+</header>
+<div class="entry-content idemailwiz_table_wrapper" itemprop="mainContentOfPage">
+    
     <div id="wiztable_view_metrics"></div>
     <div class="idemailwiz_table_container">
         <div id="idemailwiz_tableLoader">Loading table...<br/><img src="http://localhost/wp-content/uploads/2023/08/animated_loader_gif_n6b5x0.gif"></div>

@@ -45,7 +45,7 @@ function idwiz_fetch_flexible_chart_data() {
     $xAxis = $_POST['xAxis'];
     $yAxis = $_POST['yAxis'];
     $dualYAxis = $_POST['dualYAxis'];
-    $campaignIds = $_POST['campaignIds'];  // Assuming this comes from the Ajax call
+    $campaignIds = $_POST['campaignIds']; 
 
     // Validate the combination
     global $valid_combinations;  // Bring the global array into scope
@@ -96,19 +96,20 @@ function idwiz_fetch_flexible_chart_data() {
 add_action('wp_ajax_idwiz_fetch_flexible_chart_data', 'idwiz_fetch_flexible_chart_data');
 
 function idwiz_fetch_and_prepare_data($xAxis, $yAxis, $dualYAxis, $chartType, $campaignIds) {
+    
+    // Filter out zeros from the $campaigns array, if any
+    $campaignIds = array_filter($campaignIds, function($item) {
+        return $item !== 0;
+    });
 
-    //error_log("xAxis: " . print_r($xAxis, true));
-    //error_log("yAxis: " . print_r($yAxis, true));
-    //error_log("dualYAxis: " . print_r($dualYAxis, true));
-    //error_log("chartType: " . print_r($chartType, true));
-    //error_log("campaignIds: " . print_r($campaignIds, true));
-
+    //error_log(print_r($campaignIds, true));
     // Initialize an empty data array
     $data = [];
 
     $campaigns = get_idwiz_campaigns(array('campaignIds' => $campaignIds, 'sortBy'=>'startAt', 'sort'=>'ASC'));
-    $purchases = get_idwiz_purchases(array('campaignIds' => $campaignIds, 'sortBy'=> 'purchaseDate', 'sort'=>'ASC'));
+    $purchases = get_idwiz_purchases(array('campaignIds' => $campaignIds, 'sortBy'=> 'purchaseDate', 'sort'=>'ASC', 'fields'=>'campaignId, createdAt, purchaseDate, total, shoppingCartItems_divisionName'));
     $metrics = get_idwiz_metrics(array('campaignIds' => $campaignIds));
+
 
     // Handle chart type 'bar' and 'line'
     if ($chartType === 'bar' || $chartType === 'line') {
@@ -132,14 +133,19 @@ function idwiz_fetch_and_prepare_data($xAxis, $yAxis, $dualYAxis, $chartType, $c
                         $divLabel = 'iDTA';
                     } else if (strpos($division, 'Online Teen Academies') !== false) {
                         $divLabel = 'OTA';
+                    } else if (strpos($division, 'AHEAD') !== false) {
+                        $divLabel = 'AHEAD';
+                    } else {
+                        $divLabel = 'Other';
                     }
 
 
-                    if (!isset($divisionData[$divLabel])) {
+                    if ($divLabel && !array_key_exists($divLabel, $divisionData)) {
                         $divisionData[$divLabel] = ['Purchases' => 0, 'Revenue' => 0];
+                    } else {
+                        $divisionData[$divLabel]['Purchases'] += 1;
+                        $divisionData[$divLabel]['Revenue'] += $purchase['total'];
                     }
-                    $divisionData[$divLabel]['Purchases'] += 1;
-                    $divisionData[$divLabel]['Revenue'] += $purchase['total'];
                 }
 
                 $data['labels'] = array_keys($divisionData);

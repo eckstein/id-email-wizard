@@ -1,8 +1,18 @@
-<?php
-acf_form_head();
-get_header(); ?>
+<?php get_header(); ?>
+<?php if ( have_posts() ) : while ( have_posts() ) : the_post(); ?>
+<article id="post-<?php the_ID(); ?>" data-initiativeid="<?php echo get_the_ID(); ?>" <?php post_class('has-wiz-chart'); ?>>
+<header class="header">
+        <div class="entry-pre-title">Initiative</div>
+        <input type="text" id="initiative-title-editable" value="<?php echo get_the_title(); ?>" />
+        <?php
+        $initDateRange = get_idwiz_initiative_daterange(get_the_ID()); 
+        if (!isset($initDateRange['error'])) { ?>
+        <h3><?php echo $initDateRange['startDate']; ?> - <?php echo $initDateRange['endDate']; ?></h3>
+        <?php } ?>
+        <div id="wiztable_status_updates"><span class="wiztable_update"></span></div>
+</header>
+<div class="entry-content" itemprop="mainContentOfPage">
 
-<div class="wizinitiative_single has-wiz-chart" data-initiativeid="<?php echo get_the_ID(); ?>">
     <?php if (get_field('initiative_color')) {
         $initStyle = 'style="color:'.get_field('initiative_color') . '"';
     } else {
@@ -10,22 +20,8 @@ get_header(); ?>
     }
 
     // Get the list of campaign IDs associated with the current initiative
-    $serialized_campaign_ids = get_post_meta(get_the_ID(), 'wiz_campaigns', true);
-
-    // Unserialize the data if it's serialized
-    $associated_campaign_ids = maybe_unserialize($serialized_campaign_ids);
-
+    $associated_campaign_ids = idemailwiz_get_campaign_ids_for_initiative(get_the_ID()) ?? array('0');
     ?>
-    <div class="wizinitiative-title-area">
-        <div class="wizinitiative-pretitle">Initiative</div>
-        <input <?php echo $initStyle; ?> type="text" id="initiative-title-editable" value="<?php echo get_the_title(); ?>" />
-        <?php
-        $dateRange = get_field('date_range');
-        $startDate = $dateRange['start_date'];
-        $endDate = $dateRange['end_date'];
-        ?>
-        <h3><?php echo get_idwiz_initiative_daterange(get_the_ID()); ?></h3>
-    </div>
 
     <table class="wiztable_view_metrics_table">
         <tr>
@@ -50,8 +46,12 @@ get_header(); ?>
         </div>
         <div class="wizcampaign-section third inset">
             <h4>Purchases by Date</h4>
-
+            <?php if(!empty($associated_campaign_ids)) { ?>
             <canvas class="purchByDate" data-campaignids="<?php echo htmlspecialchars(json_encode($associated_campaign_ids)); ?>" data-charttype="bar" data-chart-x-axis="Date" data-chart-y-axis="Purchases" data-chart-dual-y-axis="Revenue"></canvas>
+            <?php } else {
+                echo 'No campaigns yet!';
+                }
+                ?>
         </div>
         <div class="wizcampaign-section third inset">
             <div class="wizcampaign-section-title-area">
@@ -60,7 +60,12 @@ get_header(); ?>
                     <i class="fa-solid fa-chart-simple active chart-type-switcher" data-chart-type="bar"></i><i class="fa-solid fa-chart-pie chart-type-switcher" data-chart-type="pie"></i>
                 </div>
             </div>
+            <?php if(!empty($associated_campaign_ids)) { ?>
             <canvas class="purchByLOB" data-campaignids="<?php echo htmlspecialchars(json_encode($associated_campaign_ids)); ?>" data-charttype="bar" data-chart-x-axis="Division" data-chart-y-axis="Purchases" data-chart-dual-y-axis="Revenue"></canvas>
+            <?php } else {
+                echo 'No campaigns yet!';
+                }
+                ?>
         </div>
     </div>
     <div class="wizcampaign-sections">
@@ -68,14 +73,14 @@ get_header(); ?>
                 <div class="wizcampaign-section-title-area">
                     <h4>Campaigns</h4>
                     <div class="initiative-add-campaign">
-                    <a href="#" class="show-add-to-campaign"><i class="fa fa-plus"></i>&nbsp;&nbsp;Add a campaign</a>
+                    <a href="#" class="show-add-to-campaign"><i class="fa fa-plus"></i>&nbsp;&nbsp;Add campaigns</a>
                     <div class="initiative-add-campaign-form">
                         <select class="initCampaignSelect" style="width: 300px;"></select>
-                        <div class="add-to-table" data-initcampaignaction="add" data-initiativeid="<?php echo get_the_ID(); ?>"><button class="wiz-button green">Add Campaign</button></div>
+                        <div class="add-init-campaign" data-initcampaignaction="add" data-initiativeid="<?php echo get_the_ID(); ?>"><button class="wiz-button green">Add Campaigns</button></div>
                     </div>
                     </div>
                 </div>
-                <table class="idemailwiz-simple-table" id="idemailwiz_initiative_campaign_table" style="width: 100%; vertical-align: middle" valign="middle" width="100%" data-campaignids="<?php echo htmlspecialchars(json_encode($associated_campaign_ids)); ?>">
+                <table class="idemailwiz_table display idemailwiz-simple-table" id="idemailwiz_initiative_campaign_table" style="width: 100%; vertical-align: middle" valign="middle" width="100%" data-campaignids="<?php echo htmlspecialchars(json_encode($associated_campaign_ids)); ?>">
                 <thead>
                     <tr>
                         <th>Date</th>
@@ -91,7 +96,6 @@ get_header(); ?>
                         <th>CVR</th>
                         <th>Unsubs</th>
                         <th>Unsub. Rate</th>
-                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -105,13 +109,12 @@ get_header(); ?>
                         'sortBy' => 'startAt',
                         'sort' => 'DESC'
                     ));
-                }
 
                 foreach ($initCampaigns as $campaign) {
                     $campaignMetrics = get_idwiz_metric($campaign['id']);
                     $readableStartAt = date('m/d/Y', $campaign['startAt'] / 1000);
                 ?>
-                    <tr>
+                    <tr data-campaignid="<?php echo $campaign['id']; ?>">
                         <td class="campaignDate"><?php echo $readableStartAt; ?></td>
                         <td class="campaignName"><a href="<?php echo get_bloginfo('wpurl'); ?>/metrics/campaign/?id=<?php echo $campaign['id']; ?>" target="_blank"><?php echo $campaign['name']; ?></a></td>
                         <td class="uniqueSends"><?php echo number_format($campaignMetrics['uniqueEmailSends']); ?></td>
@@ -126,17 +129,18 @@ get_header(); ?>
                         <td class="cvr"><?php echo number_format($campaignMetrics['wizCvr'] * 1, 2); ?>%</td>
                         <td class="uniqueUnsubs"><?php echo number_format($campaignMetrics['uniqueUnsubscribes']); ?></td>
                         <td class="unsubRate"><?php echo number_format($campaignMetrics['wizUnsubRate'] * 1, 2); ?>%</td>
-                        <td class="remove-init-campaign" data-initcampaignaction="remove" data-initiativeid="<?php echo get_the_ID(); ?>" data-campaignid="<?php echo $campaign['id'] ?>">x</td>
                     </tr>
-                <?php } ?>
+                <?php } 
+                }?>
                 </tbody>
                 </table>
                 
             </div>
     </div>
     
-</div>
 
-<?php
-get_footer();
-?>
+</div>
+</article>
+<?php if ( comments_open() && !post_password_required() ) { comments_template( '', true ); } ?>
+<?php endwhile; endif; ?>
+<?php get_footer(); ?>

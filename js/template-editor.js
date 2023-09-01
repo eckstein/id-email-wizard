@@ -102,6 +102,7 @@ jQuery(document).ready(function ($) {
 	$('#id-chunks-creator .acf-field').on('input change', function() {
 		idwiz_updatepreview();
 	});
+	
 	//update preview via ajax
 	function idwiz_updatepreview() {
 		//check for merge tags toggle
@@ -125,6 +126,7 @@ jQuery(document).ready(function ($) {
 			var $form = $('#id-chunks-creator');
 			var formData = new FormData($form[0]);
 			formData.append('action', 'idemailwiz_build_template');
+			formData.append('security', idAjax_template_editor.nonce);
 			formData.append('mergetags', mergetags);
 			formData.append('showseps', showseps);
 			
@@ -186,6 +188,7 @@ $('#showFullCode').on('click', function () {
 		}
 	});	
 });
+
 //Close code popup
 $('#hideFullCode').on('click', function () {
 	$('#fullScreenCode').hide();

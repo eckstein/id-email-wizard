@@ -39,6 +39,9 @@
 		<option value="delete">Delete</option>
 		<?php } ?>
 	</select>
+	<div id="search-templates">
+		<input type="text" id="live-template-search" placeholder="Search templates..."/>
+	</div>
 	<div id="templates-tools">
 		<div class="wiz-button green show-new-template-ui"><i class="fa fa-plus"></i>&nbsp;&nbsp;New Template</div>
 	</div>

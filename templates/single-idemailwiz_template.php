@@ -12,8 +12,7 @@ $mobHeight = $templateStyles['mobile_line_height'] ?? '24px';
 $current_user = wp_get_current_user();
 $itTemplateId = get_post_meta(get_the_ID(),'itTemplateId',true) ?? '';
 ?>
-
-<div id="templateUI" class="two-col-wrap" data-iterableid="<?php echo $itTemplateId; ?>">
+<div id="templateUI" class="entry-content two-col-wrap" data-iterableid="<?php echo $itTemplateId; ?>" itemprop="mainContentOfPage">
 	<div class="left" id="builder">
 	<div class="iDbreadcrumb">Located in: <?php echo display_template_folder_hierarchy(get_the_ID()); ?> | 
 	<?php if ($itTemplateId){
@@ -81,8 +80,8 @@ $itTemplateId = get_post_meta(get_the_ID(),'itTemplateId',true) ?? '';
 	</div>
 </div>
 <div id="fullScreenCode">
-<div class="fullScreenButtons"><div class="wiz-button green" id="copyCode">Copy Code</button>&nbsp;&nbsp;<span class="copyConfirm">Copied!</span></div> <button class="wiz-button" id="hideFullCode">X</button></div>
-<div id="generatedHTML">
+	<div class="fullScreenButtons"><div class="wiz-button green" id="copyCode">Copy Code</button>&nbsp;&nbsp;<span class="copyConfirm">Copied!</span></div> <button class="wiz-button" id="hideFullCode">X</button></div>
+	<div id="generatedHTML">
 	<pre id="generatedCode" >
 	<code class="language-html">
 		Code here.

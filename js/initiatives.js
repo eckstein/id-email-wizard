@@ -102,6 +102,7 @@ jQuery(document).ready(function ($) {
     // Select2 for campaigns search/select
     $('.initCampaignSelect').select2({
     minimumInputLength: 3,
+    multiple: true,
     ajax: {
         delay: 250,
         transport: function(params, success, failure) {
@@ -129,54 +130,98 @@ jQuery(document).ready(function ($) {
     // Toggle the add campaign form/button
     $('.show-add-to-campaign').on('click', function(e) {
         e.preventDefault();
-            $('.initiative-add-campaign-form').slideToggle();
-        });
+        $('.initiative-add-campaign-form').slideToggle();
+    });
 
-    // When Add Campaign is clicked, do the ajax
-    $(document).on('click', '.add-to-table, .remove-init-campaign', function() {
+    // When Add Campaigns or remove campaign is clicked, do the ajax
+    $(document).on('click', '.add-init-campaign, .remove-init-campaign', function() {
     var initiativeID = $(this).data('initiativeid');
     var action = $(this).data('initcampaignaction');
-    var campaignID;
+    var campaignIDs;
+
+    
 
     if (action === 'remove') {
-        campaignID = $(this).data('campaignid');
+        campaignIDs = [$(this).data('campaignid')];
         var isConfirmed = window.confirm("Are you sure you want to remove this campaign?");
         if (!isConfirmed) {
             return;  // User canceled the action
         }
     } else {
-        campaignID = $('.initCampaignSelect').val();
+        campaignIDs = $('.initCampaignSelect').val();
     }
 
-    addRemoveInitCampaign();
+    // Send an AJAX request to update the database
+    idemailwiz_do_ajax(
+        'idemailwiz_add_remove_campaign_from_initiative',
+        idAjax_initiatives.nonce,
+        {
+            campaign_ids: campaignIDs,
+            initiative_id: initiativeID,
+            campaignAction: action,
+        },
+        function(response) {
+            // Detailed response for debugging
+            console.log(response);
 
-    function addRemoveInitCampaign() {
-        // Send an AJAX request to update the database
-        idemailwiz_do_ajax(
-            'idemailwiz_add_remove_campaign_from_initiative',
-            idAjax_initiatives.nonce,
-            {
-                campaign_id: campaignID,
-                initiative_id: initiativeID,
-                campaignAction: action,
-            },
-            function(response) {
-                if (response.success) {
-                    alert(response.data.message || "Campaign has been added!");
-                    location.reload();
-                } else {
-                    alert(response.data.message || "Failed to update campaign.");
-                }
-            },
-            function(error) {
-                console.error("Failed to make call to update function", error);
+            // User-friendly alert message based on overall success
+            if (response.success) {
+                alert("Campaigns succesfully added!");
+                setTimeout(function() { window.location.reload(); }, 500);
+            } else {
+                alert("Some campaigns could not be processed. Check the console for details.");
+                console.error("Detailed messages:", response.data.messages);
             }
-        );
-    }
+        },
+        function(error) {
+            // Error handling
+            alert("An error occurred. Check the console for details.");
+            console.error("Failed to make call to update function", error);
+        }
+    );
+
+
 });
 
     
-    if ($('.idemailwiz-simple-table').length) {
+    if ($('#idemailwiz_initiatives_table').length) {
+        $('#idemailwiz_initiatives_table').DataTable({
+            dom: '<"#wiztable_top_wrapper"><"wiztable_toolbar" <"#wiztable_top_search" f><"#wiztable_top_dates">  B>tp',
+            "order": [ 1, 'desc' ],
+            language: {
+                search: '',
+                searchPlaceholder: 'Quick search',
+            },
+            scrollX: true,
+            scrollY: true,
+            paging: true,
+			pageLength: 25,
+            select: true,
+			fixedHeader: {
+                header: true,
+                footer: false
+            },
+            buttons: [
+                 {
+                    extend: 'collection',
+                    text: '<i class="fa-solid fa-file-arrow-down"></i>',
+                    className: 'wiz-dt-button',
+                    attr: {
+                        'title': 'Export',
+                    },
+                    align: 'button-right',
+                    autoClose: true,
+                    buttons: [ 
+                        'copy',
+                        'csv', 
+                        'excel' ],
+                    background: false,
+                },
+            ],
+        });
+    }
+
+    if ($('#idemailwiz_initiative_campaign_table').length) {
         
         // Custom sorting for date format 'm/d/Y'
         $.fn.dataTable.ext.type.order['date-mdy-pre'] = function (dateString) {
@@ -184,11 +229,13 @@ jQuery(document).ready(function ($) {
             return new Date(dateParts[2], dateParts[0] - 1, dateParts[1]).getTime(); // Month is 0-indexed
         };
 
-		var simpleTable = $('.idemailwiz-simple-table').DataTable({
-			dom: '<"#wiztable_top_wrapper"><"wiztable_toolbar" <"#wiztable_top_search" f><"#wiztable_top_dates">  B>t',
-            columns: [
-                null, // Assuming the first column doesn't require custom sorting
-                { type: 'date-mdy' }, // Specify custom sorting for the 2nd column
+		var idemailwiz_initiative_campaign_table = $('#idemailwiz_initiative_campaign_table').DataTable({
+			dom: '<"#wiztable_top_wrapper"><"wiztable_toolbar" <"#wiztable_top_search" f><"#wiztable_top_dates">  B>tp',
+            columns: [ 
+                { type: 'date-mdy' }, 
+                {
+                    width: "300px",
+                },
                 null, 
                 null, 
                 null, 
@@ -200,13 +247,12 @@ jQuery(document).ready(function ($) {
                 null, 
                 null, 
                 null, 
-                { orderable: false, targets: 0 }, 
             ],
 			order: [[ 1, 'desc' ]],
 			scrollX: true,
-            scroller: true,
             scrollY: true,
-			pageLength: 100,
+            paging: true,
+			pageLength: 25,
             select: true,
 			fixedHeader: {
                 header: true,
@@ -216,7 +262,17 @@ jQuery(document).ready(function ($) {
                 realtime: true,
             },
 			buttons: [
-				{
+                
+				
+                {
+                    text: '<i class="fa-solid fa-rotate"></i>',
+                    className: 'sync-initiative wiz-dt-button',
+                    attr:  {
+                        "data-sync-db": 'initiative',
+                    },
+                    autoClose: true,
+                },
+                {
 					extend: 'collection',
 					text: '<i class="fa-solid fa-file-arrow-down"></i>',
 					className: 'wiz-dt-button',
@@ -232,12 +288,57 @@ jQuery(document).ready(function ($) {
 					background: false,
 				},
                 {
-                    text: '<i class="fa-solid fa-rotate"></i>',
-                    className: 'sync-initiative wiz-dt-button',
-                    attr:  {
-                        "data-sync-db": 'initiative',
+                    extend: 'spacer',
+                    style: 'bar'
+                },
+                {
+                    extend: 'selected',
+                    text: '<i class="fa-solid fa-trash-can"></i>',
+                    name: 'remove-from-init',
+                    className: 'wiz-dt-button',
+                    attr: {
+                        'title': 'Remove from initiative',
                     },
-                    autoClose: true,
+                    action: function(e, dt, node, config) {
+                        // Confirm dialog
+                        let isConfirmed = confirm("Remove these campaigns from the initiative?");
+                        if (!isConfirmed) {
+                            return; // Exit the function if user clicked "Cancel"
+                        }
+
+                        // Get initiative ID
+                        let selectedInitiative = $('#content article').attr('data-initiativeid');
+
+                        // Retrieve selected row indices
+                        let selectedRowIndices = dt.rows({ selected: true }).indexes().toArray();
+
+                        // Extract campaign IDs from selected rows (using tr data attribute)
+                        let selectedCampaignIds = selectedRowIndices.map(index => {
+                            let rowNode = dt.row(index).node();
+                            return $(rowNode).attr('data-campaignid') || dt.cell(index, 'campaign_id:name').data();
+                        });
+
+
+                        idemailwiz_do_ajax(
+                            'idemailwiz_add_remove_campaign_from_initiative',
+                            idAjax_initiatives.nonce,
+                            {
+                                initiative_id: selectedInitiative,
+                                campaign_ids: selectedCampaignIds,
+                                campaignAction: 'remove',
+                            },
+                            function(successData) {
+                                console.log(successData);
+                                setTimeout(function() { window.location.reload(); }, 500);
+                            },
+                            function(errorData) {
+                                // Handle error
+                                console.error("Failed to remove campaigns from initiative", errorData);
+                                alert('Error removing campaign(s). Try refreshing the page and trying again.');
+                            }
+                        );
+                    }
+
                 },
 			],
 			 language: {
@@ -248,8 +349,12 @@ jQuery(document).ready(function ($) {
 		});
 
         function idwiz_initiative_table_callback() {
-
+            var api = this.api();
             
+            // Readjust the column widths on each draw
+             api.columns.adjust();
+            
+            // Initiative campaigns sync
             $('.sync-initiative').on('click', function() {
                 idwiz_sync_initiative();
             })

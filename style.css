@@ -9,7 +9,6 @@
 	padding: 5px 10px;
 	cursor: pointer;
 	text-decoration: none;
-	display: flex;
 	align-items: center;
 	border: none;
 }
@@ -575,15 +574,24 @@ body.single-idemailwiz_template #content {
 	.templateTable .templateToolbar {
 		display: flex;
 		justify-content: space-between;
+		gap: 30px;
 		align-items: center;
-		margin-bottom: 10px;
+		margin-bottom: 20px;
 	}
 		.templateTable #bulkActionsSelect {
 			padding: 5px 20px;
+			border-radius: 4px;
+			border-color:#aaa;
 		}
 		.templateTable #bulkActionsSelect option {
 			padding: 5px 20px;
 			font-size: 18px;
+		}
+		.templateTable .templateToolbar #search-templates input {
+			min-width: 300px;
+		}
+		.templateTable .templateToolbar #templates-tools {
+			margin-left: auto;
 		}
 
 	.templateFolder .templateTable {
@@ -964,12 +972,11 @@ body.single-idemailwiz_template #content {
   }
   
   
-  .idemailwiz_table_wrapper #wiztable_title {
+  
+  .idemailwiz_table_wrapper #saved_state_title {
 	text-align: center;
-	margin: 0;
-
   }
-  .idemailwiz_table_wrapper #wiztable_status_updates {
+  #wiztable_status_updates {
 	color: #343434;
 	padding: 5px;
 	margin-bottom: 8px;
@@ -982,7 +989,7 @@ body.single-idemailwiz_template #content {
 	font-weight: bold;
 	display: none;
   }
-.idemailwiz_table_wrapper #wiztable_status_updates.active {
+	#wiztable_status_updates.active {
 	background-color: #e0f2ba;
 	display: flex;
   }
@@ -992,7 +999,7 @@ body.single-idemailwiz_template #content {
 	overflow: hidden;
   }
 
-  .idemailwiz_table_wrapper #wiztable_status_sync_details {
+  #wiztable_status_sync_details {
 	max-width: 600px;
 	min-height: 40px;
 	height: 200px;
@@ -1120,6 +1127,9 @@ body.single-idemailwiz_template #content {
 	border-radius: 3px;
 	border: 1px solid #343434;
   }
+  .dataTables_wrapper .dataTables_filter input {
+	padding: 9px 10px;
+  }
  #idemailwiz_date_range input {
 	font-weight: bold;
 	color: blue;
@@ -1196,9 +1206,6 @@ body.single-idemailwiz_template #content {
 	max-width: 1600px;
 	margin: 0 auto;
 }
-	.wizcampaign-single h1.single-wizcampaign-title {
-		text-align: center;
-	}
 	.wizcampaign-single h3.single-wizcampaign-startAt {
 		text-align: center;
 	}
@@ -1394,21 +1401,22 @@ body.single-idemailwiz_template #content {
 			margin: 0 auto 20px auto;
 		}
 
-.wizinitiative_single .wizinitiative-title-area {
+.single-idwiz_initiative .header {
 	text-align: center;
 	margin-bottom: 30px;
 }
-.wizinitiative-title-area input {
+.single-idwiz_initiative .header input {
 	border: 0;
-	font-size: 2.5em;
+	font-size: 2em;
 	font-weight: bold;
 	text-align: center;
+	width: 100%;
 }
-.wizinitiative-title-area input:focus {
+.single-idwiz_initiative .header input:focus {
 	outline: thin dotted;
 }
 
-#initiative-content-editable {
+.single-idwiz_initiative #initiative-content-editable {
 	border: 0;
 	resize: none;
 	width: 100%;
@@ -1416,12 +1424,17 @@ body.single-idemailwiz_template #content {
 	font-family:Poppins, sans-serif;
 	font-size: 16px;
 }
-
-#initiative-campaigns-table {
+.single-idwiz_initiative .initStatusIndicator i {
+	color: #666;
+}
+.single-idwiz_initiative .initStatusIndicator i.active {
+	color: #94d40a;
+}
+.single-idwiz_initiative #initiative-campaigns-table {
 	width: 100%;
 	margin-top: 30px;
 }
-	#idemailwiz_initiative_campaign_table {
+	.single-idwiz_initiative #idemailwiz_initiative_campaign_table {
 		width: 100%;
 		max-height: 700px;
 	}
@@ -1491,38 +1504,77 @@ body.single-idemailwiz_template #content {
 	.initiative-add-campaign-form {
 		display: none;
 	}
+	.initiative-add-campaign-form input {
+		width: 600px;
+		height: 300px;
+	}
 	.initiative-add-campaign-form .add-to-table {
 		margin-top: 10px;
 	}
 
+/* Select2 Styles */
+.select2-container {
+	min-width: 300px!important;
+}
+.select2-container .select2-search--inline {
+	float: none!important;
+}
+
+#dt-popover-container {
+	padding: 30px;
+	text-align: center;
+}
+.swal2-html-container {
+	overflow: visible!important;
+}
+
 /* Initiative Archive */
 .initiatives-grid-row {
-	display: flex;
-	overflow-x: auto;
-	gap: 20px;
-	padding: 30px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px;
+  padding: 30px;
 }
-.initiative-card {
-	display: flex;
-	flex: 0 0 300px;
-	flex-direction: column;
-	border-radius: 5px;
-	border: 1px solid #aaa;
+
+.post-type-archive-idwiz_initiative article.idwiz_initiative {
+  position: relative;
+  border-radius: 5px;
+  border: 1px solid #aaa;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
-	.initiative-card:hover {
-		border: 1px solid #94d40a;
-	}
-	.initiative-card-content {
-		flex: 0 0 4;
-		overflow: hidden;
-		border-top-right-radius: 5px;
-		border-top-left-radius: 5px;
-	}
-		.initiative-card-content img {
-			width: 100%;
-		}
-	.initiative-card-title {
-		flex: 0 0 1;
-		padding: 20px;
+.post-type-archive-idwiz_initiative article.idwiz_initiative .article-card-link {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+}
+  .post-type-archive-idwiz_initiative article.idwiz_initiative:hover {
+    border: 1px solid #94d40a;
+  }
+  .post-type-archive-idwiz_initiative article.idwiz_initiative .article-content {
+    grid-row: 1;
+    overflow: hidden;
+    border-top-right-radius: 5px;
+    border-top-left-radius: 5px;
+  }
+    .post-type-archive-idwiz_initiative article.idwiz_initiative .article-content img {
+      width: 100%;
+      height: auto;
+    }
+  .post-type-archive-idwiz_initiative article.idwiz_initiative .article-title {
+  
+    grid-row: 2;
+    padding: 20px;
+  }
+	.post-type-archive-idwiz_initiative article.idwiz_initiative .article-date-range {
+		padding: 0 20px 20px 20px;
+		font-size: 12px;
+		font-style: italic;
 	}
 

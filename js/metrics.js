@@ -1,7 +1,33 @@
 jQuery(document).ready(function ($) {
 
 
-
+// Sync a single campaign
+$('.sync-campaign').on('click', function() {
+  var campaignId = $(this).attr('data-campaignid');
+  $('#wiztable_status_updates').show();
+  $('#wiztable_status_updates').addClass('active');
+   $('#wiztable_status_updates .wiztable_update').text('Syncing campaign...');
+  idemailwiz_do_ajax(
+      'idemailwiz_ajax_sync',
+      idAjax_wiz_metrics.nonce, 
+      {
+      campaignIds: JSON.stringify(campaignId),
+      },
+      function(data) {
+      if (data.success) {
+        console.log('campaign synced!' + JSON.stringify(data));
+        $('#wiztable_status_updates .wiztable_update').text('Campaign synced! Refresh for new data.');
+      } else {
+        console.log('campaign sync failed!' + JSON.stringify(data));
+        $('#wiztable_status_updates .wiztable_update').text('Sync failed! Try refreshing the page.');
+      }
+      },
+      function(error) {
+      console.error("Failed to sync campaign", error);
+      failure();
+      }
+  );
+});
 
 
 // Template preview heatmap for single campaigns page

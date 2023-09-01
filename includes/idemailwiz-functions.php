@@ -142,6 +142,47 @@ function id_generate_folders_select_ajax() {
 add_action('wp_ajax_id_generate_folders_select_ajax', 'id_generate_folders_select_ajax');
 
 
+// Template select2 ajax handler
+function idemailwiz_get_templates_for_select() {
+  check_ajax_referer('id-general', 'security');
+
+  $searchTerm = $_POST['q'];
+
+  $allTemplates = get_posts(array('post_type'=>'idemailwiz_template', 'posts_per_page'=>-1, 's'=>$searchTerm));
+  $data = [];
+  $cnt = 0;
+ foreach ($allTemplates as $template) {
+    $data[$cnt]['id'] = $template->ID;
+    $data[$cnt]['text'] = $template->post_title;
+    $cnt++;
+ }
+error_log(print_r($data,true));
+  echo json_encode(array_values($data));
+  wp_die();
+}
+add_action('wp_ajax_idemailwiz_get_templates_for_select', 'idemailwiz_get_templates_for_select');
+
+
+// Initiaves select2 ajax handler
+function idemailwiz_get_initiatives_for_select() {
+  check_ajax_referer('data-tables', 'security');
+
+  $searchTerm = $_POST['q'];
+
+  $allInitiatives = get_posts(array('post_type'=>'idwiz_initiative', 'posts_per_page'=>-1, 's'=>$searchTerm));
+  $data = [];
+  $cnt = 0;
+ foreach ($allInitiatives as $initiative) {
+    $data[$cnt]['id'] = $initiative->ID;
+    $data[$cnt]['text'] = $initiative->post_title;
+    $cnt++;
+ }
+  error_log(print_r($data,true));
+  echo json_encode(array_values($data));
+  wp_die();
+}
+add_action('wp_ajax_idemailwiz_get_initiatives_for_select', 'idemailwiz_get_initiatives_for_select');
+
 
 
 
