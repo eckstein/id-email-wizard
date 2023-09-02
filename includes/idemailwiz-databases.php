@@ -389,7 +389,7 @@ function build_idwiz_query($args, $table_name) {
     // Prevents huge data calls in the purchases database
     if (isset($args['id'])) {
        if ($args['id'] == 0) {
-        return 'ID cannot equal 0!';
+        $args['id'] == null;
        }
     }
     if (isset($args['ids'])) {
@@ -412,17 +412,21 @@ function build_idwiz_query($args, $table_name) {
     
     foreach ($where_args as $key => $value) {
         if ($value !== null && $value !== '') {
-            if (($key === 'ids' || $key === 'campaignIds')) {  // Special case for array of campaign IDs
-                $dbKey = 'id';
                 
-                $placeholders = implode(',', array_fill(0, count($value), '%d'));
-                if ($table_name == $wpdb->prefix . 'idemailwiz_purchases' 
-                    || $table_name == $wpdb->prefix . 'idemailwiz_templates' 
-                    || $table_name == $wpdb->prefix . 'idemailwiz_experiments') {
-                    $dbKey = 'campaignId';
-                }
-                $sql .= $wpdb->prepare(" AND $dbKey IN ($placeholders)", $value);
-            } elseif ($key === 'startAt_start') {
+                if (($key === 'ids' || $key === 'campaignIds')) {  // Special case for array of campaign IDs
+                    $campaignKey = 'id';
+    
+                    $placeholders = implode(',', array_fill(0, count($value), '%d'));
+    
+                    if ($table_name == $wpdb->prefix . 'idemailwiz_purchases' 
+                        || $table_name == $wpdb->prefix . 'idemailwiz_templates' 
+                        || $table_name == $wpdb->prefix . 'idemailwiz_experiments') {
+                        $campaignKey = 'campaignId';
+                    }
+    
+                    // Use call_user_func_array to dynamically pass an array of arguments to $wpdb->prepare
+                    $sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND $campaignKey IN ($placeholders)"), $value));
+                } elseif ($key === 'startAt_start') {
                 try {
                     $value = (new DateTime($value))->getTimestamp() * 1000;
                     $sql .= $wpdb->prepare(" AND startAt >= %d", $value);
@@ -444,7 +448,13 @@ function build_idwiz_query($args, $table_name) {
                     $sql .= $wpdb->prepare(" AND ($serialized_column LIKE %s OR $serialized_column LIKE %s)", $like_value_int, $like_value_str);
                 }
             } else {
-                $sql .= $wpdb->prepare(" AND $key = %s", $value);
+                if (is_array($value)) {
+                    $placeholders = implode(',', array_fill(0, count($value), '%s'));
+                    $flattened_values = implode("','", array_map([$wpdb, '_escape'], $value));
+                    $sql .= " AND $key IN ('$flattened_values')";
+                } else {
+                    $sql .= $wpdb->prepare(" AND $key = %s", $value);
+                }
             }
         }
     }
@@ -554,7 +564,7 @@ function get_idwiz_purchases_by_campaign($campaignId) {
     global $wpdb;
     $table_name = $wpdb->prefix . 'idemailwiz_purchases';
 
-    // Query the database for metrics with the given campaign IDs
+    // Query the database for purchases with the given campaign IDs
     $purchases = $wpdb->get_results("SELECT * FROM {$table_name} WHERE campaignId = $campaignId");
     if ($purchases) {
         return $purchases;
