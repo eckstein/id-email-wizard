@@ -185,7 +185,7 @@ jQuery(document).ready(function ($) {
 
     
     if ($('#idemailwiz_initiatives_table').length) {
-        $('#idemailwiz_initiatives_table').DataTable({
+        var allInitsTable = $('#idemailwiz_initiatives_table').DataTable({
             dom: '<"#wiztable_top_wrapper"><"wiztable_toolbar" <"#wiztable_top_search" f><"#wiztable_top_dates">  B>tp',
             "order": [ 1, 'desc' ],
             language: {
@@ -202,6 +202,21 @@ jQuery(document).ready(function ($) {
                 footer: false
             },
             buttons: [
+                {
+                    text: '<i class="fa-solid fa-plus"></i>',
+                    className: 'wiz-dt-button new-initiative',
+                    attr: {
+                        'title': 'Create new initiative',
+                    }
+                },
+                {
+                    extend: 'selected',
+                    text: '<i class="fa-solid fa-trash"></i>',
+                    className: 'wiz-dt-button remove-initiative',
+                    attr: {
+                        'title': 'Delete initiative',
+                    }
+                },
                  {
                     extend: 'collection',
                     text: '<i class="fa-solid fa-file-arrow-down"></i>',
@@ -218,9 +233,89 @@ jQuery(document).ready(function ($) {
                     background: false,
                 },
             ],
+            drawCallback: initiative_archive_table_callback
         });
+        
+        function initiative_archive_table_callback() {
+            $('.new-initiative').on('click', function() {
+                Swal.fire({
+                    title: 'Enter Initiative Title',
+                    input: 'text',
+                    inputPlaceholder: 'Enter the title here'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const title = result.value;
+            
+                        // Ajax call to create new initiative
+                        idemailwiz_do_ajax(
+                            'idemailwiz_create_new_initiative',
+                            idAjax_initiatives.nonce,  
+                            { newInitTitle: title },
+                            function(data) {
+                                console.log(data);
+                                var postUrl = idAjax_initiatives.site_url + '/?p=' + data.data.post_id;
+                                window.location.href = postUrl;
+                            },
+                            function(error) {
+                                console.log(error);
+                            }
+                        );
+                    }
+                });
+            });
+
+            $('.remove-initiative').on('click', function() {
+                const selectedRows = allInitsTable.rows({ selected: true }).nodes().to$();
+                const selectedIds = [];
+
+                selectedRows.each(function() {
+                    const initId = $(this).attr('data-initid');
+                    if (initId) {
+                        selectedIds.push(initId);
+                    }
+                });
+
+                // Modify the Swal2 text based on the number of selected initiatives
+                const swalTitle = selectedIds.length > 1 ? "Delete These Initiatives?" : "Delete This Initiative?";
+                const swalButton = selectedIds.length > 1 ? "Yes, delete them" : "Yes, delete it";
+
+                // Show Swal2 confirmation dialog
+                Swal.fire({
+                    title: swalTitle,
+                    text: '(Campaigns will be preserved)',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: swalButton,
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Proceed with the Ajax call to delete the initiatives
+                        idemailwiz_do_ajax(
+                            'idemailwiz_delete_initiative',
+                            idAjax_initiatives.nonce,
+                            { selectedIds: selectedIds },
+                            function(data) {
+                                if (data.success) {
+                                    // Turn the row red and then fade out
+                                    selectedRows.addClass('removed').delay(2000).fadeOut(400, function(){
+                                        // Remove from DOM
+                                        $(this).remove();
+                                    });
+                                }
+                            },
+                            function(error) {
+                                console.log(error);
+                            }
+                        );
+                    }
+                });
+            });
+
+
+        }
+
     }
 
+    
     if ($('#idemailwiz_initiative_campaign_table').length) {
         
         // Custom sorting for date format 'm/d/Y'
@@ -263,7 +358,7 @@ jQuery(document).ready(function ($) {
             },
 			buttons: [
                 
-				
+
                 {
                     text: '<i class="fa-solid fa-rotate"></i>',
                     className: 'sync-initiative wiz-dt-button',
@@ -378,6 +473,9 @@ jQuery(document).ready(function ($) {
                     }
                 );
             }
+
+           
+
 
         }
 	}

@@ -22,8 +22,8 @@ $mobileVis = $chunkSettings['mobile_visibility'];
 	$colRight = '';
 switch ($layout) {
 	case 'ltr':
-		$image = $chunk['left_image'] ? $chunk['left_image'] : array('left_image_url'=>'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/square-image.jpg','left_image_link'=>'https://www.idtech.com','left_image_alt'=>'','left_image_url_mobile'=>'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/square-image.jpg');
-		$text = $chunk['right_text'] ?? array('text_content'=>'Your content here!','align'=>'center','text_color'=>'#000000','center_on_mobile'=>true);
+		$image = $chunk['left_image'] ?? '';
+		$text = $chunk['right_text'] ?? '';
 		
 		if (isset($text['add_button']) && $text['add_button'] != false) {
 			$inlineButton = $text['inline_button'];
@@ -37,12 +37,12 @@ switch ($layout) {
 		$textContent = $text['text_content'] ?? 'Your content here!';
 		if ($magicWrap) {
 			$layoutDirLeft = 'right';
-			$colLeft = fillImage($image['left_image_url'],$image['left_image_link'],$image['left_image_alt'],$mobileImgSetting,$image['left_image_url_mobile'],'290');
+			$colLeft = fillImage($image['left_image_url'],$image['left_image_link'],$image['left_image_alt'],$mobileImgSetting,$image['left_image_url_mobile'] ?? '','290');
 			$colRight = fillText($textColor,$textAlign,$textColor,$bgColor,$centerOnMobile, $spacing);
 			$colRight .= inline_button($inlineButton);
 		} else {
 			$layoutDirLeft = 'left';
-			$colLeft = fillImage($image['left_image_url'],$image['left_image_link'],$image['left_image_alt'],$mobileImgSetting,$image['left_image_url_mobile'],'290');
+			$colLeft = fillImage($image['left_image_url'],$image['left_image_link'],$image['left_image_alt'],$mobileImgSetting,$image['left_image_url_mobile'] ?? '','290');
 			$colRight = fillText($textContent,$textAlign,$textColor,$bgColor,$centerOnMobile, $spacing);
 			$colRight .= inline_button($inlineButton);
 		}
@@ -63,12 +63,12 @@ switch ($layout) {
 		if ($magicWrap) {
 			$layoutDirLeft = 'right';
 			//if magic wrap is on, we render the content from left-to-right but add an align=right on the left column, switching the order. On mobile, it will wrap to one column in the correct order.
-			$colLeft = fillImage($image['right_image_url'],$image['right_image_link'],$image['right_image_alt'],$mobileImgSetting,$image['right_image_url_mobile'],'290');
+			$colLeft = fillImage($image['right_image_url'],$image['right_image_link'],$image['right_image_alt'],$mobileImgSetting,$image['right_image_url_mobile'] ?? '','290');
 			$colRight = fillText($textContent,$textAlign,$textColor,$bgColor,$centerOnMobile,$spacing);
 			$colRight .= inline_button($inlineButton);
 		} else {
 			$layoutDirLeft = 'left';
-			$colRight = fillImage($image['right_image_url'],$image['right_image_link'],$image['right_image_alt'],$mobileImgSetting,$image['right_image_url_mobile'],'290');
+			$colRight = fillImage($image['right_image_url'],$image['right_image_link'],$image['right_image_alt'],$mobileImgSetting,$image['right_image_url_mobile'] ?? '','290');
 			$colLeft = fillText($textContent,$textAlign,$textColor,$bgColor,$centerOnMobile,$spacing);
 			$colLeft .= inline_button($inlineButton);
 		}
@@ -80,12 +80,12 @@ switch ($layout) {
 		$image2 = $chunk['right_image'];
 		if ($magicWrap) {
 			$layoutDirLeft = 'right';
-			$colRight = fillImage($image['left_image_url'],$image['left_image_link'],$image['left_image_alt'],$mobileImgSetting,$image['left_image_url_mobile'],'290');
-			$colLeft = fillImage($image2['right_image_url'],$image2['right_image_link'],$image2['right_image_alt'],$mobileImgSetting, $image2['right_image_url_mobile'],'290');
+			$colRight = fillImage($image['left_image_url'],$image['left_image_link'],$image['left_image_alt'],$mobileImgSetting,$image['left_image_url_mobile'] ?? '','290');
+			$colLeft = fillImage($image2['right_image_url'],$image2['right_image_link'],$image2['right_image_alt'],$mobileImgSetting, $image2['right_image_url_mobile'] ?? '','290');
 		} else {
 			$layoutDirLeft = 'left';
-			$colLeft = fillImage($image['left_image_url'],$image['left_image_link'],$image['left_image_alt'],$mobileImgSetting,$image['left_image_url_mobile'],'290');
-			$colRight = fillImage($image2['right_image_url'],$image2['right_image_link'],$image2['right_image_alt'],$mobileImgSetting, $image2['right_image_url_mobile'],'290');
+			$colLeft = fillImage($image['left_image_url'],$image['left_image_link'],$image['left_image_alt'],$mobileImgSetting,$image['left_image_url_mobile'] ?? '','290');
+			$colRight = fillImage($image2['right_image_url'],$image2['right_image_link'],$image2['right_image_alt'],$mobileImgSetting, $image2['right_image_url_mobile'] ?? '','290');
 		}
 	break;
 	case 'txt':

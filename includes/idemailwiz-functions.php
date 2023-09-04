@@ -114,8 +114,8 @@ function id_generate_folders_select($parent_id = 0, $prefix = '') {
     
     foreach ($folders as $folder) {
 		//skips the trash folder if it exists
-    $options = get_option('idemailwiz_settings');
-	  $trashTerm = (int) $options['folder_trash'];
+    $siteOptions = get_option('idemailwiz_settings');
+	  $trashTerm = (int) $siteOptions['folder_trash'];
       if ($folder->term_id == $trashTerm) {
         continue;
       }
@@ -247,6 +247,15 @@ wp_die();
 //Generate all the HTML for a template
 add_action('wp_ajax_idemailwiz_generate_template_html', 'idemailwiz_generate_template_html');
 function idemailwiz_generate_template_html() {
+
+    if (check_ajax_referer('iterable-actions', 'security', false) || check_ajax_referer('template-editor', 'security', false)) {
+        // One of the nonces is valid, proceed...
+    } else {
+        // Invalid nonce
+        wp_die('Invalid nonce');
+    }
+
+
     $template_id = $_POST['template_id'];
     $chunks = get_field('field_63e3c7cfc01c6', $template_id);
     $templateSettings = get_field('field_63e3d8d8cfd3a', $template_id);
@@ -467,7 +476,7 @@ function id_filter_acf_chunk_title($title, $field, $layout, $i) {
 	} else if ($layout['name'] === 'button') {
 		$buttonCTA = get_sub_field('cta_text', $layout['key']);
 		if ($buttonCTA) {
-			$title = $title.'&nbsp;&nbsp;<button>'.$buttonCTA.'</button>';
+			$title = $title.'&nbsp;&nbsp;<button class="wiz-button gray">'.$buttonCTA.'</button>';
 		}
 	}
 

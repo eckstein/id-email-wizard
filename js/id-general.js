@@ -58,16 +58,24 @@ jQuery(document).ready(function ($) {
             q: params.data.term,
             },
             function(data) {
-            success({results: data});
+            	success({results: data});
             },
             function(error) {
-            console.error("Failed to fetch templates", error);
-            failure();
+            	console.error("Failed to fetch templates", error);
+            	failure();
             }
         );
         }
     }
-    });
+	
+    }).on('select2:select', function (e) {
+		var data = e.params.data;
+		// Assuming data has a field 'url' that contains the URL to the WordPress post
+		if (data.id) {
+			var postUrl = idAjax_id_general.site_url + '/?p=' + data.id;
+			window.location.href = postUrl;
+		}
+	});
 
 	 // Stop click events within the popover from propagating
 	$('#dt-popover-container').on('click', function(e) {
@@ -111,7 +119,7 @@ function setupCategoriesView() {
 // Params: action_name, nonce_value, array of passed data, success callback, error callback
 // The callback functions can either be directly built in the function or can also take names of 
 // callback functions which will get the data and error objects passed into them for use
-function idemailwiz_do_ajax(actionFunctionName, nonceValue, additionalData, successCallback, errorCallback) {
+function idemailwiz_do_ajax(actionFunctionName, nonceValue, additionalData, successCallback, errorCallback, dataType='json') {
 
     let defaultData = {
         action: actionFunctionName,
@@ -122,9 +130,10 @@ function idemailwiz_do_ajax(actionFunctionName, nonceValue, additionalData, succ
 
     jQuery.ajax({
         url: idAjax.ajaxurl,
+		context: this,
         type: 'POST',
         data: mergedData,
-        dataType: 'json' //Keep an eye on this value in case ajax doesn't work for some calls. If we remove this, we have to parse the JSON in our callbacks
+        dataType: dataType 
     })
     .done(successCallback)
     .fail(errorCallback)

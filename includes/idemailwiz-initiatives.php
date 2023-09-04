@@ -1,4 +1,53 @@
 <?php
+function idemailwiz_create_new_initiative() {
+    // Check for nonce and security
+    if (!check_ajax_referer('initiatives', 'security', false)) {
+        wp_send_json_error(array('message' => 'Invalid nonce'));
+        return;
+    }
+
+    // Fetch title from POST
+    $title = $_POST['newInitTitle'];
+
+    // Validate that the title is not empty
+    if (empty($title)) {
+        wp_send_json_error(array('message' => 'The title cannot be empty'));
+        return;
+    }
+
+    // Create new initiative post
+    $post_id = wp_insert_post(array(
+        'post_title'    => $title,
+        'post_type'     => 'idwiz_initiative',
+        'post_status'   => 'publish',
+    ));
+
+    if ($post_id > 0) {
+        wp_send_json_success(array('message' => 'Initiative created successfully', 'post_id' => $post_id));
+    } else {
+        wp_send_json_error(array('message' => 'Failed to create the initiative'));
+    }
+}
+add_action('wp_ajax_idemailwiz_create_new_initiative', 'idemailwiz_create_new_initiative');
+
+function idemailwiz_delete_initiative() {
+    // Check for nonce and security
+    if (!check_ajax_referer('initiatives', 'security', false)) {
+        wp_send_json_error(array('message' => 'Invalid nonce'));
+        return;
+    }
+
+    // Fetch selected IDs from POST
+    $selectedIds = $_POST['selectedIds'];
+
+    foreach ($selectedIds as $post_id) {
+        wp_delete_post($post_id, true);  // Set second parameter to false if you don't want to force delete
+    }
+
+    wp_send_json_success(array('message' => 'Initiatives deleted successfully'));
+}
+add_action('wp_ajax_idemailwiz_delete_initiative', 'idemailwiz_delete_initiative');
+
 
 // Save initiative title when edited on the front end
 function idemailwiz_save_initiative_update() {

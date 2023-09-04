@@ -12,7 +12,7 @@ $mobHeight = $templateStyles['mobile_line_height'] ?? '24px';
 $current_user = wp_get_current_user();
 $itTemplateId = get_post_meta(get_the_ID(),'itTemplateId',true) ?? '';
 ?>
-<div id="templateUI" class="entry-content two-col-wrap" data-iterableid="<?php echo $itTemplateId; ?>" itemprop="mainContentOfPage">
+<div id="templateUI" class="entry-content two-col-wrap" data-postid="<?php echo get_the_ID(); ?>" data-iterableid="<?php echo $itTemplateId; ?>" itemprop="mainContentOfPage">
 	<div class="left" id="builder">
 	<div class="iDbreadcrumb">Located in: <?php echo display_template_folder_hierarchy(get_the_ID()); ?> | 
 	<?php if ($itTemplateId){

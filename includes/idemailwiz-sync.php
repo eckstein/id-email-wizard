@@ -698,6 +698,8 @@ function idemailwiz_sync_experiments($experiments = []) {
     return idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update);
 }
 
+
+
 function idemailwiz_sync_metrics($metrics=[]) {
     if (empty($metrics)) {
         $metrics = idemailwiz_fetch_metrics();
@@ -839,51 +841,32 @@ function log_wiz_api_results($results, $type) {
 // Also creates and logs readable sync responses from response arrays
 function idemailwiz_ajax_sync() {
     
-    if (isset($_POST['dbs'])) {
-        $dbs = json_decode(stripslashes($_POST['dbs']), true) ?? false;
-        if (!is_array($dbs)) {
-            $dbs = array($dbs);
-        }
-    }
     if (isset($_POST['campaignIds'])) {
         $campaigns = json_decode(stripslashes($_POST['campaignIds']), true) ?? false;
         if (!is_array($campaigns)) {
             $campaigns = array($campaigns);
         }
-    }    
-
-    
-    $allowed_dbs = ['campaigns', 'templates', 'metrics', 'purchases', 'experiments'];
-
-    if (isset($campaigns)) {
         $wizCampaignMetrics = [];
         foreach ($campaigns as $campaignID) {
             $wizCampaignMetrics[] = get_idwiz_metric($campaignID);  
         }
         $response['metrics'] = idemailwiz_sync_metrics($wizCampaignMetrics);
-    } else if (isset($dbs)) {
-        if(empty($dbs) || !is_array($dbs) || !array_diff($dbs, $allowed_dbs) === []) {
-            wp_send_json_error('Invalid database list'); 
-        }
-
-        $response = [];
-        foreach ($allowed_dbs as $db) {
-            if (in_array($db, $dbs)) {
-                $function_name = 'idemailwiz_sync_' . $db;
-                if (!function_exists($function_name)) {
-                    wp_send_json_error('Sync function does not exist for ' . $db);
-                }
-                $args = [];
-                $result = call_user_func($function_name, $args);
-
-                if ($result === false) {
-                    wp_send_json_error('Sync failed for ' . $db);
-                }
-                $response[$db] = $result;
-            }
-        }
     } else {
-        wp_send_json_error('Sync failed! Incorrect data was sent to the request.');
+        $sync_dbs = ['campaigns', 'templates', 'metrics', 'purchases', 'experiments'];
+        $response = [];
+        foreach ($sync_dbs as $db) {
+            $function_name = 'idemailwiz_sync_' . $db;
+            if (!function_exists($function_name)) {
+                wp_send_json_error('Sync function does not exist for ' . $db);
+            }
+            $args = [];
+            $result = call_user_func($function_name, $args);
+
+            if ($result === false) {
+                wp_send_json_error('Sync failed for ' . $db);
+            }
+            $response[$db] = $result;
+        }
     }
     //error_log(print_r($response, true));
     wp_send_json_success($response);

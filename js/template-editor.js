@@ -37,9 +37,9 @@ jQuery(document).ready(function ($) {
 	acf.addAction('append', function($el){
 		// Wait for 1 second and then simulate a click on the new layout 
 		// This will auto-open the newly added field. Turned off for now since it's annoying
-		//setTimeout(function() {
-			//$el.find('.acf-fc-layout-handle').click();
-		//}, 1000);
+		setTimeout(function() {
+			$el.find('.acf-fc-layout-handle').click().click();
+		}, 1000);
 	
 		// Look within $el for .acf-fc-layout-handle elements and attach event handlers
 		$el.find('.acf-fc-layout-handle').on('click', function () {
@@ -59,7 +59,7 @@ jQuery(document).ready(function ($) {
 				//idwiz_handle_layout_click($el.find('.acf-fc-layout-handle'));
 				$el.find('.acf-fc-layout-handle').click();
 				$el.removeClass('-collapsed');
-			}, 1000);
+			}, 1000); 
 		}
 		
 
@@ -103,6 +103,7 @@ jQuery(document).ready(function ($) {
 		idwiz_updatepreview();
 	});
 	
+
 	//update preview via ajax
 	function idwiz_updatepreview() {
 		//check for merge tags toggle
@@ -120,7 +121,7 @@ jQuery(document).ready(function ($) {
 		} else {
 			var showseps = false;
 		}
-
+		var templateId = $('#templateUI').data('postid');
 		clearTimeout(timeoutId);
 		timeoutId = setTimeout(function() {
 			var $form = $('#id-chunks-creator');
@@ -129,6 +130,8 @@ jQuery(document).ready(function ($) {
 			formData.append('security', idAjax_template_editor.nonce);
 			formData.append('mergetags', mergetags);
 			formData.append('showseps', showseps);
+			formData.append('templateid', templateId);
+
 			
 			$.ajax({
 				url: idAjax.ajaxurl,
@@ -168,26 +171,26 @@ $('.toggle-separators').on('click', function() {
 $('#showFullCode').on('click', function () {
 	toggleOverlay(true);
 	var templateId = $(this).data('postid');
-	$.ajax({
-		type: "POST",
-		url: idAjax.ajaxurl,
-		data: {
-			action: "idemailwiz_generate_template_html",
-			template_id: templateId,
-			security: idAjax_template_editor.nonce
-		},
-		success: function (html) {
-			var codeBox = $('#generatedCode code');
-			codeBox.html(html);
-			hljs.highlightElement(codeBox[0]);
-			$('#fullScreenCode').show();
-			$('#generatedHTML').scrollTop(0);
-		},
-		error: function (xhr, status, error) {
-			reject(false);
-		}
-	});	
+
+	var additionalData = {
+		template_id: templateId
+	};
+
+	function successCallback(data) {
+		var codeBox = $('#generatedCode code');
+		codeBox.html(data);
+		hljs.highlightElement(codeBox[0]);
+		$('#fullScreenCode').show();
+		$('#generatedHTML').scrollTop(0);
+	}
+
+	function errorCallback(xhr, status, error) {
+		// Handle the error here
+	}
+
+	idemailwiz_do_ajax('idemailwiz_generate_template_html', idAjax_template_editor.nonce, additionalData, successCallback, errorCallback, 'html');
 });
+
 
 //Close code popup
 $('#hideFullCode').on('click', function () {
@@ -238,7 +241,6 @@ $(document).on('change', '#idwiz_templateTitle', function() {
 //iframe context stuff
 	//Add event handlers to iframe on load
 	$("iframe#previewFrame").on('load', function() {
-		//console.log("Iframe load event triggered");
 		addEventHandlers(this.contentDocument || this.contentWindow.document);
 	});
 
@@ -276,33 +278,37 @@ $(document).on('change', '#idwiz_templateTitle', function() {
 		});
 
 		preview.find('.showChunkCode').click(function (e) {
-			//console.log("showChunkCode clicked");
 			e.stopPropagation();
 			e.preventDefault();
 			toggleOverlay(true);
 			var templateId = $(this).data('templateid');
 			var row_id = $(this).data('id');
-			$.ajax({
-				type: "POST",
-				url: idAjax.ajaxurl,
-				data: {
-					action: 'idemailwiz_generate_chunk_html',
-					template_id: templateId,
-					row_id: row_id,
-					security: idAjax_template_editor.nonce,
-				},
-				success: function (html) {
+			console.log(templateId);
+			console.log(row_id);
+			var additionalData = {
+				template_id: templateId,
+				row_id: row_id,
+				security: idAjax_template_editor.nonce
+			};
+
+			idemailwiz_do_ajax(
+				'idemailwiz_generate_chunk_html', 
+				idAjax_template_editor.nonce, 
+				additionalData, 
+				function(html) { // Success Callback
 					var codeBox = $('body').find('#generatedCode code');
 					codeBox.html(html);
 					hljs.highlightElement(codeBox[0]);
 					$('body').find('#fullScreenCode').show();
 					$('body').find('#generatedHTML').scrollTop(0);
+				}, 
+				function(xhr, status, error) { // Error Callback
+					// Your error handling logic here
 				},
-				error: function (xhr, status, error) {
-					reject(false);
-				}
-			});	
+				'html' // Data type
+			);
 		});
+
 	}
 
 	

@@ -3,27 +3,26 @@ $chunkSettings = $chunk['chunk_settings'];
 
 $useMobileAlt = $chunk['mobile_image'] ?? false;
 
-$desktopImage = !empty($chunkSettings['desktop_image_url']) ? $chunkSettings['desktop_image_url'] : 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/contained-width-image.jpg';
-$mobileImage = !empty($chunkSettings['mobile_image_url']) ? $chunkSettings['mobile_image_url'] : 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/full-width-mobile-image.jpg';
+$desktopImage = $chunk['desktop_image_url'] ?? '';
+$mobileImage = $chunk['mobile_image_url'] ?? '';
 
 $imageLink = !empty($chunkSettings['image_link']) ? $chunkSettings['image_link'] : 'https://www.idtech.com';
 $imageAltTag = $chunkSettings['alt_tag'] ?? '';
 
-//conditionally apply hide-mobile class to desktop image if mobile image is enabled
-if (isset($chunkSettings['mobile_image'])) {
-	$dtClass = 'hide-mobile';
+if (isset($chunk['mobile_image']) && $chunk['mobile_image'] == true) {
+  $dtClass = 'hide-mobile';
 } else {
-	$dtClass = '';
+  $dtClass = '';
 }
 
 $showOnDesktop = $chunkSettings['desktop_visibility'] ?? true;
-if (!$showOnDesktop){
+if ($showOnDesktop == false){
   $hideDesktop = 'hide-desktop';
 } else {
   $hideDesktop = '';
 }
 $showOnMobile = $chunkSettings['mobile_visibility'] ?? true;
-if (!$showOnMobile){
+if ($showOnMobile == false){
   $hideMobile = 'hide-mobile';
 } else {
   $hideMobile = '';

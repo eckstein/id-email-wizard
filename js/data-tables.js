@@ -11,7 +11,6 @@ jQuery(document).ready(function ($) {
     } // end if table exists
 
     function campaign_table_success_response(data) {
-        console.log('success callback');
 
         // Initialize DataTables with the parsed data
         var table = $('#idemailwiz_campaign_table').DataTable({
@@ -29,20 +28,23 @@ jQuery(document).ready(function ($) {
                     "name": 'row-counter',
                     "orderable": false,
                     "data": null,
-                    "width": "20px"
+                    "width": "20px",
                 },
                 {
-                    "className": 'details-control',
+                    "className": 'details-control customColName',
                     "title": '<i class="fa-solid fa-arrow-up-right-from-square"></i>',
                     "name": 'details-control',
                     "orderable": false,
                     "data": null,
-                    "defaultContent": '<i class="fa-solid fa-circle-info"></i>'
+                    "defaultContent": '<i class="fa-solid fa-circle-info"></i>',
+                    "colvisName": 'Details'
                 },
                 {
                     "data": "campaign_start",
                     "name": "campaign_start",
                     "title": "Sent At",
+                    "className": "idwiz_searchBuilder_enabled",
+                    "searchBuilderType": "date",
                     "render": function(data) {
                         return new Date(parseInt(data))
                             .toLocaleString('en-US', {
@@ -54,7 +56,7 @@ jQuery(document).ready(function ($) {
                             hour12: true  
                             });
                         },
-                        "type": "date",
+                    "type": "date",
                 },
                 { 
                     "data": "campaign_type",
@@ -85,7 +87,32 @@ jQuery(document).ready(function ($) {
                     "className": "idwiz_searchBuilder_enabled",
                     "searchBuilderType": "string",
                 },
-                
+                {
+                    "data": "experiment_ids",
+                    "name": "experiment_ids",
+                    "title": '<i class="fa fa-flask"></i>',
+                    "searchBuilderTitle": 'Has Experiment',
+                    "searchBuilderType": "string",
+                    "searchBuilder.defaultConditions": "==",
+                    "className": "idwiz_searchBuilder_enabled customColName",
+                    "type": "bool",
+                    "render": function(data, type) {
+                        if (type === 'display') {
+                            return data ? '<i class="fa fa-flask"></i>' : '';
+                        }
+                        if (type === 'filter') {
+                            return !data ? 'True' : 'False';
+                        }
+                        return data;
+                    },
+                    "searchBuilder": {
+                        "orthogonal": {
+                            "search": "filter",
+                            "display": "filter",
+                        }
+                    },
+                    "colvisName": 'Has Experiment'
+                },
                 { 
                     "data": "unique_email_sends",
                     "name": "unique_email_sends",
@@ -212,13 +239,7 @@ jQuery(document).ready(function ($) {
                     "className": "idwiz_searchBuilder_enabled",
                     "searchBuilderType": "string",
                 },
-                {
-                    "data": "experiment_ids",
-                    "name": "experiment_ids",
-                    "title": 'Experiment Ids.',
-                    "className": "idwiz_searchBuilder_enabled",
-                    "type": "string",
-                },
+                
                 { 
                     "data": "campaign_id",
                     "name": "campaign_id",
@@ -251,99 +272,6 @@ jQuery(document).ready(function ($) {
             },
             buttons: [
                 {
-                text: '<i class="fa-regular fa-calendar"></i>  This Month',
-                    action: function ( e, dt, node, config ) {
-                        var today = new Date();
-                        var firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-                        $('#wiztable_startDate').val(firstDayOfMonth);
-                        $('#wiztable_endDate').val();
-                        $('.idemailwiz_table').DataTable().draw();
-                    },
-                    className: 'wiz-dt-button current-month',
-                },
-                {
-                    text: '<i class="fa-regular fa-calendar"></i>  This FY',
-                    action: function ( e, dt, node, config ) {
-                        var today = new Date();
-                        var fiscalYearStart = new Date(today.getFullYear(), 10, 1);
-                        if (today < fiscalYearStart) {
-                            fiscalYearStart.setFullYear(fiscalYearStart.getFullYear() - 1);
-                        }
-                        $('#wiztable_startDate').val(fiscalYearStart.toISOString().split('T')[0]);
-                        $('#wiztable_endDate').val();
-                        $('.idemailwiz_table').DataTable().draw();
-                    },
-                    className: 'wiz-dt-button fiscal-year',
-                },
-                {
-                    extend: 'collection',
-                    text: '<i class="fa-solid fa-rotate"></i>',
-                    className: 'sync-buttons wiz-dt-button',
-                    attr: {
-                        'title': 'Sync data from Iterable',
-                    },
-                    background: false,
-                    autoClose: true,
-                    buttons: [
-                        
-                        {
-                            text: 'Sync All (1 min)',
-                            className: 'sync-db sync-everything',
-                            attr:  {
-                                "data-sync-db": 'everything',
-                            },
-                            autoClose: true,
-                        },
-                        {
-                            text: 'Sync Campaigns (5 sec)',
-                            className: 'sync-db sync-campaigns',
-                            attr:  {
-                                "data-sync-db": 'campaigns',
-                            },
-                            autoClose: true,
-                        },
-                        {
-                            text: 'Sync Purchases (5 sec)',
-                            className: 'sync-db sync-purchases',
-                            attr:  {
-                                "data-sync-db": 'purchases',
-                            },
-                            autoClose: true,
-                        },
-                        {
-                            text: 'Sync Templates (25 sec)',
-                            className: 'sync-db sync-templates',
-                            attr:  {
-                                "data-sync-db": 'templates',
-                            },
-                            autoClose: true,
-                        },
-                        {
-                            text: 'Sync Metrics (25 sec)',
-                            className: 'sync-db sync-metrics',
-                            attr:  {
-                                "data-sync-db": 'metrics',
-                            },
-                            autoClose: true,
-                        },
-                        {
-                            text: 'Sync Experiments (20 sec)',
-                            className: 'sync-db sync-experiments',
-                            attr:  {
-                                "data-sync-db": 'experiments',
-                            },
-                            autoClose: true,
-                        },
-                        {
-                            text: 'View sync log',
-                            className: 'wiztable_view_sync_details',
-                            autoClose: true,
-                        },
-                        
-                    ]
-                },
-                                        
-                {
                     extend: 'searchBuilder',
                     background: false,
                     text: '<i class="fa-solid fa-sliders"></i>',
@@ -371,44 +299,120 @@ jQuery(document).ready(function ($) {
 
                 },
                 {
-                    extend: 'collection',
-                    text: '<i class="fa-solid fa-table-columns"></i>',
-                    className: 'wiz-dt-button',
-                    attr: {
-                        'title': 'Show/hide columns',
-                    },
-                    align: 'button-right',
-                    buttons: [ 
-                        'colvis',
-                        {
-                            extend: 'colvisRestore',
-                            text: 'Restore Defaults',
-                            className: 'wizcols_restore',
-                            align: 'button-right',
+                    text: '<i class="fa-solid fa-angle-left"></i>',
+                    className: 'wiz-dt-button skinny prev-month',
+                    action: function ( e, dt, node, config ) {
+                        var table = $('.idemailwiz_table').DataTable();
+                        table.button('.next-month').enable();  // Enable the "Next" button
+
+                        var startDateStr = $('#wiztable_startDate').val();
+                        var startDate = startDateStr ? new Date(startDateStr) : new Date();
+                        startDate.setUTCHours(0, 0, 0, 0);
+
+                        var today = new Date();
+                        today.setUTCHours(0, 0, 0, 0);
+
+                        if (isNaN(startDate.getTime()) || !startDateStr) {
+                            startDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
                         }
-                    ],
-                    background: false,
+
+                        startDate.setUTCMonth(startDate.getUTCMonth() - 1);
+                        var endDate = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth() + 1, 0));
+
+                        $('#wiztable_startDate').val(startDate.toISOString().split('T')[0]);
+                        $('#wiztable_endDate').val(endDate.toISOString().split('T')[0]);
+                        $('#saved_state_title').text(`Custom View: ${startDate.toLocaleString('default', { month: 'long', timeZone: 'UTC' })}, ${startDate.getUTCFullYear()}`);
+                        table.draw();
+                    }
                 },
                 {
-                    extend: 'collection',
-                    text: '<i class="fa-regular fa-hand-pointer"></i>',
-                    className: 'wiz-dt-button',
-                    attr: {
-                        'title': 'Selection mode',
+                    text: function() {
+                        var today = new Date();
+                        var monthAbbr = today.toLocaleString('default', { month: 'short' });  // Get the three-letter abbreviation
+                        var yearTwoDigit = today.getFullYear() % 100;  // Get the last two digits of the year
+                        return `<i class="fa-regular fa-calendar"></i>&nbsp;&nbsp;${monthAbbr} '${yearTwoDigit}`;
                     },
-                    align: 'button-right',
-                    autoClose: true,
-                    buttons: [ 
-                        'selectNone',
-                        'selectRows',
-                        'selectColumns',
-                        'selectCells',
-                    ],
-                    background: false,
+                    action: function ( e, dt, node, config ) {
+                        var today = new Date();
+                        var firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                        var lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+                        $('#wiztable_startDate').val(firstDayOfMonth.toISOString().split('T')[0]);
+                        $('#wiztable_endDate').val(lastDayOfMonth.toISOString().split('T')[0]);
+                        $('#saved_state_title').text(`Custom View: ${today.toLocaleString('default', { month: 'long' })}, ${today.getFullYear()}`);
+                        $('.idemailwiz_table').DataTable().draw();
+                    },
+                    className: 'wiz-dt-button current-month',
                 },
+                {
+                    text: '<i class="fa-solid fa-angle-right"></i>',
+                    className: 'wiz-dt-button skinny next-month',
+                    action: function ( e, dt, node, config ) {
+                        var table = $('.idemailwiz_table').DataTable();
+
+                        var startDateStr = $('#wiztable_startDate').val();
+                        var startDate = startDateStr ? new Date(startDateStr) : new Date();
+                        startDate.setUTCHours(0, 0, 0, 0);
+
+                        var today = new Date();
+                        today.setUTCHours(0, 0, 0, 0);
+
+                        if (isNaN(startDate.getTime()) || !startDateStr) {
+                            startDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
+                            table.button('.next-month').disable();  // Disable the "Next" button when fields are empty or unorthodox
+                            return;
+                        }
+
+                        if (startDate.getUTCFullYear() < today.getUTCFullYear() || (startDate.getUTCFullYear() === today.getUTCFullYear() && startDate.getUTCMonth() < today.getUTCMonth())) {
+                            startDate.setUTCMonth(startDate.getUTCMonth() + 1);
+                            var endDate = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth() + 1, 0));
+
+                            $('#wiztable_startDate').val(startDate.toISOString().split('T')[0]);
+                            $('#wiztable_endDate').val(endDate.toISOString().split('T')[0]);
+                            $('#saved_state_title').text(`Custom View: ${startDate.toLocaleString('default', { month: 'long', timeZone: 'UTC' })}, ${startDate.getUTCFullYear()}`);
+                            table.draw();
+                        }
+
+                        if (startDate.getUTCFullYear() === today.getUTCFullYear() && startDate.getUTCMonth() >= today.getUTCMonth()) {
+                            table.button('.next-month').disable();  // Disable the "Next" button
+                        } else {
+                            table.button('.next-month').enable();  // Enable the "Next" button
+                        }
+                    }
+                },
+                
+                {
+                    text: function() {
+                        var today = new Date();
+                        var year = today.getFullYear();
+        
+                        // Fiscal year starts on November 1st of the previous year
+                        if (today.getMonth() >= 10) {  // January is 0, November is 10
+                            year += 1;
+                        }
+        
+                        var yearTwoDigit = year % 100;
+                        return `<i class="fa-regular fa-calendar"></i>&nbsp;&nbsp;FY '${yearTwoDigit}`;
+                    },
+                    action: function ( e, dt, node, config ) {
+                        var today = new Date();
+                        var fiscalYearStart = new Date(today.getFullYear(), 10, 1);  // Nov 1
+                        var fiscalYearEnd = new Date(today.getFullYear() + 1, 9, 31);  // Oct 31
+                        if (today < fiscalYearStart) {
+                            fiscalYearStart.setFullYear(fiscalYearStart.getFullYear() - 1);
+                            fiscalYearEnd.setFullYear(fiscalYearEnd.getFullYear() - 1);
+                        }
+                        $('#wiztable_startDate').val(fiscalYearStart.toISOString().split('T')[0]);
+                        $('#wiztable_endDate').val(fiscalYearEnd.toISOString().split('T')[0]);
+                        $('#saved_state_title').text(`Custom View: ${fiscalYearStart.getFullYear()} Fiscal Year`);
+                        $('.idemailwiz_table').DataTable().draw();
+                    },
+                    className: 'wiz-dt-button fiscal-year',
+                },
+
                 {
                     extend: 'selected',
-                    text: '<i class="fa-regular fa-square-check"></i>',
+                    text: '<i class="fa-regular fa-plus"></i>',
                     name: 'Actions',
                     className: 'wiz-dt-button',
                     attr: {
@@ -480,6 +484,73 @@ jQuery(document).ready(function ($) {
                     }
                 },
                 {
+                    text: '<i class="fa-solid fa-rotate"></i>',
+                    className: 'wiz-dt-button sync-db sync-everything',
+                    attr:  {
+                        "data-sync-db": "everything",
+                        "title": "Sync Databases"
+                    },
+                    autoClose: true,
+                    background: false,
+                },
+                {
+                    extend: 'spacer',
+                    style: 'bar'
+                },                     
+                {
+                    extend: 'collection',
+                    text: '<i class="fa-solid fa-table-columns"></i>',
+                    className: 'wiz-dt-button',
+                    attr: {
+                        'title': 'Show/hide columns',
+                    },
+                    align: 'button-right',
+                    buttons: [ 
+                        {
+                            extend: 'colvis',
+                            columnText: function ( dt, idx, title ) {
+                                if ( idx == dt.colReorder.transpose( 1 ) ) {
+                                    return 'Info';
+                                }
+                                if ( idx == dt.colReorder.transpose( 7 ) ) {
+                                    return 'Has Experiment';
+                                } else {
+                                    return title;
+                                }
+                            }
+                        },
+                        {
+                            extend: 'colvisRestore',
+                            text: 'Restore Defaults',
+                            className: 'wizcols_restore',
+                            align: 'button-right',
+                        }
+                    ],
+                    background: false,
+                },
+                {
+                    extend: 'collection',
+                    text: '<i class="fa-regular fa-hand-pointer"></i>',
+                    className: 'wiz-dt-button',
+                    attr: {
+                        'title': 'Selection mode',
+                    },
+                    align: 'button-right',
+                    autoClose: true,
+                    buttons: [ 
+                        'selectNone',
+                        'selectRows',
+                        'selectColumns',
+                        'selectCells',
+                    ],
+                    background: false,
+                },
+                {
+                    extend: 'spacer',
+                    style: 'bar'
+                },
+                
+                {
                     extend: 'collection',
                     text: '<i class="fa-solid fa-floppy-disk"></i>',
                     className: 'wiz-dt-button saved-views',
@@ -487,24 +558,25 @@ jQuery(document).ready(function ($) {
                     'title': 'View options',
                     },
                     align: 'button-right',
+                    background: false,
                     buttons: [
                     {
                         extend: 'createState',
                         text: 'Create View',
                         attr: {
-                        'title': 'Create view',
+                        'title': 'Create View',
                         },
                         config: {    
                         creationModal: true,
-
                         }
                     },
                     {
                         extend: 'savedStates',
                         text: 'Saved Views',
                         className: 'saved-views',
+                        background: false,
                         attr: {
-                        'title': 'Saved views',
+                        'title': 'Saved Views',
                         },
                     }
                     ]
@@ -577,7 +649,7 @@ jQuery(document).ready(function ($) {
                     button: {
                         0: '<i class="fa-solid fa-sliders"></i> Filters',
                         _: '<i class="fa-solid fa-sliders"></i> Filters (%d)'
-                    }
+                    },
                 },
                 search: '',
                 searchPlaceholder: 'Quick search',
@@ -696,9 +768,14 @@ jQuery(document).ready(function ($) {
         advSearch.insertAfter('#wiztable_top_search');
         
         var FYbutton = $('.dt-button.fiscal-year')
+        var prevMonthButton = $('.dt-button.prev-month');
         var thisMonthButton = $('.dt-button.current-month');
+        var nextMonthButton = $('.dt-button.next-month');
         thisMonthButton.insertAfter('#wiztable_top_dates');
-        FYbutton.insertAfter(thisMonthButton);
+        prevMonthButton.insertBefore(thisMonthButton);
+        nextMonthButton.insertAfter(thisMonthButton);
+        
+        FYbutton.insertAfter(nextMonthButton);
         
         
         //Change width of popup for advanced search
@@ -769,41 +846,32 @@ jQuery(document).ready(function ($) {
             '<td><span class="metric_view_label">CVR</span><span class="metric_view_value"> ' + cvr.toFixed(2) + '%' + '</span></td>' +
             '</tr></table>'
         );
+
+        
+
     } // End DT draw callback
     
+
+
 
     // Sync buttons
     $(document).on('click', '.sync-db', function() {
 
-        // For security, define only possible dbs
-        var dbs = ['campaigns', 'templates', 'metrics', 'purchases', 'experiments'];
-
-        // Get the type of db we're updating
-        var syncDb = $(this).attr('data-sync-db');
 
         // Notice and logging
         $('#wiztable_status_updates').addClass('active').slideDown();
-        $('#wiztable_status_updates .wiztable_update').text('Preparing ' + syncDb + ' sync...');
+        $('#wiztable_status_updates .wiztable_update').text('Preparing database sync...');
 
-        if (syncDb === 'everything') {
-            // Sync all dbs if 'everything' is clicked
-            $('#wiztable_status_updates .wiztable_update').text('Syncing blasts, templates, metrics, experiments, and purchases...');
-        } else if (dbs.includes(syncDb)) {
-            // We're only syncing one table if this is set
-            dbs = [syncDb];
-            $('#wiztable_status_updates .wiztable_update').text('Syncing '+syncDb+'...');
-        } else {
-            console.log('Invalid sync option.');
-            $('#wiztable_status_updates .wiztable_update').text('ERROR: Invalid sync option passed!');
-            return;
-        }
+        // Sync all databases
+        $('#wiztable_status_updates .wiztable_update').html('Syncing databases, please wait... <i class="fa-solid fa-spin fa-rotate"></i>');
+        
         
         // Write initialization to log
         idemailwiz_do_ajax(
             "ajax_to_wiz_log",
             idAjax_data_tables.nonce,
             {
-                log_data: "Initializing " + syncDb + " sync. Please wait a few moments...",
+                log_data: "Initializing database sync. Please wait a few moments...",
                 timestamp: true
             },
             function(result) {
@@ -814,18 +882,31 @@ jQuery(document).ready(function ($) {
             }
         );
 
+        // Refresh the log every 3 seconds
+
+        // Declare the interval variable
+        let refreshInterval;
+
+        // Function to refresh iframe content
+        const refreshIframeContent = () => {
+          $('#wiztable_status_sync_details').load(idAjax.plugin_url + '/sync-log.txt');
+        };
+
+        // Start refreshing every few seconds (e.g., every 3 seconds)
+        refreshInterval = setInterval(refreshIframeContent, 3000);
+
         idemailwiz_do_ajax(
             "idemailwiz_ajax_sync",
             idAjax_data_tables.nonce,
-            {
-                dbs: JSON.stringify(dbs)
-            },
+            {},
             function(result) {
+                clearInterval(refreshInterval);
                 $('#wiztable_status_updates .wiztable_update').text('Sync completed! Refresh the table for new data');
                 $('#wiztable_status_sync_details').load(idAjax.plugin_url + '/sync-log.txt');
             },
             function(error) {
                 console.log(error);
+                clearInterval(refreshInterval);
                 $('#wiztable_status_updates .wiztable_update').text('ERROR: Sync process failed with message: ' + error);
                 $('#wiztable_status_sync_details').load(idAjax.plugin_url + '/sync-log.txt');
             }

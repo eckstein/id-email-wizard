@@ -188,6 +188,8 @@ function idemailwiz_create_databases() {
         wizCompRate FLOAT,
         wizCvr FLOAT,
         wizAov FLOAT,
+        wizWinner BIT,
+        experimentNotes MEDIUMTEXT,
         PRIMARY KEY (templateId),
         INDEX idx_experimentId (experimentId),
         INDEX idx_campaignId (campaignId)
@@ -573,7 +575,7 @@ function get_idwiz_purchases_by_campaign($campaignId) {
     }
 }
 
-
+// Ajax handler for the main campaigns datatable call
 function idwiz_get_campaign_table_view() {
     global $wpdb;
 
@@ -616,6 +618,139 @@ function idwiz_is_serialized($value) {
     if (trim($value) == "") return false;
     if (preg_match("/^(i|s|a|o|d):(.*);/si", $value)) return true;
     return false;
+}
+
+
+function handle_experiment_winner_toggle() {
+    error_log('Made it to handler');
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_experiments';
+
+    // Log POST data for debugging
+    error_log('POST data: ' . print_r($_POST, true));
+
+    // Security checks and validation
+    if (!check_ajax_referer('wiz-metrics', 'security', false)) {
+        error_log('Nonce check failed');
+        wp_send_json_error('Nonce check failed');
+        return;
+    }
+
+    $action = $_POST['actionType'];
+    $templateId = intval($_POST['templateId']);
+    $experimentId = intval($_POST['experimentId']);
+
+    if (!$templateId || !$experimentId) {
+        error_log('Invalid templateId or experimentId');
+        wp_send_json_error('Invalid templateId or experimentId');
+        return;
+    }
+
+    if ($action == 'add-winner') {
+        error_log('Action is add-winner');
+
+        // Clear existing winners for the same experimentId
+        $result = $wpdb->update(
+            $table_name,
+            array('wizWinner' => null),
+            array('experimentId' => $experimentId)
+        );
+
+        if ($result === false) {
+            error_log("Database error while clearing winners: " . $wpdb->last_error);
+            wp_send_json_error("Database error while clearing winners: " . $wpdb->last_error);
+            return;
+        }
+
+        // Set new winner
+        $result = $wpdb->update(
+            $table_name,
+            array('wizWinner' => 1),
+            array('templateId' => $templateId)
+        );
+
+        if ($result === false) {
+            error_log("Database error while setting new winner: " . $wpdb->last_error);
+            wp_send_json_error("Database error while setting new winner: " . $wpdb->last_error);
+            return;
+        }
+
+    } elseif ($action == 'remove-winner') {
+        error_log('Action is remove-winner');
+
+        // Remove winner
+        $result = $wpdb->update(
+            $table_name,
+            array('wizWinner' => null),
+            array('templateId' => $templateId)
+        );
+
+        if ($result === false) {
+            error_log("Database error while removing winner: " . $wpdb->last_error);
+            wp_send_json_error("Database error while removing winner: " . $wpdb->last_error);
+            return;
+        }
+
+    } else {
+        error_log('Invalid action: ' . $action);
+        wp_send_json_error('Invalid action');
+        return;
+    }
+
+    error_log('Action completed successfully');
+    wp_send_json_success('Action completed successfully');
+}
+
+add_action('wp_ajax_handle_experiment_winner_toggle', 'handle_experiment_winner_toggle');
+
+
+
+add_action('wp_ajax_save_experiment_notes', 'save_experiment_notes');
+
+function save_experiment_notes() {
+    // Security checks and validation
+    if (!check_ajax_referer('wiz-metrics', 'security', false)) {
+        error_log('Nonce check failed');
+        wp_send_json_error('Nonce check failed');
+        return;
+    }
+
+    // Get the experiment notes and ID
+    $experimentId = isset($_POST['experimentId']) ? sanitize_text_field($_POST['experimentId']) : '';
+    
+    $allowed_tags = array(
+        'br' => array(),
+        // Add other tags if you wish to allow them
+    );
+    $experimentNotes = isset($_POST['experimentNotes']) ? wp_kses($_POST['experimentNotes'], $allowed_tags) : '';
+    
+    // Database update logic
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_experiments';
+
+    // Update experimentNotes for all records with the same experiment ID
+    $result = $wpdb->update(
+        $table_name,
+        array('experimentNotes' => $experimentNotes),
+        array('experimentId' => (int)$experimentId)
+    );
+
+    if ($wpdb->last_error) {
+        error_log("Database error: " . $wpdb->last_error);
+        wp_send_json_error('Database error: ' . $wpdb->last_error);
+        return;
+    }
+
+    if ($result !== false) {
+        if ($result > 0) {
+            wp_send_json_success('Data saved successfully');
+        } else {
+            wp_send_json_error('No data was updated, the new value may be the same as the existing value');
+        }
+    } else {
+        wp_send_json_error('An error occurred while updating the database');
+    }
 }
 
 

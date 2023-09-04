@@ -110,8 +110,8 @@ require_once(plugin_dir_path(__FILE__) . 'includes/iterable-functions.php');
 
 
 // Register custom post types
-add_action( 'init', 'idemailwiz_create_template_post_type', 0 );
-function idemailwiz_create_template_post_type() {
+add_action( 'init', 'idemailwiz_create_template_post_types', 0 );
+function idemailwiz_create_template_post_types() {
     $templateLabels = array(
         'name' => 'Templates',
 		'singular_name' => 'Template',
@@ -182,6 +182,9 @@ function idemailwiz_create_template_post_type() {
     );
 
     register_post_type('idwiz_initiative', $initiativeArgs);
+
+
+    
 }
 
 add_post_type_support( 'idwiz_initiative', 'thumbnail' ); 
@@ -196,9 +199,9 @@ function idemailwiz_custom_archive_templates($tpl){
 add_filter( 'archive_template', 'idemailwiz_custom_archive_templates' ) ;
 
 //Register folder taxonomy
-add_action( 'init', 'idemailwiz_create_folder_taxonomy', 10 );
-function idemailwiz_create_folder_taxonomy() {
-    $labels = array(
+add_action( 'init', 'idemailwiz_create_taxonomies', 10 );
+function idemailwiz_create_taxonomies() {
+    $folderLabels = array(
         'name' => 'Folders',
 		'singular_name' => 'Folder',
 		'public' => true,
@@ -206,8 +209,8 @@ function idemailwiz_create_folder_taxonomy() {
         // Add other labels as needed
     );
 
-    $args = array(
-        'labels' => $labels,
+    $folderargs = array(
+        'labels' => $folderLabels,
         'public' => true,
         'hierarchical' => true, 
         'show_in_rest' => true, // This is required if you want to use this taxonomy with Gutenberg
@@ -225,7 +228,9 @@ function idemailwiz_create_folder_taxonomy() {
 		'query_var' => true,
     );
 
-    register_taxonomy('idemailwiz_folder', 'idemailwiz_template', $args);
+    register_taxonomy('idemailwiz_folder', 'idemailwiz_template', $folderargs);
+
+    
     
 }
 
@@ -317,41 +322,37 @@ function redirect_to_proper_url() {
 add_action('template_redirect', 'redirect_to_proper_url', 11);
 
 
-function idemailwiz_check_direct_access() {
-    global $wp;
-    $current_url = home_url(add_query_arg(array(), $wp->request));
+add_action('template_redirect', 'idemailwiz_handle_template_request', 20);
 
-    //Check if the current URL contains '/build-template/'
-    if (strpos($current_url, '/build-template/') !== false && !isset($_SERVER['HTTP_REFERER'])) {
-        $dieMessage = 'Direct access to the template builder enpoint is not allowed!';
-        wp_die($dieMessage);
-    }
-}
-
-add_action('template_redirect', 'idemailwiz_check_direct_access');
-
-function idemailwiz_custom_template_preview_endpoint() {
-    add_rewrite_endpoint('build-template', EP_ROOT);
-}
-add_action('init', 'idemailwiz_custom_template_preview_endpoint');
-
-
-//Handle what happens when the custom endpoint is called (which is via the src parameter of the preview iframe)
-function idemailwiz_handle_build_template_request() {
-    global $wp_query;
-    
-    // If this is not a request for build-template then bail
+function idemailwiz_handle_template_request() {
+    global $wp_query, $wp;
+    // Check if this is a request for build-template
     if (!isset($wp_query->query_vars['build-template'])) {
         return;
     }
 
-    // Display the template
-    idemailwiz_build_template();
+    // Check for direct access
+    $current_url = home_url(add_query_arg(array(), $wp->request));
+    if (strpos($current_url, '/build-template/') !== false && !isset($_SERVER['HTTP_REFERER'])) {
+        $dieMessage = 'Direct access to the template builder endpoint is not allowed!';
+        wp_die($dieMessage);
+        exit;  // Make sure to stop execution
+    }
 
-    // Stop execution
+    // Display loading screen
+    echo '<div style="padding: 30px; text-align: center; font-weight: bold; font-family: Poppins, sans-serif;"><i style="font-family: Font Awesome 5;" class="fas fa-spinner fa-spin"></i>  Loading template...<br/><img style="margin: 20px auto;" src="http://localhost/wp-content/uploads/2023/08/animated_loader_gif_n6b5x0.gif">';
+
+    // Stop further execution
     exit;
 }
-add_action('template_redirect', 'idemailwiz_handle_build_template_request');
+
+
+// Add the custom endpoint
+add_action('init', 'idemailwiz_custom_template_preview_endpoint');
+function idemailwiz_custom_template_preview_endpoint() {
+    add_rewrite_endpoint('build-template', EP_ROOT);
+}
+
 
 
 
@@ -407,6 +408,7 @@ function idemailwiz_enqueue_assets() {
 			'currentPost' => get_post( get_the_ID() ),
 			'stylesheet' => plugins_url( '', __FILE__ ),
             'plugin_url' => plugin_dir_url(__FILE__),
+            'site_url' => get_bloginfo('url'),
 		));
 	}
 	

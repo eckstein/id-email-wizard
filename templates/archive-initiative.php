@@ -36,10 +36,7 @@
     <tbody>
         <?php 
         while ( have_posts() ) { the_post(); 
-        // Get the list of campaign IDs associated with the current initiative
-        $serialized_campaign_ids = get_post_meta(get_the_ID(), 'wiz_campaigns', true);
-        // Unserialize the data if it's serialized
-        $associated_campaign_ids = maybe_unserialize($serialized_campaign_ids);
+        $associated_campaign_ids = idemailwiz_get_campaign_ids_for_initiative(get_the_ID()) ?? array('0');
         // If IDs exist, fetch campaigns
         if (!empty($associated_campaign_ids)) {
             $campaignCount = count($associated_campaign_ids);
@@ -52,7 +49,7 @@
             $totalSends = 0;
             $totalRevenue = 0;
             $lastSendDate = 0; // Initialize to 0
-            $firstSendDate = PHP_INT_MAX; // Initialize to maximum integer value
+            $firstSendDate = PHP_INT_MAX; // Initialize to maximum integer value 
 
             foreach ($initCampaigns as $campaign) {
                 $campaignMetrics = get_idwiz_metric($campaign['id']);
@@ -77,7 +74,7 @@
             $firstSendDate = 0;
         }
         ?>
-        <tr>
+        <tr data-initid="<?php echo get_the_ID(); ?>">
             <td>
                 <a href="<?php echo get_the_permalink(); ?>"><?php the_title(); ?></a>
             </td>

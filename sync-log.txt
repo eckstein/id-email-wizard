@@ -1,30 +1,210 @@
-==========[2023-09-01 17:01:29]==============================<br />
+==========[2023-09-03 21:37:08]==============================<br />
+Updated 56 send times.<br />
+Skipped 0 campaigns.<br />
+Encountered 0 errors<br />
+========================================<br />
+<br />
+==========[2023-09-03 21:37:08]==============================<br />
+Campaign 7304002 send date/time needs updated from 09/02/23 9:27pm to 09/03/23 6:28pm <br />
+Campaign 7304003 send date/time needs updated from 09/02/23 7:08pm to 09/04/23 2:11am <br />
+Campaign 7226223 send date/time needs updated from 09/02/23 10:04am to 09/03/23 4:27pm <br />
+Campaign 7100953 send date/time needs updated from 09/02/23 10:12am to 09/03/23 10:20am <br />
+Campaign 7100922 send date/time needs updated from 09/02/23 10:07am to 09/03/23 10:05am <br />
+Campaign 6969902 send date/time needs updated from 09/01/23 7:29pm to 09/04/23 3:16am <br />
+Campaign 7360317 send date/time needs updated from 09/02/23 11:18pm to 09/03/23 11:45am <br />
+Campaign 6721073 send date/time needs updated from 09/02/23 7:27pm to 09/03/23 11:16pm <br />
+Campaign 6480394 send date/time needs updated from 09/02/23 10:07am to 09/03/23 10:15am <br />
+Campaign 4387146 send date/time needs updated from 09/02/23 10:32pm to 09/03/23 9:27pm <br />
+Campaign 4937826 send date/time needs updated from 09/03/23 2:36am to 09/03/23 10:36pm <br />
+Campaign 4933728 send date/time needs updated from 09/03/23 4:15am to 09/04/23 3:54am <br />
+Campaign 4933744 send date/time needs updated from 09/02/23 4:06pm to 09/04/23 1:12am <br />
+Campaign 4933888 send date/time needs updated from 09/03/23 4:35am to 09/03/23 11:25pm <br />
+Campaign 3180384 send date/time needs updated from 09/03/23 1:00am to 09/04/23 3:10am <br />
+Campaign 5554660 send date/time needs updated from 09/02/23 12:33am to 09/03/23 9:14pm <br />
+Campaign 7002696 send date/time needs updated from 09/02/23 10:05am to 09/03/23 10:03am <br />
+Campaign 4841125 send date/time needs updated from 09/02/23 10:04am to 09/03/23 10:03am <br />
+Campaign 4933695 send date/time needs updated from 09/03/23 3:35am to 09/04/23 4:01am <br />
+Campaign 4428759 send date/time needs updated from 09/03/23 4:33am to 09/04/23 1:21am <br />
+Campaign 3968127 send date/time needs updated from 09/02/23 7:30pm to 09/03/23 11:26pm <br />
+Campaign 5555092 send date/time needs updated from 09/02/23 10:04am to 09/03/23 10:03am <br />
+Campaign 5554657 send date/time needs updated from 09/02/23 7:32pm to 09/03/23 5:11pm <br />
+Campaign 5554665 send date/time needs updated from 09/02/23 12:01am to 09/03/23 7:02pm <br />
+Campaign 5554668 send date/time needs updated from 09/01/23 3:09pm to 09/04/23 1:00am <br />
+Campaign 5423724 send date/time needs updated from 09/02/23 10:04am to 09/03/23 10:03am <br />
+Campaign 5555126 send date/time needs updated from 09/02/23 10:04am to 09/03/23 10:03am <br />
+Campaign 5555104 send date/time needs updated from 09/02/23 1:24pm to 09/03/23 10:03am <br />
+Campaign 5554661 send date/time needs updated from 08/31/23 7:08pm to 09/03/23 10:01pm <br />
+Campaign 5554663 send date/time needs updated from 09/02/23 9:16pm to 09/03/23 5:34pm <br />
+Campaign 5554659 send date/time needs updated from 09/02/23 5:07pm to 09/03/23 8:07pm <br />
+Campaign 5554654 send date/time needs updated from 09/02/23 9:13pm to 09/03/23 8:32pm <br />
+Campaign 5554475 send date/time needs updated from 09/02/23 11:05pm to 09/03/23 10:03pm <br />
+Campaign 5200252 send date/time needs updated from 09/02/23 10:04am to 09/03/23 10:03am <br />
+Campaign 4419701 send date/time needs updated from 09/02/23 3:05pm to 09/03/23 3:03pm <br />
+Campaign 7259834 send date/time needs updated from 09/02/23 10:07am to 09/03/23 10:14am <br />
+Campaign 7443916 send date/time needs updated from 09/02/23 10:02am to 09/03/23 10:02am <br />
+Campaign 7443822 send date/time needs updated from 09/03/23 3:16am to 09/04/23 4:04am <br />
+Campaign 7487540 send date/time needs updated from 09/03/23 3:10am to 09/04/23 2:41am <br />
+Campaign 7483526 send date/time needs updated from 09/03/23 4:18am to 09/04/23 4:07am <br />
+Campaign 7487797 send date/time needs updated from 09/03/23 3:13am to 09/04/23 1:52am <br />
+Campaign 7234277 send date/time needs updated from 09/02/23 10:11am to 09/03/23 10:05am <br />
+Campaign 7483524 send date/time needs updated from 09/03/23 12:35am to 09/04/23 3:58am <br />
+Campaign 7443917 send date/time needs updated from 09/02/23 10:02am to 09/03/23 10:02am <br />
+Campaign 5708327 send date/time needs updated from 09/03/23 4:38am to 09/04/23 1:38am <br />
+Campaign 5708326 send date/time needs updated from 09/03/23 4:38am to 09/03/23 11:38pm <br />
+Campaign 5707753 send date/time needs updated from 09/03/23 3:38am to 09/04/23 4:04am <br />
+Campaign 5708330 send date/time needs updated from 09/03/23 3:38am to 09/04/23 12:34am <br />
+Campaign 5708328 send date/time needs updated from 09/03/23 4:38am to 09/04/23 3:38am <br />
+Campaign 5708332 send date/time needs updated from 09/03/23 2:38am to 09/04/23 12:38am <br />
+Campaign 5708331 send date/time needs updated from 09/03/23 1:38am to 09/04/23 2:38am <br />
+Campaign 7483527 send date/time needs updated from 09/03/23 4:20am to 09/04/23 3:58am <br />
+Campaign 5708334 send date/time needs updated from 09/02/23 10:38am to 09/04/23 1:38am <br />
+Campaign 7483528 send date/time needs updated from 09/03/23 4:41am to 09/04/23 4:09am <br />
+Campaign 7483523 send date/time needs updated from 09/03/23 4:39am to 09/04/23 4:06am <br />
+Campaign 7561220 send date/time needs updated from 09/03/23 2:03am to 09/04/23 1:58am <br />
+<br />
+========================================<br />
+<br />
+==========[2023-09-03 21:13:00]==============================<br />
+Requested 244 triggered campaigns from Iterable. 0 errors encountered.<br />
+Proceeding to retrieve campaign data...<br />
+========================================<br />
+<br />
+==========[2023-09-03 21:02:33]==============================<br />
+Starting emailSend API calls (this will take a few minutes due to API rate limits).<br />
+========================================<br />
+<br />
+==========[2023-09-03 07:21:56]==============================<br />
 Experiments sync results: <br />
-The experiments sync is up to date! No inserts or updates are needed.<br />
+<br />
+Successful update of 4 records.<br />
 ========================================<br />
 <br />
-==========[2023-09-01 17:01:18]==============================<br />
+==========[2023-09-03 07:21:44]==============================<br />
 Purchases sync results: <br />
-The purchases sync is up to date! No inserts or updates are needed.<br />
+Successful insert of 19 records.<br />
+<br />
 ========================================<br />
 <br />
-==========[2023-09-01 17:01:06]==============================<br />
+==========[2023-09-03 07:21:30]==============================<br />
 Metrics sync results: <br />
-<br />
-Successful update of 20 records.<br />
+Successful insert of 1 records.<br />
+Successful update of 94 records.<br />
 ========================================<br />
 <br />
-==========[2023-09-01 17:00:41]==============================<br />
+==========[2023-09-03 07:21:03]==============================<br />
 Templates sync results: <br />
 The templates sync is up to date! No inserts or updates are needed.<br />
 ========================================<br />
 <br />
-==========[2023-09-01 17:00:33]==============================<br />
+==========[2023-09-03 07:20:32]==============================<br />
 Campaigns sync results: <br />
 The campaigns sync is up to date! No inserts or updates are needed.<br />
 ========================================<br />
 <br />
-==========[2023-09-01 17:00:30]==============================<br />
-Initializing everything sync. Please wait a few moments...<br />
+==========[2023-09-03 07:20:30]==============================<br />
+Initializing database sync. Please wait a few moments...<br />
+========================================<br />
+<br />
+==========[2023-09-03 06:21:45]==============================<br />
+Updated 63 send times.<br />
+Skipped 0 campaigns.<br />
+Encountered 0 errors<br />
+========================================<br />
+<br />
+==========[2023-09-03 06:21:45]==============================<br />
+Campaign 7304002 send date/time needs updated from 08/31/23 10:07am to 09/02/23 9:27pm <br />
+Campaign 7304003 send date/time needs updated from 09/01/23 4:07am to 09/02/23 7:08pm <br />
+Campaign 7226223 send date/time needs updated from 08/31/23 10:04am to 09/02/23 10:04am <br />
+Campaign 7100953 send date/time needs updated from 08/31/23 10:11am to 09/02/23 10:12am <br />
+Campaign 7100922 send date/time needs updated from 08/31/23 10:06am to 09/02/23 10:07am <br />
+Campaign 6969902 send date/time needs updated from 08/28/23 10:40pm to 09/01/23 7:29pm <br />
+Campaign 7360317 send date/time needs updated from 09/01/23 1:06am to 09/02/23 11:18pm <br />
+Campaign 6721073 send date/time needs updated from 09/01/23 3:26am to 09/02/23 7:27pm <br />
+Campaign 6480394 send date/time needs updated from 08/31/23 10:07am to 09/02/23 10:07am <br />
+Campaign 4387146 send date/time needs updated from 09/01/23 3:48am to 09/02/23 10:32pm <br />
+Campaign 4937826 send date/time needs updated from 09/01/23 1:36am to 09/03/23 2:36am <br />
+Campaign 4933728 send date/time needs updated from 09/01/23 4:07am to 09/03/23 4:15am <br />
+Campaign 4933744 send date/time needs updated from 08/31/23 9:50pm to 09/02/23 4:06pm <br />
+Campaign 4933888 send date/time needs updated from 09/01/23 4:04am to 09/03/23 4:35am <br />
+Campaign 3180384 send date/time needs updated from 09/01/23 1:45am to 09/03/23 1:00am <br />
+Campaign 5423722 send date/time needs updated from 08/11/23 10:09am to 09/02/23 10:04am <br />
+Campaign 5554660 send date/time needs updated from 09/01/23 1:08am to 09/02/23 12:33am <br />
+Campaign 7002696 send date/time needs updated from 08/31/23 10:02am to 09/02/23 10:05am <br />
+Campaign 4841125 send date/time needs updated from 08/30/23 10:02am to 09/02/23 10:04am <br />
+Campaign 4610653 send date/time needs updated from 08/28/23 10:12am to 09/02/23 10:09am <br />
+Campaign 4933695 send date/time needs updated from 09/01/23 4:33am to 09/03/23 3:35am <br />
+Campaign 4428759 send date/time needs updated from 08/31/23 11:22pm to 09/03/23 4:33am <br />
+Campaign 3968127 send date/time needs updated from 09/01/23 2:01am to 09/02/23 7:30pm <br />
+Campaign 5555142 send date/time needs updated from 08/31/23 9:51pm to 09/01/23 6:49pm <br />
+Campaign 5555092 send date/time needs updated from 08/31/23 10:05am to 09/02/23 10:04am <br />
+Campaign 5554657 send date/time needs updated from 08/31/23 10:59pm to 09/02/23 7:32pm <br />
+Campaign 5554665 send date/time needs updated from 08/31/23 7:05pm to 09/02/23 12:01am <br />
+Campaign 5554668 send date/time needs updated from 08/31/23 11:04pm to 09/01/23 3:09pm <br />
+Campaign 5423726 send date/time needs updated from 08/31/23 10:02am to 09/02/23 10:04am <br />
+Campaign 5423724 send date/time needs updated from 08/31/23 10:04am to 09/02/23 10:04am <br />
+Campaign 5555126 send date/time needs updated from 08/31/23 10:02am to 09/02/23 10:04am <br />
+Campaign 5555104 send date/time needs updated from 08/28/23 10:18am to 09/02/23 1:24pm <br />
+Campaign 5554672 send date/time needs updated from 08/07/23 7:02pm to 09/02/23 1:03am <br />
+Campaign 5554669 send date/time needs updated from 08/30/23 1:05am to 09/01/23 8:01pm <br />
+Campaign 5554663 send date/time needs updated from 08/28/23 6:31pm to 09/02/23 9:16pm <br />
+Campaign 5554662 send date/time needs updated from 08/31/23 9:59pm to 09/02/23 1:33am <br />
+Campaign 5554659 send date/time needs updated from 08/31/23 6:01pm to 09/02/23 5:07pm <br />
+Campaign 5554656 send date/time needs updated from 09/01/23 1:08am to 09/02/23 12:05am <br />
+Campaign 5554654 send date/time needs updated from 08/31/23 9:09pm to 09/02/23 9:13pm <br />
+Campaign 5554475 send date/time needs updated from 09/01/23 1:33am to 09/02/23 11:05pm <br />
+Campaign 5200252 send date/time needs updated from 08/31/23 10:05am to 09/02/23 10:04am <br />
+Campaign 4419701 send date/time needs updated from 08/31/23 3:03pm to 09/02/23 3:05pm <br />
+Campaign 7259834 send date/time needs updated from 08/31/23 10:07am to 09/02/23 10:07am <br />
+Campaign 7443916 send date/time needs updated from 08/31/23 10:02am to 09/02/23 10:02am <br />
+Campaign 7443822 send date/time needs updated from 09/01/23 3:55am to 09/03/23 3:16am <br />
+Campaign 7487540 send date/time needs updated from 09/01/23 4:23am to 09/03/23 3:10am <br />
+Campaign 7483526 send date/time needs updated from 09/01/23 3:58am to 09/03/23 4:18am <br />
+Campaign 7487797 send date/time needs updated from 08/31/23 11:48pm to 09/03/23 3:13am <br />
+Campaign 7234277 send date/time needs updated from 08/31/23 10:07am to 09/02/23 10:11am <br />
+Campaign 7483524 send date/time needs updated from 09/01/23 4:55am to 09/03/23 12:35am <br />
+Campaign 7443917 send date/time needs updated from 08/31/23 10:02am to 09/02/23 10:02am <br />
+Campaign 5708327 send date/time needs updated from 09/01/23 4:38am to 09/03/23 4:38am <br />
+Campaign 5708326 send date/time needs updated from 09/01/23 4:38am to 09/03/23 4:38am <br />
+Campaign 5707753 send date/time needs updated from 09/01/23 4:38am to 09/03/23 3:38am <br />
+Campaign 5708330 send date/time needs updated from 09/01/23 3:38am to 09/03/23 3:38am <br />
+Campaign 5708328 send date/time needs updated from 09/01/23 4:38am to 09/03/23 4:38am <br />
+Campaign 5708332 send date/time needs updated from 09/01/23 1:38am to 09/03/23 2:38am <br />
+Campaign 5708331 send date/time needs updated from 09/01/23 2:38am to 09/03/23 1:38am <br />
+Campaign 7483527 send date/time needs updated from 09/01/23 4:34am to 09/03/23 4:20am <br />
+Campaign 5708334 send date/time needs updated from 09/01/23 2:38am to 09/02/23 10:38am <br />
+Campaign 7483528 send date/time needs updated from 09/01/23 4:55am to 09/03/23 4:41am <br />
+Campaign 7483523 send date/time needs updated from 09/01/23 4:16am to 09/03/23 4:39am <br />
+Campaign 7561220 send date/time needs updated from 01/01/70 12:00am to 09/03/23 2:03am <br />
+<br />
+========================================<br />
+<br />
+==========[2023-09-02 21:45:11]==============================<br />
+Requested 244 triggered campaigns from Iterable. 0 errors encountered.<br />
+Proceeding to retrieve campaign data...<br />
+========================================<br />
+<br />
+==========[2023-09-02 21:36:44]==============================<br />
+Starting emailSend API calls (this will take a few minutes due to API rate limits).<br />
+========================================<br />
+<br />
+==========[2023-09-02 15:22:35]==============================<br />
+Purchases sync results: <br />
+The purchases sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-09-02 15:22:03]==============================<br />
+Metrics sync results: <br />
+<br />
+Successful update of 24 records.<br />
+========================================<br />
+<br />
+==========[2023-09-02 15:21:38]==============================<br />
+Templates sync results: <br />
+The templates sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-09-02 15:20:36]==============================<br />
+Campaigns sync results: <br />
+The campaigns sync is up to date! No inserts or updates are needed.<br />
 ========================================<br />
 <br />

@@ -81,10 +81,8 @@ function get_folder_list($current_folder_id=null) {
 			$folder_list .= '<ul style="margin-top: auto;"><li><em>Error! Trash term not detected.</em></li></ul>';
 		}
 		$templateRoot = (int) $options['folder_base'];
-		if (!is_wp_error($templateRoot)) {
-			$folder_list .= '<ul style="margin-top: auto;"><li>Template Root: ' . $templateRoot . '</li></ul>';
-		} else {
-			$folder_list .= '<ul style="margin-top: auto;"><li><em>Template Root: <em>None detected!</em></em></li></ul>';
+		if (is_wp_error($templateRoot)) {
+			$folder_list .= '<ul style="margin-top: auto;"><li><em>No template root detected!</em></li></ul>';
 		}
 		
 		

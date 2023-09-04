@@ -87,9 +87,9 @@ add_action('wp_ajax_nopriv_idemailwiz_get_template_data_for_iterable', 'idemailw
 		date_default_timezone_set('America/Los_Angeles');
 
 		$dateTime = new DateTime();
-		$formattedDateTime = $dateTime->format('n/j/Y \at g:ia');
+		$formattedDateTime = $dateTime->format('n/j/Y \a\t g:ia');
 		
-		update_post_meta($post_id,'lastIterableSync',$formattedDateTime);
+		update_post_meta($post_id,'lastIterableSync', $formattedDateTime);
 		
 		$response = array(
 			'status' => 'success',
