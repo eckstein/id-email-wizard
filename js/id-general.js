@@ -21,6 +21,8 @@ jQuery(document).ready(function ($) {
 		  $(selector).html(container.contents());
 		  //If folder list is visible, reset it to the proper view
 		  setupCategoriesView();
+		  //Reinitialize select2 for template search
+		  initialize_select2_for_template_search();
 		});
 	  };
 	})(jQuery);
@@ -43,39 +45,8 @@ jQuery(document).ready(function ($) {
 	});
 
 	
-	// Select2 for template search
-    $('#live-template-search').select2({
-    minimumInputLength: 3,
-	placeholder: "Search templates...",
-    allowClear: true,
-    ajax: {
-        delay: 250,
-        transport: function(params, success, failure) {
-        idemailwiz_do_ajax(
-            'idemailwiz_get_templates_for_select',
-            idAjax_id_general.nonce, 
-            {
-            q: params.data.term,
-            },
-            function(data) {
-            	success({results: data});
-            },
-            function(error) {
-            	console.error("Failed to fetch templates", error);
-            	failure();
-            }
-        );
-        }
-    }
 	
-    }).on('select2:select', function (e) {
-		var data = e.params.data;
-		// Assuming data has a field 'url' that contains the URL to the WordPress post
-		if (data.id) {
-			var postUrl = idAjax_id_general.site_url + '/?p=' + data.id;
-			window.location.href = postUrl;
-		}
-	});
+
 
 	 // Stop click events within the popover from propagating
 	$('#dt-popover-container').on('click', function(e) {
@@ -91,6 +62,39 @@ jQuery(document).ready(function ($) {
 	
 //Global scope functions
 
+
+function initialize_select2_for_template_search() {
+	jQuery('.templateFolder #live-template-search').select2({
+		minimumInputLength: 3,
+		placeholder: "Search templates...",
+		allowClear: true,
+		ajax: {
+			delay: 250,
+			transport: function(params, success, failure) {
+				idemailwiz_do_ajax(
+					'idemailwiz_get_templates_for_select',
+					idAjax_id_general.nonce, 
+					{
+						q: params.data.term,
+					},
+					function(data) {
+						success({results: data});
+					},
+					function(error) {
+						console.error("Failed to fetch templates", error);
+						failure();
+					}
+				);
+			}
+		}
+	}).on('select2:select', function (e) {
+		var data = e.params.data;
+		if (data.id) {
+			var postUrl = idAjax_id_general.site_url + '/?p=' + data.id;
+			window.location.href = postUrl;
+		}
+	});
+}
 
 function setupCategoriesView() {
   if (jQuery('.folderList').is(':visible')) {
@@ -170,9 +174,54 @@ function wizReloadThing(selector) {
 }
 
 
+function handle_idwiz_sync_buttons(action, nonce, data = {}) {
+  // Show status updates
+  jQuery('#wiztable_status_updates').addClass('active').slideDown();
+  jQuery('#wiztable_status_updates .wiztable_update').text('Syncing databases...');
 
+ // Write initialization to log
+idemailwiz_do_ajax(
+	"ajax_to_wiz_log",
+	idAjax_id_general.nonce,
+	{
+		log_data: "Initializing database sync. Please wait a few moments...",
+		timestamp: true
+	},
+	function(result) {
+		jQuery('#wiztable_status_sync_details').load(idAjax.plugin_url + '/sync-log.txt');
+	},
+	function(error) {
+		console.log(error);
+	}
+);
 
+  // Start refreshing the log
+  let refreshInterval = setInterval(() => {
+	jQuery('#wiztable_status_sync_details').load(idAjax.plugin_url + '/sync-log.txt');
+  }, 3000);
 
+  // Perform the AJAX call
+  idemailwiz_do_ajax(
+	action,
+	nonce,
+	data,
+	function(result) { // success callback
+	  clearInterval(refreshInterval);
+	  jQuery('#wiztable_status_updates .wiztable_update').text('Sync completed! Refresh the table for new data');
+	  jQuery('#wiztable_status_sync_details').load(idAjax.plugin_url + '/sync-log.txt');
+	},
+	function(error) { // error callback
+	  clearInterval(refreshInterval);
+	  jQuery('#wiztable_status_updates .wiztable_update').text('ERROR: Sync process failed with message: ' + JSON.stringify(error));
+	  jQuery('#wiztable_status_sync_details').load(idAjax.plugin_url + '/sync-log.txt');
+	}
+  );
+}
 
+// Sync log toggle
+jQuery(document).on('click', '.wiztable_view_sync_details', function() {
+	jQuery('#wiztable_status_sync_details').slideToggle();
+	jQuery(this).find('i').toggleClass('fa-chevron-down fa-chevron-up');
+});
 
 

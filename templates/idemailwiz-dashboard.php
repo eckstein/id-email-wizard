@@ -7,14 +7,14 @@
     <div id="wizDashboard-sidebar" class="wizcampaign-section inset quarter">
         <div class="wizcampaign-section-title-area"><h3>Sidebar</h3></div>
     </div>
-    <div id="wizDashboard-modules" class="wizcampaign-section inset three-quarter">
+    <div id="wizDashboard-modules" class="wizmodules wizcampaign-section inset three-quarter">
         <div class="wizcampaign-section shadow">
             <div class="wizcampaign-section-title-area"><h3>1 Module</h3></div>
         </div>
-        <div class="wizcampaign-section span4 shadow">
+        <div class="wizcampaign-section shadow">
             <div class="wizcampaign-section-title-area"><h3>2 Module</h3></div>
         </div>
-        <div class="wizcampaign-section span4 shadow">
+        <div class="wizcampaign-section shadow">
             <div class="wizcampaign-section-title-area"><h3>3 Module</h3></div>
         </div>
         <div class="wizcampaign-section shadow">

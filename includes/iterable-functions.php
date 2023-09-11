@@ -19,6 +19,7 @@ function idemailwiz_get_template_data_for_iterable() {
     }
 	
 	$post_id = $_POST['post_id'];
+
 	$emailSettings = get_field('email_settings', $post_id);
 	$current_user = wp_get_current_user();
 	
@@ -50,7 +51,18 @@ function idemailwiz_get_template_data_for_iterable() {
 		$response = array(
 			'status' => 'success',
 			'fields' => $templateFields,
+			'alreadySent' => false,
 		);
+
+		// Check for existing template_id
+		$templateId = $_POST['template_id'] ?? false;
+
+		// Get wiz campaign based on templateId
+		$wizTemplate = get_idwiz_template(array('templateId'=>$templateId));
+		// There will only be a matching campaign if the campaign has been sent
+		if ($wizTemplate) {
+			$response['alreadySent'] = true;
+		}
 	} else {	
 		$response = array(
 			'status' => 'error',
@@ -63,7 +75,6 @@ function idemailwiz_get_template_data_for_iterable() {
 	wp_send_json($response);
 }
 add_action('wp_ajax_idemailwiz_get_template_data_for_iterable', 'idemailwiz_get_template_data_for_iterable');
-add_action('wp_ajax_nopriv_idemailwiz_get_template_data_for_iterable', 'idemailwiz_get_template_data_for_iterable');
 
 
 //Update the template after it syncs to Iterable

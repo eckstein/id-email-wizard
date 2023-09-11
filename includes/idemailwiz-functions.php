@@ -34,7 +34,7 @@ function idemailwiz_head() {
 // Determine if a template or folder is in the current user's favorites
 function is_user_favorite( $object_id, $object_type ) {
   // Determine the meta key based on the object_type
-  $meta_key = 'favorite_' . strtolower($object_type) . 's'; // either 'favorite_templates' or 'favorite_folders'
+  $meta_key = 'idwiz_favorite_' . strtolower($object_type) . 's'; // either 'favorite_templates' or 'favorite_folders'
 
   $favorites = get_user_meta( get_current_user_id(), $meta_key, true );
 
@@ -177,7 +177,7 @@ function idemailwiz_get_initiatives_for_select() {
     $data[$cnt]['text'] = $initiative->post_title;
     $cnt++;
  }
-  error_log(print_r($data,true));
+  //error_log(print_r($data,true));
   echo json_encode(array_values($data));
   wp_die();
 }
@@ -544,6 +544,43 @@ function generate_idwizcampaign_heatmap_overlay($csv_file) {
 
   //Add custom meta metabox back to edit screens 	
   add_filter('acf/settings/remove_wp_meta_box', '__return_false');
+
+
+// Extract Image URLs and alt values from a set of campaigns
+  function idwiz_extract_campaigns_images($campaignIds) {
+      // Initialize an array to store image data for all campaigns
+      $allCampaignImageData = [];
+
+      // Fetch templates for the given campaign IDs
+      $templates = get_idwiz_templates(['campaignIds' => $campaignIds]);
+
+      // Loop through each template to extract image information
+      foreach ($templates as $template) {
+          $templateHTML = $template['html'];
+
+          // Load HTML content into a DOMDocument object
+          $dom = new DOMDocument;
+          @$dom->loadHTML($templateHTML);
+
+          // Initialize an array to store image data for this specific template
+          $templateImageData = [];
+
+          // Loop through all the <img> tags in this template
+          $images = $dom->getElementsByTagName('img');
+          foreach ($images as $image) {
+              $src = $image->getAttribute('src');
+              $alt = $image->getAttribute('alt') ?? '';
+              $templateImageData[] = ['src' => $src, 'alt' => $alt];
+          }
+
+          // Save the image data for this campaign
+          $allCampaignImageData[$template['templateId']] = $templateImageData;
+      }
+
+      return $allCampaignImageData;
+  }
+
+
 
 
   ?>

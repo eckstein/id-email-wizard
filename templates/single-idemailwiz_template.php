@@ -18,6 +18,14 @@ $itTemplateId = get_post_meta(get_the_ID(),'itTemplateId',true) ?? '';
 	<?php if ($itTemplateId){
 		$lastIterableSync = get_post_meta(get_the_ID(), 'lastIterableSync', true) ?? '<em>an unknown date and time.</em>';
 		echo 'Last synced to Iterable template <a target="_blank" href="https://app.iterable.com/templates/editor?templateId='.$itTemplateId.'">'.$itTemplateId.'</a> on '.$lastIterableSync;
+		// check for wiz template to see if the campaign has been sent
+		$wizTemplate = get_idwiz_template((int)$itTemplateId);
+		//print_r($wizTemplate);
+		if ($wizTemplate) {
+			$wizCampaign = get_idwiz_campaigns(array('templateId'=>$itTemplateId));
+			echo '<br/><br/><strong><em>The <a href="https://localhost/metrics/campaign/?id=' .$wizCampaign[0]['id']. '">campaign</a> for this template was sent on '. date('m/d/Y', $wizCampaign[0]['startAt'] / 1000).'.</em></strong>';
+			echo '<br/><em>Templates for sent campaigns can no longer be synced. You can either duplicate this template or sync it to another, unsent template in Iterable.</em>';
+		}
 		} else { 
 			echo '<em>Not synced.</em>';
 		} ?>
@@ -76,7 +84,7 @@ $itTemplateId = get_post_meta(get_the_ID(),'itTemplateId',true) ?? '';
 		<div id="templatePreview">
 		<iframe id="previewFrame" src="<?php echo home_url('build-template/' . get_the_ID()); ?>"></iframe>
 		</div>
-		<div class="scrollSpace"></div>
+		
 	</div>
 </div>
 <div id="fullScreenCode">

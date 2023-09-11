@@ -62,36 +62,35 @@ article.wiz_dashboard .entry-content {
 .wiz_dashboard .entry-content #wizDashboard-modules {
 	
 }
-/* Container holding the grid */
-#wizDashboard-modules {
+/* wizmodules grid */
+.wizmodules {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-  gap: 16px; /* Spacing between grid items */
+  grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+  gap: 20px; /* Spacing between grid items */
 }
 
 /* Individual grid items */
-#wizDashboard-modules .wizcampaign-section {
-  background-color: #f1f1f1;
+.wizmodules .wizcampaign-section {
   padding: 16px;
   border: 1px solid #ccc;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
-#wizDashboard-modules .wizcampaign-section.span2 {
+.wizmodules .wizcampaign-section.span2 {
   grid-column: span 2;
 }
 
-#wizDashboard-modules .wizcampaign-section.span3 {
+.wizmodules .wizcampaign-section.span3 {
   grid-column: span 3;
 }
 
-#wizDashboard-modules .wizcampaign-section.span4 {
+.wizmodules .wizcampaign-section.span4 {
   grid-column: span 4;
 }
 @media (max-width: 1200px) {
-	#wizDashboard-modules {
+	.wizmodules {
 	gap: 12px;
   }
-	#wizDashboard-modules .wizcampaign-section {
+	.wizmodules .wizcampaign-section {
 	padding: 12px;
   }
 }
@@ -1193,10 +1192,7 @@ body.single-idemailwiz_template #content {
 }
 
 /* Single WizCampaign Metrics Page */
-.wizcampaign-single {
-	max-width: 1600px;
-	margin: 0 auto;
-}
+
 	.wizcampaign-single h3.single-wizcampaign-startAt {
 		text-align: center;
 	}
@@ -1265,7 +1261,7 @@ body.single-idemailwiz_template #content {
 			max-width: 50%;
 		}
 		.wizcampaign-section .wizcampaign-section-scrollwrap {
-			max-height: 300px;
+			max-height: 350px;
 			overflow-y: auto;
 		}
 	.wizcampaign-experiments {
@@ -1316,7 +1312,7 @@ body.single-idemailwiz_template #content {
 	}
 	.wizcampaign-single .wizcampaign-template-html {
 		flex: 0 1 820px;
-		height: 1200px;
+		min-height: 1200px;
 		margin: 30px auto;
 		box-shadow: 0 0 20px 1px rgba(0, 0, 0, 0.1);
 		overflow: hidden;
@@ -1327,7 +1323,6 @@ body.single-idemailwiz_template #content {
 		.wizcampaign-single .wizcampaign-template-html iframe {
 			width: 100%;
 			height: 1070px;
-			
 		}
 		
 
@@ -1416,8 +1411,11 @@ body.single-idemailwiz_template #content {
 			margin: 0 auto 20px auto;
 		}
 
-.single-idwiz_initiative .header {
+.single-idwiz_initiative .header h3 {
 	text-align: center;
+}
+.single-idwiz_initiative .header {
+	
 	margin-bottom: 30px;
 }
 .single-idwiz_initiative .header input {
@@ -1446,6 +1444,9 @@ body.single-idemailwiz_template #content {
 	color: #94d40a;
 }
 .single-idwiz_initiative #initiative-campaigns-table {
+	margin-bottom: 30px;
+}
+.single-idwiz_initiative #initiative-campaigns-table > .wizcampaign-section{
 	width: 100%;
 	margin-top: 30px;
 }
@@ -1454,7 +1455,32 @@ body.single-idemailwiz_template #content {
 		max-height: 700px;
 	}
 
+/* Init assets library container */
+.initAssetsLibrary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16.66%, 1fr));
+  gap: 16px; /* Adjust the gap between grid items */
+}
 
+/* Init assets library item */
+.initAssetsLibrary img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Makes image cover the entire grid item */
+}
+
+
+#initAssetsUI {
+	max-height: 400px;
+	overflow-y: auto;
+}
+#initAssetsUI .init_asset_wrap {
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+	border: 1px solid #fff;
+}
+#initAssetsUI .init_asset_wrap:hover {
+	border: 1px solid #77b900;
+}
 
 /* Base table styles */
 .idemailwiz-simple-table {

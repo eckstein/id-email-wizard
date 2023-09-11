@@ -3,15 +3,15 @@
 function get_folder_list($current_folder_id=null) {
     
 
-    $favorite_folders = get_user_meta(get_current_user_id(), 'favorite_folders', true);
-    $favorite_folder_cat_ids = !empty($favorite_folders) ? $favorite_folders : array();
+    $idwiz_favorite_folders = get_user_meta(get_current_user_id(), 'idwiz_favorite_folders', true);
+    $favorite_folder_cat_ids = !empty($idwiz_favorite_folders) ? $idwiz_favorite_folders : array();
 	
-	$favorite_templates = get_user_meta(get_current_user_id(), 'favorite_templates', true);
-    $favorite_template_cat_ids = !empty($favorite_templates) ? $favorite_templates : array();
+	$idwiz_favorite_templates = get_user_meta(get_current_user_id(), 'idwiz_favorite_templates', true);
+    $favorite_template_cat_ids = !empty($idwiz_favorite_templates) ? $idwiz_favorite_templates : array();
 
     $faves_list = '';
         
-	if (!empty($favorite_folders)) {
+	if (!empty($idwiz_favorite_folders)) {
 		$faves_list .= '<h5>Favorite Folders</h5>';
 		$faves_list .= '<ul>';
 		foreach ($favorite_folder_cat_ids as $fav_folder_cat_id) {
@@ -22,7 +22,7 @@ function get_folder_list($current_folder_id=null) {
 		}
 		$faves_list .= '</ul>';
 	}
-	if (!empty($favorite_templates)) {
+	if (!empty($idwiz_favorite_templates)) {
 			$faves_list .= '<h5>Favorite Templates</h5>';
 			$faves_list .= '<ul>';
 			foreach ($favorite_template_cat_ids as $fav_template_id) {

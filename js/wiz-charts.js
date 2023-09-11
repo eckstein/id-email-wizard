@@ -1,134 +1,151 @@
-// Initialize the charts when the document is ready
 jQuery(document).ready(function($) {
-    
+
     // Chart switcher icons
-   $(document).on('click', '.chart-type-switcher', function() {
+    $(document).on('click', '.chart-type-switcher', function() {
         $(this).closest('.wizcampaign-section').find('.chart-type-switcher.active').removeClass('active');
         $(this).addClass('active');
         var switchTo = $(this).data('chart-type');
         var canvas = $(this).closest('.wizcampaign-section').find('canvas')[0];
 
-        // Destroy existing chart if it exists
         if (canvas.chartInstance) {
             canvas.chartInstance.destroy();
         }
 
-        // Update the data attribute
         $(canvas).attr('data-charttype', switchTo);
-
-        // Recreate the chart
-        fill_idwiz_chart_canvas(canvas);
+        idwiz_fill_chart_canvas(canvas);
     });
 
-// On page load, fill canvases with their charts
-$('canvas').each(function() {
-    fill_idwiz_chart_canvas(this);
-});
+    // On page load, fill canvases with their charts
+    $('canvas').each(function() {
+        idwiz_fill_chart_canvas(this);
+    });
 
-function fill_idwiz_chart_canvas(canvasElement) {
-    const element = canvasElement;
-    const chartType = $(element).attr('data-charttype');
-    const xAxis = $(element).data('chart-x-axis');
-    const yAxis = $(element).data('chart-y-axis');
-    const dualYAxis = $(element).data('chart-dual-y-axis');
-    const campaignIds = $(element).data('campaignids');
+    // Add styling and visual options here per chart type
+    function idwiz_getBaseLayoutOptions(chartType) {
+        let layoutOptions = {
+            padding: {
+                bottom: 50
+            },
+            height: 250  // Default height
+        };
 
-    const actionFunctionName = 'idwiz_fetch_flexible_chart_data';
-    
-    const additionalData = {
-        chartType: chartType,
-        xAxis: xAxis,
-        yAxis: yAxis,
-        dualYAxis: dualYAxis,
-        campaignIds: campaignIds
-    };
+        if (chartType === 'pie') {
+            layoutOptions.padding = { top: 10, bottom: 20 };
+            //layoutOptions.height = 230;
+        } else if (chartType === 'line') {
+            layoutOptions.padding = { left: 20, right: 20, bottom: 40 };
+            //layoutOptions.height = 260;
+        } else if (chartType === 'bar') {
+            layoutOptions.padding = { left: 15, right: 15, bottom: 30 };
+            //layoutOptions.height = 240;
+        }
 
-    idemailwiz_do_ajax(
-        actionFunctionName,
-        idAjax_wiz_charts.nonce,
-        additionalData,
-        function(response) {
-            if (response.success) {
-                let options = {
-                    layout: {
-                        padding: {
-                            bottom: 50
-                        }
-                    }
-                }; // Default empty options object for common settings
+        return layoutOptions;
+    }
 
-                if (chartType !== 'pie') {
-                    const yAxisDataType = response.data.yAxisDataType;
-                    const dualYAxisDataType = response.data.dualYAxisDataType;
 
-                    // Define your default formatting functions
-                    const numberFormatFn = value => value.toLocaleString();
-                    const percentFormatFn = value => `${value.toFixed(2)}%`;
-                    const moneyFormatFn = value => value.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    function idwiz_fill_chart_canvas(canvas) {
+        const chartType = $(canvas).attr('data-charttype');
+        const chartId = $(canvas).attr('data-chartid');
+        const campaignIds = $(canvas).attr('data-campaignids');
 
-                    // Initialize options specific to 'bar' and 'line' charts
-                    options.scales = {
-                        x: {
-                            ticks: {
-                                maxRotation: 90
-                            }
-                        },
-                        'y-axis-1': {
-                            position: 'left',
-                            ticks: {
-                                callback: yAxisDataType === 'number' ? numberFormatFn :
-                                        yAxisDataType === 'percent' ? percentFormatFn : moneyFormatFn
+        const additionalData = {
+            chartType: chartType,
+            chartId: chartId,
+            campaignIds: campaignIds
+        };
+
+        idemailwiz_do_ajax(
+            'idwiz_fetch_flexible_chart_data',
+            idAjax_wiz_charts.nonce,
+            additionalData,
+            function(response) {
+                if (response.success) {
+                    const baseLayout = idwiz_getBaseLayoutOptions(chartType);
+                    let options = {
+                        layout: baseLayout,
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let dataset = context.chart.data.datasets[context.datasetIndex];
+                                        let yAxisType = dataset.yAxisID === 'y-axis-1' ? response.data.options.yAxisDataType : response.data.options.dualYAxisDataType;
+                                        let formatFunction = idwiz_getFormatFunction(yAxisType);
+                                        return dataset.label + ': ' + formatFunction(context.raw);
+                                    }
+                                }
                             }
                         }
                     };
-                    
-                    // If dualYAxis is set, add dual Y-axis settings
-                    if (dualYAxis) {
-                        options.scales['y-axis-2'] = {
-                            id: 'y-axis-2',
-                            type: 'linear',
-                            position: 'right',
-                            ticks: {
-                                callback: dualYAxisDataType === 'number' ? numberFormatFn :
-                                        dualYAxisDataType === 'percent' ? percentFormatFn : moneyFormatFn
+
+                    const { yAxisDataType, dualYAxisDataType, dualYAxis } = response.data.options;
+
+                    if (chartType !== 'pie') {
+                        options.scales = {
+                            x: {},
+                            'y-axis-1': {
+                                position: 'left',
+                                ticks: {
+                                    callback: idwiz_getFormatFunction(yAxisDataType)
+                                }
                             }
                         };
+
+                        if (dualYAxis) {
+                            options.scales['y-axis-2'] = {
+                                id: 'y-axis-2',
+                                position: 'right',
+                                ticks: {
+                                    callback: idwiz_getFormatFunction(dualYAxisDataType)
+                                }
+                            };
+                        }
                     }
 
-                    // Set manual height to prevent too much squishing
-                    const minChartHeight = 150;  // The minimum height you want for the chart area
-                    const labelPadding = 50;    // Additional height to accommodate the labels
-                    // Set the canvas height
-                    element.height = minChartHeight + labelPadding;
+                    idwiz_create_chart(canvas, chartType, response.data.data.labels, response.data.data.datasets, options);
+                } else {
+                    console.error("AJAX request successful but response indicated failure:", response);
                 }
-
-                create_idwiz_chart(element, chartType, response.data.labels, response.data.datasets, options);
-            } else {
-                console.error("AJAX request successful but response indicated failure:", response);
+            },
+            function(error) {
+                console.error("An error occurred during the AJAX request:", error);
+                if (error.responseJSON && error.responseJSON.message) {
+                    console.error("Server says:", error.responseJSON.message);
+                }
             }
-        },
-        function(error) {
-            console.error("An error occurred during the AJAX request:", error);
+        );
+    }
+
+    function idwiz_getFormatFunction(dataType) {
+        if (dataType === 'number') {
+            return value => value.toLocaleString();
+        } else if (dataType === 'percent') {
+            return value => `${value.toFixed(2)}%`;
+        } else if (dataType === 'money') {
+            return value => value.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
         }
-    );
-}
+    }
 
+    function idwiz_create_chart(element, chartType, labels, datasets, baseOptions) {
+        const ctx = element.getContext('2d');
 
+        // Retrieve layout options
+        const layoutOptions = idwiz_getBaseLayoutOptions(chartType);
+        
 
-function create_idwiz_chart(element, chartType, labels, datasets, options) {
-    const ctx = element.getContext('2d');
-    const chartInstance = new Chart(ctx, {
-        type: chartType,
-        data: {
-            labels: labels,
-            datasets: datasets
-        },
-        options: options
-    });
+        // Set height from base layout options
+        element.height = layoutOptions.height;
 
-    // Store the Chart.js instance on the canvas element
-    // This way, we can easily access and destroy it later
-    element.chartInstance = chartInstance;
-}
+        const idwizChart = new Chart(ctx, {
+            type: chartType,
+            data: {
+                labels: labels,
+                datasets: datasets
+            },
+            options: baseOptions
+        });
+
+        element.chartInstance = idwizChart;
+    }
 
 });

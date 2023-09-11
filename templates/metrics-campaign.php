@@ -7,6 +7,8 @@
 <?php
 global $wpdb;  // Declare the WordPress Database variable
 
+//print_r(idemailwiz_sync_templates(array(7652831)));
+
 $campaign_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $campaign = get_idwiz_campaign($campaign_id);
 $metrics = get_idwiz_metric($campaign_id);
@@ -18,11 +20,12 @@ $purchases = get_idwiz_purchases(array('campaignId'=>$campaign_id));
 <header class="header">
 <div class="entry-pre-title">Campaign<?php if ($campaign['experimentIds']){ echo ' with experiment';} ?></div>
 <h1 class="entry-title single-wizcampaign-title" itemprop="name"><?php echo $campaign['name']; ?></h1>
-<div id="wiztable_status_updates"><span class="wiztable_update">asdf</span></div>
 <?php
   date_default_timezone_set('America/Los_Angeles');
   $startAt = date('m/d/Y \a\t g:ia', $campaign['startAt'] / 1000);  ?>
   <h3 class="single-wizcampaign-startAt">Sent on <?php echo $startAt; ?></h3>
+<div id="wiztable_status_updates"><span class="wiztable_update"></span><span class="wiztable_view_sync_details">View sync log&nbsp;<i class="fa-solid fa-chevron-down"></i></span></div>
+<div id="wiztable_status_sync_details">Sync log will show here...</div>
 </header>
 <div class="entry-content" itemprop="mainContentOfPage">
 
@@ -43,21 +46,21 @@ $purchases = get_idwiz_purchases(array('campaignId'=>$campaign_id));
         <td><span class="metric_view_label">Sync</span><span class="metric_view_value"><button class="wiz-button sync-campaign" data-campaignid="<?php echo $campaign['id']; ?>"><i class="fa-solid fa-arrows-rotate"></i></button></span></td>
     </tr>
     </table>
-    <div class="wizcampaign-sections">
-    <div class="wizcampaign-section third inset" id="email-info">
+    <div class="wizmodules">
+    <div class="wizcampaign-section inset" id="email-info">
     <h4>Purchases by Date</h4>
-    <canvas class="purchByDate" data-campaignids="[<?php echo $campaign['id']; ?>]" data-charttype="bar" data-chart-x-axis="Date" data-chart-y-axis="Purchases" data-chart-dual-y-axis="Revenue"></canvas>
+        <canvas class="purchByDate" data-chartid="purchasesByDate" data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>' data-charttype="bar"></canvas>
     </div>
-    <div class="wizcampaign-section third inset">
+    <div class="wizcampaign-section inset">
         <div class="wizcampaign-section-title-area">
             <h4>Purchases by Division</h4>
             <div class="wizcampaign-section-icons">
                 <i class="fa-solid fa-chart-simple active chart-type-switcher" data-chart-type="bar"></i><i class="fa-solid fa-chart-pie chart-type-switcher" data-chart-type="pie"></i>
             </div>
         </div>
-        <canvas class="purchByLOB" data-campaignids="[<?php echo $campaign['id']; ?>]" data-charttype="bar" data-chart-x-axis="Division" data-chart-y-axis="Purchases" data-chart-dual-y-axis="Revenue"></canvas>
+        <canvas class="purchByDivision" data-chartid="purchasesByDivision" data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>' data-charttype="bar"></canvas>
     </div>
-    <div class="wizcampaign-section third inset">
+    <div class="wizcampaign-section inset">
         <h4>Purchases by Product</h4>
         <table class="wizcampaign-tiny-table-sticky-header">
             <thead>
@@ -103,6 +106,108 @@ $purchases = get_idwiz_purchases(array('campaignId'=>$campaign_id));
         ?>
         </div>
     </div>
+    <div class="wizcampaign-section inset">
+        
+            <?php 
+            // Initialize variables
+            $promoCounts = [];
+            $totalOrders = [];
+            $ordersWithPromo = [];
+
+            foreach ($purchases as $purchase) {
+                $promo = $purchase['shoppingCartItems_discountCode'];
+                $orderID = $purchase['id'];
+
+                // Keep track of all unique order IDs
+                $totalOrders[$orderID] = true;
+
+                // Skip blank or null promo codes
+                if (empty($promo)) {
+                    continue;
+                }
+
+                // Keep track of unique order IDs with promo codes
+                $ordersWithPromo[$orderID] = true;
+
+                if (!isset($promoCounts[$promo])) {
+                    $promoCounts[$promo] = [];
+                }
+
+                if (!isset($promoCounts[$promo][$orderID])) {
+                    $promoCounts[$promo][$orderID] = 0;
+                }
+
+                $promoCounts[$promo][$orderID] += 1;
+            }
+
+            // Calculate the total number of times each promo code was used
+            $promoUseCounts = [];
+            foreach ($promoCounts as $promo => $orders) {
+                $promoUseCounts[$promo] = count($orders);
+            }
+
+            // Calculate promo code usage statistics
+            $totalOrderCount = count($totalOrders);
+            $ordersWithPromoCount = count($ordersWithPromo);
+            $percentageWithPromo = ($totalOrderCount > 0) ? ($ordersWithPromoCount / $totalOrderCount) * 100 : 0;
+            ?>
+
+            <div class="wizcampaign-section-title-area">
+                <h4>Promo Code Use</h4>
+                <div>
+                <?php echo "{$ordersWithPromoCount} of {$totalOrderCount} orders (" . round($percentageWithPromo, 2) . "%)"; ?>
+                </div>
+            </div>
+            <div class="wizcampaign-section-scrollwrap">
+
+            <?php
+            // Sort promo codes by usage
+            arsort($promoUseCounts);
+
+            // Start building the table
+            echo '<table class="wizcampaign-tiny-table">';
+            echo '<thead>';
+            echo '<tr>';
+            echo '<th>Promo Code</th>';
+            echo '<th>Number of Orders</th>';
+            echo '</tr>';
+            echo '</thead>';
+            echo '<tbody>';
+
+            // Loop through the sorted promo codes and add rows to the table
+            foreach ($promoUseCounts as $promo => $useCount) {
+                echo '<tr>';
+                echo '<td>' . htmlspecialchars($promo) . '</td>';
+                echo '<td>' . $useCount . '</td>';
+                echo '</tr>';
+            }
+
+            echo '</tbody>';
+            echo '</table>';
+
+            ?>
+        </div>
+    </div>
+    <div class="wizcampaign-section inset">
+        <div class="wizcampaign-section-title-area">
+            <h4>Purchases by Topic</h4>
+            <div class="wizcampaign-section-icons">
+                <i class="fa-solid fa-chart-simple active chart-type-switcher" data-chart-type="bar"></i><i class="fa-solid fa-chart-pie chart-type-switcher" data-chart-type="pie"></i>
+            </div>
+        </div>
+    <canvas class="purchByTopic" data-chartid="purchasesByTopic" data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>' data-charttype="bar"></canvas>
+    </div>
+         <div class="wizcampaign-section inset">
+            <div class="wizcampaign-section-title-area">
+                <h4>Purchases by Campus</h4>
+                <div class="wizcampaign-section-icons">
+                    <i class="fa-solid fa-chart-simple active chart-type-switcher" data-chart-type="bar"></i><i class="fa-solid fa-chart-pie chart-type-switcher" data-chart-type="pie"></i>
+                </div>
+            </div>
+        <canvas class="purchByLocation" data-chartid="purchasesByLocation" data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>' data-charttype="pie"></canvas>
+        </div>
+
+
     </div>
     <?php
     //Check for experiments
@@ -219,43 +324,49 @@ $purchases = get_idwiz_purchases(array('campaignId'=>$campaign_id));
     $displayTemplates = array($template);
     }
 
-    foreach ($displayTemplates as $template) { ?>
-    <div class="wizcampaign-template-html">
-    <?php    
-    
-    if ($template['messageMedium'] == 'Email') {  
-    $csv_file = 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/heatmap.csv';
-    $heatmap_div = generate_idwizcampaign_heatmap_overlay($csv_file);
-    ?>
-    <div class="wizcampaign-template-details">
-        <ul>
-            <li>
-                <strong><?php echo $template['subject']; ?></strong>
-            </li>
-            <li>
-                <?php echo $template['preheaderText']; ?>
-            </li>
-            <li>
-                <?php echo $template['fromName'] . ' &lt' . $template['fromEmail'] . '&gt'; ?>
-            </li>
-        </ul>
-    </div>
-    <div class="wizcampaign-template-preview-iframe-container"> <!-- Wrap iframe and heatmap in a container -->
-        <iframe srcdoc="<?php echo htmlspecialchars($template['html'], ENT_QUOTES, 'UTF-8'); ?>" frameborder="0" class="templatePreviewIframe"></iframe>
-        <div class="heatmap-container"> <!-- Position heatmap over iframe -->
-            <?php echo $heatmap_div; ?>
-        </div>
-    </div>
-    <?php } else {
+    if (!empty($displayTemplates)) {
+        foreach ($displayTemplates as $template) {
+            if (!$template) {
+                continue;
+            }
+             ?>
+        <div class="wizcampaign-template-html">
+        <?php    
+        
+        if ($template['messageMedium'] == 'Email') {  
+        $csv_file = 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/heatmap.csv';
+        $heatmap_div = generate_idwizcampaign_heatmap_overlay($csv_file);
         ?>
-        <div class="wizcampaign-mobile-template">
-        <img src="<?php echo $template['imageUrl']; ?>" />
-        <?php echo $template['message']; ?>
+        <div class="wizcampaign-template-details">
+            <ul>
+                <li>
+                    <strong><?php echo $template['subject']; ?></strong>
+                </li>
+                <li>
+                    <?php echo $template['preheaderText']; ?>
+                </li>
+                <li>
+                    <?php echo $template['fromName'] . ' &lt' . $template['fromEmail'] . '&gt'; ?>
+                </li>
+            </ul>
         </div>
-        <?php }?>
-    </div>
+        <div class="wizcampaign-template-preview-iframe-container"> <!-- Wrap iframe and heatmap in a container -->
+            <iframe srcdoc="<?php echo htmlspecialchars($template['html'], ENT_QUOTES, 'UTF-8'); ?>" frameborder="0" class="templatePreviewIframe"></iframe>
+            <div class="heatmap-container"> <!-- Position heatmap over iframe -->
+                <?php echo $heatmap_div; ?>
+            </div>
+        </div>
+        <?php } else {
+            ?>
+            <div class="wizcampaign-mobile-template">
+            <img src="<?php echo $template['imageUrl']; ?>" />
+            <?php echo $template['message']; ?>
+            </div>
+            <?php }?>
+        </div>
     <?php 
-    } 
+    }
+    }
     ?>
     </div>
 

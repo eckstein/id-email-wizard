@@ -79,6 +79,12 @@ $mobHeight = $templateStyles['mobile_line_height'] ?? '24px';
           font-family: inherit !important;
           }
           
+          td ul {
+            margin-top: 0;
+          }
+          td ul li {
+            margin-bottom: 1em;
+          }
           /*Outlook*/
           .ExternalClass {
           width: 100%;

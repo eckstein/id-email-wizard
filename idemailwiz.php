@@ -267,7 +267,17 @@ function idemailwiz_template_chooser($template) {
     if (strpos($_SERVER['REQUEST_URI'], '/metrics/campaign') !== false) {
         return dirname(__FILE__) . '/templates/metrics-campaign.php';
     }
-    
+
+    // If user-profile endpoint is accessed
+    if (isset($wp_query->query_vars['user-profile'])) {
+        // Path to your custom template
+        $userProfileTemplate = plugin_dir_path(__FILE__) . 'templates/idemailwiz-user-profile.php';
+
+        // Use the custom template if it exists
+        if (!empty($userProfileTemplate)) {
+            return $userProfileTemplate;
+        }
+    }    
 
     // Set templates based on plugin settings
     $options = get_option('idemailwiz_settings');
@@ -323,34 +333,28 @@ add_action('template_redirect', 'redirect_to_proper_url', 11);
 
 
 add_action('template_redirect', 'idemailwiz_handle_template_request', 20);
-
 function idemailwiz_handle_template_request() {
     global $wp_query, $wp;
-    // Check if this is a request for build-template
-    if (!isset($wp_query->query_vars['build-template'])) {
-        return;
+
+    // Handle build-template
+    if (isset($wp_query->query_vars['build-template'])) {
+
+        $current_url = home_url(add_query_arg(array(), $wp->request));
+        if (strpos($current_url, '/build-template/') !== false && !isset($_SERVER['HTTP_REFERER'])) {
+            $dieMessage = 'Direct access to the template builder endpoint is not allowed!';
+            wp_die($dieMessage);
+            exit;
+        }
+
+        echo '<div style="padding: 30px; text-align: center; font-weight: bold; font-family: Poppins, sans-serif;"><i style="font-family: Font Awesome 5;" class="fas fa-spinner fa-spin"></i>  Loading template...<br/><img style="margin: 20px auto;" src="http://localhost/wp-content/uploads/2023/08/animated_loader_gif_n6b5x0.gif">';
+        exit;
     }
-
-    // Check for direct access
-    $current_url = home_url(add_query_arg(array(), $wp->request));
-    if (strpos($current_url, '/build-template/') !== false && !isset($_SERVER['HTTP_REFERER'])) {
-        $dieMessage = 'Direct access to the template builder endpoint is not allowed!';
-        wp_die($dieMessage);
-        exit;  // Make sure to stop execution
-    }
-
-    // Display loading screen
-    echo '<div style="padding: 30px; text-align: center; font-weight: bold; font-family: Poppins, sans-serif;"><i style="font-family: Font Awesome 5;" class="fas fa-spinner fa-spin"></i>  Loading template...<br/><img style="margin: 20px auto;" src="http://localhost/wp-content/uploads/2023/08/animated_loader_gif_n6b5x0.gif">';
-
-    // Stop further execution
-    exit;
 }
 
-
-// Add the custom endpoint
-add_action('init', 'idemailwiz_custom_template_preview_endpoint');
-function idemailwiz_custom_template_preview_endpoint() {
+add_action('init', 'idemailwiz_custom_endpoints');
+function idemailwiz_custom_endpoints() {
     add_rewrite_endpoint('build-template', EP_ROOT);
+    add_rewrite_endpoint('user-profile', EP_ROOT);
 }
 
 
@@ -364,6 +368,7 @@ function idemailwiz_enqueue_assets() {
     wp_enqueue_script( 'sweetalert2', 'https://cdn.jsdelivr.net/npm/sweetalert2@11', array(), '11.0', true );
     wp_enqueue_script( 'select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array(), '4.1.0', true );
     wp_enqueue_script('charts-js', 'https://cdn.jsdelivr.net/npm/chart.js', array('jquery'), null, true);
+    wp_enqueue_script('charts-js-datalabels', 'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels', array('jquery', 'charts-js'), null, true);
     wp_enqueue_script( 'DataTables', plugin_dir_url(__FILE__) . 'vendors/DataTables/datatables.min.js', array() );
     wp_enqueue_script( 'DataTablesScrollResize', plugin_dir_url(__FILE__) . 'vendors/DataTables/ScrollResize/dataTables.scrollResize.min.js', array() );
     wp_enqueue_script( 'DataTablesEllips', '//cdn.datatables.net/plug-ins/1.13.6/dataRender/ellipsis.js', array() );
@@ -424,24 +429,6 @@ function idemailwiz_enqueue_assets() {
 }
 
 
-//Add ACF options pages
-	if( function_exists('acf_add_options_page') ) {
-		
-		acf_add_options_page(array(
-			'page_title'    => 'Site Settings',
-			'menu_title'    => 'Site Settings',
-			'menu_slug'     => 'site-settings',
-			'capability'    => 'edit_posts',
-			'redirect'      => false
-		));
-		 acf_add_options_page(array(
-			'page_title'    => 'Code Repo',
-			'menu_title'    => 'Code Repo',
-			'menu_slug'     => 'code-repo',
-			'capability'    => 'edit_posts',
-			'redirect'      => false
-		));
-	}
 
 
 

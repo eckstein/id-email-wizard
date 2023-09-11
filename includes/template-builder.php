@@ -71,11 +71,11 @@ function idemailwiz_build_template() {
             }
         }
     } else {
-        echo '<div class="template-start-text"><strong>Choose a chunk to start building your layout here.</strong><br/><em>Hint: You can turn off the default header and footer sections from the settings tab.</em></div>';
+        echo '<div style="color: #343434; padding: 20px; margin-top: 20px; font-family: Arial, sans-serif; text-align: center;"><span style="font-size: 20px;"><strong>Choose a chunk to start building your layout here.</strong></span><br/><br/><em>Hint: You can turn off the default header and footer sections from the settings tab.</em></div>';
     }
 
     // Email footer
-    if ($templateSettings['id_tech_footer'] === true) {
+    if ($templateSettings['id_tech_footer'] == true) {
         include dirname(plugin_dir_path(__FILE__)) . '/templates/chunks/preview-footer.html';
     }
 
@@ -89,6 +89,7 @@ function idemailwiz_build_template() {
     // Output and terminate
     if (wp_doing_ajax()) {
         echo ob_get_clean();
+        echo '<div style="height: 100vh; color: #cdcdcd; padding: 20px; font-family: Arial, sans-serif; text-align: center; border-top: 2px dashed #fff;" class="scrollSpace"><em>The extra space below allows proper scrolling in the builder and will not appear in the template</em></div>';
         wp_die();
     } else {
         return ob_get_clean();

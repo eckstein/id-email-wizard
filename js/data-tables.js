@@ -456,7 +456,7 @@ jQuery(document).ready(function ($) {
                         },
                         didOpen: () => {
                         $('#initiative-select').select2({
-                            minimumInputLength: 3,
+                            minimumInputLength: 0,
                             placeholder: "Search initiatives...",
                             allowClear: true,
                             ajax: {
@@ -819,6 +819,7 @@ jQuery(document).ready(function ($) {
         var totalDelivered = sumColumn('unique_delivered');
         var totalOpens = sumColumn('unique_email_opens');
         var totalClicks = sumColumn('unique_email_clicks');
+        var totalUnsubs = sumColumn('unique_unsubscribes');
         var totalPurchases = sumColumn('unique_purchases'); 
         var totalRevenue = sumColumn('revenue'); 
 
@@ -826,6 +827,7 @@ jQuery(document).ready(function ($) {
         var openRate = calculateRatio(totalOpens, totalSends);
         var delivRate = calculateRatio(totalDelivered, totalSends);
         var clickRate = calculateRatio(totalClicks, totalSends);
+        var unsubRate = calculateRatio(totalUnsubs, totalSends);
         var cto = calculateRatio(totalClicks, totalOpens);
         var cvr = calculateRatio(totalPurchases, totalOpens);
 
@@ -841,6 +843,8 @@ jQuery(document).ready(function ($) {
             '<td><span class="metric_view_label">Clicks</span><span class="metric_view_value"> ' + totalClicks.toLocaleString() +  '</span></td>' +
             '<td><span class="metric_view_label">CTR</span><span class="metric_view_value"> ' + clickRate.toFixed(2) + '%' +  '</span></td>' +
             '<td><span class="metric_view_label">CTO</span><span class="metric_view_value"> ' + cto.toFixed(2) + '%' +  '</span></td>' +
+            '<td><span class="metric_view_label">Unsubs</span><span class="metric_view_value"> ' + totalUnsubs.toLocaleString() +  '</span></td>' +
+            '<td><span class="metric_view_label">Unsub. Rate</span><span class="metric_view_value"> ' + unsubRate.toFixed(2) + '%' +  '</span></td>' +
             '<td><span class="metric_view_label">Purchases</span><span class="metric_view_value"> ' + totalPurchases.toLocaleString() +
             '<td><span class="metric_view_label">Revenue</span><span class="metric_view_value"> $' + totalRevenue.toLocaleString() +
             '<td><span class="metric_view_label">CVR</span><span class="metric_view_value"> ' + cvr.toFixed(2) + '%' + '</span></td>' +
@@ -851,80 +855,11 @@ jQuery(document).ready(function ($) {
 
     } // End DT draw callback
     
-
-
-
-    // Sync buttons
+    // Sync Button
     $(document).on('click', '.sync-db', function() {
-
-
-        // Notice and logging
-        $('#wiztable_status_updates').addClass('active').slideDown();
-        $('#wiztable_status_updates .wiztable_update').text('Preparing database sync...');
-
-        // Sync all databases
-        $('#wiztable_status_updates .wiztable_update').html('Syncing databases, please wait... <i class="fa-solid fa-spin fa-rotate"></i>');
-        
-        
-        // Write initialization to log
-        idemailwiz_do_ajax(
-            "ajax_to_wiz_log",
-            idAjax_data_tables.nonce,
-            {
-                log_data: "Initializing database sync. Please wait a few moments...",
-                timestamp: true
-            },
-            function(result) {
-                $('#wiztable_status_sync_details').load(idAjax.plugin_url + '/sync-log.txt');
-            },
-            function(error) {
-                console.log(error);
-            }
-        );
-
-        // Refresh the log every 3 seconds
-
-        // Declare the interval variable
-        let refreshInterval;
-
-        // Function to refresh iframe content
-        const refreshIframeContent = () => {
-          $('#wiztable_status_sync_details').load(idAjax.plugin_url + '/sync-log.txt');
-        };
-
-        // Start refreshing every few seconds (e.g., every 3 seconds)
-        refreshInterval = setInterval(refreshIframeContent, 3000);
-
-        idemailwiz_do_ajax(
-            "idemailwiz_ajax_sync",
-            idAjax_data_tables.nonce,
-            {},
-            function(result) {
-                clearInterval(refreshInterval);
-                $('#wiztable_status_updates .wiztable_update').text('Sync completed! Refresh the table for new data');
-                $('#wiztable_status_sync_details').load(idAjax.plugin_url + '/sync-log.txt');
-            },
-            function(error) {
-                console.log(error);
-                clearInterval(refreshInterval);
-                $('#wiztable_status_updates .wiztable_update').text('ERROR: Sync process failed with message: ' + error);
-                $('#wiztable_status_sync_details').load(idAjax.plugin_url + '/sync-log.txt');
-            }
-        );
-
-
-
+        handle_idwiz_sync_buttons("idemailwiz_ajax_sync", idAjax_data_tables.nonce);
     });
 
-    // Sync log toggle
-    $(document).on('click', '.wiztable_view_sync_details', function() {
-        $('#wiztable_status_sync_details').slideToggle();
-        $(this).find('i').toggleClass('fa-chevron-down fa-chevron-up');
-    });
-
-
-   
-
-
+    
 
 });

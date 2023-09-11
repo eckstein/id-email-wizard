@@ -7,7 +7,7 @@ jQuery(document).ready(function ($) {
 		PROMOTIONAL_FROM_EMAIL: "info@idtechonline.com",
 		API_KEY: '282da5d7dd77450eae45bdc715ead2a4',
 	};
-
+	var existingTemplateId = $('#templateUI').data('iterableid');
 	// Main click event handler
 	$("#sendToIterable").on("click", function () {
 		const post_id = $(this).data("postid");
@@ -17,7 +17,8 @@ jQuery(document).ready(function ($) {
 		$.post(idAjax.ajaxurl, {
 			action: "idemailwiz_get_template_data_for_iterable",
 			security: idAjax_iterable_actions.nonce,
-			post_id: post_id
+			post_id: post_id,
+			template_id: existingTemplateId
 		})
 		.done(data => {
 			if (data.status === "error") {
@@ -39,6 +40,7 @@ jQuery(document).ready(function ($) {
 
 	// Success handling function for getting template data
 	function handleTemplateDataSuccess(data) {
+		var existingTemplateId = $('#templateUI').data('iterableid');
 		const fieldsToList = Object.entries(data.fields)
 			.filter(([key]) => key !== "postId")
 			.map(([key, value]) => {
@@ -46,12 +48,19 @@ jQuery(document).ready(function ($) {
 				return `<li><strong>${key}</strong>: ${val}</li>`;
 			})
 			.join("");
-
+		console.log(data);
 		const fieldList = `<ul style="text-align: left;">${fieldsToList}</ul>`;
-		const existingTemplateId = $('#templateUI').data('iterableid');
-		const existingTemplateMessage = existingTemplateId ? 
-			`Currently synced to template <a target="_blank" href="https://app.iterable.com/templates/editor?templateId=${existingTemplateId}">${existingTemplateId}</a>.` : 
-			'Enter an existing template ID or leave blank to create a new base template.';
+		var existingTemplateMessage = 'Enter an existing template ID or leave blank to create a new base template.';
+		if (existingTemplateId) {
+			console.log('existing template');
+			if (data.alreadySent == true) {
+				console.log('already sent');
+				var existingTemplateMessage = `The campaign attached to template <a target="_blank" href="https://app.iterable.com/templates/editor?templateId=${existingTemplateId}">${existingTemplateId}</a> has already been sent! Click OK below to create a new template in Iterable.`
+				existingTemplateId = '';
+			} else {
+				var existingTemplateMessage = `Currently synced to template <a target="_blank" href="https://app.iterable.com/templates/editor?templateId=${existingTemplateId}">${existingTemplateId}</a>.`;
+			}
+		}
 
 		Swal.fire({
 			title: "Confirm Sync Details",
@@ -64,7 +73,7 @@ jQuery(document).ready(function ($) {
 			inputPlaceholder: 'Leave blank to create new base template',
 		}).then((result) => {
 			if (result.isConfirmed) {
-				create_or_update_iterable_template(data.fields, result.value)
+				create_or_update_iterable_template(data.fields, result.value, data.alreadySent)
 					.then(handleTemplateUpdateSuccess)
 					.catch(handleTemplateUpdateFailure);
 			} else {
@@ -80,7 +89,7 @@ jQuery(document).ready(function ($) {
 			html: `Sync was successful!<br/><a style="text-decoration:underline;" href="https://app.iterable.com/templates/editor?templateId=${templateId}" target="_blank">Click here to go to Iterable template</a>.`,
 			showConfirmButton: true,
 		}).then(() => {
-			const currentUrl = window.location.href;
+			var currentUrl = window.location.href;
 			window.location.href = currentUrl;
 		});
 	}
@@ -91,12 +100,22 @@ jQuery(document).ready(function ($) {
 			title: "Sync failed!",
 			html: error,
 			icon: "error",
+		}).then(() => {
+			var currentUrl = window.location.href;
+			window.location.href = currentUrl;
 		});
 	}
 
 	// Function to create or update Iterable template
-	function create_or_update_iterable_template(templateData, existingTemplateId = null) {
+	function create_or_update_iterable_template(templateData, existingTemplateId = null, alreadySent = false) {
+		
 		return new Promise((resolve, reject) => {
+			// Check early if we're trying to update an already sent template and bail if so
+			if (existingTemplateId && alreadySent) {
+				reject("You cannot update an Iterable template attached to an already sent campaign!");
+				return;
+			}
+
 			const {
 				postId,
 				createdBy,

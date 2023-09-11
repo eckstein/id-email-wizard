@@ -1,50 +1,29 @@
 jQuery(document).ready(function ($) {
 
-    //Save the Initiative title when updated
-    $(document).on('change', '#initiative-title-editable', function() {
-        var initID = $('.wizinitiative_single').attr('data-initiativeid');
-        var value= $(this).val();
-        $.ajax({
-            type: "POST",
-            url: idAjax.ajaxurl,
-            data: {
-                action: 'idemailwiz_save_initiative_update',
-                initID: initID,
-                updateContent: value,
-                updateType: 'title',
-                security: idAjax_initiatives.nonce,
-            },
-            success: function (result) {
-                console.log(result);
-            },
-            error: function (xhr, status, error) {
-                console.log(error);
-            }
-        });	
+    // Handle both title and content updates for initiatives
+    $(document).on('change', '[data-initUpdateType]', function() {
+        const initID = $('.single-idwiz_initiative article').attr('data-initiativeid');
+        const value = $(this).val();
+        const updateType = $(this).attr('data-initUpdateType');
+        const nonceValue = idAjax_initiatives.nonce;
+
+        const additionalData = {
+            initID: initID,
+            updateContent: value,
+            updateType: updateType
+        };
+
+        const successCallback = function(result) {
+            console.log(result);
+        };
+
+        const errorCallback = function(xhr, status, error) {
+            console.log(error);
+        };
+
+        idemailwiz_do_ajax('idemailwiz_save_initiative_update', nonceValue, additionalData, successCallback, errorCallback);
     });
 
-    //Save the Initiative title when updated
-    $(document).on('change', '#initiative-content-editable', function() {
-        var initID = $('.wizinitiative_single').attr('data-initiativeid');
-        var value= $(this).val();
-        $.ajax({
-            type: "POST",
-            url: idAjax.ajaxurl,
-            data: {
-                action: 'idemailwiz_save_initiative_update',
-                initID: initID,
-                updateContent: value,
-                updateType: 'content',
-                security: idAjax_initiatives.nonce,
-            },
-            success: function (result) {
-                console.log(result);
-            },
-            error: function (xhr, status, error) {
-                console.log(error);
-            }
-        });	
-    });
 
     // Fill our summary table on page load
     // Initialize variables for totals
@@ -99,9 +78,9 @@ jQuery(document).ready(function ($) {
     }
     });
 
-    // Select2 for campaigns search/select
+    // Select2 for init search/select
     $('.initCampaignSelect').select2({
-    minimumInputLength: 3,
+    
     multiple: true,
     ajax: {
         delay: 250,
@@ -124,7 +103,6 @@ jQuery(document).ready(function ($) {
         }
     }
     });
-
 
 
     // Toggle the add campaign form/button
@@ -313,6 +291,8 @@ jQuery(document).ready(function ($) {
 
         }
 
+        
+
     }
 
     
@@ -449,31 +429,12 @@ jQuery(document).ready(function ($) {
             // Readjust the column widths on each draw
              api.columns.adjust();
             
-            // Initiative campaigns sync
-            $('.sync-initiative').on('click', function() {
-                idwiz_sync_initiative();
-            })
             
-            function idwiz_sync_initiative() {
+            // Sync initiative campaigns
+            $('.sync-initiative').on('click', function() {
                 var campaignIds = JSON.parse($('#idemailwiz_initiative_campaign_table').attr('data-campaignids'));
-                idemailwiz_do_ajax(
-                    "idemailwiz_ajax_sync",
-                    idAjax_initiatives.nonce,
-                    {
-                        campaignIds: JSON.stringify(campaignIds)
-                    },
-                    function(result) {
-                        $('#wiztable_status_updates .wiztable_update').text('Sync completed! Refresh the table for new data');
-                        $('#wiztable_status_sync_details').load(idAjax.plugin_url + '/sync-log.txt');
-                    },
-                    function(error) {
-                        console.log(error);
-                        $('#wiztable_status_updates .wiztable_update').text('ERROR: Sync process failed with message: ' + error);
-                        $('#wiztable_status_sync_details').load(idAjax.plugin_url + '/sync-log.txt');
-                    }
-                );
-            }
-
+                handle_idwiz_sync_buttons("idemailwiz_ajax_sync", idAjax_initiatives.nonce, { campaignIds: JSON.stringify(campaignIds) });
+            });
            
 
 

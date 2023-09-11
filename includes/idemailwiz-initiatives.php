@@ -95,14 +95,15 @@ add_action('wp_ajax_idemailwiz_save_initiative_update', 'idemailwiz_save_initiat
 function idemailwiz_get_campaigns_for_select() {
   check_ajax_referer('initiatives', 'security');
 
-  $all_campaigns = get_idwiz_campaigns();
+  $all_campaigns = get_idwiz_campaigns(array('sortBy'=>'startAt', 'sort'=>'DESC'));
   $search = isset($_POST['q']) ? $_POST['q'] : '';
   $exclude_ids = isset($_POST['exclude']) ? $_POST['exclude'] : array(); // Get the exclude parameter
 
-  $filtered_campaigns = array_filter($all_campaigns, function($campaign) use ($search, $exclude_ids) {
-    return strpos(strtolower(trim($campaign['name'])), strtolower(trim($search))) !== false
+$filtered_campaigns = array_filter($all_campaigns, function($campaign) use ($search, $exclude_ids) {
+    return ($search === '' || strpos(strtolower(trim($campaign['name'])), strtolower(trim($search))) !== false)
         && !in_array($campaign['id'], $exclude_ids); // Exclude campaigns with specified IDs
-  });
+});
+
 
   $data = array_map(function($campaign) {
     return array('id' => $campaign['id'], 'text' => $campaign['name']);
@@ -184,6 +185,8 @@ function idemailwiz_manage_campaign_initiative_relationship($action, $campaignID
             if (idemailwiz_add_campaign_initiative_relationship($campaignID, $initiativeID)) {
                 $response['success'] = true;
                 $response['message'] = 'Successfully added campaign to initiative.';
+                // Update the image meta field
+                idwiz_save_campaign_assets_to_initiative($initiativeID);
             } else {
                 $response['message'] = 'Failed to add campaign to initiative.';
             }
@@ -195,6 +198,8 @@ function idemailwiz_manage_campaign_initiative_relationship($action, $campaignID
             if (idemailwiz_remove_campaign_initiative_relationship($campaignID, $initiativeID)) {
                 $response['success'] = true;
                 $response['message'] = 'Successfully removed campaign from initiative.';
+                // Update the image meta field
+                idwiz_save_campaign_assets_to_initiative($initiativeID);
             } else {
                 $response['message'] = 'Failed to remove campaign from initiative.';
             }
@@ -205,6 +210,7 @@ function idemailwiz_manage_campaign_initiative_relationship($action, $campaignID
 
     return $response;
 }
+
 
 
 function idemailwiz_add_remove_campaign_from_initiative() {
@@ -261,3 +267,48 @@ function idemailwiz_add_remove_campaign_from_initiative() {
 }
 
 add_action('wp_ajax_idemailwiz_add_remove_campaign_from_initiative', 'idemailwiz_add_remove_campaign_from_initiative');
+
+// Runs when a campaign is added or removed from an initiative.
+// Adds or removes images URLs based on images found in each campaign template
+  function idwiz_save_campaign_assets_to_initiative($initiativeId) {
+      // Get the campaign IDs for the given initiative ID
+      $campaignIds = idemailwiz_get_campaign_ids_for_initiative($initiativeId);
+
+      // Extract image data for these campaign IDs
+      $allCampaignImageData = idwiz_extract_campaigns_images($campaignIds);
+
+      // De-duplicate the image data and flatten it into a single array
+      $uniqueImageData = [];
+      foreach ($allCampaignImageData as $campaignId => $imageData) {
+          foreach ($imageData as $data) {
+              $uniqueImageData[md5($data['src'] . $data['alt'])] = $data;
+          }
+      }
+
+      // Get the existing meta data, if any
+      $existingMetaData = get_post_meta($initiativeId, 'wizinitiative_assets', true);
+      if (!is_array($existingMetaData)) {
+          $existingMetaData = [];
+      }
+
+      // Compare existing meta data and new data, and update accordingly
+      $newKeys = array_keys($uniqueImageData);
+      $existingKeys = array_keys($existingMetaData);
+      $keysToAdd = array_diff($newKeys, $existingKeys);
+      $keysToRemove = array_diff($existingKeys, $newKeys);
+
+      // Remove entries
+      foreach ($keysToRemove as $key) {
+          unset($existingMetaData[$key]);
+      }
+
+      // Add new entries
+      foreach ($keysToAdd as $key) {
+          $existingMetaData[$key] = $uniqueImageData[$key];
+      }
+
+      // Update the custom meta field
+      update_post_meta($initiativeId, 'wizinitiative_assets', $existingMetaData);
+
+      return true;
+  }

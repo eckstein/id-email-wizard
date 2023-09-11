@@ -305,77 +305,6 @@ function idemailwiz_create_view() {
 
 
 
-//Camel case for database headers
-function to_camel_case($string) {
-    $string = str_replace('.', '_', $string); // Replace periods with underscores
-    $words = explode(' ', $string); // Split the string into words
-    $words = array_map('ucwords', $words); // Capitalize the first letter of each word
-    $camelCaseString = implode('', $words); // Join the words back together
-    return lcfirst($camelCaseString); // Make the first letter lowercase and return
-}
-
-
-
-
-// For the returned Template object from Iterable.
-// Flattens a multi-dimensional array into a single-level array by concatenating keys into a prefix string.
-// Skips values we don't want in the database. Limits 'linkParams' keys to 2 (typically utm_term and utm_content)
-function idemailwiz_simplify_templates_array($template) {
-
-        if (isset($template['metadata'])) {
-            // Extract the desired keys from the 'metadata' array
-            if (isset($template['metadata']['campaignId'])) {
-                $result['campaignId'] = $template['metadata']['campaignId'];
-            }
-            if (isset($template['metadata']['createdAt'])) {
-                $result['createdAt'] = $template['metadata']['createdAt'];
-            }
-            if (isset($template['metadata']['updatedAt'])) {
-                $result['updatedAt'] = $template['metadata']['updatedAt'];
-            }
-            if (isset($template['metadata']['clientTemplateId'])) {
-                $result['clientTemplateId'] = $template['metadata']['clientTemplateId'];
-            }
-        }
-
-        if (isset($template['linkParams'])) {
-            // Extract the desired keys from the 'linkParams' array
-            if (isset($template['linkParams'])) {
-                foreach ($template['linkParams'] as $linkParam) {
-                    if ($linkParam['key'] === 'utm_term') {
-                        $result['utmTerm'] = $linkParam['value'];
-                    }
-                    if ($linkParam['key'] === 'utm_content') {
-                        $result['utmContent'] = $linkParam['value'];
-                    }
-                }
-            }
-        }
-
-        
-            // Add the rest of the keys to the result
-            foreach ($template as $key => $value) {
-                if (!isset($template['message'])) { //if 'message' is set, it's an SMS, so this is for email
-                    // Skip the excluded keys and the keys we've already added
-                    $excludeKeys = array('plainText', 'cacheDataFeed', 'mergeDataFeedContext', 'utm_term', 'utm_content', 'createdAt', 'updatedAt', 'ccEmails', 'bccEmails', 'dataFeedIds');
-                } else {
-                    $excludeKeys = array('messageTypeId','trackingDomain','googleAnalyticsCampaignName');
-                }
-                if ($key !== 'metadata' && $key !== 'linkParams' && !in_array($key, $excludeKeys)) {
-                    $result[$key] = $value;
-                }
-            }
-        
-
-
-
-    return $result;
-}
-
-
-
-
-
 //Powers the sql query for the get_ functions for all databases
 function build_idwiz_query($args, $table_name) {
     global $wpdb;
@@ -417,7 +346,6 @@ function build_idwiz_query($args, $table_name) {
                 
                 if (($key === 'ids' || $key === 'campaignIds')) {  // Special case for array of campaign IDs
                     $campaignKey = 'id';
-    
                     $placeholders = implode(',', array_fill(0, count($value), '%d'));
     
                     if ($table_name == $wpdb->prefix . 'idemailwiz_purchases' 

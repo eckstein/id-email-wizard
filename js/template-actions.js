@@ -17,6 +17,10 @@ $(".templateTable").on('click', '.restore-template', async function (e) {
     id_restore_templates([post_id]);
 });
 
+// Select2 template search intitialize
+$(document).ready(function() {
+	initialize_select2_for_template_search();
+});
 
 
 
@@ -133,7 +137,7 @@ $(".templateTable").on('click', '.restore-template', async function (e) {
 
 	
 
-	// Add or remove click action 
+	// Add or remove favorite click action 
 	$(document).on('click', '.addRemoveFavorite', function(){
 	var object_id = $(this).attr('data-objectid');
 	var object_type = $(this).attr('data-objecttype');
@@ -162,8 +166,8 @@ $(".templateTable").on('click', '.restore-template', async function (e) {
 				 if (refreshElement) {
 					 var allRefreshes = refreshElement.split(',');
 					 $.each(allRefreshes, function(index, value) {
-					  // Do something with each value
 					  $.refreshUIelement(value);
+							
 					});
 					
 				  }

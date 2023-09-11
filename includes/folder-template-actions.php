@@ -186,13 +186,13 @@ function id_ajax_template_actions() {
 
 			// Loop through the users
 			foreach ($users as $user) {
-				$favorites = get_user_meta($user->ID, 'favorite_templates', true);
+				$favorites = get_user_meta($user->ID, 'idwiz_favorite_templates', true);
 
 				// If the template is in the user's favorites, remove it
 				if (is_array($favorites) && in_array($post_id, $favorites)) {
 					$key = array_search($post_id, $favorites);
 					unset($favorites[$key]);
-					update_user_meta($user->ID, 'favorite_templates', $favorites);
+					update_user_meta($user->ID, 'idwiz_favorite_templates', $favorites);
 				}
 			}
 
@@ -369,13 +369,13 @@ function id_delete_folder() {
 
         // Loop through the users
         foreach ($users as $user) {
-            $favorites = get_user_meta($user->ID, 'favorite_folders', true);
+            $favorites = get_user_meta($user->ID, 'idwiz_favorite_folders', true);
 
             // If the folder is in the user's favorites, remove it
             if (is_array($favorites) && in_array($folder_id, $favorites)) {
                 $key = array_search($folder_id, $favorites);
                 unset($favorites[$key]);
-                update_user_meta($user->ID, 'favorite_folders', $favorites);
+                update_user_meta($user->ID, 'idwiz_favorite_folders', $favorites);
             }
         }
 		
@@ -417,7 +417,7 @@ function add_remove_user_favorite() {
   }
 
   // Determine the meta key based on the object_type
-  $meta_key = 'favorite_' . strtolower($object_type) . 's'; // either 'favorite_templates' or 'favorite_folders'
+  $meta_key = 'idwiz_favorite_' . strtolower($object_type) . 's'; // either 'idwiz_favorite_templates' or 'idwiz_favorite_folders'
 
   $favorites = get_user_meta( get_current_user_id(), $meta_key, true );
 
