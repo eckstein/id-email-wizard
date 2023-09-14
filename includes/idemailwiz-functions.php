@@ -167,7 +167,7 @@ add_action('wp_ajax_idemailwiz_get_templates_for_select', 'idemailwiz_get_templa
 function idemailwiz_get_initiatives_for_select() {
   check_ajax_referer('data-tables', 'security');
 
-  $searchTerm = $_POST['q'];
+  $searchTerm = $_POST['q'] ?? '';
 
   $allInitiatives = get_posts(array('post_type'=>'idwiz_initiative', 'posts_per_page'=>-1, 's'=>$searchTerm));
   $data = [];
@@ -547,7 +547,10 @@ function generate_idwizcampaign_heatmap_overlay($csv_file) {
 
 
 // Extract Image URLs and alt values from a set of campaigns
-  function idwiz_extract_campaigns_images($campaignIds) {
+  function idwiz_extract_campaigns_images($campaignIds = []) {
+      if (!$campaignIds || empty($campaignIds)) {
+        return array();
+      }
       // Initialize an array to store image data for all campaigns
       $allCampaignImageData = [];
 
@@ -580,7 +583,150 @@ function generate_idwizcampaign_heatmap_overlay($csv_file) {
       return $allCampaignImageData;
   }
 
+  function idwiz_generate_dynamic_rollup() {
+    if (!isset($_POST['campaignIds'])){
+      return;
+    }
+    $syncButton = false;
+    if (isset($_POST['syncButton']) && $_POST['syncButton'] != false) {
+      $syncButton = true;
+    }
+    $fields = $_POST['fields'] ?? array();
+    echo generate_idwiz_rollup_row($_POST['campaignIds'], $fields, $syncButton);
+    wp_die();
+  }
 
+  add_action('wp_ajax_idwiz_generate_dynamic_rollup', 'idwiz_generate_dynamic_rollup');
+
+  function generate_idwiz_rollup_row($campaignIds, $fields, $syncButton = false) {
+      if (!$campaignIds) {
+          return false;
+      }
+
+      // Use the aggregate function to get the processed metrics
+      $aggregatedMetrics = idemailwiz_calculate_aggregate_metrics($campaignIds);
+
+      $displayMetrics = [];
+
+      // Initialize $displayMetrics based on the order of $fields
+      foreach ($fields as $column => $info) {
+          if (array_key_exists($column, $aggregatedMetrics) || isset($fields[$column])) {
+              $value = array_key_exists($column, $aggregatedMetrics) ? $aggregatedMetrics[$column] : 0;
+              $displayMetrics[] = [
+                  'label' => $info['label'],
+                  'value' => $value,
+                  'format' => $info['format'] // valid values are num, perc, and money
+              ];
+          }
+      }
+      if ($syncButton) {
+        $displayMetrics[] = [
+          'label' => 'Sync',
+          'value' => $syncButton,
+          'format' => false
+        ];
+      }
+
+      $html = '<div class="wiztable_view_metrics_div">';
+      foreach ($displayMetrics as $metric) {
+          $formattedValue = idwiz_format_rollup_row_values($metric['value'], $metric['format']);
+          $html .= '<div class="metric-item">';
+          $html .= "<span class='metric-label'>{$metric['label']}</span>";
+          $html .= "<span class='metric-value'>{$formattedValue}</span>";
+          $html .= '</div>'; // End of metric-item
+      }
+      $html .= '</div>'; // End of wiztable_view_metrics_div
+
+
+      return $html;
+  }
+
+
+
+  // Function to format the value based on its format type
+  function idwiz_format_rollup_row_values($value, $format) {
+      switch ($format) {
+          case 'num':
+              return number_format($value, 0, '.', ',');
+          case 'perc':
+              return number_format($value, 2) . '%';
+          case 'money':
+              return '$' . number_format($value, 2, '.', ',');
+          default:
+              return $value;
+      }
+  }
+
+
+  // Calculate aggregate percentage metrics for multiple campaigns
+  function idemailwiz_calculate_aggregate_metrics($campaignIds) {
+
+      $metricsArray = get_idwiz_metrics(array('ids' => $campaignIds));
+
+      // Initialize aggregate metrics
+      $aggregateMetrics = [
+          'uniqueEmailSends' => 0,
+          'uniqueEmailsDelivered' => 0,
+          'uniqueEmailOpens' => 0,
+          'uniqueEmailClicks' => 0,
+          'uniqueUnsubscribes' => 0,
+          'totalComplaints' => 0,
+          'uniquePurchases' => 0,
+          'revenue' => 0
+      ];
+
+      // Sum up the metrics across all campaigns
+      foreach ($metricsArray as $metrics) {
+          foreach ($aggregateMetrics as $key => $value) {
+              if (isset($metrics[$key])) {
+                  $aggregateMetrics[$key] += $metrics[$key];
+              }
+          }
+      }
+
+      // Perform calculations
+      $sendValue = (float)$aggregateMetrics['uniqueEmailSends'];
+      $deliveredValue = (float)$aggregateMetrics['uniqueEmailsDelivered'];
+      $clicksValue = (float)$aggregateMetrics['uniqueEmailClicks'];
+      $unsubscribesValue = (float)$aggregateMetrics['uniqueUnsubscribes'];
+      $complaintsValue = (float)$aggregateMetrics['totalComplaints'];
+      $purchasesValue = (float)$aggregateMetrics['uniquePurchases'];
+      $revenueValue = (float)$aggregateMetrics['revenue'];
+
+      if ($sendValue > 0) {
+          $aggregateMetrics['wizDeliveryRate'] = ($deliveredValue / $sendValue) * 100;
+          $aggregateMetrics['wizCtr'] = ($clicksValue / $sendValue) * 100;
+          $aggregateMetrics['wizUnsubRate'] = ($unsubscribesValue / $sendValue) * 100;
+          $aggregateMetrics['wizCompRate'] = ($complaintsValue / $sendValue) * 100;
+          $aggregateMetrics['wizCvr'] = ($purchasesValue / $sendValue) * 100;
+      } else {
+          $aggregateMetrics['wizCtr'] = 0;
+          $aggregateMetrics['wizUnsubRate'] = 0;
+          $aggregateMetrics['wizCompRate'] = 0;
+          $aggregateMetrics['wizCvr'] = 0;
+      }
+
+      if ($purchasesValue > 0) {
+          $aggregateMetrics['wizAov'] = ($revenueValue / $purchasesValue);
+      } else {
+          $aggregateMetrics['wizAov'] = 0;
+      }
+
+      // Open metrics
+      $opensValue = (float)$aggregateMetrics['uniqueEmailOpens'];
+      if ($opensValue > 0) {
+          $aggregateMetrics['wizOpenRate'] = ($opensValue / $sendValue) * 100;
+          $aggregateMetrics['wizCto'] = ($clicksValue / $opensValue) * 100;
+      } else {
+          $aggregateMetrics['wizOpenRate'] = 0;
+          $aggregateMetrics['wizCto'] = 0;
+      }
+
+      // Count total campaigns in this group
+      $aggregateMetrics['campaignCount'] = count($campaignIds);
+
+      return $aggregateMetrics;
+  }
 
 
   ?>

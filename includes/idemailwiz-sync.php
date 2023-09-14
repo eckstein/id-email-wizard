@@ -1061,20 +1061,22 @@ add_action('wp_ajax_ajax_to_wiz_log', 'ajax_to_wiz_log');
 function idemailwiz_calculate_metrics($metrics) {
 
     $campaignIdKey = 'id';
-    // Check if this is an experiment metrics object
+
     if (isset($metrics['confidence'])) { // Only experiments have the 'confidence' key (since Iterable gives us no other way to check)
+        // If this is an experiment, we look in the campaignId column instead of the id column
         $campaignIdKey = 'campaignId';
     } 
 
+    // Get the campaign using the campaignId from the passed metrics
     $wiz_campaign = get_idwiz_campaign($metrics[$campaignIdKey]);
 
     // Campaign must already be in database for metrics to be added/updated
-    if ($wiz_campaign) {
-        // Check the campaign medium
-        $medium = $wiz_campaign['messageMedium'];
-    } else {
+    if (!$wiz_campaign) {
         return false;
     }
+
+    // Check the campaign medium
+    $medium = $wiz_campaign['messageMedium'];
 
     // Required fields for Email
     $requiredFields = ['uniqueEmailSends', 'uniqueEmailsDelivered', 'uniqueEmailOpens', 'uniqueEmailClicks', 'uniqueUnsubscribes', 'totalComplaints', 'uniquePurchases', 'revenue'];

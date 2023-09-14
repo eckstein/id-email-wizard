@@ -10,8 +10,7 @@
     <div id="wiztable_status_sync_details">Sync log will show here...</div>
 </header>
 <div class="entry-content idemailwiz_table_wrapper" itemprop="mainContentOfPage">
-    
-    <div id="wiztable_view_metrics"></div>
+    <div class="wiztable_view_metrics_div" id="campaigns-table-rollup">Loading rollup summary...</div>
     <div class="idemailwiz_table_container">
         <div id="idemailwiz_tableLoader">Loading table...<br/><img src="http://localhost/wp-content/uploads/2023/08/animated_loader_gif_n6b5x0.gif"></div>
         <table class="idemailwiz_table display" id="idemailwiz_campaign_table" style="width: 100%; vertical-align: middle" valign="middle" width="100%" ></table>

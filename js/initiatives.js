@@ -121,42 +121,72 @@ jQuery(document).ready(function ($) {
 
     if (action === 'remove') {
         campaignIDs = [$(this).data('campaignid')];
-        var isConfirmed = window.confirm("Are you sure you want to remove this campaign?");
-        if (!isConfirmed) {
-            return;  // User canceled the action
-        }
+    
+        // Swal2 Confirm dialog
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "Do you want to remove this campaign?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, remove it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Send an AJAX request to update the database
+                idemailwiz_do_ajax(
+                    'idemailwiz_add_remove_campaign_from_initiative',
+                    idAjax_initiatives.nonce,
+                    {
+                        campaign_ids: campaignIDs,
+                        initiative_id: initiativeID,
+                        campaignAction: action,
+                    },
+                    function(response) {
+                        // Detailed response for debugging
+                        console.log(response);
+
+                        // User-friendly alert message based on overall success
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: 'Campaigns successfully added!'
+                            }).then(() => {
+                                setTimeout(function() { window.location.reload(); }, 500);
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Some campaigns could not be processed. Check the console for details.'
+                            });
+                            console.error("Detailed messages:", response.data.messages);
+                        }
+                    },
+                    function(error) {
+                        // Error handling
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'An error occurred. Check the console for details.'
+                        });
+                        console.error("Failed to make call to update function", error);
+                    }
+
+                );
+            }
+        }).catch((error) => {
+            // Handle any Swal2 errors here
+            console.error("Swal2 error:", error);
+        });
+    
     } else {
         campaignIDs = $('.initCampaignSelect').val();
     }
 
-    // Send an AJAX request to update the database
-    idemailwiz_do_ajax(
-        'idemailwiz_add_remove_campaign_from_initiative',
-        idAjax_initiatives.nonce,
-        {
-            campaign_ids: campaignIDs,
-            initiative_id: initiativeID,
-            campaignAction: action,
-        },
-        function(response) {
-            // Detailed response for debugging
-            console.log(response);
 
-            // User-friendly alert message based on overall success
-            if (response.success) {
-                alert("Campaigns succesfully added!");
-                setTimeout(function() { window.location.reload(); }, 500);
-            } else {
-                alert("Some campaigns could not be processed. Check the console for details.");
-                console.error("Detailed messages:", response.data.messages);
-            }
-        },
-        function(error) {
-            // Error handling
-            alert("An error occurred. Check the console for details.");
-            console.error("Failed to make call to update function", error);
-        }
-    );
+    
 
 
 });
@@ -173,7 +203,7 @@ jQuery(document).ready(function ($) {
             scrollX: true,
             scrollY: true,
             paging: true,
-			pageLength: 25,
+			pageLength: 10,
             select: true,
 			fixedHeader: {
                 header: true,
@@ -305,7 +335,7 @@ jQuery(document).ready(function ($) {
         };
 
 		var idemailwiz_initiative_campaign_table = $('#idemailwiz_initiative_campaign_table').DataTable({
-			dom: '<"#wiztable_top_wrapper"><"wiztable_toolbar" <"#wiztable_top_search" f><"#wiztable_top_dates">  B>tp',
+			dom: '<"#wiztable_top_wrapper"><"wiztable_toolbar" <"#wiztable_top_search" f><"#wiztable_top_dates">  B>tlp',
             columns: [ 
                 { type: 'date-mdy' }, 
                 {
@@ -327,7 +357,7 @@ jQuery(document).ready(function ($) {
 			scrollX: true,
             scrollY: true,
             paging: true,
-			pageLength: 25,
+			pageLength: 10,
             select: true,
 			fixedHeader: {
                 header: true,
@@ -338,15 +368,6 @@ jQuery(document).ready(function ($) {
             },
 			buttons: [
                 
-
-                {
-                    text: '<i class="fa-solid fa-rotate"></i>',
-                    className: 'sync-initiative wiz-dt-button',
-                    attr:  {
-                        "data-sync-db": 'initiative',
-                    },
-                    autoClose: true,
-                },
                 {
 					extend: 'collection',
 					text: '<i class="fa-solid fa-file-arrow-down"></i>',
@@ -375,45 +396,54 @@ jQuery(document).ready(function ($) {
                         'title': 'Remove from initiative',
                     },
                     action: function(e, dt, node, config) {
-                        // Confirm dialog
-                        let isConfirmed = confirm("Remove these campaigns from the initiative?");
-                        if (!isConfirmed) {
-                            return; // Exit the function if user clicked "Cancel"
-                        }
+                        // Swal2 Confirm dialog
+                        Swal.fire({
+                            title: 'Are you sure?',
+                            text: "Remove these campaigns from the initiative?",
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#3085d6',
+                            cancelButtonColor: '#d33',
+                            confirmButtonText: 'Yes, remove them!'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                // The code for when the user confirms
+                                let selectedInitiative = $('#content article').attr('data-initiativeid');
+                                let selectedRowIndices = dt.rows({ selected: true }).indexes().toArray();
 
-                        // Get initiative ID
-                        let selectedInitiative = $('#content article').attr('data-initiativeid');
+                                let selectedCampaignIds = selectedRowIndices.map(index => {
+                                    let rowNode = dt.row(index).node();
+                                    return $(rowNode).attr('data-campaignid') || dt.cell(index, 'campaign_id:name').data();
+                                });
 
-                        // Retrieve selected row indices
-                        let selectedRowIndices = dt.rows({ selected: true }).indexes().toArray();
-
-                        // Extract campaign IDs from selected rows (using tr data attribute)
-                        let selectedCampaignIds = selectedRowIndices.map(index => {
-                            let rowNode = dt.row(index).node();
-                            return $(rowNode).attr('data-campaignid') || dt.cell(index, 'campaign_id:name').data();
-                        });
-
-
-                        idemailwiz_do_ajax(
-                            'idemailwiz_add_remove_campaign_from_initiative',
-                            idAjax_initiatives.nonce,
-                            {
-                                initiative_id: selectedInitiative,
-                                campaign_ids: selectedCampaignIds,
-                                campaignAction: 'remove',
-                            },
-                            function(successData) {
-                                console.log(successData);
-                                setTimeout(function() { window.location.reload(); }, 500);
-                            },
-                            function(errorData) {
-                                // Handle error
-                                console.error("Failed to remove campaigns from initiative", errorData);
-                                alert('Error removing campaign(s). Try refreshing the page and trying again.');
+                                idemailwiz_do_ajax(
+                                    'idemailwiz_add_remove_campaign_from_initiative',
+                                    idAjax_initiatives.nonce,
+                                    {
+                                        initiative_id: selectedInitiative,
+                                        campaign_ids: selectedCampaignIds,
+                                        campaignAction: 'remove',
+                                    },
+                                    function(successData) {
+                                        console.log(successData);
+                                        setTimeout(function() { window.location.reload(); }, 500);
+                                    },
+                                    function(errorData) {
+                                        // Handle error
+                                        console.error("Failed to remove campaigns from initiative", errorData);
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Error',
+                                            text: 'Error removing campaign(s). Try refreshing the page and trying again.'
+                                        });
+                                    }
+                                );
                             }
-                        );
+                        }).catch((error) => {
+                            // Handle any Swal2 errors here
+                            console.error("Swal2 error:", error);
+                        });
                     }
-
                 },
 			],
 			 language: {
@@ -432,7 +462,8 @@ jQuery(document).ready(function ($) {
             
             // Sync initiative campaigns
             $('.sync-initiative').on('click', function() {
-                var campaignIds = JSON.parse($('#idemailwiz_initiative_campaign_table').attr('data-campaignids'));
+                //var campaignIds = JSON.parse($('#idemailwiz_initiative_campaign_table').attr('data-campaignids'));
+                let campaignIds = $(this).data("initids");
                 handle_idwiz_sync_buttons("idemailwiz_ajax_sync", idAjax_initiatives.nonce, { campaignIds: JSON.stringify(campaignIds) });
             });
            

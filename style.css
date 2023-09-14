@@ -67,6 +67,8 @@ article.wiz_dashboard .entry-content {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
   gap: 20px; /* Spacing between grid items */
+  margin-bottom: 30px;
+  width: 100%;
 }
 
 /* Individual grid items */
@@ -1045,7 +1047,46 @@ body.single-idemailwiz_template #content {
 	}
 
  
-  
+  /* Metrics Rollup flex-table display */
+	.wiztable_view_metrics_div {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	margin-bottom: 20px;
+	}
+
+	.metric-item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	min-width: 100px; /* You can adjust this value */
+	max-width: 200px; /* You can adjust this value */
+	margin: 5px;
+	padding: 10px;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	background-color: #fff;
+	}
+	.metric-item.highlight {
+		background-color: #7dea91;
+	}
+
+	.metric-label {
+		font-size: 12px;
+		text-align: center;
+		font-weight: bold;
+	}
+	.metric-value {
+		font-size: 14px;
+		margin: 0;
+		padding: 0;
+		text-align: center;
+	}
+
+
+
+
   /* Table header styles */
   .idemailwiz_table th {
 	background-color: #343434!important;
@@ -1115,9 +1156,7 @@ body.single-idemailwiz_template #content {
 	.dtsb-value.dtsb-input {
 		width: auto!important;
 	}
-	#wiztable_view_metrics {
-		text-align: center;
-	}
+
 		.experiment_var_wrapper {
 			border: 1px solid #eee;
 			display: flex;
@@ -1132,36 +1171,7 @@ body.single-idemailwiz_template #content {
 		.experiment_var_wrapper.winner {
 			background-color: #c5deff;
 		}
-		.wiztable_view_metrics_table {
-			margin: 20px auto;
-		}
-		.experiment_var_wrapper .wiztable_view_metrics_table {
-			margin: 20px;
-		}
-		.wiztable_view_metrics_table td {
-			border: 1px solid #e5e5e5;
-			position: relative;
-			min-width: 100px;
-			background-color: #fff;
-		}
-		.wiztable_view_metrics_table td.highlight {
-			background-color: #94d40a;
-		}
-		.wiztable_view_metrics_table td .metric_view_label {
-			margin-bottom: 5px;
-			white-space: no-wrap;
-			text-align: center;
-			display: block;
-			font-size: .7em;
-			font-weight: bold;
-			color: #343434;
-			padding: 3px 10px;
-		}
-		.wiztable_view_metrics_table td .metric_view_value {
-			padding: 0 10px 5px 10px;
-			text-align: center;
-			display: block;
-		}
+		
 
 	.dt-buttons {
 		display: flex;
@@ -1216,6 +1226,8 @@ body.single-idemailwiz_template #content {
 			gap: 10px;
 			color: #aaaaaa;
 			cursor: pointer;
+			align-items: center;
+			margin-bottom: 20px;
 		}
 			.wizcampaign-section-icons .active {
 				color: #94d40a;
@@ -1275,6 +1287,9 @@ body.single-idemailwiz_template #content {
 	}
 		.wizcampaign-experiments .wizcampaign-experiment {
 			margin-bottom: 30px;
+		}
+		.wizcampaign-experiments .wizcampaign-experiment .wiztable_view_metrics_div {
+			margin-bottom: 0!important;
 		}
 		.wizcampaign-experiments textarea#experimentNotes {
 			border: 1px dotted #eee;
@@ -1443,9 +1458,7 @@ body.single-idemailwiz_template #content {
 .single-idwiz_initiative .initStatusIndicator i.active {
 	color: #94d40a;
 }
-.single-idwiz_initiative #initiative-campaigns-table {
-	margin-bottom: 30px;
-}
+
 .single-idwiz_initiative #initiative-campaigns-table > .wizcampaign-section{
 	width: 100%;
 	margin-top: 30px;
@@ -1454,7 +1467,9 @@ body.single-idemailwiz_template #content {
 		width: 100%;
 		max-height: 700px;
 	}
-
+#idemailwiz_initiative_campaign_table_length {
+	margin-top: 10px;
+}
 /* Init assets library container */
 .initAssetsLibrary {
   display: grid;
@@ -1548,6 +1563,9 @@ body.single-idemailwiz_template #content {
 	.initiative-add-campaign-form input {
 		width: 600px;
 		height: 300px;
+	}
+	.initiative-add-campaign .select2-selection {
+		margin-bottom: 10px;
 	}
 	.initiative-add-campaign-form .add-to-table {
 		margin-top: 10px;

@@ -180,7 +180,7 @@ function idemailwiz_manage_campaign_initiative_relationship($action, $campaignID
 
     $relationship_exists = idemailwiz_check_campaign_initiative_relationship($campaignID, $initiativeID);
 
-    if ($action === 'add') {
+    if ($action == 'add') {
         if (!$relationship_exists) {
             if (idemailwiz_add_campaign_initiative_relationship($campaignID, $initiativeID)) {
                 $response['success'] = true;
@@ -193,7 +193,7 @@ function idemailwiz_manage_campaign_initiative_relationship($action, $campaignID
         } else {
             $response['message'] = 'This campaign has already been added to the initiative!';
         }
-    } elseif ($action === 'remove') {
+    } elseif ($action == 'remove') {
         if ($relationship_exists) {
             if (idemailwiz_remove_campaign_initiative_relationship($campaignID, $initiativeID)) {
                 $response['success'] = true;
@@ -312,3 +312,24 @@ add_action('wp_ajax_idemailwiz_add_remove_campaign_from_initiative', 'idemailwiz
 
       return true;
   }
+
+add_action('wp_ajax_idwiz_get_initiative_titles', 'idwiz_get_initiative_titles');
+
+function idwiz_get_initiative_titles() {
+
+    // TODO: Add nonce verification and other security measures here
+
+    $initiative_ids = $_POST['initiative_ids'];
+    $links = [];
+
+    foreach($initiative_ids as $id) {
+        $title = get_the_title(intval($id));
+        $url = get_permalink(intval($id));
+        $links[$id] = '<a href="' . esc_url($url) . '">' . esc_html($title) . '</a>';
+    }
+
+    echo json_encode(['links' => $links]);
+
+    wp_die(); // Ensure to terminate immediately and return a proper response
+}
+

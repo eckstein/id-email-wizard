@@ -48,7 +48,7 @@ jQuery(document).ready(function ($) {
 				return `<li><strong>${key}</strong>: ${val}</li>`;
 			})
 			.join("");
-		console.log(data);
+		//console.log(data);
 		const fieldList = `<ul style="text-align: left;">${fieldsToList}</ul>`;
 		var existingTemplateMessage = 'Enter an existing template ID or leave blank to create a new base template.';
 		if (existingTemplateId) {

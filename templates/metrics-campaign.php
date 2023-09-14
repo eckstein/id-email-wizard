@@ -28,25 +28,160 @@ $purchases = get_idwiz_purchases(array('campaignId'=>$campaign_id));
 <div id="wiztable_status_sync_details">Sync log will show here...</div>
 </header>
 <div class="entry-content" itemprop="mainContentOfPage">
+    <?php
+    echo generate_idwiz_rollup_row(
+            array($campaign_id), 
+            array(
+                'uniqueEmailSends'=>array(
+                    'label'=>'Sends', 
+                    'format'=>'num',
+                ),
+                'uniqueEmailOpens'=>array(
+                    'label'=>'Opens', 
+                    'format'=>'num',
+                ),
+                'wizOpenRate'=>array(
+                    'label'=>'Open Rate', 
+                    'format'=>'perc',
+                ),
+                'uniqueEmailClicks'=>array(
+                    'label'=>'Clicks', 
+                    'format'=>'num',
+                ),
+                'wizCtr'=>array(
+                    'label'=>'CTR', 
+                    'format'=>'perc',
+                ),
+                'wizCto'=>array(
+                    'label'=>'CTO', 
+                    'format'=>'perc',
+                ),
+                'uniquePurchases'=>array(
+                    'label'=>'Purchases', 
+                    'format'=>'num',
+                ),
+                'revenue'=>array(
+                    'label'=>'Revenue', 
+                    'format'=>'money',
+                ),
+            ),
+        '<button class="wiz-button sync-campaign" data-campaignid="' . $campaign['id']. '"><i class="fa-solid fa-arrows-rotate"></i></button>'
+        ); 
+    ?>
+    <?php
+    //Check for experiments
+    $experiments = get_idwiz_experiments(array('campaignId'=>$campaign['id']));
+    
+    if ($experiments) {
+    ?>
+    <div class="wizcampaign-section inset wizcampaign-experiments">
+    <div class="wizcampaign-experiments-header">
+    <h2>Experiment Results</h2>
+    
+    </div>
+    <div class="wizcampaign-experiment-results">
+        <div class="wizcampaign-experiment-metrics">
+            <?php
+            // Define the metrics to be used with types
+            $metrics = [
+                'uniqueEmailSends' => ['label' => 'Sent', 'type' => 'number'],
+                'wizOpenRate' => ['label' => 'Open Rate', 'type' => 'percent'],
+                'wizCtr' => ['label' => 'CTR', 'type' => 'percent'],
+                'wizCto' => ['label' => 'CTO', 'type' => 'percent'],
+                'totalPurchases' => ['label' => 'Purchases', 'type' => 'number'],
+                'revenue' => ['label' => 'Revenue', 'type' => 'currency'],
+                'wizCvr' => ['label' => 'CVR', 'type' => 'percent'],
+                'wizAov' => ['label' => 'AOV', 'type' => 'currency'],
+                'wizUnsubRate' => ['label' => 'Unsub. Rate', 'type' => 'percent'],
+                'confidence' => ['label' => 'Confidence', 'type' => 'percent'],
+                'improvement' => ['label' => 'Improvement', 'type' => 'percent']
+            ];
+
+            // Calculate max values for each metric
+            $maxValues = [];
+            $topTwoUniqueValues = [];
+            foreach ($metrics as $key => $metric) {
+                $values = array_column($experiments, $key);
+                arsort($values);  // Sort in descending order
+                $uniqueValues = array_unique($values);
+                $topTwoUnique = array_slice($uniqueValues, 0, 2);
+                $topTwoUniqueValues[$key] = $topTwoUnique;
+
+                if (!in_array($key, array('uniqueEmailSends','wizUnsubRate'))) {
+                    $maxValues[$key] = max(array_column($experiments, $key));
+                } else if ($key == 'wizUnsubRate') {
+                    // For unsubs, we flip the max so we highlight the lowest
+                    $maxValues[$key] = min(array_column($experiments, $key));
+                } 
+            }
+
+            foreach ($experiments as $experiment) {
+                $winnerClass = $experiment['wizWinner'] ? 'winner' : '';
+                ?>
+                <div class="wizcampaign-experiment">
+                    <h4><?php echo $experiment['name']; ?></h4>
+                    <div class="experiment_var_wrapper <?php echo $winnerClass; ?>">
+                        <div class="wiztable_view_metrics_div">
+                            <?php
+                            foreach ($metrics as $key => $metric) {
+                                $value = $experiment[$key];
+                                $formattedValue = "";
+
+                                switch ($metric['type']) {
+                                    case 'number':
+                                        $formattedValue = number_format($value);
+                                        break;
+                                    case 'percent':
+                                        $formattedValue = number_format($value, 2) . "%";
+                                        break;
+                                    case 'currency':
+                                        $formattedValue = "$" . number_format($value, 0);
+                                        break;
+                                }
+
+                                $epsilon = 0.01; // smallest number above what we'll display as zero
+                                $highlightClass = '';
+                                if (isset($maxValues[$key]) && count($topTwoUniqueValues[$key]) > 1) {
+                                    // If both top two unique values are effectively zero, then don't highlight
+                                    if ($topTwoUniqueValues[$key][0] < $epsilon && $topTwoUniqueValues[$key][1] < $epsilon) {
+                                        $highlightClass = '';
+                                    } else {
+                                        $highlightClass = ($value == $maxValues[$key]) ? 'highlight' : '';
+                                    }
+                                }
+                            ?>
+                                <div class="metric-item <?php echo $highlightClass; ?>">
+                                    <span class="metric-label"><?php echo $metric['label']; ?></span>
+                                    <span class="metric-value"><?php echo $formattedValue; ?></span>
+                                </div>
+                            <?php } ?>
+                        </div>
+
+                        <div class="mark_as_winner">
+                            <button class="wiz-button" data-actiontype="<?php echo $winnerClass ? 'remove-winner' : 'add-winner'; ?>" data-experimentid="<?php echo $experiment['experimentId']; ?>" data-templateid="<?php echo $experiment['templateId']; ?>">
+                                <?php echo $winnerClass ? 'Winner!' : 'Mark as winner'; ?>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <?php
+            } // End of foreach loop
+            ?>
 
 
-
-  
-    <table class="wiztable_view_metrics_table">
-    <tr>
-        <td><span class="metric_view_label">Sent</span><span class="metric_view_value"><?php echo number_format($metrics['uniqueEmailSends']); ?></span></td>
-        <td><span class="metric_view_label">Open Rate</span><span class="metric_view_value"><?php echo number_format($metrics['wizOpenRate'], 2); ?>%</span></td>
-        <td><span class="metric_view_label">CTR</span><span class="metric_view_value"><?php echo number_format($metrics['wizCtr'], 2); ?></span></td>
-        <td><span class="metric_view_label">CTO</span><span class="metric_view_value"><?php echo number_format($metrics['wizCto'], 2); ?></span></td>
-        <td><span class="metric_view_label">Purchases</span><span class="metric_view_value"><?php echo number_format($metrics['totalPurchases']); ?></span></td>
-        <td><span class="metric_view_label">Revenue</span><span class="metric_view_value">$<?php echo number_format($metrics['revenue'], 2); ?></span></td>
-        <td><span class="metric_view_label">CVR</span><span class="metric_view_value"><?php echo number_format($metrics['wizCvr'], 2); ?>%</span></td>
-        <td><span class="metric_view_label">AOV</span><span class="metric_view_value">$<?php echo number_format($metrics['wizAov'], 2); ?></span></td>
-        <td><span class="metric_view_label">Unsub. Rate</span><span class="metric_view_value"><?php echo number_format($metrics['wizUnsubRate'], 2); ?>%</span></td>
-        <td><span class="metric_view_label">Sync</span><span class="metric_view_value"><button class="wiz-button sync-campaign" data-campaignid="<?php echo $campaign['id']; ?>"><i class="fa-solid fa-arrows-rotate"></i></button></span></td>
-    </tr>
-    </table>
+        </div>
+        <div class="wizcampaign-experiment-notes" data-experimentid="<?php echo $experiments[0]['experimentId']; ?>">
+            <h3>Experiment Notes</h3>
+            <?php $experimentNotes = $experiments[0]['experimentNotes'] ?? '';?>
+                <textarea id="experimentNotes" placeholder="Enter some notes about this experiment..."><?php echo $experimentNotes; ?></textarea>
+        </div>
+    </div>
+    </div>
+    <?php
+    }
+    ?>
     <div class="wizmodules">
+        
     <div class="wizcampaign-section inset" id="email-info">
     <h4>Purchases by Date</h4>
         <canvas class="purchByDate" data-chartid="purchasesByDate" data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>' data-charttype="bar"></canvas>
@@ -209,108 +344,7 @@ $purchases = get_idwiz_purchases(array('campaignId'=>$campaign_id));
 
 
     </div>
-    <?php
-    //Check for experiments
-    $experiments = get_idwiz_experiments(array('campaignId'=>$campaign['id']));
     
-    if ($experiments) {
-    ?>
-    <div class="wizcampaign-section inset wizcampaign-experiments">
-    <div class="wizcampaign-experiments-header">
-    <h2>Experiment Results</h2>
-    
-    </div>
-    <div class="wizcampaign-experiment-results">
-        <div class="wizcampaign-experiment-metrics">
-            <?php
-            // Define the metrics to be used with types
-            $metrics = [
-                'uniqueEmailSends' => ['label' => 'Sent', 'type' => 'number'],
-                'wizOpenRate' => ['label' => 'Open Rate', 'type' => 'percent'],
-                'wizCtr' => ['label' => 'CTR', 'type' => 'percent'],
-                'wizCto' => ['label' => 'CTO', 'type' => 'percent'],
-                'totalPurchases' => ['label' => 'Purchases', 'type' => 'number'],
-                'revenue' => ['label' => 'Revenue', 'type' => 'currency'],
-                'wizCvr' => ['label' => 'CVR', 'type' => 'percent'],
-                'wizAov' => ['label' => 'AOV', 'type' => 'currency'],
-                'wizUnsubRate' => ['label' => 'Unsub. Rate', 'type' => 'percent'],
-                'confidence' => ['label' => 'Confidence', 'type' => 'percent'],
-                'improvement' => ['label' => 'Improvement', 'type' => 'percent']
-            ];
-
-            // Calculate max values for each metric
-            $maxValues = [];
-            $topTwoUniqueValues = [];
-            foreach ($metrics as $key => $metric) {
-                $values = array_column($experiments, $key);
-                arsort($values);  // Sort in descending order
-                $uniqueValues = array_unique($values);
-                $topTwoUnique = array_slice($uniqueValues, 0, 2);
-                $topTwoUniqueValues[$key] = $topTwoUnique;
-
-                if (!in_array($key, array('uniqueEmailSends','wizUnsubRate'))) {
-                    $maxValues[$key] = max(array_column($experiments, $key));
-                } else if ($key == 'wizUnsubRate') {
-                    // For unsubs, we flip the max so we highlight the lowest
-                    $maxValues[$key] = min(array_column($experiments, $key));
-                } 
-            }
-
-            foreach ($experiments as $experiment) {
-                $winnerClass = $experiment['wizWinner'] ? 'winner' : '';
-                ?>
-                <div class="wizcampaign-experiment">
-                    <h4><?php echo $experiment['name']; ?></h4>
-                    <div class="experiment_var_wrapper <?php echo $winnerClass; ?>">
-                        <table class="wiztable_view_metrics_table">
-                            <tr>
-                                <?php
-                                foreach ($metrics as $key => $metric) {
-                                    $value = $experiment[$key];
-                                    $formattedValue = "";
-
-                                    switch ($metric['type']) {
-                                        case 'number':
-                                            $formattedValue = number_format($value);
-                                            break;
-                                        case 'percent':
-                                            $formattedValue = number_format($value, 2) . "%";
-                                            break;
-                                        case 'currency':
-                                            $formattedValue = "$" . number_format($value, 0);
-                                            break;
-                                    }
-                                    ?>
-                                        <td class="<?php echo (isset($maxValues[$key]) && $value == $maxValues[$key] && count($topTwoUniqueValues[$key]) > 1) ? 'highlight' : ''; ?>">
-                                        <span class="metric_view_label"><?php echo $metric['label']; ?></span>
-                                        <span class="metric_view_value"><?php echo $formattedValue; ?></span>
-                                    </td>
-                                <?php } ?>
-                            </tr>
-                        </table>
-                        <div class="mark_as_winner">
-                            <button class="wiz-button" data-actiontype="<?php echo $winnerClass ? 'remove-winner' : 'add-winner'; ?>" data-experimentid="<?php echo $experiment['experimentId']; ?>" data-templateid="<?php echo $experiment['templateId']; ?>">
-                                <?php echo $winnerClass ? 'Winner!' : 'Mark as winner'; ?>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <?php
-            } // End of foreach loop
-            ?>
-
-
-        </div>
-        <div class="wizcampaign-experiment-notes" data-experimentid="<?php echo $experiments[0]['experimentId']; ?>">
-            <h3>Experiment Notes</h3>
-            <?php $experimentNotes = $experiments[0]['experimentNotes'] ?? '';?>
-                <textarea id="experimentNotes" placeholder="Enter some notes about this experiment..."><?php echo $experimentNotes; ?></textarea>
-        </div>
-    </div>
-    </div>
-    <?php
-    }
-    ?>
 
     <div class="wizcampaign-template-area">
 

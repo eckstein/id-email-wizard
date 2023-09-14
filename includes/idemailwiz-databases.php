@@ -267,37 +267,41 @@ function idemailwiz_create_view() {
     global $wpdb;
     
     $sql = "
-    CREATE OR REPLACE VIEW idwiz_campaign_view AS
-    SELECT 
-        campaigns.id as campaign_id,
-        campaigns.type as campaign_type,
-        campaigns.messageMedium as message_medium,
-        campaigns.name as campaign_name,
-        campaigns.startAt as campaign_start,
-        campaigns.labels as campaign_labels,
-        campaigns.experimentIds as experiment_ids,
-        templates.subject as template_subject,
-        templates.preheaderText as template_preheader,
-        metrics.uniqueEmailSends as unique_email_sends,
-        metrics.uniqueEmailsDelivered as unique_delivered,
-        metrics.wizDeliveryRate as wiz_delivery_rate,
-        metrics.uniqueEmailOpens as unique_email_opens,
-        metrics.wizOpenRate as wiz_open_rate,
-        metrics.uniqueEmailClicks as unique_email_clicks,
-        metrics.wizCtr as wiz_ctr,
-        metrics.wizCto as wiz_cto,
-        metrics.uniqueUnsubscribes as unique_unsubscribes,
-        metrics.wizUnsubRate as wiz_unsub_rate,
-        metrics.uniquePurchases as unique_purchases,
-        metrics.wizCvr as wiz_cvr,
-        metrics.revenue as revenue
-    FROM 
-        " . $wpdb->prefix . "idemailwiz_campaigns AS campaigns
-    LEFT JOIN 
-        " . $wpdb->prefix . "idemailwiz_metrics AS metrics ON campaigns.id = metrics.id
-    LEFT JOIN 
-        " . $wpdb->prefix . "idemailwiz_templates AS templates ON campaigns.templateId = templates.templateId
-    WHERE metrics.uniqueEmailSends > 5
+        CREATE OR REPLACE VIEW idwiz_campaign_view AS
+        SELECT 
+            campaigns.id as campaign_id,
+            campaigns.type as campaign_type,
+            campaigns.messageMedium as message_medium,
+            campaigns.name as campaign_name,
+            campaigns.startAt as campaign_start,
+            campaigns.labels as campaign_labels,
+            campaigns.experimentIds as experiment_ids,
+            templates.subject as template_subject,
+            templates.preheaderText as template_preheader,
+            metrics.uniqueEmailSends as unique_email_sends,
+            metrics.uniqueEmailsDelivered as unique_delivered,
+            metrics.wizDeliveryRate as wiz_delivery_rate,
+            metrics.uniqueEmailOpens as unique_email_opens,
+            metrics.wizOpenRate as wiz_open_rate,
+            metrics.uniqueEmailClicks as unique_email_clicks,
+            metrics.wizCtr as wiz_ctr,
+            metrics.wizCto as wiz_cto,
+            metrics.uniqueUnsubscribes as unique_unsubscribes,
+            metrics.wizUnsubRate as wiz_unsub_rate,
+            metrics.uniquePurchases as unique_purchases,
+            metrics.wizCvr as wiz_cvr,
+            metrics.revenue as revenue,
+            GROUP_CONCAT(init_campaigns.initiativeId) as initiative_ids
+        FROM 
+            " . $wpdb->prefix . "idemailwiz_campaigns AS campaigns
+        LEFT JOIN 
+            " . $wpdb->prefix . "idemailwiz_metrics AS metrics ON campaigns.id = metrics.id
+        LEFT JOIN 
+            " . $wpdb->prefix . "idemailwiz_templates AS templates ON campaigns.templateId = templates.templateId
+        LEFT JOIN 
+            " . $wpdb->prefix . "idemailwiz_init_campaigns AS init_campaigns ON campaigns.id = init_campaigns.campaignId
+        WHERE metrics.uniqueEmailSends > 5
+        GROUP BY campaigns.id;
         ";
 
     $wpdb->query($sql);
@@ -533,9 +537,10 @@ function idwiz_get_campaign_table_view() {
     
 
     // Return data in JSON format
-    
-    echo json_encode($results);
+    $response = ['data' => $results];
+    echo json_encode($response);
     wp_die();
+
 }
 
 add_action('wp_ajax_idwiz_get_campaign_table_view', 'idwiz_get_campaign_table_view');
