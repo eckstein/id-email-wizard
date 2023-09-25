@@ -1,6 +1,6 @@
 jQuery(document).ready(function ($) {
 //Add a new folder
-$('#addNewFolder').on('click', function () {
+$('body').on('click', '#addNewFolder', function () {
     Swal.fire({
         title: 'Create New Folder',
         html: '<input type="text" id="new-folder-name" placeholder="Enter folder name"><br/>' +
@@ -9,7 +9,7 @@ $('#addNewFolder').on('click', function () {
         confirmButtonText: 'Create Folder',
         preConfirm: function () {
             return new Promise(function (resolve, reject) {
-                // Get the selected category ID
+                // Get the selected folder ID
                 var newFolderName = $('#new-folder-name').val();
                 var parentFolderId = $('#parent-folder').val();
 
@@ -27,72 +27,57 @@ $('#addNewFolder').on('click', function () {
             });
         },
         didOpen: function () {
-    // Generate a hierarchical list of all categories
-		$.ajax({
-			type: 'POST',
-			url: idAjax.ajaxurl,
-			data: {
-				action: 'id_generate_folders_select_ajax',
-                security: idAjax_folder_actions.nonce
-			},
-			success: function (response) {
-				console.log(response);
-				$('#parent-folder').append(response.data.options);
-			}
-		});
-	}
+            // Generate a hierarchical list of all folders
+            idemailwiz_do_ajax(
+                'id_generate_folders_select_ajax',
+                idAjax_folder_actions.nonce,
+                {},
+                function(response) {
+                    console.log(response);
+                    $('#parent-folder').append(response.data.options);
+                },
+                function(error) {
+                    console.log(error);
+                }
+            );
+        }
+
     }).then(function (result) {
         if (result.isConfirmed) {
-            // Make an AJAX request to create the new category
-            $.ajax({
-                type: 'POST',
-                url: idAjax.ajaxurl,
-                data: {
-                    action: 'id_add_new_folder',
+            // Make an AJAX request to create the new folder
+            idemailwiz_do_ajax(
+                'id_add_new_folder',
+                idAjax_folder_actions.nonce,
+                {
                     folder_name: result.value.folder_name,
-                    parent_folder: result.value.parent_folder,
-                    security: idAjax_folder_actions.nonce
+                    parent_folder: result.value.parent_folder
                 },
-                success: function (response) {
+                function(response) {
                     // Show a success message and update the select field
                     Swal.fire({
                         title: 'Folder Created!',
                         icon: 'success'
                     }).then(function () {
-                        // Refresh the UI element containing the list of categories
+                        // Refresh the UI element containing the list of folders
                         $.refreshUIelement('.folderList');
                         $.refreshUIelement('.templateTable');
                     });
                 },
-                error: function (jqXHR, textStatus, errorThrown) {
+                function(error) {
                     // Show an error message
                     Swal.fire({
                         title: 'Error!',
-                        text: jqXHR.responseText,
+                        text: error,
                         icon: 'error'
                     });
                 }
-            });
+            );
         }
     });
+
 });
 
 
-
-
-
-
-//Move folder to another folder
-$(document).on('click', '.moveFolder', function(e) {
-	e.preventDefault();
-	id_move_folder([$(this).attr('data-folderid')]);
-});
-
-//Delete a folder
-$('.deleteFolder').on('click', function () {
-    var folderId = $(this).data('folderid');
-    id_delete_folders([folderId]);
-});
 
 //Show and hide the sub-categories in the folder panel
   $('.showHideSubs').click(function(e) {
@@ -111,6 +96,21 @@ $('.deleteFolder').on('click', function () {
       $(this).removeClass('fa-angle-down').addClass('fa-angle-up');
     }
   });
+
+
+//Move folder to another folder
+$(document).on('click', '.moveFolder', function(e) {
+	e.preventDefault();
+	id_move_folder([$(this).attr('data-folderid')]);
+});
+
+//Delete a folder
+$('.deleteFolder').on('click', function () {
+    var folderId = $(this).data('folderid');
+    id_delete_folders([folderId]);
+});
+
+
 
 });
 
@@ -137,49 +137,50 @@ function id_move_folder(folderIDs) {
                 });
             });
         },
-		didOpen: function () {
-    // Generate a hierarchical list of all categories
-		jQuery.ajax({
-			type: 'POST',
-			url: idAjax.ajaxurl,
-			data: {
-				action: 'id_generate_folders_select_ajax',
-                security: idAjax_folder_actions.nonce
-			},
-			success: function (response) {
-				console.log(response);
-				jQuery('#moveToFolder').append(response.data.options);
-			}
-		});
-	}
+        didOpen: function () {
+            // Generate a hierarchical list of all categories
+            idemailwiz_do_ajax(
+                'id_generate_folders_select_ajax',
+                idAjax_folder_actions.nonce,
+                {},
+                function(response) {
+                    console.log(response);
+                    jQuery('#moveToFolder').append(response.data.options);
+                },
+                function(error) {
+                    console.log("Error: ", error);
+                }
+            );
+        }
+
 
     }).then(function(result) {
-		console.log(result);
+        console.log(result);
         if (result.isConfirmed) {
-            // Make an AJAX request to update the folder
-            jQuery.ajax({
-                type: 'POST',
-                url: idAjax.ajaxurl,
-                data: {
-                    action: 'id_move_folder',
+            idemailwiz_do_ajax(
+                'id_move_folder',
+                idAjax_folder_actions.nonce,
+                {
                     this_folder: result.value.this_folder,
-                    move_into: result.value.move_into,
-                    security: idAjax_folder_actions.nonce
+                    move_into: result.value.move_into
                 },
-                success: function(response) {
-                    // Show a success message and update the select field
+                function(response) {
                     Swal.fire({
                         title: 'Folder(s) Moved!',
                         icon: 'success'
                     }).then(function() {
-                       //redirect to the new folder location
-					   console.log(response.data.newFolderLink);
-					   window.location.href = response.data.newFolderLink;
+                        // Redirect to the new folder location
+                        console.log(response.data.newFolderLink);
+                        window.location.href = response.data.newFolderLink;
                     });
+                },
+                function(error) {
+                    console.log('Error: ', error);
                 }
-            });
+            );
         }
     });
+
 }
 
 //Delete a folder
@@ -202,49 +203,45 @@ async function id_delete_folders(folderIds) {
         allowEscapeKey: true,
         allowOutsideClick: true,
         didOpen: function () {
-            // Generate a hierarchical list of all categories
-            jQuery.ajax({
-                type: 'POST',
-                url: idAjax.ajaxurl,
-                data: {
-                    action: 'id_generate_folders_select_ajax',
-                    security: idAjax_folder_actions.nonce
-                },
-                success: function (response) {
+            idemailwiz_do_ajax(
+                'id_generate_folders_select_ajax',
+                idAjax_folder_actions.nonce,
+                {},
+                function(response) {
                     console.log(response);
                     jQuery('#newCategoryId').append(response.data.options);
+                },
+                function(error) {
+                    console.log('Error: ', error);
                 }
-            });
+            );
         },
         preConfirm: function () {
             return new Promise(function (resolve, reject) {
                 // Get the selected category ID
                 var newCategoryId = jQuery('#newCategoryId').val();
 
-                jQuery.ajax({
-                    type: 'POST',
-                    url: idAjax.ajaxurl,
-                    data: {
-                        action: 'id_delete_folder',
-                        this_folder: folderIds, // Pass array of folders
-                        move_into: newCategoryId,
-                        security: idAjax_folder_actions.nonce
+                idemailwiz_do_ajax(
+                    'id_delete_folder',
+                    idAjax_folder_actions.nonce,
+                    {
+                        this_folder: folderIds,
+                        move_into: newCategoryId
                     },
-                    success: function (response) {
+                    function(response) {
                         if (response.success) {
                             resolve(response.data);
                         } else {
                             reject(response.data.error);
                         }
                     },
-                   error: function (jqXHR, textStatus, errorThrown) {
-						console.error("Error status: " + textStatus);
-						console.error("Error thrown: " + errorThrown);
-						console.error("Server response: " + jqXHR.responseText);
-						reject('An error occurred during folder deletion.');
-					}
-
-                });
+                    function(error) {
+                        console.error("Error status: " + error.status);
+                        console.error("Error thrown: " + error.error);
+                        console.error("Server response: " + error.xhr.responseText);
+                        reject('An error occurred during folder deletion.');
+                    }
+                );
             });
         },
     }).then(function (result) {

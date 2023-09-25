@@ -4,16 +4,16 @@ $bgColor = $chunk['background_color'] ?? '#FFFFFF';
 
 $chunkSettings = $chunk['chunk_settings'];
 
-$mobileVis = $chunkSettings['mobile_visibility'] != '' ? $chunkSettings['mobile_visibility'] : true;
-	$hideMobile = '';
-	if ($mobileVis == false) {
-		$hideMobile = 'hide-mobile';
-	}
-  $desktopVis = $chunkSettings['desktop_visibility'] != '' ? $chunkSettings['desktop_visibility'] : true;
-	$hideDesktop = '';
-	if ($desktopVis == false) {
-		$hideDesktop = 'hide-mobile';
-	}
+$mobileVis = $chunkSettings['mobile_visibility'] ?? true;
+$desktopVis = $chunkSettings['desktop_visibility'] ?? true;
+$hideMobile = '';
+$hideDesktop = '';
+if ($mobileVis == false) {
+$hideMobile = 'hide-mobile';
+}
+if ($desktopVis == false) {
+$hideDesktop = 'hide-desktop';
+}
 ?>
 
 <!-- Spacer -->

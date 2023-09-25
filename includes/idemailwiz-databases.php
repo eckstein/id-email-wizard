@@ -26,6 +26,7 @@ function idemailwiz_create_databases() {
         suppressionListIds VARCHAR(255),
         type VARCHAR(20),
         messageMedium VARCHAR(20),
+        initiativeLinks VARCHAR(255),
         PRIMARY KEY  (id)
     ) $charset_collate;";
 
@@ -37,6 +38,16 @@ function idemailwiz_create_databases() {
         PRIMARY KEY  (id),
         INDEX idx_campaignId (campaignId),
         INDEX idx_initiativeId (initiativeId)
+    ) $charset_collate;";
+
+    $triggered_sends_table_name = $wpdb->prefix . 'idemailwiz_triggered_sends';
+    $triggered_sends_sql = "CREATE TABLE IF NOT EXISTS $triggered_sends_table_name (
+        messageId VARCHAR(32),
+        campaignId INT,
+        templateId INT,
+        startAt BIGINT,
+        PRIMARY KEY  (messageId),
+        INDEX campaignId (campaignId),
     ) $charset_collate;";
 
 
@@ -182,7 +193,9 @@ function idemailwiz_create_databases() {
         sumOfCustomConversions FLOAT,
         wizDeliveryRate FLOAT,
         wizOpenRate FLOAT,
+        uniqueEmailOpenRate FLOAT,
         wizCtr FLOAT,
+        uniqueEmailClickRate FLOAT,
         wizCto FLOAT,
         wizUnsubRate FLOAT,
         wizCompRate FLOAT,
@@ -253,6 +266,7 @@ function idemailwiz_create_databases() {
     require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
     dbDelta( $campaign_sql );
     dbDelta( $campaign_init_sql );
+    dbDelta( $triggered_sends_sql );
     dbDelta( $template_sql );
     dbDelta( $metrics_sql );
     dbDelta( $experiments_sql );
@@ -273,6 +287,7 @@ function idemailwiz_create_view() {
             campaigns.type as campaign_type,
             campaigns.messageMedium as message_medium,
             campaigns.name as campaign_name,
+            campaigns.initiativeLinks as initiative_links,
             campaigns.startAt as campaign_start,
             campaigns.labels as campaign_labels,
             campaigns.experimentIds as experiment_ids,
@@ -344,6 +359,7 @@ function build_idwiz_query($args, $table_name) {
     unset($where_args['limit']);
     unset($where_args['sortBy']);
     unset($where_args['sort']);
+    unset($where_args['offset']);
     
     foreach ($where_args as $key => $value) {
         if ($value !== null && $value !== '') {
@@ -401,6 +417,11 @@ function build_idwiz_query($args, $table_name) {
     if (isset($args['limit'])) {
         $sql .= $wpdb->prepare(" LIMIT %d", (int)$args['limit']);
     }
+
+    if (isset($args['offset'])) {
+        $sql .= $wpdb->prepare(" OFFSET %d", (int)$args['offset']);
+    }
+
     return $sql;
 
     
@@ -507,43 +528,7 @@ function get_idwiz_purchases_by_campaign($campaignId) {
     }
 }
 
-// Ajax handler for the main campaigns datatable call
-function idwiz_get_campaign_table_view() {
-    global $wpdb;
 
-    // Bail early without valid nonce
-    if (!check_ajax_referer('data-tables', 'security')) return;
-    
-    // Fetch data from your view
-    $results = $wpdb->get_results("SELECT * FROM idwiz_campaign_view", ARRAY_A);
-    //wiz_log(print_r($results, true));
-
-    
-
-    foreach ($results as &$row) {
-        // Iterate through the results
-        // Unserialize specific columns
-        $checkSerialized = ['campaign_labels', 'experiment_ids'];  // Add more column names as needed
-        foreach ($checkSerialized as $columnName) {
-            if (isset($row[$columnName]) && !empty($row[$columnName]) && idwiz_is_serialized($row[$columnName])) {
-                $unserializedData = maybe_unserialize($row[$columnName]);
-                if (is_array($unserializedData)) {
-                    $row[$columnName] = implode(', ', $unserializedData);
-                }
-            }
-        }
-        
-    }
-    
-
-    // Return data in JSON format
-    $response = ['data' => $results];
-    echo json_encode($response);
-    wp_die();
-
-}
-
-add_action('wp_ajax_idwiz_get_campaign_table_view', 'idwiz_get_campaign_table_view');
 
 
 function idwiz_is_serialized($value) {
@@ -684,6 +669,23 @@ function save_experiment_notes() {
     } else {
         wp_send_json_error('An error occurred while updating the database');
     }
+}
+
+
+function get_triggered_sends_by_campaign_id($campaignId) {
+    global $wpdb;
+
+    // Sanitize the input to prevent SQL injection
+    $safe_campaignId = (int) $campaignId;
+
+    // SQL query to fetch rows from wp_idemailwiz_triggered_sends that match the campaignId
+    $sql = $wpdb->prepare("SELECT * FROM wp_idemailwiz_triggered_sends WHERE campaignId = %d", $safe_campaignId);
+
+    // Execute the SQL query and fetch the results
+    $results = $wpdb->get_results($sql, ARRAY_A);
+
+    // Return the results
+    return $results;
 }
 
 

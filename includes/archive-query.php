@@ -53,12 +53,17 @@ function id_pre_get_posts( $query ) {
 		));
 		
 		//include trashed posts, but only on the trash term page
-		$queried_object = get_queried_object();
-		$options = get_option('idemailwiz_settings');
-	    $trashTerm = (int) $options['folder_trash'];
+        $queried_object = get_queried_object();
+
+        $options = get_option('idemailwiz_settings');
+
+        $trashTerm = (int) $options['folder_trash'];
+
         if ($queried_object->term_id == (int) $trashTerm) {
             $query->set('post_status', array('trash'));
+            error_log("Setting post_status to trash");  // Logging action of setting post_status
         }
+
 
         // Get the current user ID
         $current_user_id = get_current_user_id();

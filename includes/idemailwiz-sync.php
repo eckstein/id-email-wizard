@@ -4,7 +4,8 @@ global $wpdb;
 
 
 
-function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = false, $retryAttempts = 3, $maxConsecutive400Errors = 5) {
+function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = false, $retryAttempts = 3, $maxConsecutive400Errors = 5)
+{
     // Fetch the API key
     $api_key = idwiz_itAPI();
 
@@ -28,7 +29,8 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
         curl_setopt($ch, CURLOPT_HTTPHEADER, array(
             "Api-Key: $api_key",
             "Content-Type: application/json"
-        ));
+        )
+        );
 
         // Return the transfer as a string
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -77,10 +79,11 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
     return ['response' => $response, 'httpCode' => $httpCode];
 }
 
-function idemailwiz_iterable_curl_multi_call($apiURLs, $verifySSL = false) {
+function idemailwiz_iterable_curl_multi_call($apiURLs, $verifySSL = false)
+{
     // Fetch the API key
     $api_key = idwiz_itAPI();
-    
+
     // Initialize cURL Multi handle
     $mh = curl_multi_init();
     $handles = [];
@@ -103,7 +106,7 @@ function idemailwiz_iterable_curl_multi_call($apiURLs, $verifySSL = false) {
     do {
         curl_multi_exec($mh, $running);
         curl_multi_select($mh);
-    } while($running > 0);
+    } while ($running > 0);
 
     // Collect results
     $results = [];
@@ -120,7 +123,8 @@ function idemailwiz_iterable_curl_multi_call($apiURLs, $verifySSL = false) {
 }
 
 //Camel case for database headers
-function to_camel_case($string) {
+function to_camel_case($string)
+{
     $string = str_replace('.', '_', $string); // Replace periods with underscores
     $words = explode(' ', $string); // Split the string into words
     $words = array_map('ucwords', $words); // Capitalize the first letter of each word
@@ -128,18 +132,19 @@ function to_camel_case($string) {
     return lcfirst($camelCaseString); // Make the first letter lowercase and return
 }
 
-function idemailwiz_update_insert_api_data($items, $operation, $table_name) {
+function idemailwiz_update_insert_api_data($items, $operation, $table_name)
+{
     global $wpdb;
     $result = ['success' => [], 'errors' => []];
 
-    
+
     $id_field = 'id'; // Default ID field
     $name_field = 'name'; // Default name field
+
     // Determine the ID and name fields based on the table name
     if ($table_name == 'wp_idemailwiz_templates' || $table_name == 'wp_idemailwiz_experiments') {
         $id_field = 'templateId';
     }
-
     foreach ($items as $key => $item) {
         // Add 'name' to the metrics array
         if ($table_name == 'wp_idemailwiz_metrics') {
@@ -147,11 +152,42 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name) {
             $metricName = $metricCampaign['name'];
         }
 
+        // If this is a template record, we check if there's a wiz builder template with this template ID set as the sync-to
+        if ($table_name == 'wp_idemailwiz_templates') {
+            $incomingTemplateId = $item['templateId'];
+            $wizDbTemplate = get_idwiz_template($incomingTemplateId);
+            $args = array(
+                'post_type' => 'idemailwiz_template',
+                'meta_key' => 'itTemplateId',
+                'meta_value' => $incomingTemplateId,
+                'posts_per_page' => 1
+            );
+
+            $builderTemplates = get_posts($args);
+
+            if (!empty($builderTemplates)) {
+
+                $sql = $wpdb->prepare(
+                    "UPDATE wp_idemailwiz_templates SET clientTemplateId = %d WHERE templateId = %d",
+                    $builderTemplates[0]->ID,
+                    $wizDbTemplate['templateId']
+
+                );
+                $wpdb->query($sql);
+            } else {
+                $sql = $wpdb->prepare(
+                    "UPDATE wp_idemailwiz_templates SET clientTemplateId = NULL WHERE templateId = %d",
+                    $incomingTemplateId
+                );
+                $wpdb->query($sql);
+            }
+
+        }
+
         //If this is an experiment record, we check if the corrosponding campaign in the campaign table has the experiment ID present. If not, add it.
         if ($table_name == 'wp_idemailwiz_experiments') {
             $experimentId = $item['experimentId']; // Retrieve the current experiment ID
 
-            // Check for or add the experiment ID to the campaign table
             $experimentCampaign = get_idwiz_campaign($item['campaignId']);
 
             // Get the existing experimentIds, if any
@@ -178,8 +214,12 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name) {
         // Serialize values that are arrays
         foreach ($item as $childKey => $childValue) {
             if (is_array($childValue)) {
-                $serialized = serialize($childValue);
-                $item[$childKey] = $serialized;
+                if (empty($childValue)) {
+                    $item[$childKey] = null;  // Set to NULL if the array is empty
+                } else {
+                    $serialized = serialize($childValue);
+                    $item[$childKey] = $serialized;
+                }
             }
         }
 
@@ -196,36 +236,37 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name) {
             "INSERT INTO {$table_name} ({$fields}) VALUES ({$values})" :
             "UPDATE {$table_name} SET {$updates} WHERE {$id_field}={$item[$id_field]}";
 
-            // Do the insert/update
-            $query_result = $wpdb->query($sql);
+        // Do the insert/update
+        $query_result = $wpdb->query($sql);
 
-            // Extracting relevant details for logging
-            $item_name = isset($item[$name_field]) ? $item[$name_field] : ''; // Item name
-            if ($table_name == 'wp_idemailwiz_metrics') {
-                $item_name = $metricName;
-            }
-            $item_id = $item[$id_field]; // Item ID
-            
-            if ($query_result !== false) {
-                if ($query_result > 0) {
-                    // Success details
-                    $result['success'][] = "Successfully performed {$operation} on '{$item_name}' (ID: {$item_id}).";
-                } else {
-                    // Success, but no rows were affected
-                    //$result['success'][] = "Skipped '{$item_name}' (ID: {$item_id}); no updates needed.";
-                }
+        // Extracting relevant details for logging
+        $item_name = isset($item[$name_field]) ? $item[$name_field] : ''; // Item name
+        if ($table_name == 'wp_idemailwiz_metrics') {
+            $item_name = $metricName;
+        }
+        $item_id = $item[$id_field]; // Item ID
+
+        if ($query_result !== false) {
+            if ($query_result > 0) {
+                // Success details
+                $result['success'][] = "Successfully performed {$operation} on '{$item_name}' (ID: {$item_id}).";
             } else {
-                // Error details
-                $result['errors'][] = "Failed to perform {$operation} on '{$item_name}' (ID: {$item_id}). Database Error: {$wpdb->last_error}.";
+                // Success, but no rows were affected
+                //$result['success'][] = "Skipped '{$item_name}' (ID: {$item_id}); no updates needed.";
             }
-            
+        } else {
+            // Error details
+            $result['errors'][] = "Failed to perform {$operation} on '{$item_name}' (ID: {$item_id}). Database Error: {$wpdb->last_error}.";
+        }
+
     }
 
     return $result;
 }
 
 
-function idemailwiz_fetch_campaigns($campaignIds = null) {
+function idemailwiz_fetch_campaigns($campaignIds = null)
+{
     // $campaignIds is a dummy variable to prevent errors
     // Iterable doesn't allow API calls per campaign as of September 2023
     $url = 'https://api.iterable.com/api/campaigns';
@@ -248,7 +289,8 @@ function idemailwiz_fetch_campaigns($campaignIds = null) {
     return $response['response']['campaigns'];
 }
 
-function idemailwiz_fetch_templates($campaignIds = null) {
+function idemailwiz_fetch_templates($campaignIds = null)
+{
     $allTemplates = [];
     $templateAPIurls = [];
 
@@ -259,7 +301,7 @@ function idemailwiz_fetch_templates($campaignIds = null) {
         foreach ($wizCampaigns as $campaign) {
             $medium = $campaign['messageMedium'];
             $type = $campaign['type'];
-            
+
             $key = strtolower($medium) . strtolower($type);
             $templateAPIurls[$key] = "https://api.iterable.com/api/templates?templateType=$type&messageMedium=$medium";
         }
@@ -291,15 +333,15 @@ function idemailwiz_fetch_templates($campaignIds = null) {
     $urlsToFetch = [];
     foreach ($getProjectTemplates as $template) {
         $templateId = $template['templateId'];
-        $associatedCampaign = array_filter($wizCampaigns, function($campaign) use ($templateId) {
-            return $campaign['templateId'] === $templateId;
+        $associatedCampaign = array_filter($wizCampaigns, function ($campaign) use ($templateId) {
+            return $campaign['templateId'] == $templateId;
         });
         $associatedCampaign = array_shift($associatedCampaign); // Get the first matching campaign
         if ($associatedCampaign) {
             $mediumEndpoint = strtolower($associatedCampaign['messageMedium']);
             $wizTemplate = get_idwiz_template($templateId);
-        
-            if (!$wizTemplate || ($wizTemplate && $wizTemplate['updatedAt'] !== $template['updatedAt'])) {
+
+            if (!$wizTemplate || ($wizTemplate && $wizTemplate['updatedAt'] != $template['updatedAt'])) {
                 $urlsToFetch[] = "https://api.iterable.com/api/templates/$mediumEndpoint/get?templateId=$templateId";
             }
         }
@@ -329,52 +371,55 @@ function idemailwiz_fetch_templates($campaignIds = null) {
 // For the returned Template object from Iterable.
 // Flattens a multi-dimensional array into a single-level array by concatenating keys into a prefix string.
 // Skips values we don't want in the database. Limits 'linkParams' keys to 2 (typically utm_term and utm_content)
-function idemailwiz_simplify_templates_array($template) {
+function idemailwiz_simplify_templates_array($template)
+{
 
-        if (isset($template['metadata'])) {
-            // Extract the desired keys from the 'metadata' array
-            if (isset($template['metadata']['campaignId'])) {
-                $result['campaignId'] = $template['metadata']['campaignId'];
-            }
-            if (isset($template['metadata']['createdAt'])) {
-                $result['createdAt'] = $template['metadata']['createdAt'];
-            }
-            if (isset($template['metadata']['updatedAt'])) {
-                $result['updatedAt'] = $template['metadata']['updatedAt'];
-            }
-            if (isset($template['metadata']['clientTemplateId'])) {
-                $result['clientTemplateId'] = $template['metadata']['clientTemplateId'];
-            }
+    if (isset($template['metadata'])) {
+        // Extract the desired keys from the 'metadata' array
+        if (isset($template['metadata']['campaignId'])) {
+            $result['campaignId'] = $template['metadata']['campaignId'];
         }
+        if (isset($template['metadata']['createdAt'])) {
+            $result['createdAt'] = $template['metadata']['createdAt'];
+        }
+        if (isset($template['metadata']['updatedAt'])) {
+            $result['updatedAt'] = $template['metadata']['updatedAt'];
+        }
+        //if (isset($template['metadata']['clientTemplateId'])) {
+        // $result['clientTemplateId'] = $template['metadata']['clientTemplateId'];
+        // }
+    }
 
+    if (isset($template['linkParams'])) {
+        // Extract the desired keys from the 'linkParams' array
         if (isset($template['linkParams'])) {
-            // Extract the desired keys from the 'linkParams' array
-            if (isset($template['linkParams'])) {
-                foreach ($template['linkParams'] as $linkParam) {
-                    if ($linkParam['key'] === 'utm_term') {
-                        $result['utmTerm'] = $linkParam['value'];
-                    }
-                    if ($linkParam['key'] === 'utm_content') {
-                        $result['utmContent'] = $linkParam['value'];
-                    }
+            foreach ($template['linkParams'] as $linkParam) {
+                if ($linkParam['key'] == 'utm_term') {
+                    $result['utmTerm'] = $linkParam['value'];
+                }
+                if ($linkParam['key'] == 'utm_content') {
+                    $result['utmContent'] = $linkParam['value'];
                 }
             }
         }
+    }
 
-        
-            // Add the rest of the keys to the result
-            foreach ($template as $key => $value) {
-                if (!isset($template['message'])) { //if 'message' is set, it's an SMS, so this is for email
-                    // Skip the excluded keys and the keys we've already added
-                    $excludeKeys = array('plainText', 'cacheDataFeed', 'mergeDataFeedContext', 'utm_term', 'utm_content', 'createdAt', 'updatedAt', 'ccEmails', 'bccEmails', 'dataFeedIds');
-                } else {
-                    $excludeKeys = array('messageTypeId','trackingDomain','googleAnalyticsCampaignName');
-                }
-                if ($key !== 'metadata' && $key !== 'linkParams' && !in_array($key, $excludeKeys)) {
-                    $result[$key] = $value;
-                }
-            }
-        
+
+    // Add the rest of the keys to the result
+    foreach ($template as $key => $value) {
+        if (!isset($template['message'])) { //if 'message' is set, it's an SMS, so this is for email
+            $result['messageMedium'] = 'Email';
+            // Skip the excluded keys and the keys we've already added
+            $excludeKeys = array('clientTemplateId', 'plainText', 'cacheDataFeed', 'mergeDataFeedContext', 'utm_term', 'utm_content', 'createdAt', 'updatedAt', 'ccEmails', 'bccEmails', 'dataFeedIds');
+        } else {
+            $result['messageMedium'] = 'SMS';
+            $excludeKeys = array('messageTypeId', 'trackingDomain', 'googleAnalyticsCampaignName');
+        }
+        if ($key !== 'metadata' && $key !== 'linkParams' && !in_array($key, $excludeKeys)) {
+            $result[$key] = $value;
+        }
+    }
+
 
 
 
@@ -384,14 +429,15 @@ function idemailwiz_simplify_templates_array($template) {
 
 
 
-function idemailwiz_fetch_experiments($campaignIds = null) {
+function idemailwiz_fetch_experiments($campaignIds = null)
+{
     $today = new DateTime();
     $startFetchDate = $today->modify('-4 weeks')->format('Y-m-d');
 
     $fetchCampArgs = array(
-    'messageMedium'=>'Email', 
-    'type'=>'Blast',
-    'startAt_start' => $startFetchDate
+        'messageMedium' => 'Email',
+        'type' => 'Blast',
+        'startAt_start' => $startFetchDate
     );
 
     if ($campaignIds) {
@@ -399,11 +445,11 @@ function idemailwiz_fetch_experiments($campaignIds = null) {
     }
 
     $allCampaigns = get_idwiz_campaigns($fetchCampArgs);
-    
+
     $data = [];
     $allExpMetrics = [];
     foreach ($allCampaigns as $campaign) {
-        $url = 'https://api.iterable.com/api/experiments/metrics?campaignId='.$campaign['id'];
+        $url = 'https://api.iterable.com/api/experiments/metrics?campaignId=' . $campaign['id'];
         try {
             $response = idemailwiz_iterable_curl_call($url);
         } catch (Exception $e) {
@@ -413,16 +459,16 @@ function idemailwiz_fetch_experiments($campaignIds = null) {
                 return;
             }
         }
-        if ($response['response']) {     
+        if ($response['response']) {
 
-        // Split the CSV data into lines
+            // Split the CSV data into lines
             $lines = explode("\n", $response['response']);
 
             // Parse the header line into headers
             $headers = str_getcsv($lines[0]);
 
             // Replace spaces and slashes with underscores, remove parentheses, remove leading/trailing whitespace, and convert to CamelCase
-            $headers = array_map(function($header) {
+            $headers = array_map(function ($header) {
                 $header = str_replace([' ', '/'], '_', $header);
                 $header = str_replace('(', '', $header);
                 $header = str_replace(')', '', $header);
@@ -456,22 +502,25 @@ function idemailwiz_fetch_experiments($campaignIds = null) {
         }
     }
 
-     // Return the array of metrics
+    // Return the array of metrics
     return $allExpMetrics;
 }
-function idemailwiz_fetch_metrics($campaignIds = null) {
+function idemailwiz_fetch_metrics($campaignIds = null)
+{
 
     $today = new DateTime();
     $startFetchDate = $today->modify('-4 weeks')->format('Y-m-d');
 
     $metricCampaignArgs = array(
         'fields' => array('id'),
-        'startAt_start' => $startFetchDate,
         'type' => array('Blast', 'Triggered'),
     );
 
     if ($campaignIds) {
         $metricCampaignArgs['ids'] = $campaignIds;
+    } else {
+        // If not campaigns are passed, limit the call to a timeframe
+        $metricCampaignArgs['startAt_start'] = $startFetchDate;
     }
 
     $campaigns = get_idwiz_campaigns($metricCampaignArgs);
@@ -491,10 +540,10 @@ function idemailwiz_fetch_metrics($campaignIds = null) {
         $batches[] = $currentBatch;
     }
 
-    $data = []; // Initialize $data as an array
+    $allMetrics = []; // Initialize $data as an array
 
     foreach ($batches as $batch) {
-        $getString = '?campaignId='.implode('&campaignId=', $batch);
+        $getString = '?campaignId=' . implode('&campaignId=', $batch);
 
         $url = "https://api.iterable.com/api/campaigns/metrics" . $getString;
         try {
@@ -514,7 +563,7 @@ function idemailwiz_fetch_metrics($campaignIds = null) {
         $headers = str_getcsv($lines[0]);
 
         // Replace spaces and slashes with underscores, remove parentheses, remove leading/trailing whitespace, and convert to CamelCase
-        $headers = array_map(function($header) {
+        $headers = array_map(function ($header) {
             $header = str_replace([' ', '/'], '_', $header);
             $header = str_replace('(', '', $header);
             $header = str_replace(')', '', $header);
@@ -542,9 +591,8 @@ function idemailwiz_fetch_metrics($campaignIds = null) {
             $metrics = idemailwiz_calculate_metrics($lineArray);
 
             // Merge the metrics with the existing data
-            $data[] = $metrics;
+            $allMetrics[] = $metrics;
         }
-        $allMetrics = $data + $data;
         sleep(7); // Respect Iterable's rate limit of 10 requests per minute
     }
 
@@ -556,8 +604,9 @@ function idemailwiz_fetch_metrics($campaignIds = null) {
 
 
 
-function idemailwiz_fetch_purchases($campaignIds = null) {
-    
+function idemailwiz_fetch_purchases($campaignIds = null)
+{
+
     // Get purchases for the specified campaigns or get all purchases from the past 30 days
     // If campaignIds are specified, we limit our API call by date based on the earliest campaign startAt date
 
@@ -605,7 +654,7 @@ function idemailwiz_fetch_purchases($campaignIds = null) {
     $headers = str_getcsv($lines[0]);
 
     // Swap in underscores for periods
-    $headers = array_map(function($header) {
+    $headers = array_map(function ($header) {
         // Remove existing underscores (to handle the 'id' field)
         $header = str_replace('_', '', $header);
         // Replace periods with new underscores
@@ -626,7 +675,7 @@ function idemailwiz_fetch_purchases($campaignIds = null) {
         }
 
         // Clean values
-        $values = array_map(function($value) {
+        $values = array_map(function ($value) {
             $value = str_replace(['[', ']', '"'], '', $value);
             return $value;
         }, $values);
@@ -640,7 +689,8 @@ function idemailwiz_fetch_purchases($campaignIds = null) {
 }
 
 
-function idemailwiz_sync_campaigns($passedCampaigns = null) {
+function idemailwiz_sync_campaigns($passedCampaigns = null)
+{
 
     // If no campaigns are passed, we fetch them from Iterable
     $campaigns = idemailwiz_fetch_campaigns($passedCampaigns);
@@ -658,41 +708,84 @@ function idemailwiz_sync_campaigns($passedCampaigns = null) {
         // Otherwise, we do our logic for update vs insert from the Iterable API
     } else {
         foreach ($campaigns as $campaign) {
-
             if ($campaign['campaignState'] == 'Finished' || $campaign['campaignState'] == 'Running') {
-
                 // Check for an existing campaign in the database
                 $wizCampaign = get_idwiz_campaign($campaign['id']);
+
                 if ($wizCampaign) {
-                    // Update the row if the "updatedAt" value is different
-                    if (strtotime($campaign['updatedAt']) != strtotime($wizCampaign['updatedAt'])) {
-                        
-                        // If this is a triggered campaign, get the existing startAt value from our DB since we don't get one from the API
-                        // We mark it for update still if the updatedAt is different, but it needs the startAt so it doesn't blank it out
-                        // startAt is set via the daily cron sync of triggered send times
-                        if ($campaign['type'] == 'Triggered') {
-                            $campaign['startAt'] = $wizCampaign['startAt'];
+                    $fieldsDifferent = false;
+
+                    
+                    foreach ($campaign as $key => $value) {
+                        // Perform deep comparison
+                        if (!isset($wizCampaign[$key]) || $wizCampaign[$key] != $value) {
+                            $fieldsDifferent = true;
+                            break;
                         }
-                        
+
+                    }
+                     
+                    // Update the row if any field is different
+                    if ($fieldsDifferent) {
+                        // If this is a triggered campaign, get the latest startAt value from our DB
+                        if ($campaign['type'] == 'Triggered') {
+                            $latestStartAt = get_latest_triggered_startAt($campaign['id']);
+                            if ($latestStartAt !== null) {
+                                $campaign['startAt'] = $latestStartAt;
+                                
+                                
+                            } else {
+                                // Skip this campaign if not found in the wp_idemailwiz_triggered_sends database
+                                continue;
+                            }
+
+                           
+                        }
+
                         $records_to_update[] = $campaign;
                     }
                 } else {
-                    // campaign not in db, we'll add it
+                    // Campaign not in DB, we'll add it
                     $records_to_insert[] = $campaign;
                 }
             }
         }
+
     }
 
     // Does our wiz_logging and returns the returns data about the insert/update
-   return idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update);
+    return idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update);
 
 }
 
+global $wpdb; // Make sure to declare this as global if your function is inside a function scope
+
+function get_latest_triggered_startAt($campaignId) {
+    global $wpdb;
+
+    $table_name = 'wp_idemailwiz_triggered_sends';
+    
+    // Prepare the SQL query to prevent SQL injection
+    $sql = $wpdb->prepare(
+        "SELECT startAt FROM $table_name WHERE campaignId = %s ORDER BY startAt DESC LIMIT 1",
+        $campaignId
+    );
+    
+    // Execute the SQL query
+    $result = $wpdb->get_var($sql);
+    
+    if ($result !== null) {
+        return (int) $result; // Convert to integer if your startAt is stored as string
+    } else {
+        return null; // Return null if no record is found
+    }
+}
 
 
-function idemailwiz_sync_templates($passedCampaigns = null) {
+function idemailwiz_sync_templates($passedCampaigns = null)
+{
     // Fetch relevant templates
+    // Note: The fetch function filters by updatedAt differences to limit results
     $templates = idemailwiz_fetch_templates($passedCampaigns);
 
     global $wpdb;
@@ -707,10 +800,8 @@ function idemailwiz_sync_templates($passedCampaigns = null) {
         $wizTemplate = get_idwiz_template($template['templateId']);
 
         if ($wizTemplate) {
-            // Update only if the updatedAt field has changed
-            if ($wizTemplate['updatedAt'] != $template['updatedAt']) {
-                $records_to_update[] = $template;
-            }
+            // Template exists, we'll update it
+            $records_to_update[] = $template;
         } else {
             // Template not in the database, we'll add it
             $records_to_insert[] = $template;
@@ -725,7 +816,8 @@ function idemailwiz_sync_templates($passedCampaigns = null) {
 
 
 
-function idemailwiz_sync_purchases($campaignIds=null) {
+function idemailwiz_sync_purchases($campaignIds = null)
+{
 
     // If a campaign IDs are passed to the fetch function, we'll only get purchases for dates on or after the earliest campaign
     // If campaign IDs is null, it will sync all purchases for the past 30 days
@@ -737,11 +829,11 @@ function idemailwiz_sync_purchases($campaignIds=null) {
     // Prepare array
     $records_to_insert = [];
 
-    foreach($purchases as $purchase) {       
-    
+    foreach ($purchases as $purchase) {
+
         $wizPurchase = get_idwiz_purchase($purchase['id']);
-    
-        if(!$wizPurchase) {
+
+        if (!$wizPurchase) {
             // purchase not in db, we'll add it
             $records_to_insert[] = $purchase;
         } else {
@@ -751,10 +843,11 @@ function idemailwiz_sync_purchases($campaignIds=null) {
 
     // Does our wiz_logging and returns the returns data about the insert/update
     return idemailwiz_process_and_log_sync($table_name, $records_to_insert, null);
-  
+
 }
 
-function idemailwiz_sync_experiments($passedCampaigns = null) {
+function idemailwiz_sync_experiments($passedCampaigns = null)
+{
 
     $experiments = idemailwiz_fetch_experiments($passedCampaigns);
 
@@ -768,7 +861,7 @@ function idemailwiz_sync_experiments($passedCampaigns = null) {
     if ($passedCampaigns) {
         $records_to_update = $experiments;
     } else {
-        foreach($experiments as $experiment) {
+        foreach ($experiments as $experiment) {
             $wizExperiment = get_idwiz_experiment($experiment['templateId']);
 
             // Check for experiment in database
@@ -777,7 +870,7 @@ function idemailwiz_sync_experiments($passedCampaigns = null) {
                 if (!in_array($experiment, $records_to_update)) {
                     $records_to_update[] = $experiment;
                 }
-                
+
             } else {
                 // experiment not in db, we'll add it
                 $records_to_insert[] = $experiment;
@@ -791,12 +884,15 @@ function idemailwiz_sync_experiments($passedCampaigns = null) {
 
 
 
-function idemailwiz_sync_metrics($passedCampaigns=null) {
+function idemailwiz_sync_metrics($passedCampaigns = null)
+{
     
-    $metrics = idemailwiz_fetch_metrics($passedCampaigns);
+    $metrics = idemailwiz_fetch_metrics($passedCampaigns);// Gets all metrics if none are passed
+    
+    //(print_r($metrics, true));
 
     global $wpdb;
-    $table_name = $wpdb->prefix . 'idemailwiz_metrics';   
+    $table_name = $wpdb->prefix . 'idemailwiz_metrics';
 
     // Prepare arrays for comparison
     $records_to_update = [];
@@ -805,7 +901,7 @@ function idemailwiz_sync_metrics($passedCampaigns=null) {
     if ($passedCampaigns) {
         $records_to_update = $metrics;
     } else {
-        foreach($metrics as $metric) {
+        foreach ($metrics as $metric) {
 
             // Handle SMS campaign header mapping
             $wizCampaign = get_idwiz_campaign($metric['id']);
@@ -817,37 +913,39 @@ function idemailwiz_sync_metrics($passedCampaigns=null) {
             }
 
             // Check for existing metric
-            $wizMetric = get_idwiz_metric($metric['id']);  
+            $wizMetric = get_idwiz_metric($metric['id']);
             if ($wizMetric) {
-                // Update the existing metric row 
+                // Gather metric for update and de-dupe
                 if (!in_array($metric, $records_to_update)) {
                     $records_to_update[] = $metric;
                 }
-                
+
             } else {
                 // metric not in db, we'll add it
                 $records_to_insert[] = $metric;
             }
         }
     }
-
+    //error_log('Metrics Records to update: '. count($records_to_update));
+    //error_log('Metrics Records to insert: '. count($records_to_insert));
 
     // Does our wiz_logging and returns the returns data about the insert/update
     return idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update);
 }
 
 
-function idemailwiz_process_and_log_sync($table_name, $records_to_insert=null, $records_to_update=null ) {
-    
+function idemailwiz_process_and_log_sync($table_name, $records_to_insert = null, $records_to_update = null)
+{
+
     // Extracting the type (e.g., 'campaign', 'template', etc.) from the table name
     $type = substr($table_name, strrpos($table_name, '_') + 1);
-    
+
     $insert_results = '';
     $update_results = '';
     $logChunk = "";
     $return = array();
 
-    $logChunk .= ucfirst($type). " sync results: \n";
+    $logChunk .= ucfirst($type) . " sync results: \n";
 
     if ($records_to_insert) {
         //$logChunk .= count($records_to_insert) . " $type" . " to insert.\n";
@@ -861,7 +959,7 @@ function idemailwiz_process_and_log_sync($table_name, $records_to_insert=null, $
     $logInsertUpdate = return_insert_update_logging($insert_results, $update_results, $table_name);
 
     $logChunk .= $logInsertUpdate;
-    
+
     wiz_log($logChunk);
 
     if ($records_to_insert) {
@@ -876,7 +974,8 @@ function idemailwiz_process_and_log_sync($table_name, $records_to_insert=null, $
 
 
 
-function return_insert_update_logging($insert_results, $update_results, $table_name) {
+function return_insert_update_logging($insert_results, $update_results, $table_name)
+{
 
     $logInsert = '';
     $logUpdate = '';
@@ -891,7 +990,7 @@ function return_insert_update_logging($insert_results, $update_results, $table_n
     }
 
     // Build a quick string so we can check if it's blank (much faster than checking all the arrays)
-    $logSync = $logInsert.$logUpdate;
+    $logSync = $logInsert . $logUpdate;
 
     // If neither insert nor update results are available, there was nothing to sync or error, return early
     if (!$logSync) {
@@ -900,10 +999,11 @@ function return_insert_update_logging($insert_results, $update_results, $table_n
         return "The $tableNameType sync is up to date! No inserts or updates are needed.";
     }
 
-    return $logInsert . "\n" .$logUpdate;
+    return $logInsert . "\n" . $logUpdate;
 }
 
-function log_wiz_api_results($results, $type) {
+function log_wiz_api_results($results, $type)
+{
     if (empty($results['success']) && empty($results['errors'])) {
         return ""; // Return an empty string if no operations performed
     }
@@ -913,16 +1013,16 @@ function log_wiz_api_results($results, $type) {
     }
 
     $return = '';
-        $cntSuccess = 0;
-        $cntErrors = 0;
+    $cntSuccess = 0;
+    $cntErrors = 0;
     foreach ($results['success'] as $message) {
         $cntSuccess++;
         //$return .= "Success ({$type}): " . $message . "\n";
     }
-        $return .= "Successful {$type} of $cntSuccess records.";
-    foreach ($results['errors'] as $message) { 
+    $return .= "Successful {$type} of $cntSuccess records.";
+    foreach ($results['errors'] as $message) {
         $cntErrors++;
-        $return .= "$cntErrors errors occurred:" ."\n" . "Error ({$type}): " . $message . "\n";
+        $return .= "$cntErrors errors occurred:" . "\n" . "Error ({$type}): " . $message . "\n";
     }
 
     //returning an empty string is necessary here when no updates for return_insert_update_logging to handle the return value properly
@@ -931,55 +1031,64 @@ function log_wiz_api_results($results, $type) {
 
 
 
-// Ajax handler for sync buttons on DataTables
+// Ajax handler for sync button
 // Also creates and logs readable sync responses from response arrays
-function idemailwiz_ajax_sync() {
+function idemailwiz_sync_everything($campaignIds = null) {
+    $syncArgs = [];
+    $response = [];
 
-    // Bail early without valid nonce
-    if (check_ajax_referer('data-tables', 'security', false) ||
-        check_ajax_referer('initiatives', 'security', false) ||
-        check_ajax_referer('wiz-metrics', 'security', false) ||
-        check_ajax_referer('id-general', 'security', false)) {
-        // Nonce is valid and belongs to one of the specified referers
-    } else {
-        // Invalid nonce or referer
-        wp_die('Invalid action or nonce');
+    if ($campaignIds) {
+        $wizCampaignIds = get_idwiz_campaigns(array('ids' => $campaignIds, 'fields' => 'id'));
     }
 
-
-    
-    $syncArgs = [];
-
-    if (isset($_POST['campaignIds'])) {
-        // If campaignIds were passed, we add them to the sync function args
-        $campaigns = json_decode(stripslashes($_POST['campaignIds']), true) ?? false;
-        if (!is_array($campaigns)) {
-            $campaigns = array($campaigns);
-        }
-        //error_log(print_r($campaigns, true));
-        //return;
-        $wizCampaignIds = get_idwiz_campaigns(array('ids'=>$campaigns, 'fields'=>'id'));  
-    } 
-
     $sync_dbs = ['campaigns', 'templates', 'metrics', 'purchases', 'experiments'];
-    $response = [];
     foreach ($sync_dbs as $db) {
-        if (isset($_POST['campaignIds'])) {
+        if ($campaignIds) {
             $syncArgs = array_column($wizCampaignIds, 'id');
         }
         $function_name = 'idemailwiz_sync_' . $db;
         if (!function_exists($function_name)) {
-            wp_send_json_error('Sync function does not exist for ' . $db);
+            return ['error' => 'Sync function does not exist for ' . $db];
         }
         $result = call_user_func($function_name, $syncArgs);
 
         if ($result === false) {
-            wp_send_json_error('Sync failed for ' . $db);
+            return ['error' => 'Sync failed for ' . $db];
         }
         $response[$db] = $result;
     }
-    //error_log(print_r($response, true));
-    wp_send_json_success($response);
+
+    return $response;
+}
+
+function idemailwiz_ajax_sync() {
+    // Check for valid nonce
+    if (
+        !(
+            check_ajax_referer('data-tables', 'security', false) ||
+            check_ajax_referer('initiatives', 'security', false) ||
+            check_ajax_referer('wiz-metrics', 'security', false) ||
+            check_ajax_referer('id-general', 'security', false)
+        )
+    ) {
+        wp_die('Invalid action or nonce');
+    }
+
+    $campaignIds = null;
+    if (isset($_POST['campaignIds'])) {
+        $campaignIds = json_decode(stripslashes($_POST['campaignIds']), true) ?? false;
+        if (!is_array($campaignIds)) {
+            $campaignIds = array($campaignIds);
+        }
+    }
+
+    $response = idemailwiz_sync_everything($campaignIds);
+
+    if (isset($response['error'])) {
+        wp_send_json_error($response['error']);
+    } else {
+        wp_send_json_success($response);
+    }
 }
 add_action('wp_ajax_idemailwiz_ajax_sync', 'idemailwiz_ajax_sync');
 
@@ -991,7 +1100,10 @@ add_action('wp_ajax_idemailwiz_ajax_sync', 'idemailwiz_ajax_sync');
 
 
 
-function wiz_log($something, $timestamp = true) {
+
+
+function wiz_log($something, $timestamp = true)
+{
 
     // Get the current date and time in PST
     $date = new DateTime('now', new DateTimeZone('America/Los_Angeles'));
@@ -1011,7 +1123,7 @@ function wiz_log($something, $timestamp = true) {
         $logEntry = "{$breakerBar}\n$something\n$breakerBar\n\n";
     }
 
-    
+
     // Replace line breaks with <br/> tags
     $logEntry = nl2br($logEntry);
 
@@ -1030,13 +1142,16 @@ function wiz_log($something, $timestamp = true) {
     return $writeToLog; // returns number of bytes logged or false on failure
 }
 
-function ajax_to_wiz_log() {
+function ajax_to_wiz_log()
+{
 
-     // Bail early without valid nonce
-    if (check_ajax_referer('data-tables', 'security', false) ||
+    // Bail early without valid nonce
+    if (
+        check_ajax_referer('data-tables', 'security', false) ||
         check_ajax_referer('initiatives', 'security', false) ||
         check_ajax_referer('wiz-metrics', 'security', false) ||
-        check_ajax_referer('id-general', 'security', false)) {
+        check_ajax_referer('id-general', 'security', false)
+    ) {
         // Nonce is valid and belongs to one of the specified referers
     } else {
         // Invalid nonce or referer
@@ -1058,14 +1173,15 @@ add_action('wp_ajax_ajax_to_wiz_log', 'ajax_to_wiz_log');
 
 // Calculate percentage metrics
 // Takes a row of metrics data from the api call
-function idemailwiz_calculate_metrics($metrics) {
+function idemailwiz_calculate_metrics($metrics)
+{
 
     $campaignIdKey = 'id';
 
     if (isset($metrics['confidence'])) { // Only experiments have the 'confidence' key (since Iterable gives us no other way to check)
         // If this is an experiment, we look in the campaignId column instead of the id column
         $campaignIdKey = 'campaignId';
-    } 
+    }
 
     // Get the campaign using the campaignId from the passed metrics
     $wiz_campaign = get_idwiz_campaign($metrics[$campaignIdKey]);
@@ -1089,7 +1205,7 @@ function idemailwiz_calculate_metrics($metrics) {
     // Ensure required fields are set
     foreach ($requiredFields as $field) {
         if (!isset($metrics[$field]) || $metrics[$field] === null) {
-            $metrics[$field] = 0; 
+            $metrics[$field] = 0;
         }
     }
 
@@ -1098,13 +1214,13 @@ function idemailwiz_calculate_metrics($metrics) {
     $deliveredField = $medium == 'SMS' ? 'uniqueSmsDelivered' : 'uniqueEmailsDelivered';
     $clicksField = $medium == 'SMS' ? 'uniqueSmsClicks' : 'uniqueEmailClicks';
 
-    $sendValue = (float)$metrics[$sendField];
-    $deliveredValue = (float)$metrics[$deliveredField];
-    $clicksValue = (float)$metrics[$clicksField];
-    $unsubscribesValue = (float)$metrics['uniqueUnsubscribes'];
-    $complaintsValue = (float)$metrics['totalComplaints'];
-    $purchasesValue = (float)$metrics['uniquePurchases'];
-    $revenueValue = (float)$metrics['revenue'];
+    $sendValue = (float) $metrics[$sendField];
+    $deliveredValue = (float) $metrics[$deliveredField];
+    $clicksValue = (float) $metrics[$clicksField];
+    $unsubscribesValue = (float) $metrics['uniqueUnsubscribes'];
+    $complaintsValue = (float) $metrics['totalComplaints'];
+    $purchasesValue = (float) $metrics['uniquePurchases'];
+    $revenueValue = (float) $metrics['revenue'];
 
     if ($sendValue > 0) {
         $metrics['wizDeliveryRate'] = ($deliveredValue / $sendValue) * 100;
@@ -1126,7 +1242,7 @@ function idemailwiz_calculate_metrics($metrics) {
     }
 
     // Open metrics (sms or no opens gets zero values)
-    $opensValue = $medium == 'Email' ? (float)$metrics['uniqueEmailOpens'] : 0;
+    $opensValue = $medium == 'Email' ? (float) $metrics['uniqueEmailOpens'] : 0;
 
     if ($opensValue && $sendValue > 0) {
         $metrics['wizOpenRate'] = $medium == 'Email' ? ($opensValue / $sendValue) * 100 : 0;
@@ -1140,156 +1256,289 @@ function idemailwiz_calculate_metrics($metrics) {
         $metrics['wizCto'] = 0;
     }
 
+    // Remove metrics we don't want to sync in
+    unset($metrics['uniqueSmsSentByMessage']);
+
     return $metrics;
 }
 
 // Schedule the event, if not already scheduled
-if (!wp_next_scheduled('idemailwiz_daily_triggered_sync')) {
-    wp_schedule_event(time(), 'daily', 'idemailwiz_daily_triggered_sync');
+// Get current time in UTC
+$currentUTC = new DateTime('now', new DateTimeZone('UTC'));
+
+// Convert to Eastern Time
+$currentET = $currentUTC->setTimezone(new DateTimeZone('America/New_York'));
+
+$currentHour = (int) $currentET->format('G');
+$currentMinute = (int) $currentET->format('i');
+
+// Schedule or unschedule event based on time
+if (($currentHour > 5 || ($currentHour === 5 && $currentMinute >= 30)) && $currentHour < 22) {
+    // Schedule event if not already scheduled
+    if (!wp_next_scheduled('idemailwiz_hourly_sync')) {
+        wp_schedule_event(time(), 'hourly', 'idemailwiz_hourly_sync');
+    }
+} else {
+    // Unschedule event if it is scheduled
+    if ($timestamp = wp_next_scheduled('idemailwiz_hourly_sync')) {
+        wp_unschedule_event($timestamp, 'idemailwiz_hourly_sync');
+    }
 }
 
+
+
 // Hook into the custom action and run the function
-add_action('idemailwiz_daily_triggered_sync', 'idemailwiz_sync_triggered_send_timestamps');
+// Sync_everything includes syncing triggered campaigns send records
+add_action('idemailwiz_hourly_sync', 'idemailwiz_sync_everything', 1);
+add_action('idemailwiz_hourly_sync', 'idemailwiz_sync_triggered_send_records', 2);
 
-function idemailwiz_sync_triggered_send_timestamps() {
-    
-    //$triggeredFetchStart = new DateTime('-7 days');
-    $triggeredCampaigns = get_idwiz_campaigns(['type'=>'Triggered']);
 
-    wiz_log('Starting emailSend API calls (this will take a few minutes due to API rate limits).');
+function idemailwiz_get_todays_triggered_send_ids() {
+    // Try to get data from the transient
+    $uniqueCampaignIds = get_transient('idemailwiz_triggered_send_ids');
 
-    $jobIds = [];
-    $logFetched = 0;
-    $log400s = 0;
-    foreach ($triggeredCampaigns as $campaign) {
-        $campaignId = (int)$campaign['id'];
+    if ($uniqueCampaignIds === false) {
+        // Data not found in transient, fetch fresh data
+        $uniqueCampaignIds = [];
+        $last24Hours = new DateTimeImmutable('-24 hours', new DateTimeZone('UTC'));
+        $get24HourCampaigns = $last24Hours->format('Y-m-d H:i:s');
+        $encodedDateTime = urlencode($get24HourCampaigns);
 
+        wiz_log("Checking last 24 hours of triggered sends from Iterable...");
+        try {
+            $response = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/data.json?dataTypeName=emailSend&startDateTime=' . $encodedDateTime . '&onlyFields=campaignId');
+            
+            // Split the response string by lines
+            $lines = explode("\n", trim($response['response']));
+
+            // Loop through each line and decode the JSON object
+            foreach ($lines as $line) {
+                $campaignData = json_decode($line, true);
+                if ($campaignData && isset($campaignData['campaignId'])) {
+                    $wizCampaign = get_idwiz_campaign($campaignData['campaignId']);
+                    if ($wizCampaign['type'] != 'Blast') {
+                        $uniqueCampaignIds[$campaignData['campaignId']] = true;
+                    }
+                }
+            }
+
+            // Convert associative array keys to a normal indexed array
+            $uniqueCampaignIds = array_keys($uniqueCampaignIds);
+
+            // Store the result in a transient that expires after 24 hours (86400 seconds)
+            set_transient('idemailwiz_triggered_send_ids', $uniqueCampaignIds, 86400);
+        } catch (Exception $e) {
+            wiz_log("Error getting past 24 hours sent campaigns: $e");
+            return;
+        }
+    } else {
+        wiz_log("Using cached data for last 24 hours of triggered sends.");
+    }
+
+    return $uniqueCampaignIds;
+}
+
+
+function idemailwiz_sync_triggered_send_records($triggeredCampaigns = null)
+{       wiz_log("Starting triggered sends sync...");
+        global $wpdb;
+
+        // Initialize or fetch $triggeredCampaigns
+        $triggeredCampaigns = $triggeredCampaigns ?? idemailwiz_get_todays_triggered_send_ids();
+
+        // Filter out non-triggered campaigns
+        $filteredTriggeredCampaigns = [];
+        foreach ($triggeredCampaigns as $campaignId) {
+            $wizCampaign = get_idwiz_campaign($campaignId);
+            if ($wizCampaign['type'] == 'Triggered') {
+                $filteredTriggeredCampaigns[] = $wizCampaign;
+            }
+        }
+        $triggeredCampaigns = $filteredTriggeredCampaigns;
+
+        $jobIds = [];
+        $logFetched = 0;
+        $log400s = 0;
+        foreach ($triggeredCampaigns as $campaign) {
+        $campaignId = (int) $campaign['id'];
         $messageMedium = $campaign['messageMedium'];
 
-        if ($messageMedium == 'Email') {
-            $exportEvent = 'emailSend';
-        } else if ($messageMedium == 'SMS') {
-            $exportEvent = 'smsSend';
-        }
+        $exportEvent = $messageMedium === 'Email' ? 'emailSend' : 'smsSend';
 
-        //$exportFetchStart = new DateTime('1 month');
+        $exportFetchStart = new DateTimeImmutable('-7 days');
+        //$exportFetchEnd = new DateTimeImmutable('June 30, 2023');
         $exportStartData = [
-            "outputFormat" => "text/csv",
+            "outputFormat" => "application/x-json-stream",
             "dataTypeName" => $exportEvent,
             "campaignId" => $campaignId,
             "delimiter" => ",",
-            "onlyFields" => "createdAt",
-            "range" => 'Today'
-            //"startDateTime" => $exportFetchStart->format('Y-m-d'),
+            "onlyFields" => "createdAt,campaignId,templateId,messageId",
+            "startDateTime" => $exportFetchStart->format('Y-m-d'),
+            //"EndDateTime" => $exportFetchEnd->format('Y-m-d'),
+            //Reminder: The 'range' parameter doesn't work on this endpoint so we have to use start and end
         ];
-        
+
         try {
             $response = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/start', $exportStartData);
             $jobId = $response['response']['jobId'];
             $jobIds[$campaignId] = $jobId;
-            //$logFetched .= "Fetched campaign $campaignId (job ID: $jobId)\n";
             $logFetched++;
         } catch (Exception $e) {
             if ($e->getMessage() === "CONSECUTIVE_400_ERRORS") {
-                // Stop execution if more than 5 consecutive 400 errors
                 wiz_log("More than 5 consecutive HTTP 400 errors. Stopping execution.");
                 return;
             }
             $log400s++;
-            continue; // Continue with the next campaign ID for other exceptions
+            continue;
         }
         sleep(1);
     }
 
-    wiz_log("Requested $logFetched triggered campaigns from Iterable. $log400s errors encountered.\nProceeding to retrieve campaign data...");
+    wiz_log("Requested $logFetched triggered campaigns from Iterable. $log400s errors encountered.\nRetrieving send data...");
 
-    $latestTimestamps = [];
-    $countUpdates = 0;
-    $logUpdates = '';
-    sleep(3);
+    sleep(1);
     foreach ($jobIds as $campaignId => $jobId) {
+        //error_log('Fetching triggered send data for campaign: '. $campaignId);
         while (true) {
             $apiResponse = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/' . $jobId . '/files');
             if (in_array($apiResponse['response']['jobState'], ['completed', 'failed'])) {
                 break;
             }
-            sleep(3);
+            sleep(1);
         }
         if ($apiResponse['response']['jobState'] == "completed") {
-            $csvResponse = file_get_contents($apiResponse['response']['files'][0]['url']);
-            $tempFile = tmpfile();
-            fwrite($tempFile, $csvResponse);
-            rewind($tempFile);
-            $header = fgetcsv($tempFile);
-            $createdAtIndex = array_search('createdAt', $header);
-            $latestTimestamp = null; //initialize variable
-            
-
-            while ($row = fgetcsv($tempFile)) {
-                $timestamp = strtotime($row[$createdAtIndex]) * 1000;
-                if ($latestTimestamp === null || $timestamp > $latestTimestamp) {
-                    $latestTimestamp = $timestamp; 
-                }
-                
-            }
-            fclose($tempFile);
-
-            $thisCampaign = get_idwiz_campaigns(['id'=>$campaignId]); //returns array
-            $lastSend = $thisCampaign[0]['startAt'];
-            if ($lastSend < $latestTimestamp) {
-                $countUpdates++;
-                //Set the value with the array
-                $latestTimestamps[$campaignId] = $latestTimestamp;
-                //Log results
-                $apiReadable = date('m/d/y g:ia', ($latestTimestamp/1000));
-                $lastSendReadable = date('m/d/y g:ia', ($lastSend/1000));
-                $logUpdates .= "Campaign $campaignId send date/time needs updated from $lastSendReadable to $apiReadable \n";
-            }
-            
-        }
-    }
-
-    if ($countUpdates == 0) {
-        wiz_log('All triggered send times are already up to date.');
-        return false; //End execution since there's no updates to do
-    } else {
-        wiz_log($logUpdates);
-    }
-
-    $return = idemailwiz_update_triggered_startAt($latestTimestamps);
-    $logStartAtUpdate = 'Updated ' . $return['success'] . ' send times.'."\n";
-    $logStartAtUpdate .= 'Skipped ' . $return['skipped'] . ' campaigns.'."\n";
-    $logStartAtUpdate .= 'Encountered ' . $return['errors'] . ' errors';
-
-    wiz_log($logStartAtUpdate);
-    return $return;
-
+            // Fetch JSON data from the URL
+            $jsonResponse = file_get_contents($apiResponse['response']['files'][0]['url']);
     
+            // Decode the JSON string into an associative array
+            $decodedData = json_decode($jsonResponse, true) ?? array();
+
+            // Initialize an empty array to store the records
+            $records = array();
+
+            // Iterate through the decoded data to populate the records
+            foreach ($decodedData as $row) {
+                if (
+                    is_array($row) &&
+                    isset($row['campaignId'], $row['createdAt'], $row['messageId'], $row['templateId'])
+                ) {
+                    $records[] = [
+                        'messageId' => $row['messageId'],
+                        'campaignId' => $row['campaignId'],
+                        'templateId' => $row['templateId'],
+                        'startAt' => strtotime($row['createdAt']) * 1000,
+                    ];
+                }
+            }
+        }
+
+    }
+    if (!empty($records)) {
+        wiz_log('Checking received sends against existing records, and updating...');
+        // Fetch all existing messageIds in one query
+        $tableName = $wpdb->prefix . 'idemailwiz_triggered_sends';
+        $existingRecords = $wpdb->get_col("SELECT messageId FROM $tableName");
+
+        // Convert to associative array for quick look-up
+        $existingRecordsMap = array_flip($existingRecords);
+
+        // Loop through captured records from all exports
+        foreach ($records as $record) {
+            if (isset($existingRecordsMap[$record['messageId']])) {
+                //wiz_log("Record with messageId " . $record['messageId'] . " already exists. Skipping.");
+                continue;
+            }
+            idemailwiz_insert_triggered_send_record($record);
+        }
+       
+    } else {
+        wiz_log("No new triggered sends were found.");
+    }
+
+    wiz_log("Finished updating triggered send records!");
+    return true;
 }
 
-function idemailwiz_update_triggered_startAt($campaignTimestamps) {
+function idemailwiz_insert_triggered_send_record($record)
+{
     global $wpdb;
-    $result = ['success' => 0, 'errors' => 0, 'skipped' => 0];
+    $tableName = $wpdb->prefix . 'idemailwiz_triggered_sends';
+    if (!is_array($record) || empty($record) || !isset($record['messageId'])) {
+        //wiz_log("No new sends found for this campaign.");
+        return false;
+    }
 
-    foreach ($campaignTimestamps as $campaignId => $timestamp) {
-        if (!$timestamp || $timestamp == 0) {
-            $result['skipped']++;
-            continue;
-        }
+    // Convert the timestamp to your preferred time zone if needed
+   // $date = new DateTime('@' . ($record['startAt'] / 1000), new DateTimeZone('UTC'));
+    //$date->setTimezone(new DateTimeZone('America/Los_Angeles'));
+    //$timestampPST = $date->getTimestamp() * 1000;
 
-        $date = new DateTime('@' . ($timestamp / 1000), new DateTimeZone('UTC'));
-        $date->setTimezone(new DateTimeZone('America/Los_Angeles'));
-        $timestampPST = $date->getTimestamp() * 1000;
+    // Prepare the data array for wpdb
+    $data = [
+        'messageId' => $record['messageId'],
+        'campaignId' => $record['campaignId'],
+        'templateId' => $record['templateId'],
+        //'startAt' => $timestampPST
+        'startAt' => $record['startAt']
+    ];
 
-        $sql = $wpdb->prepare("UPDATE wp_idemailwiz_campaigns SET startAt = %d WHERE id = %d", $timestampPST, $campaignId);
-        $query_result = $wpdb->query($sql);
+    // Insert the record into the database
+    $result = $wpdb->insert($tableName, $data);
 
-        if ($query_result === false) {
-            $result['errors']++;
-        } else if ($query_result > 0) {
-            $result['success']++;
-        }
+
+    // Log the outcome of the insert
+    if ($result) {
+        //wiz_log("Successfully inserted record for messageId: " . $record['messageId']);
+    } else {
+        wiz_log("Failed to insert record for messageId: " . $record['messageId'] . ' on campaign ' . $record['campaignId']);
     }
 
     return $result;
+}
+
+
+
+function idemailwiz_import_triggered_sends_from_csv($localCsvFilePath)
+{
+    // Open the local CSV file
+    $tempFile = fopen($localCsvFilePath, 'r');
+
+    if (!$tempFile) {
+        wiz_log("Failed to open local CSV file.");
+        return false;
+    }
+
+    $header = fgetcsv($tempFile);
+
+    // Mapping of field to index
+    $indexMapping = array_flip($header);
+
+    $latestTimestampsPerCampaign = [];
+
+    while ($row = fgetcsv($tempFile)) {
+        if (
+            is_array($row) &&
+            isset($indexMapping['campaignId'], $indexMapping['createdAt'], $indexMapping['messageId'], $indexMapping['templateId']) &&
+            isset($row[$indexMapping['campaignId']], $row[$indexMapping['createdAt']], $row[$indexMapping['messageId']], $row[$indexMapping['templateId']])
+        ) {
+            $timestamp = strtotime($row[$indexMapping['createdAt']]) * 1000;
+            $campaignId = $row[$indexMapping['campaignId']];
+
+            if (!isset($latestTimestampsPerCampaign[$campaignId]) || $timestamp > $latestTimestampsPerCampaign[$campaignId]) {
+                $latestTimestampsPerCampaign[$campaignId] = $timestamp;
+            }
+
+            $record = [
+                'messageId' => $row[$indexMapping['messageId']],
+                'campaignId' => $row[$indexMapping['campaignId']],
+                'templateId' => $row[$indexMapping['templateId']],
+                'startAt' => strtotime($row[$indexMapping['createdAt']]) * 1000,
+            ];
+            idemailwiz_insert_triggered_send_record($record, $latestTimestampsPerCampaign);
+        }
+    }
+
+    fclose($tempFile);
+    wiz_log("Finished inserting new send records for triggered campaigns from CSV.");
+    return true;
 }

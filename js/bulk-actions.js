@@ -1,6 +1,6 @@
 jQuery(document).ready(function ($) {
 //Bulk select templates or folders
-	$('.clickToSelect').on('click', function() {
+	$('body').on('click', '.clickToSelect', function() {
 		// Delay the execution of the code inside setTimeout by 100 milliseconds.
 		setTimeout(function() {
 			if ($('.clickToSelect.selected').is(':visible')) {

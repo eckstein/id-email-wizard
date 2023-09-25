@@ -8,6 +8,7 @@ jQuery(document).ready(function ($) {
 		API_KEY: '282da5d7dd77450eae45bdc715ead2a4',
 	};
 	var existingTemplateId = $('#templateUI').data('iterableid');
+
 	// Main click event handler
 	$("#sendToIterable").on("click", function () {
 		const post_id = $(this).data("postid");
@@ -22,20 +23,28 @@ jQuery(document).ready(function ($) {
 		})
 		.done(data => {
 			if (data.status === "error") {
-				handleAjaxError(false, data.message);
+				handleAjaxError(true, data.message).then(() => {
+					toggleOverlay(false);
+				});
 			} else {
 				handleTemplateDataSuccess(data);
 			}
 		})
-		.fail(() => handleAjaxError(true));
+		.fail(() => handleAjaxError(true).then(() => {
+			toggleOverlay(false);
+		}));
 	});
 
 	// Error handling function
 	function handleAjaxError(hideOverlay = true, message = "Whoops, something went wrong!") {
-		if (hideOverlay) {
-			toggleOverlay(false);
-		}
-		Swal.fire(message, { icon: "error" });
+		return Swal.fire({
+			html: message,
+			icon: "error"
+		}).then(() => {
+			if (hideOverlay) {
+				toggleOverlay(false);
+			}
+		});
 	}
 
 	// Success handling function for getting template data
@@ -48,17 +57,16 @@ jQuery(document).ready(function ($) {
 				return `<li><strong>${key}</strong>: ${val}</li>`;
 			})
 			.join("");
-		//console.log(data);
+
 		const fieldList = `<ul style="text-align: left;">${fieldsToList}</ul>`;
 		var existingTemplateMessage = 'Enter an existing template ID or leave blank to create a new base template.';
+    
 		if (existingTemplateId) {
-			console.log('existing template');
 			if (data.alreadySent == true) {
-				console.log('already sent');
-				var existingTemplateMessage = `The campaign attached to template <a target="_blank" href="https://app.iterable.com/templates/editor?templateId=${existingTemplateId}">${existingTemplateId}</a> has already been sent! Click OK below to create a new template in Iterable.`
+				existingTemplateMessage = `The campaign attached to template <a target="_blank" href="https://app.iterable.com/templates/editor?templateId=${existingTemplateId}">${existingTemplateId}</a> has already been sent! Click OK below to create a new template in Iterable.`;
 				existingTemplateId = '';
 			} else {
-				var existingTemplateMessage = `Currently synced to template <a target="_blank" href="https://app.iterable.com/templates/editor?templateId=${existingTemplateId}">${existingTemplateId}</a>.`;
+				existingTemplateMessage = `Currently synced to template <a target="_blank" href="https://app.iterable.com/templates/editor?templateId=${existingTemplateId}">${existingTemplateId}</a>.`;
 			}
 		}
 
@@ -70,17 +78,31 @@ jQuery(document).ready(function ($) {
 			confirmButtonText: "Confirm & Sync!",
 			input: 'text',
 			inputValue: existingTemplateId,
-			inputPlaceholder: 'Leave blank to create new base template',
+			inputPlaceholder: 'Leave blank to create new base template'
 		}).then((result) => {
 			if (result.isConfirmed) {
-				create_or_update_iterable_template(data.fields, result.value, data.alreadySent)
-					.then(handleTemplateUpdateSuccess)
-					.catch(handleTemplateUpdateFailure);
+				$.post(idAjax.ajaxurl, {
+					action: "check_duplicate_itTemplateId",
+					template_id: result.value,
+					post_id: data.fields.postId
+				})
+				.done(dupCheckData => {
+					if (dupCheckData.status == "error") {
+						handleAjaxError(false, dupCheckData.message).then(() => {
+							toggleOverlay(false);
+						});
+					} else {
+						create_or_update_iterable_template(data.fields, result.value, data.alreadySent)
+							.then(handleTemplateUpdateSuccess)
+							.catch(handleTemplateUpdateFailure);
+					}
+				});
 			} else {
 				toggleOverlay(false);
 			}
 		});
 	}
+
 
 	// Function to handle success of template sync
 	function handleTemplateUpdateSuccess(templateId) {
@@ -127,8 +149,8 @@ jQuery(document).ready(function ($) {
 				utmTerm,
 			} = templateData;
 
-			const messageTypeId = messageType === "Transactional" ? config.TRANSACTIONAL_MESSAGE_TYPE_ID : config.PROMOTIONAL_MESSAGE_TYPE_ID;
-			const fromSender = messageType === "Transactional" ? config.TRANSACTIONAL_FROM_EMAIL : config.PROMOTIONAL_FROM_EMAIL;
+			const messageTypeId = messageType == "Transactional" ? config.TRANSACTIONAL_MESSAGE_TYPE_ID : config.PROMOTIONAL_MESSAGE_TYPE_ID;
+			const fromSender = messageType == "Transactional" ? config.TRANSACTIONAL_FROM_EMAIL : config.PROMOTIONAL_FROM_EMAIL;
 
 			const additionalData = {
 				template_id: postId
@@ -149,10 +171,21 @@ jQuery(document).ready(function ($) {
 					fromEmail: fromSender,
 					subject: emailSubject,
 					preheaderText: preheader,
-					clientTemplateId: `${postId}_${Date.now()}`,
+					clientTemplateId: postId,
 					creatorUserId: createdBy,
 					messageTypeId,
-					html: templateHtml
+					html: templateHtml,
+					linkParams: [
+						{
+							key: 'utm_term',
+							value: utmTerm
+						},
+						{
+							key: 'utm_content',
+							value: '{{templateId}}'
+						},
+						
+					]
 				};
 
 				if (existingTemplateId) {

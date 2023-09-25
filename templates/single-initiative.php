@@ -12,19 +12,30 @@ if (!empty($associated_campaign_ids)) {
 
 ?>
 <article id="post-<?php the_ID(); ?>" data-initiativeid="<?php echo get_the_ID(); ?>" <?php post_class('has-wiz-chart'); ?>>
-<header class="header">
-        <div class="entry-pre-title">Initiative</div>
+<header class="wizHeader">
+    <div class="wizHeader-left">
+        <h1 class="wizEntry-title single-wizcampaign-title" title="<?php echo get_the_title(); ?>" itemprop="name">
         <input type="text" id="initiative-title-editable" data-initUpdateType="title" value="<?php echo get_the_title(); ?>" />
-        <?php
-        if (!empty($associated_campaign_ids)) {
-        $initDateRange = get_idwiz_initiative_daterange(get_the_ID()); 
-        if (!isset($initDateRange['error'])) { ?>
-        <h3><?php echo $initDateRange['startDate']; ?> - <?php echo $initDateRange['endDate']; ?></h3>
-        <?php }
-        } ?>
-        <div id="wiztable_status_updates"><span class="wiztable_update"></span><span class="wiztable_view_sync_details">View sync log&nbsp;<i class="fa-solid fa-chevron-down"></i></span></div>
-        <div id="wiztable_status_sync_details">Sync log will show here...</div>
+        </h1>
+        <div class="wizEntry-meta"><strong>Initiative</strong>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Send dates: <?php echo display_init_date_range($associated_campaign_ids); ?>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Includes <?php echo count($associated_campaign_ids); ?> campaigns</div>
+        
+    </div>
+    <div class="wizHeader-right">
+        <div class="wizHeader-actions">
+            <button class="wiz-button green sync-initiative" data-initids="<?php echo htmlspecialchars(json_encode($associated_campaign_ids)); ?>">Sync Campaigns</button>
+    
+            <button class="wiz-button green add-init-campaign" data-initiativeid="<?php echo get_the_ID(); ?>"><i class="fa-regular fa-plus"></i>&nbsp;Add Campaigns</button>
+            <button class="wiz-button red remove-single-initiative" title="Delete Initiative" data-initiativeid="<?php echo get_the_ID(); ?>"><i class="fa-solid fa-trash"></i></button>
+            &nbsp;&nbsp;|&nbsp;&nbsp;
+            <button class="wiz-button green new-initiative"><i class="fa-regular fa-plus"></i>&nbsp;New Initiative</button>
+           
+            
+        </div>
+    </div>
 </header>
+<div id="wiztable_status_updates"><span class="wiztable_update"></span><span class="wiztable_view_sync_details">View sync log&nbsp;<i class="fa-solid fa-chevron-down"></i></span></div>
+<div id="wiztable_status_sync_details">Sync log will show here...</div>
+
 <div class="entry-content" itemprop="mainContentOfPage">
 
     <?php 
@@ -82,27 +93,19 @@ if (!empty($associated_campaign_ids)) {
                     'label'=>'Revenue', 
                     'format'=>'money',
                 ),
-            ),
-        '<button class="wiz-button sync-initiative" data-initids="' . htmlspecialchars(json_encode($associated_campaign_ids)). '"><i class="fa-solid fa-arrows-rotate"></i></button>'
+            )
         );
     }
     ?>
     <div class="wizmodules">
             <div id="initiative-campaigns-table" class="wizcampaign-section inset span3" >
-                <div class="wizcampaign-section-title-area">
-                    <h4>Campaigns</h4>
-                    <div class="initiative-add-campaign">
-                    <a href="#" class="show-add-to-campaign"><i class="fa fa-plus"></i>&nbsp;&nbsp;Add campaigns</a>
-                    <div class="initiative-add-campaign-form">
-                        <select class="initCampaignSelect" style="width: 300px;"></select>
-                        <div class="add-init-campaign" data-initcampaignaction="add" data-initiativeid="<?php echo get_the_ID(); ?>"><button class="wiz-button green">Add Campaigns</button></div>
-                    </div>
-                    </div>
-                </div>
+
                 <table class="idemailwiz_table display idemailwiz-simple-table" id="idemailwiz_initiative_campaign_table" style="width: 100%; vertical-align: middle;" valign="middle" width="100%" data-campaignids='<?php echo json_encode($associated_campaign_ids); ?>'>
                 <thead>
                     <tr>
                         <th>Date</th>
+                        <th>Type</th>
+                        <th>Medium</th>
                         <th>Campaign</th>
                         <th>Sent</th>
                         <th>Opened</th>
@@ -115,6 +118,7 @@ if (!empty($associated_campaign_ids)) {
                         <th>CVR</th>
                         <th>Unsubs</th>
                         <th>Unsub. Rate</th>
+                        <th>ID</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -124,11 +128,14 @@ if (!empty($associated_campaign_ids)) {
                 
                 if (!empty($associated_campaign_ids)) {
                 foreach ($initCampaigns as $campaign) {
+                    $wizCampaign = get_idwiz_campaign($campaign['id']);
                     $campaignMetrics = get_idwiz_metric($campaign['id']);
                     $readableStartAt = date('m/d/Y', $campaign['startAt'] / 1000);
                 ?>
                     <tr data-campaignid="<?php echo $campaign['id']; ?>">
                         <td class="campaignDate"><?php echo $readableStartAt; ?></td>
+                        <td class="campaignType"><?php echo $wizCampaign['type']; ?></td>
+                        <td class="campaignType"><?php echo $wizCampaign['messageMedium']; ?></td>
                         <td class="campaignName"><a href="<?php echo get_bloginfo('wpurl'); ?>/metrics/campaign/?id=<?php echo $campaign['id']; ?>" target="_blank"><?php echo $campaign['name']; ?></a></td>
                         <td class="uniqueSends"><?php echo number_format($campaignMetrics['uniqueEmailSends']); ?></td>
                         <td class="uniqueOpens"><?php echo number_format($campaignMetrics['uniqueEmailOpens']); ?></td>
@@ -142,6 +149,7 @@ if (!empty($associated_campaign_ids)) {
                         <td class="cvr"><?php echo number_format($campaignMetrics['wizCvr'] * 1, 2); ?>%</td>
                         <td class="uniqueUnsubs"><?php echo number_format($campaignMetrics['uniqueUnsubscribes']); ?></td>
                         <td class="unsubRate"><?php echo number_format($campaignMetrics['wizUnsubRate'] * 1, 2); ?>%</td>
+                        <td class="unsubRate"><?php echo $campaign['id'] ?></td>
                     </tr>
                 <?php }
                 }
@@ -153,18 +161,63 @@ if (!empty($associated_campaign_ids)) {
 
 
     
-    <div class="wizcampaign-section inset">
+    <div class="wizcampaign-section short inset">
        <div class="initiative-about">
             <h4>About <?php the_title(); ?></h4>
         </div>
         <textarea id="initiative-content-editable" data-initUpdateType="content"><?php echo strip_tags(get_the_content()); ?></textarea>
     </div>
-    <div id="initiativeAssets" class="wizcampaign-section span2 inset">
+    <div id="initiativeTemplate" class="wizcampaign-section inset">
+            <?php $initBaseTemplate = get_field('base_template'); 
+            ?>
+            <div class="wizcampaign-section-title-area"> 
+                <h4>Initiative Base Template</h4>
+                 <div class="wizcampaign-section-icons">
+                    <?php if ($initBaseTemplate) { ?>
+                   <button data-postid="<?php echo $initBaseTemplate->ID; ?>" data-frombase="true" class="duplicate-template wiz-button green"><i class="fa-solid fa-plus"></i> Start New Template</button>
+                   <?php }  ?>
+                </div>
+            </div>
+            
+            <div id="initTemplateTools">
+            <?php if (!$initBaseTemplate) { ?>
+            <br/>
+            <em>No base template set</em><br/><button class="wiz-button green attachBaseTemplate" ><i class="fa-solid fa-plus"></i> Attach Base Template</button>
+            <?php } ?>
+            <div id="showAttachBaseTemplate">
+            <?php
+            acf_form(array('fields'=>array('field_65032b84c2f62'), 'updated_message'=>false, 'html_submit_button'=>'<input type="submit" class="acf-button wiz-button green" value="%s" />'));
+            ?>
+            </div>
+            <?php if ($initBaseTemplate) { ?>
+            
+            <?php 
+            $mockups = get_field('template_mock-ups', $initBaseTemplate->ID);
+            if ($mockups) {
+                echo '<div class="init-template-mock-ups">';
+                $dtMockup = $mockups['mock-up-image-desktop'];
+                $mobMockup = $mockups['mock-up-image-mobile'];
+                if ($dtMockup) {
+                    echo '<div class="init-template-mock-up"><strong>Desktop</strong><br/><img src="' .$dtMockup. '"/></div>';
+                }
+                if ($mobMockup) {
+                    echo '<div class="init-template-mock-up"><strong>Mobile</strong><br/><img src="' .$mobMockup. '"/></div>';
+                }
+                echo '</div>';
+            } else {
+                echo 'Base Template:<br/><strong>' . $initBaseTemplate->post_title . '</strong><br/><em>No mock-ups were found for this base template.</em>';
+            }
+                ?>
+                <button class="wiz-button outline attachBaseTemplate" id="replaceBaseTemplate"><i class="fa-solid fa-shuffle"></i> Replace Base Template</button>
+                <?php } ?>
+                
+            </div>
+            
+    </div>
+    <div id="initiativeAssets" class="wizcampaign-section short inset">
             <div class="wizcampaign-section-title-area"> 
                 <h4>Initiative Assets</h4>
-                 <div class="wizcampaign-section-icons">
-                   <button class="wiz-button green"><i class="fa-solid fa-plus"></i> New Initiative Template</button>
-                </div>
+                 
             </div>
             <div id="initAssetsUI">
                 <div class="initAssetsLibrary">
@@ -183,13 +236,13 @@ if (!empty($associated_campaign_ids)) {
     </div>
 
     <div class="wizmodules">
-    <div class="wizcampaign-section inset" id="email-info">
+    <div class="wizcampaign-section inset short" id="email-info">
     <h4>Purchases by Date</h4>
         <?php if (!empty($associated_campaign_ids)) { ?>
         <canvas class="purchByDate" data-chartid="purchasesByDate" data-campaignids='<?php echo json_encode($associated_campaign_ids); ?>' data-charttype="bar"></canvas>
         <?php } ?>
     </div>
-    <div class="wizcampaign-section inset">
+    <div class="wizcampaign-section inset short">
         <div class="wizcampaign-section-title-area">
             <h4>Purchases by Division</h4>
             <div class="wizcampaign-section-icons">
@@ -200,7 +253,7 @@ if (!empty($associated_campaign_ids)) {
         <canvas class="purchByDivision" data-chartid="purchasesByDivision" data-campaignids='<?php echo json_encode($associated_campaign_ids); ?>' data-charttype="bar"></canvas>
         <?php } ?>
     </div>
-    <div class="wizcampaign-section inset">
+    <div class="wizcampaign-section inset short">
         <h4>Purchases by Product</h4>
         <table class="wizcampaign-tiny-table-sticky-header">
             <thead>
@@ -248,7 +301,7 @@ if (!empty($associated_campaign_ids)) {
         ?>
         </div>
     </div>
-    <div class="wizcampaign-section inset">
+    <div class="wizcampaign-section short inset">
         
             <?php 
             if (!empty($associated_campaign_ids)) {
@@ -319,7 +372,7 @@ if (!empty($associated_campaign_ids)) {
                 echo '<thead>';
                 echo '<tr>';
                 echo '<th>Promo Code</th>';
-                echo '<th>Number of Orders</th>';
+                echo '<th>Orders</th>';
                 echo '</tr>';
                 echo '</thead>';
                 echo '<tbody>';
@@ -338,7 +391,7 @@ if (!empty($associated_campaign_ids)) {
             ?>
         </div>
     </div>
-    <div class="wizcampaign-section inset">
+    <div class="wizcampaign-section inset short">
         <div class="wizcampaign-section-title-area">
             <h4>Purchases by Topic</h4>
             <div class="wizcampaign-section-icons">
@@ -349,7 +402,7 @@ if (!empty($associated_campaign_ids)) {
     <canvas class="purchByTopic" data-chartid="purchasesByTopic" data-campaignids='<?php echo json_encode($associated_campaign_ids); ?>' data-charttype="bar"></canvas>
     <?php } ?>
     </div>
-         <div class="wizcampaign-section inset">
+         <div class="wizcampaign-section inset short">
             <div class="wizcampaign-section-title-area">
                 <h4>Purchases by Campus</h4>
                 <div class="wizcampaign-section-icons">
@@ -370,6 +423,5 @@ if (!empty($associated_campaign_ids)) {
 
 </div>
 </article>
-<?php if ( comments_open() && !post_password_required() ) { comments_template( '', true ); } ?>
 <?php endwhile; endif; ?>
 <?php get_footer(); ?>

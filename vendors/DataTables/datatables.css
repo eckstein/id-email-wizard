@@ -12,9 +12,9 @@
 
 @charset "UTF-8";
 :root {
-  --dt-row-selected: 13, 110, 253;
-  --dt-row-selected-text: 255, 255, 255;
-  --dt-row-selected-link: 9, 10, 11;
+  --dt-row-selected: 200, 226, 142;
+  --dt-row-selected-text: 52, 52, 52;
+  --dt-row-selected-link: 52, 52, 52;
   --dt-row-stripe: 0, 0, 0;
   --dt-row-hover: 0, 0, 0;
   --dt-column-ordering: 0, 0, 0;
@@ -298,6 +298,7 @@ table.dataTable > tfoot > tr > td {
 table.dataTable tbody tr {
   background-color: transparent;
 }
+
 table.dataTable tbody tr.selected > * {
   box-shadow: inset 0 0 0 9999px rgba(13, 110, 253, 0.9);
   box-shadow: inset 0 0 0 9999px rgba(var(--dt-row-selected), 0.9);
@@ -2276,3 +2277,7 @@ div.dtsr-creation-form div.dtsr-form-row label.dtsr-toggle-title {
 }
 
 
+/* iD Wiz Custom */
+table.dataTable tbody tr.isFavorite > td {
+  background-color: #edf7d9;
+}

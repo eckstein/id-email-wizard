@@ -3,6 +3,9 @@ $dtSize = $templateStyles['desktop_font_size'] ?? '18px';
 $dtHeight = $templateStyles['desktop_line_height'] ?? '26px';
 $mobSize = $templateStyles['mobile_font_size'] ?? '16px';
 $mobHeight = $templateStyles['mobile_line_height'] ?? '24px';
+$linkColor = $templateStyles['link_color'] ?? '#94D500';
+$visLinkColor = $templateStyles['visited_link_color'] ?? '#94d500';
+$linkUnderline = $templateStyles['underline_links'] ?? true;
 ?>
     <!--[if (gte mso 9)|(IE)]>
     <style>
@@ -51,17 +54,15 @@ $mobHeight = $templateStyles['mobile_line_height'] ?? '24px';
           }
 
           a {
-            color: #000;
+            color: <?php echo $linkColor; ?>;
+            <?php if ($linkUnderline) {
+              echo 'text-decoration: underline;';
+            } else {
+              echo 'text-decoration: none;';
+            } ?>
           }
-          a.light {
-            color: #fff;
-          }
-          
           a:visited {
-          color: #000;
-          }
-          a.light:visited {
-            color: #eee;
+            color: <?php echo $visLinkColor; ?>;
           }
           
           td img {

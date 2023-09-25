@@ -26,6 +26,7 @@ function idemailwiz_build_template() {
     $fields = $formData['acf'];
     $chunks = $fields['add_chunk'];
     $templateSettings = $fields['template_settings'];
+    $templateStyles = $fields['template_styles'];
     $externalUTMs = $fields['email_settings']['external_utms'] ?? false;
     $externalUTMstring = $fields['email_settings']['external_utm_string'] ?? '';
 

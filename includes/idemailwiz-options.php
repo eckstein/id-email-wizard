@@ -1,13 +1,15 @@
 <?php
 add_action('admin_menu', 'idemailwiz_settings_page');
 function idemailwiz_settings_page() {
-    add_menu_page('ID Email Wiz Settings', 'ID Email Wiz', 'manage_options', 'idemailwiz_settings', 'idemailwiz_settings_page_content');
+    add_menu_page('ID Email Wiz Settings', 'Wiz Settings', 'manage_options', 'idemailwiz_settings', 'idemailwiz_settings_page_content');
 }
 
 function idemailwiz_settings_page_content() {
     ?>
     <div class="wrap">
         <h2>ID Email Wiz Settings</h2>
+        <p>Editing these endpoint will not necessarily break anything, but some strange behavior may be encountered, especially related to trashed templates.
+            <br/>If you change these, make sure to go to Settings > Permalinks and hit the save button (sometimes twice) to refresh the permalinks cache.</p>
         <form method="post" action="options.php">
             <?php
             settings_fields('idemailwiz_settings_group');
@@ -25,24 +27,13 @@ function idemailwiz_register_settings() {
     register_setting('idemailwiz_settings_group', 'idemailwiz_settings', 'idemailwiz_settings_sanitize');
     add_settings_section('idemailwiz_main_section', 'Main Settings', null, 'idemailwiz_settings');
 
-    // Image Field
-    add_settings_field('site_logo', 'Site Logo', 'idemailwiz_render_image_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'site_logo'));
-
-    // Dropdown Fields
-    add_settings_field('folder_base', 'Folder Base', 'idemailwiz_render_dropdown_taxonomy_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'folder_base', 'taxonomy' => 'idemailwiz_folder'));
-    add_settings_field('folder_trash', 'Folder Trash', 'idemailwiz_render_dropdown_taxonomy_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'folder_trash', 'taxonomy' => 'idemailwiz_folder'));
+    // WP Site Setup fields
+    add_settings_field('folder_base', 'Folders Root', 'idemailwiz_render_dropdown_taxonomy_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'folder_base', 'taxonomy' => 'idemailwiz_folder'));
+    add_settings_field('base_template_folder', 'Base Templates Folder', 'idemailwiz_render_dropdown_taxonomy_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'base_templates_term', 'taxonomy' => 'idemailwiz_folder'));
+    add_settings_field('folder_trash', 'Trash Folder', 'idemailwiz_render_dropdown_taxonomy_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'folder_trash', 'taxonomy' => 'idemailwiz_folder'));
     add_settings_field('dashboard_page', 'Dashboard Page', 'idemailwiz_render_dropdown_pages_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'dashboard_page'));
     add_settings_field('metrics_page', 'Metrics Page', 'idemailwiz_render_dropdown_pages_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'metrics_page'));
-    add_settings_field('repo_page', 'Repo Page', 'idemailwiz_render_dropdown_pages_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'repo_page'));
-
-    // Radio Field
-    add_settings_field('example_radio', 'Example Radio', 'idemailwiz_render_radio_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'example_radio', 'options' => array('option1' => 'Option 1', 'option2' => 'Option 2')));
-
-    // Checkbox Field
-    add_settings_field('example_checkbox', 'Example Checkbox', 'idemailwiz_render_checkbox_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'example_checkbox'));
-
-    // Text Field
-    add_settings_field('example_text', 'Example Text', 'idemailwiz_render_text_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'example_text'));
+  
 }
 
 function idemailwiz_render_image_field($args) {

@@ -43,19 +43,29 @@ function get_folder_list($current_folder_id=null) {
         'taxonomy' => 'idemailwiz_folder',
     );
 	
-	//skips the trash folder if it exists
+	// Initialize the $args['exclude'] array
+	$args['exclude'] = array();
+
+	// Fetch the 'idemailwiz_settings' options
 	$options = get_option('idemailwiz_settings');
-	  $trashTerm = (int) $options['folder_trash'];
-	if (!is_wp_error($trashTerm)) {
-		$args['exclude'] = array((int) $trashTerm);
+
+	// List of terms to exclude
+	$exclude_terms = array('folder_trash', 'base_templates_term');
+
+	// Loop through each term and add to $args['exclude'] if it's valid
+	foreach ($exclude_terms as $term) {
+		$term_value = (int) $options[$term];
+		if (!is_wp_error($term_value)) {
+			$args['exclude'][] = $term_value;
+		}
 	}
+
 	
 
     $folders = get_terms($args);
 	//print_r($folders);
     $terms_list = '';
     if (!empty($folders)) {
-        $terms_list .= '<h5>All Folders<div id="addNewFolder"><i title="Add new folder" class="fa-solid fa-circle-plus"></i></div></h5>';
 		
 		$terms_list .= '<ul>';
         foreach ($folders as $folder) {
@@ -70,26 +80,50 @@ function get_folder_list($current_folder_id=null) {
 		
 		$folder_list = $terms_list . $faves_list;
 		
-		//Add trashed
-		
+
+		// Append opening <ul> tag to existing $folder_list
+		$folder_list .= '<ul>';
+
+		// Fetch the 'idemailwiz_settings' options
 		$options = get_option('idemailwiz_settings');
+
+		// Trash Folder
 		$trashedFolderId = (int) $options['folder_trash'];
 		$trashLink = get_term_link($trashedFolderId, 'idemailwiz_folder');
-		if (!is_wp_error($trashLink)) {
-			$folder_list .= '<ul style="margin-top: auto;"><li><a href="' . $trashLink . '"><i class="fa fa-trash"></i>&nbsp;&nbsp;Trash</a></li></ul>';
-		} else {
-			$folder_list .= '<ul style="margin-top: auto;"><li><em>Error! Trash term not detected.</em></li></ul>';
-		}
+
+		// Base Template Folder
+		$baseTemplateTerm = (int) $options['base_templates_term'];
+		$baseLink = get_term_link($baseTemplateTerm, 'idemailwiz_folder');
+
+		// Template Root Folder
 		$templateRoot = (int) $options['folder_base'];
-		if (is_wp_error($templateRoot)) {
-			$folder_list .= '<ul style="margin-top: auto;"><li><em>No template root detected!</em></li></ul>';
+
+		// Base Template Folder
+		if (!is_wp_error($baseTemplateTerm)) {
+			$folder_list .= '<li><a href="' . $baseLink . '"><i class="fa fa-file"></i>&nbsp;&nbsp;Base Templates</a></li>';
 		}
+
+		// Trash Folder
+		if (!is_wp_error($trashLink)) {
+			$folder_list .= '<li><a href="' . $trashLink . '"><i class="fa fa-trash"></i>&nbsp;&nbsp;Trash</a></li>';
+		} else {
+			$folder_list .= '<li><em>Error! Trash term not detected.</em></li>';
+		}
+
+		// Template Root Folder
+		if (is_wp_error($templateRoot)) {
+			$folder_list .= '<li><em>No template root detected!</em></li>';
+		}
+
+		// Append closing </ul> tag to existing $folder_list
+		$folder_list .= '</ul>';
+
 		
 		
         
     }
 
-    echo $folder_list;
+    echo  $folder_list;
 }
 
 // Helper function to check if a folder is an ancestor of the current folder

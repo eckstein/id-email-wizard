@@ -22,13 +22,33 @@ jQuery(document).ready(function ($) {
 	$('.acf-accordion.-open').removeClass('-open');
 	$('.acf-accordion .acf-accordion-content').hide();
 
+
+	// Capture the scroll position for the active tab
+	$('#templateUI .left').on('scroll', function () {
+		var activeTab = $('#id-chunks-creator > .acf-fields > .acf-tab-wrap li.active'); // ACF adds .active to the active tab
+		var currentScroll = $(this).scrollTop();
+		activeTab.attr('data-scroll-position', currentScroll);
+	});
+
+	// Apply stored scroll position when a tab is clicked
+	$('#id-chunks-creator > .acf-fields > .acf-tab-wrap li').on('click', function () {
+		var maxScroll = $('#templateUI .left')[0].scrollHeight - $('#templateUI .left').height(); // Calculate max scroll position for the current tab's content
+
+		var storedScrollPosition = parseInt($(this).attr('data-scroll-position') || 0); // Fallback to 0 if not set
+		var finalScrollPosition = Math.min(storedScrollPosition, maxScroll); // Do not exceed max scroll position
+
+		$('#templateUI .left').scrollTop(finalScrollPosition);
+	});
+
+
+
 	//Scrolls the panes when a chunk or layout is activated
 	function scrollPanes(preview, chunk, layout) {
 		//console.log(preview+chunk+layout);
 		var previewScrollPos = $(chunk).offset().top - 130;
 		preview.find('body, html').animate({scrollTop: previewScrollPos}, 200);
-		var builder = $('#builder-chunks');
-		var scrollPosBuilder = layout.offset().top - builder.offset().top + builder.scrollTop() - 112;
+		var builder = $('#templateUI .left');
+		var scrollPosBuilder = layout.offset().top - builder.offset().top + builder.scrollTop() - 200;
 		builder.animate({scrollTop: scrollPosBuilder}, 200);
 	}
 

@@ -77,8 +77,9 @@ function idwiz_prepare_chart_data($data, $yAxis, $dualYAxis, $chartType) {
 }
 
 function idwiz_get_axis_data_type($axis) {
+    //error_log($axis);
     if (!$axis) {
-        return false;
+        $dataType = false;
     }
     switch ($axis) {
         case 'PurchaseDate':
@@ -89,6 +90,7 @@ function idwiz_get_axis_data_type($axis) {
             $dataType = 'money';
             break;
         case 'Purchases':
+        case 'Sends':
         case 'Opens':
         case 'Clicks':
         case 'Unsubs':
@@ -107,6 +109,64 @@ function idwiz_get_axis_data_type($axis) {
 
     return $dataType;
 }
+
+function idwiz_generate_sendsByDate_chart($campaignIds, $chartType) {
+    // Validate that $campaignIds is an array
+    if (!is_array($campaignIds)) {
+        return ['error' => 'Invalid campaign ID array.'];
+    }
+
+    // Initialize the $dateData array to store the aggregated data
+    $dateData = [];
+
+    // Loop over each campaignId and fetch the corresponding triggered sends
+    foreach ($campaignIds as $campaignId) {
+        $triggeredSends = get_triggered_sends_by_campaign_id($campaignId);
+
+        // Loop over each triggered send and aggregate the data by date
+        foreach ($triggeredSends as $send) {
+            // Convert the 'startAt' field from milliseconds to seconds and create a DateTime object
+            $dateObject = new DateTime();
+            $dateObject->setTimestamp($send['startAt'] / 1000);
+            
+            // Optional: Set the time zone if needed
+            // $dateObject->setTimezone(new DateTimeZone('Your/Timezone'));
+
+            // Format the date
+            $formattedDate = $dateObject->format('Y-m-d');
+            
+            // Initialize the date in $dateData if it's not already set
+            if (!isset($dateData[$formattedDate])) {
+                $dateData[$formattedDate] = ['Sends' => 0]; // No Revenue as we're dealing with sends
+            }
+
+            // Increment the send count for the date
+            $dateData[$formattedDate]['Sends'] += 1;
+        }
+        // Sort the $dateData array by date in ascending order
+        ksort($dateData);
+        
+        // Initialize a new array to hold the reformatted keys and data
+        $reformattedDateData = [];
+
+        // Loop through the sorted array to reformat the date keys
+        foreach ($dateData as $formattedDate => $data) {
+            // Create a DateTime object from the 'Y-m-d' formatted date
+            $dateObject = DateTime::createFromFormat('Y-m-d', $formattedDate);
+        
+            // Reformat the date to 'm/d/Y'
+            $reformattedDate = $dateObject->format('m/d/Y');
+        
+            // Move the data to the new array with the reformatted date as the key
+            $reformattedDateData[$reformattedDate] = $data;
+        }      
+    }
+
+
+   
+    return idwiz_prepare_chart_data($reformattedDateData, 'Sends', null, $chartType);
+}
+
 
 function idwiz_generate_purchasesByDate_chart($campaignIds, $chartType) {
 
@@ -173,7 +233,7 @@ function idwiz_generate_purchasesByDivision_chart($campaignIds, $chartType) {
     $purchases = get_idwiz_purchases(array('campaignIds' => $campaignIds, 'sortBy' => 'purchaseDate', 'sort' => 'ASC'));
 
     if (!$purchases) {
-        return ['error' => 'No purchases found for the provided campaign IDs.'];
+        return ['error' => 'No purchases were found!'];
     }
 
     $divisionData = [];

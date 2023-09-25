@@ -130,7 +130,12 @@ function id_restore_template( $post_id ) {
 function id_ajax_template_actions() {
 
 	//check nonce
-    check_ajax_referer( 'template-actions', 'security' );
+    if (!check_ajax_referer( 'template-actions', 'security', false)) {
+		check_ajax_referer( 'id-general', 'security');
+	}
+	
+	
+
 
 	//get global options
 	$options = get_option('idemailwiz_settings');
@@ -398,82 +403,7 @@ add_action('wp_ajax_id_delete_folder', 'id_delete_folder');
 add_action('wp_ajax_nopriv_id_delete_folder', 'id_delete_folder');
 
 
-// Add or remove a favorite template or folder from a user's profile
-function add_remove_user_favorite() {
-	//check nonce
-    check_ajax_referer( 'template-actions', 'security' );
-	
-  // Ensure object_id and object_type are set
-  $object_id = isset( $_POST['object_id'] ) ? intval( $_POST['object_id'] ) : 0;
-  $object_type = isset( $_POST['object_type'] ) ? sanitize_text_field( $_POST['object_type'] ) : '';
 
-  if ( $object_id <= 0 || empty($object_type) ) {
-    wp_send_json( array(
-      'success' => false,
-      'message' => 'Invalid object id or object type was sent!',
-      'action' => null,
-      'objectid' => $object_id,
-    ) );
-  }
-
-  // Determine the meta key based on the object_type
-  $meta_key = 'idwiz_favorite_' . strtolower($object_type) . 's'; // either 'idwiz_favorite_templates' or 'idwiz_favorite_folders'
-
-  $favorites = get_user_meta( get_current_user_id(), $meta_key, true );
-
-  if ( ! is_array( $favorites ) ) {
-    $favorites = array();
-  }
-
-  $success = false;
-  $message = '';
-  $action = '';
-
-  $key = array_search( $object_id, $favorites );
-  if ( false !== $key ) {
-    unset( $favorites[ $key ] );
-    $message = 'Favorite ' . $object_type . ' removed.';
-    $action = 'removed';
-  } else {
-    $favorites[] = intval( $object_id );  // Ensure object_id is an integer
-    $message = 'Favorite ' . $object_type . ' added.';
-    $action = 'added';
-  }
-  $success = true;
-
-  if ( $success ) {
-    $update_status = update_user_meta( get_current_user_id(), $meta_key, $favorites );
-    if ( $update_status === false ) {
-      $success = false;
-      $message = 'Failed to update user meta.';
-    } else {
-      $updated_favorites = get_user_meta( get_current_user_id(), $meta_key, true );
-      if ( ! is_array( $updated_favorites ) ) {
-        $success = false;
-        $message = 'User meta was updated but the structure is incorrect.';
-      } else {
-		// Check if the object_id was correctly added or removed
-		if ( $action === 'added' && ! in_array( $object_id, $updated_favorites ) ) {
-			$success = false;
-			$message = 'Object id was not added correctly to ' . $object_type . '.';
-		} elseif ( $action === 'removed' && in_array( $object_id, $updated_favorites ) ) {
-			$success = false;
-			$message = 'Object id was not removed correctly from ' . $object_type . '.';
-		}
-      }
-    }
-  }
-
-  wp_send_json( array(
-    'success' => $success,
-    'message' => $message,
-    'action' => $action,
-    'objectid' => $object_id,
-  ) );
-}
-
-add_action('wp_ajax_add_remove_user_favorite', 'add_remove_user_favorite');
-add_action('wp_ajax_nopriv_add_remove_user_favorite', 'add_remove_user_favorite');
 
 
 //Add a new folder to the folder tree
