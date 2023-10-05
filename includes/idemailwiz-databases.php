@@ -1,5 +1,6 @@
 <?php
-function idemailwiz_create_databases() {
+function idemailwiz_create_databases()
+{
     global $wpdb;
     $charset_collate = $wpdb->get_charset_collate();
 
@@ -25,7 +26,6 @@ function idemailwiz_create_databases() {
         listIds VARCHAR(255),
         suppressionListIds VARCHAR(255),
         type VARCHAR(20),
-        messageMedium VARCHAR(20),
         initiativeLinks VARCHAR(255),
         PRIMARY KEY  (id)
     ) $charset_collate;";
@@ -40,6 +40,21 @@ function idemailwiz_create_databases() {
         INDEX idx_initiativeId (initiativeId)
     ) $charset_collate;";
 
+    $cohort_table_name = $wpdb->prefix . 'idemailwiz_cohorts';
+    $cohorts_sql = "CREATE TABLE IF NOT EXISTS $cohort_table_name (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    orderId VARCHAR(10),
+    medium VARCHAR(32),
+    accountNumber VARCHAR(20),
+    cohort_type VARCHAR(32),
+    cohort_value VARCHAR(32),
+    purchaseDate VARCHAR(26),
+    INDEX accountNumber (accountNumber),
+    INDEX orderId (orderId),
+    INDEX medium (medium)
+    ) $charset_collate;";
+
+
     $triggered_sends_table_name = $wpdb->prefix . 'idemailwiz_triggered_sends';
     $triggered_sends_sql = "CREATE TABLE IF NOT EXISTS $triggered_sends_table_name (
         messageId VARCHAR(32),
@@ -48,6 +63,21 @@ function idemailwiz_create_databases() {
         startAt BIGINT,
         PRIMARY KEY  (messageId),
         INDEX campaignId (campaignId),
+        INDEX startAt (startAt)
+    ) $charset_collate;";
+
+    $ga_campaign_rev_table_name = $wpdb->prefix . 'idemailwiz_ga_campaign_revenue';
+    $ga_campaign_rev_sql = "CREATE TABLE IF NOT EXISTS $ga_campaign_rev_table_name (
+        transactionId VARCHAR(7),
+        date VARCHAR(32),
+        campaignId VARCHAR(32),
+        division VARCHAR(32),
+        revenue FLOAT,
+        purchases INT,
+        INDEX (transactionId),
+        INDEX campaignId (campaignId),
+        INDEX date (date),
+        INDEX division (division)
     ) $charset_collate;";
 
 
@@ -86,6 +116,7 @@ function idemailwiz_create_databases() {
         averageOrderValue FLOAT,
         purchasesMEmail FLOAT,
         revenue FLOAT,
+        gaRevenue FLOAT,
         revenueMEmail FLOAT,
         sumOfCustomConversions FLOAT,
         totalComplaints FLOAT,
@@ -258,28 +289,35 @@ function idemailwiz_create_databases() {
         total VARCHAR(20),
         userId VARCHAR(40),
         PRIMARY KEY  (id),
-        INDEX idx_campaignId (campaignId)
+        INDEX campaignId (campaignId),
+        INDEX purchaseDate (purchaseDate),
+        INDEX shoppingCartItems_divisionName (shoppingCartItems_divisionName),
+        INDEX orderId (orderId),
+        INDEX accountNumber (accountNumber)
     ) $charset_collate;";
 
 
-  
-    require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-    dbDelta( $campaign_sql );
-    dbDelta( $campaign_init_sql );
-    dbDelta( $triggered_sends_sql );
-    dbDelta( $template_sql );
-    dbDelta( $metrics_sql );
-    dbDelta( $experiments_sql );
-    dbDelta( $purchase_sql );
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($campaign_sql);
+    dbDelta($campaign_init_sql);
+    dbDelta($cohorts_sql);
+    dbDelta($triggered_sends_sql);
+    dbDelta($ga_campaign_rev_sql);
+    dbDelta($template_sql);
+    dbDelta($metrics_sql);
+    dbDelta($experiments_sql);
+    dbDelta($purchase_sql);
 
 
-    //Create our custom view
+    //Create our custom view for the datatable
     idemailwiz_create_view();
 }
 
-function idemailwiz_create_view() {
+function idemailwiz_create_view()
+{
     global $wpdb;
-    
+
     $sql = "
         CREATE OR REPLACE VIEW idwiz_campaign_view AS
         SELECT 
@@ -306,6 +344,7 @@ function idemailwiz_create_view() {
             metrics.uniquePurchases as unique_purchases,
             metrics.wizCvr as wiz_cvr,
             metrics.revenue as revenue,
+            metrics.gaRevenue as ga_revenue,
             GROUP_CONCAT(init_campaigns.initiativeId) as initiative_ids
         FROM 
             " . $wpdb->prefix . "idemailwiz_campaigns AS campaigns
@@ -325,7 +364,8 @@ function idemailwiz_create_view() {
 
 
 //Powers the sql query for the get_ functions for all databases
-function build_idwiz_query($args, $table_name) {
+function build_idwiz_query($args, $table_name)
+{
     global $wpdb;
 
     $fields = isset($args['fields']) ? $args['fields'] : '*';
@@ -338,17 +378,17 @@ function build_idwiz_query($args, $table_name) {
     // Filter out zero values from 'ids' and 'campaignIds' if they are present
     // Prevents huge data calls in the purchases database
     if (isset($args['id'])) {
-       if ($args['id'] == 0) {
-        $args['id'] == null;
-       }
+        if ($args['id'] == 0) {
+            $args['id'] == null;
+        }
     }
     if (isset($args['ids'])) {
-        $args['ids'] = array_filter($args['ids'], function($id) {
+        $args['ids'] = array_filter($args['ids'], function ($id) {
             return $id != 0;
         });
     }
     if (isset($args['campaignIds'])) {
-        $args['campaignIds'] = array_filter($args['campaignIds'], function($id) {
+        $args['campaignIds'] = array_filter($args['campaignIds'], function ($id) {
             return $id != 0;
         });
     }
@@ -360,41 +400,72 @@ function build_idwiz_query($args, $table_name) {
     unset($where_args['sortBy']);
     unset($where_args['sort']);
     unset($where_args['offset']);
-    
+
+    // Setup special variable cases
+    $campaignKey = 'id';
+    $dateKey = 'startAt';
+
+    if (
+        $table_name == $wpdb->prefix . 'idemailwiz_purchases'
+        || $table_name == $wpdb->prefix . 'idemailwiz_templates'
+        || $table_name == $wpdb->prefix . 'idemailwiz_experiments'
+    ) {
+        $campaignKey = 'campaignId';
+    }
+
+    if ($table_name == $wpdb->prefix . 'idemailwiz_purchases') {
+        $dateKey = 'purchaseDate';
+    }
+
     foreach ($where_args as $key => $value) {
         if ($value !== null && $value !== '') {
-                
-                if (($key === 'ids' || $key === 'campaignIds')) {  // Special case for array of campaign IDs
-                    $campaignKey = 'id';
-                    $placeholders = implode(',', array_fill(0, count($value), '%d'));
-    
-                    if ($table_name == $wpdb->prefix . 'idemailwiz_purchases' 
-                        || $table_name == $wpdb->prefix . 'idemailwiz_templates' 
-                        || $table_name == $wpdb->prefix . 'idemailwiz_experiments') {
-                        $campaignKey = 'campaignId';
-                    }
-    
-                    // Use call_user_func_array to dynamically pass an array of arguments to $wpdb->prepare
-                    $sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND $campaignKey IN ($placeholders)"), $value));
-                } elseif ($key === 'startAt_start') {
+
+
+            if (($key === 'ids' || $key === 'campaignIds')) { // Special case for array of campaign IDs
+
+                $placeholders = implode(',', array_fill(0, count($value), '%d'));
+
+                // Use call_user_func_array to dynamically pass an array of arguments to $wpdb->prepare
+                $sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND $campaignKey IN ($placeholders)"), $value));
+            } elseif ($key === 'startAt_start') {
                 try {
-                    $value = (new DateTime($value))->getTimestamp() * 1000;
-                    $sql .= $wpdb->prepare(" AND startAt >= %d", $value);
+                    $dt = new DateTime($value, new DateTimeZone('America/Los_Angeles'));
+                    $dt->setTime(0, 0, 0); // Set the time to the start of the day
+                    $dt->setTimezone(new DateTimeZone('UTC'));
+
+                    if ($dateKey === 'purchaseDate') {
+                        $value = $dt->format('Y-m-d');
+                        $sql .= $wpdb->prepare(" AND $dateKey >= %s", $value);
+                    } else {
+                        $value = $dt->getTimestamp() * 1000;
+                        $sql .= $wpdb->prepare(" AND $dateKey >= %d", $value);
+                    }
+
                 } catch (Exception $e) {
                     return ['error' => $e];
                 }
             } elseif ($key === 'startAt_end') {
                 try {
-                    $value = (new DateTime($value))->getTimestamp() * 1000;
-                    $sql .= $wpdb->prepare(" AND startAt <= %d", $value);
+                    $dt = new DateTime($value, new DateTimeZone('America/Los_Angeles'));
+                    $dt->setTime(23, 59, 59); // Set the time to the end of the day
+                    $dt->setTimezone(new DateTimeZone('UTC'));
+
+                    if ($dateKey === 'purchaseDate') {
+                        $value = $dt->format('Y-m-d');
+                        $sql .= $wpdb->prepare(" AND $dateKey <= %s", $value);
+                    } else {
+                        $value = $dt->getTimestamp() * 1000;
+                        $sql .= $wpdb->prepare(" AND $dateKey <= %d", $value);
+                    }
+
                 } catch (Exception $e) {
                     return ['error' => $e];
                 }
             } elseif ($key === 'serialized' && is_array($value)) {
                 foreach ($value as $serialized_column => $serialized_value) {
                     // Check for string or integer to get a proper match
-                    $like_value_int = '%i:' . $wpdb->esc_like($serialized_value) . ';%'; 
-                    $like_value_str = '%"'.$wpdb->esc_like($serialized_value).'"%'; 
+                    $like_value_int = '%i:' . $wpdb->esc_like($serialized_value) . ';%';
+                    $like_value_str = '%"' . $wpdb->esc_like($serialized_value) . '"%';
                     $sql .= $wpdb->prepare(" AND ($serialized_column LIKE %s OR $serialized_column LIKE %s)", $like_value_int, $like_value_str);
                 }
             } else {
@@ -415,22 +486,23 @@ function build_idwiz_query($args, $table_name) {
     }
 
     if (isset($args['limit'])) {
-        $sql .= $wpdb->prepare(" LIMIT %d", (int)$args['limit']);
+        $sql .= $wpdb->prepare(" LIMIT %d", (int) $args['limit']);
     }
 
     if (isset($args['offset'])) {
-        $sql .= $wpdb->prepare(" OFFSET %d", (int)$args['offset']);
+        $sql .= $wpdb->prepare(" OFFSET %d", (int) $args['offset']);
     }
 
     return $sql;
 
-    
+
 }
 
 
 
 // Does the sql query for the main get_ functions based on the passed parameters
-function execute_idwiz_query($sql) {
+function execute_idwiz_query($sql)
+{
     global $wpdb;
     $results = $wpdb->get_results($sql, ARRAY_A);
 
@@ -441,64 +513,75 @@ function execute_idwiz_query($sql) {
     return $results;
 }
 
-function get_idwiz_campaigns($args = []) {
+function get_idwiz_campaigns($args = [])
+{
     global $wpdb;
     $table_name = $wpdb->prefix . 'idemailwiz_campaigns';
     $sql = build_idwiz_query($args, $table_name);
     return execute_idwiz_query($sql);
 }
 
-function get_idwiz_templates($args = []) {
+function get_idwiz_templates($args = [])
+{
     global $wpdb;
     $table_name = $wpdb->prefix . 'idemailwiz_templates';
     $sql = build_idwiz_query($args, $table_name);
     return execute_idwiz_query($sql);
 }
 
-function get_idwiz_purchases($args = []) {
+function get_idwiz_purchases($args = [])
+{
     global $wpdb;
     $table_name = $wpdb->prefix . 'idemailwiz_purchases';
     $sql = build_idwiz_query($args, $table_name);
     return execute_idwiz_query($sql);
 }
 
-function get_idwiz_metrics($args = []) {
+function get_idwiz_metrics($args = [])
+{
     global $wpdb;
     $table_name = $wpdb->prefix . 'idemailwiz_metrics';
     $sql = build_idwiz_query($args, $table_name);
     return execute_idwiz_query($sql);
 }
 
-function get_idwiz_experiments($args = []) {
+function get_idwiz_experiments($args = [])
+{
     global $wpdb;
     $table_name = $wpdb->prefix . 'idemailwiz_experiments';
     $sql = build_idwiz_query($args, $table_name);
     return execute_idwiz_query($sql);
 }
 
-function get_idwiz_campaign($campaignID) {
+function get_idwiz_campaign($campaignID)
+{
     $campaigns = get_idwiz_campaigns(['id' => $campaignID]);
     return $campaigns ? $campaigns[0] : false;
 }
-function get_idwiz_template($templateID) {
+function get_idwiz_template($templateID)
+{
     $templates = get_idwiz_templates(['templateId' => $templateID]);
     return $templates ? $templates[0] : false;
 }
-function get_idwiz_purchase($purchaseID) {
+function get_idwiz_purchase($purchaseID)
+{
     $purchases = get_idwiz_purchases(['id' => $purchaseID]);
     return $purchases ? $purchases[0] : false;
 }
-function get_idwiz_metric($campaignID) {
+function get_idwiz_metric($campaignID)
+{
     $metrics = get_idwiz_metrics(['id' => $campaignID]);
     return $metrics ? $metrics[0] : false;
 }
-function get_idwiz_experiment($templateId) {
+function get_idwiz_experiment($templateId)
+{
     $experiments = get_idwiz_experiments(['templateId' => $templateId]);
     return $experiments ? $experiments[0] : false;
 }
 
 
-function get_idwiz_metrics_by_campaigns($campaign_ids) {
+function get_idwiz_metrics_by_campaigns($campaign_ids)
+{
     global $wpdb;
     $table_name = $wpdb->prefix . 'idemailwiz_metrics';
 
@@ -515,12 +598,36 @@ function get_idwiz_metrics_by_campaigns($campaign_ids) {
     }
 }
 
-function get_idwiz_purchases_by_campaign($campaignId) {
+// Get purchases by campaign and date range
+// Date format takes yyyy-mm-dd
+function get_idwiz_purchases_by_campaign($campaignIds, $startDate = null, $endDate = null)
+{
     global $wpdb;
     $table_name = $wpdb->prefix . 'idemailwiz_purchases';
 
-    // Query the database for purchases with the given campaign IDs
-    $purchases = $wpdb->get_results("SELECT * FROM {$table_name} WHERE campaignId = $campaignId");
+    // Sanitize the array of campaign IDs before using them in the SQL query
+    $clean_ids = array_map('intval', $campaignIds);
+
+    // Convert the array to a comma-separated string
+    $ids_str = implode(',', $clean_ids);
+
+    // Prepare date filters if provided
+    $date_filter = '';
+    if ($startDate && $endDate) {
+        $startDate = (new DateTime($startDate))->format('Y-m-d');
+        $endDate = (new DateTime($endDate))->format('Y-m-d');
+
+        $startDate = esc_sql($startDate);
+        $endDate = esc_sql($endDate);
+
+        $date_filter = "AND ( (purchaseDate BETWEEN '{$startDate}' AND '{$endDate}') OR (purchaseDate IS NULL AND DATE(createdAt) BETWEEN '{$startDate}' AND '{$endDate}') )";
+    }
+
+
+    // Query the database for purchases with the given campaign IDs and date range
+    $query = "SELECT * FROM {$table_name} WHERE campaignId IN ($ids_str) $date_filter";
+    $purchases = $wpdb->get_results($query, ARRAY_A);
+
     if ($purchases) {
         return $purchases;
     } else {
@@ -531,155 +638,31 @@ function get_idwiz_purchases_by_campaign($campaignId) {
 
 
 
-function idwiz_is_serialized($value) {
-    if (!is_string($value)) return false;
-    if (trim($value) == "") return false;
-    if (preg_match("/^(i|s|a|o|d):(.*);/si", $value)) return true;
+
+function idwiz_is_serialized($value)
+{
+    if (!is_string($value))
+        return false;
+    if (trim($value) == "")
+        return false;
+    if (preg_match("/^(i|s|a|o|d):(.*);/si", $value))
+        return true;
     return false;
 }
 
 
-function handle_experiment_winner_toggle() {
-    error_log('Made it to handler');
-
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'idemailwiz_experiments';
-
-    // Log POST data for debugging
-    error_log('POST data: ' . print_r($_POST, true));
-
-    // Security checks and validation
-    if (!check_ajax_referer('wiz-metrics', 'security', false)) {
-        error_log('Nonce check failed');
-        wp_send_json_error('Nonce check failed');
-        return;
-    }
-
-    $action = $_POST['actionType'];
-    $templateId = intval($_POST['templateId']);
-    $experimentId = intval($_POST['experimentId']);
-
-    if (!$templateId || !$experimentId) {
-        error_log('Invalid templateId or experimentId');
-        wp_send_json_error('Invalid templateId or experimentId');
-        return;
-    }
-
-    if ($action == 'add-winner') {
-        error_log('Action is add-winner');
-
-        // Clear existing winners for the same experimentId
-        $result = $wpdb->update(
-            $table_name,
-            array('wizWinner' => null),
-            array('experimentId' => $experimentId)
-        );
-
-        if ($result === false) {
-            error_log("Database error while clearing winners: " . $wpdb->last_error);
-            wp_send_json_error("Database error while clearing winners: " . $wpdb->last_error);
-            return;
-        }
-
-        // Set new winner
-        $result = $wpdb->update(
-            $table_name,
-            array('wizWinner' => 1),
-            array('templateId' => $templateId)
-        );
-
-        if ($result === false) {
-            error_log("Database error while setting new winner: " . $wpdb->last_error);
-            wp_send_json_error("Database error while setting new winner: " . $wpdb->last_error);
-            return;
-        }
-
-    } elseif ($action == 'remove-winner') {
-        error_log('Action is remove-winner');
-
-        // Remove winner
-        $result = $wpdb->update(
-            $table_name,
-            array('wizWinner' => null),
-            array('templateId' => $templateId)
-        );
-
-        if ($result === false) {
-            error_log("Database error while removing winner: " . $wpdb->last_error);
-            wp_send_json_error("Database error while removing winner: " . $wpdb->last_error);
-            return;
-        }
-
-    } else {
-        error_log('Invalid action: ' . $action);
-        wp_send_json_error('Invalid action');
-        return;
-    }
-
-    error_log('Action completed successfully');
-    wp_send_json_success('Action completed successfully');
-}
-
-add_action('wp_ajax_handle_experiment_winner_toggle', 'handle_experiment_winner_toggle');
 
 
 
-add_action('wp_ajax_save_experiment_notes', 'save_experiment_notes');
-
-function save_experiment_notes() {
-    // Security checks and validation
-    if (!check_ajax_referer('wiz-metrics', 'security', false)) {
-        error_log('Nonce check failed');
-        wp_send_json_error('Nonce check failed');
-        return;
-    }
-
-    // Get the experiment notes and ID
-    $experimentId = isset($_POST['experimentId']) ? sanitize_text_field($_POST['experimentId']) : '';
-    
-    $allowed_tags = array(
-        'br' => array(),
-        // Add other tags if you wish to allow them
-    );
-    $experimentNotes = isset($_POST['experimentNotes']) ? wp_kses($_POST['experimentNotes'], $allowed_tags) : '';
-    
-    // Database update logic
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'idemailwiz_experiments';
-
-    // Update experimentNotes for all records with the same experiment ID
-    $result = $wpdb->update(
-        $table_name,
-        array('experimentNotes' => $experimentNotes),
-        array('experimentId' => (int)$experimentId)
-    );
-
-    if ($wpdb->last_error) {
-        error_log("Database error: " . $wpdb->last_error);
-        wp_send_json_error('Database error: ' . $wpdb->last_error);
-        return;
-    }
-
-    if ($result !== false) {
-        if ($result > 0) {
-            wp_send_json_success('Data saved successfully');
-        } else {
-            wp_send_json_error('No data was updated, the new value may be the same as the existing value');
-        }
-    } else {
-        wp_send_json_error('An error occurred while updating the database');
-    }
-}
-
-
-function get_triggered_sends_by_campaign_id($campaignId) {
+function get_triggered_sends_by_campaign_id($campaignId)
+{
     global $wpdb;
 
     // Sanitize the input to prevent SQL injection
     $safe_campaignId = (int) $campaignId;
 
     // SQL query to fetch rows from wp_idemailwiz_triggered_sends that match the campaignId
-    $sql = $wpdb->prepare("SELECT * FROM wp_idemailwiz_triggered_sends WHERE campaignId = %d", $safe_campaignId);
+    $sql = $wpdb->prepare("SELECT * FROM ".$wpdb->prefix."idemailwiz_triggered_sends WHERE campaignId = %d", $safe_campaignId);
 
     // Execute the SQL query and fetch the results
     $results = $wpdb->get_results($sql, ARRAY_A);
@@ -688,27 +671,98 @@ function get_triggered_sends_by_campaign_id($campaignId) {
     return $results;
 }
 
+function get_idwiz_campaigns_by_dates($startDate, $endDate, $triggered = false)
+{
+    $getCampaigns = array(
+        'startAt_start' => $startDate,
+        'startAt_end' => $endDate,
+    );
+    if (!$triggered) {
+        $getCampaigns['type'] = 'Blast';
+    }
+    $campaigns = get_idwiz_campaigns($getCampaigns);
+
+    return $campaigns;
+}
 
 
+function get_cohort_value_for_division($purchase) {
+    return $purchase['shoppingCartItems_divisionName'];
+}
 
+function get_cohort_value_for_day_of_year($purchase) {
+    $date = new DateTime($purchase['purchaseDate']);
+    $startOfYear = new DateTime($date->format('Y-01-01'));
+    $interval = $startOfYear->diff($date);
+    $dayOfYearCohort = $interval->days + 1; // Adding 1 to start counting from Day 1
 
+    $isLeapYear = date('L', strtotime($purchase['purchaseDate']));
+    if (!$isLeapYear && $dayOfYearCohort >= 60) {
+        $dayOfYearCohort -= 1;
+    }
 
+    return $dayOfYearCohort;
+}
 
+function idwiz_populate_cohort($cohort_type, $cohort_value_callback) {
+    global $wpdb;
 
+    // Fetch all purchases using your existing method
+    $campaigns = get_idwiz_campaigns(['fields'=>'id']);
+    //$purchases = get_idwiz_purchases(['shoppingCartItems_utmMedium'=>'email']);
+    $purchases = get_idwiz_purchases(['fields'=>'accountNumber, orderId, purchaseDate, shoppingCartItems_utmMedium, shoppingCartItems_divisionName']);
 
+    // Loop through each purchase
+    foreach ($purchases as $purchase) {
+        $accountNumber = $purchase['accountNumber'];
+        $orderId = $purchase['orderId'];
+        $purchaseDate = $purchase['purchaseDate'];
+        $purchaseMedium = $purchase['shoppingCartItems_utmMedium'];
+        $cohort_value = $cohort_value_callback($purchase);
 
+        // Skip if either account number or cohort value is empty
+        if (empty($accountNumber) || empty($cohort_value)) {
+            continue;
+        }
 
+        // Check if this cohort already exists in the table
+        $existing_cohort = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM ".$wpdb->prefix."idemailwiz_cohorts WHERE accountNumber = %s AND cohort_type = %s AND orderId = %s AND medium = %s",
+                $accountNumber, $cohort_type, $orderId, $purchaseMedium
+            )
+        );
 
+        // Insert or update the cohort entry
+        if (null === $existing_cohort) {
+            $wpdb->insert(
+                $wpdb->prefix.'idemailwiz_cohorts',
+                [
+                    'accountNumber' => $accountNumber,
+                    'orderId' => $orderId,
+                    'purchaseDate' => $purchaseDate,
+                    'cohort_type' => $cohort_type,
+                    'cohort_value' => $cohort_value,
+                    'medium' => $purchaseMedium
+                ]
+            );
+        } else if ($existing_cohort->cohort_value != $cohort_value) {
+            $wpdb->update(
+                $wpdb->prefix.'idemailwiz_cohorts',
+                ['cohort_value' => $cohort_value],
+                ['id' => $existing_cohort->id]
+            );
+        }
+    }
+}
 
+//idwiz_populate_day_of_year_cohort();
+function idwiz_populate_division_cohort() {
+    idwiz_populate_cohort('division', 'get_cohort_value_for_division');
+}
 
-
-
-
-
-
-
-
-
-
+function idwiz_populate_day_of_year_cohort() {
+    idwiz_populate_cohort('day_of_year', 'get_cohort_value_for_day_of_year');
+}
 
 

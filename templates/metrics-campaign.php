@@ -31,6 +31,9 @@ $linkedExperimentIds = array_map(function ($id) {
 
 <article id="campaign-<?php echo $campaign['id']; ?>" class="wizcampaign-single has-wiz-chart"
     data-campaignid="<?php echo $campaign['id']; ?>">
+    <?php
+    //fetch_ga_data();
+    ?>
 
     <header class="wizHeader">
         <div class="wizHeader-left">
@@ -49,7 +52,7 @@ $linkedExperimentIds = array_map(function ($id) {
                 &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
                 <?php echo $campaign['messageMedium']; ?>
                 &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
-                <?php echo '<a href="' . get_bloginfo('url') . '/campaigns/?view=' . $campaign['type'] . '">' . $campaign['type'] .'</a>'; ?>
+                <?php echo '<a href="' . get_bloginfo('url') . '/campaigns/?view=' . $campaign['type'] . '">' . $campaign['type'] . '</a>'; ?>
                 &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Sent on
                 <?php echo $startAt; ?>
                 &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
@@ -81,8 +84,10 @@ $linkedExperimentIds = array_map(function ($id) {
                     ?>
                     <div class="wizcampaign-section short inset span3" id="sendsByDateSection">
                         <h4>Sends by Date</h4>
-                        <canvas class="sendsByDate" data-chartid="sendsByDate"
+                        <div class="wizChartWrapper">
+                        <canvas class="sendsByDate wiz-canvas" data-chartid="sendsByDate"
                             data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>' data-charttype="bar"></canvas>
+                            </div>
                     </div>
 
                     <?php
@@ -93,12 +98,15 @@ $linkedExperimentIds = array_map(function ($id) {
         }
 
         ?>
-        <div class="wizmodules">
+        <div class="wizcampaign-sections-row" id="single-campaign-sections">
 
             <div class="wizcampaign-section short inset" id="email-info">
                 <h4>Purchases by Date</h4>
-                <canvas class="purchByDate" data-chartid="purchasesByDate"
-                    data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>' data-charttype="bar"></canvas>
+                <div class="wizChartWrapper">
+                    <canvas class="purchByDate wiz-canvas" data-chartid="purchasesByDate"
+                        data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>'
+                        data-charttype="bar"></canvas>
+                </div>
             </div>
 
             <div class="wizcampaign-section short inset">
@@ -109,12 +117,21 @@ $linkedExperimentIds = array_map(function ($id) {
                             class="fa-solid fa-chart-pie chart-type-switcher" data-chart-type="pie"></i>
                     </div>
                 </div>
-                <canvas class="purchByDivision" data-chartid="purchasesByDivision"
-                    data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>' data-charttype="bar"></canvas>
+                <div class="wizChartWrapper">
+                    <canvas class="purchByDivision wiz-canvas" data-chartid="purchasesByDivision"
+                        data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>'
+                        data-charttype="bar"></canvas>
+                </div>
             </div>
 
             <div class="wizcampaign-section short inset">
-                <h4>Purchases by Product</h4>
+                <div class="wizcampaign-section-title-area">
+                    <h4>Purchases by Product</h4>
+                    <div class="wizcampaign-section-icons">
+                        
+                    </div>
+                </div>
+                
                 <?php
                 $headers = [
                     'Product' => '50%',
@@ -161,8 +178,11 @@ $linkedExperimentIds = array_map(function ($id) {
                             class="fa-solid fa-chart-pie chart-type-switcher" data-chart-type="pie"></i>
                     </div>
                 </div>
-                <canvas class="purchByTopic" data-chartid="purchasesByTopic"
-                    data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>' data-charttype="bar"></canvas>
+                <div class="wizChartWrapper">
+                    <canvas class="purchByTopic wiz-canvas" data-chartid="purchasesByTopic"
+                        data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>'
+                        data-charttype="pie"></canvas>
+                </div>
             </div>
 
             <div class="wizcampaign-section short inset">
@@ -173,8 +193,11 @@ $linkedExperimentIds = array_map(function ($id) {
                             class="fa-solid fa-chart-pie chart-type-switcher" data-chart-type="pie"></i>
                     </div>
                 </div>
-                <canvas class="purchByLocation" data-chartid="purchasesByLocation"
-                    data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>' data-charttype="pie"></canvas>
+                <div class="wizChartWrapper">
+                    <canvas class="purchByLocation wiz-canvas" data-chartid="purchasesByLocation"
+                        data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>'
+                        data-charttype="pie"></canvas>
+                </div>
             </div>
 
 
@@ -427,9 +450,14 @@ function get_single_metrics_campaign_rollup($campaign)
                 'format' => 'num',
             ),
             'revenue' => array(
-                'label' => 'Revenue',
+                'label' => 'Dir. Rev.',
                 'format' => 'money',
             ),
+            'gaRevenue' => array(
+                'label' => 'GA Rev.',
+                'format' => 'money',
+            ),
+
         ),
 
     );

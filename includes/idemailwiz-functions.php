@@ -304,7 +304,7 @@ function idemailwiz_generate_template_html()
       include($file);
       $html = ob_get_clean();
 
-      //Add external UTMs, if active. Important: only generated after UTMs are saved to database, not on live preview
+      //Add external UTMs, if active. 
       if ($externalUTMs) {
         $html = idwiz_add_utms($html, $extUTMstring);
       }
@@ -697,7 +697,8 @@ function idemailwiz_calculate_aggregate_metrics($campaignIds)
     'uniqueUnsubscribes' => 0,
     'totalComplaints' => 0,
     'uniquePurchases' => 0,
-    'revenue' => 0
+    'revenue' => 0,
+    'gaRevenue' => 0
   ];
 
   // Sum up the metrics across all campaigns
@@ -856,7 +857,8 @@ function add_remove_user_favorite()
         'message' => 'Invalid object id or object type was sent!',
         'action' => null,
         'objectid' => $object_id,
-      ));
+      )
+    );
   }
 
   // Determine the meta key based on the object_type
@@ -913,120 +915,955 @@ function add_remove_user_favorite()
       'message' => $message,
       'action' => $action,
       'objectid' => $object_id,
-    ));
+    )
+  );
 }
 
 add_action('wp_ajax_add_remove_user_favorite', 'add_remove_user_favorite');
 
 function generate_mini_table(
-    array $headers,
-    array $data,
-    string $tableClass = 'wizcampaign-tiny-table',
-    string $scrollWrapClass = 'wizcampaign-section-scrollwrap'
+  array $headers,
+  array $data,
+  string $tableClass = '',
+  string $scrollWrapClass = ''
 ) {
-    // Table with sticky header
-    echo '<table class="wizcampaign-tiny-table-sticky-header">';
-    echo '<thead><tr>';
-    foreach ($headers as $col => $width) {
-        echo '<th width="' . $width . '">' . $col . '</th>';
+  // Table with sticky header
+  echo '<table class="wizcampaign-tiny-table-sticky-header">';
+  echo '<thead><tr>';
+  foreach ($headers as $col => $width) {
+    echo '<th width="' . $width . '">' . $col . '</th>';
+  }
+  echo '</tr></thead>';
+  echo '</table>';
+
+  // Scroll wrap and main table
+  echo '<div class="wizcampaign-section-scrollwrap ' . $scrollWrapClass . '">';
+  echo '<table class="wizcampaign-tiny-table ' . $tableClass . '">';
+  echo '<tbody>';
+
+  if (empty($data)) {
+    echo '<tr><td class="wizsection-error-message" colspan="' . count($headers) . '">No data available</td></tr>';
+  } else {
+    // Table rows
+    foreach ($data as $row) {
+      echo '<tr>';
+      foreach ($headers as $col => $width) {
+        echo '<td width="' . $width . '">' . htmlspecialchars($row[$col]) . '</td>';
+      }
+      echo '</tr>';
     }
-    echo '</tr></thead>';
-    echo '</table>';
-    
-    // Scroll wrap and main table
-    echo '<div class="' . $scrollWrapClass . '">';
-    echo '<table class="' . $tableClass . '">';
-    echo '<tbody>';
-    
-    if (empty($data)) {
-        echo '<tr><td class="wizsection-error-message" colspan="' . count($headers) . '">No data available</td></tr>';
-    } else {
-        // Table rows
-        foreach ($data as $row) {
-            echo '<tr>';
-            foreach ($headers as $col => $width) {
-                echo '<td width="' . $width . '">' . htmlspecialchars($row[$col]) . '</td>';
-            }
-            echo '</tr>';
-        }
-    }
-    
-    echo '</tbody>';
-    echo '</table>';
-    echo '</div>';  // End scroll wrap
+  }
+
+  echo '</tbody>';
+  echo '</table>';
+  echo '</div>'; // End scroll wrap
 }
 
 
-function generate_promo_code_section($purchases) {
-    // Initialize variables and prepare data based on your existing logic for promo codes
-    $promoCounts = [];
-    $totalOrders = [];
-    $ordersWithPromo = [];
+function generate_promo_code_section($purchases)
+{
+  // Initialize variables and prepare data based on your existing logic for promo codes
+  $promoCounts = [];
+  $totalOrders = [];
+  $ordersWithPromo = [];
+
+  foreach ($purchases as $purchase) {
+    $promo = $purchase['shoppingCartItems_discountCode'];
+    $orderID = $purchase['id'];
+
+    // Keep track of all unique order IDs
+    $totalOrders[$orderID] = true;
+
+    // Skip blank or null promo codes
+    if (empty($promo)) {
+      continue;
+    }
+
+    // Keep track of unique order IDs with promo codes
+    $ordersWithPromo[$orderID] = true;
+
+    if (!isset($promoCounts[$promo])) {
+      $promoCounts[$promo] = [];
+    }
+
+    if (!isset($promoCounts[$promo][$orderID])) {
+      $promoCounts[$promo][$orderID] = 0;
+    }
+
+    $promoCounts[$promo][$orderID] += 1;
+  }
+
+  // Calculate the total number of times each promo code was used
+  $promoUseCounts = [];
+  foreach ($promoCounts as $promo => $orders) {
+    $promoUseCounts[$promo] = count($orders);
+  }
+
+  // Sort promo codes by usage
+  arsort($promoUseCounts);
+
+  // Calculate promo code usage statistics
+  $totalOrderCount = count($totalOrders);
+  $ordersWithPromoCount = count($ordersWithPromo);
+  $percentageWithPromo = ($totalOrderCount > 0) ? ($ordersWithPromoCount / $totalOrderCount) * 100 : 0;
+
+  // Headers for the promo code table
+  $promoHeaders = [
+    'Promo Code' => '80%',
+    'Orders' => '20%'
+  ];
+
+  $promoData = [];
+  foreach ($promoUseCounts as $promo => $useCount) {
+    $promoData[] = [
+      'Promo Code' => htmlspecialchars($promo),
+      'Orders' => $useCount
+    ];
+  }
+
+  echo '<div class="wizcampaign-section short inset">';
+  echo '<div class="wizcampaign-section-title-area">';
+  echo '<h4>Promo Code Use</h4>';
+  echo "<div>{$ordersWithPromoCount} of {$totalOrderCount} orders (" . round($percentageWithPromo, 2) . "%)</div>";
+  echo '</div>';
+  echo '<div class="wizcampaign-section-scrollwrap">';
+  generate_mini_table($promoHeaders, $promoData); // Assuming generate_mini_table is already defined
+  echo '</div>';
+  echo '</div>';
+}
+
+
+
+function get_idemailwiz_triggered_sends($args = [])
+{
+  global $wpdb;
+
+  // Initialize query components
+  $where_clauses = [];
+  $query_params = [];
+
+  // Check if campaignIds are provided
+  if (isset($args['campaignIds']) && is_array($args['campaignIds']) && !empty($args['campaignIds'])) {
+    $placeholders = array_fill(0, count($args['campaignIds']), '%d');
+    $where_clauses[] = "campaignId IN (" . implode(", ", $placeholders) . ")";
+    $query_params = array_merge($query_params, $args['campaignIds']);
+  }
+
+  // Check if startAt_start is provided
+  if (isset($args['startAt_start'])) {
+    $where_clauses[] = "startAt >= %d";
+    $query_params[] = $args['startAt_start'];
+  }
+
+  // Check if startAt_end is provided
+  if (isset($args['startAt_end'])) {
+    $where_clauses[] = "startAt <= %d";
+    $query_params[] = $args['startAt_end'];
+  }
+
+  // Construct the SQL query
+  $sql = "SELECT * FROM " . $wpdb->prefix . "idemailwiz_triggered_sends";
+  if (!empty($where_clauses)) {
+    $sql .= " WHERE " . implode(" AND ", $where_clauses);
+  }
+
+  // Prepare the SQL query with parameters
+  $prepared_sql = $wpdb->prepare($sql, $query_params);
+
+  // Execute the query and fetch results
+  $results = $wpdb->get_results($prepared_sql, ARRAY_A);
+
+  return $results;
+}
+
+
+function get_wizcampaigns_metric_rate($campaignIds, $metricType, $startDate = null, $endDate = null)
+{
+  // Check if $campaignIds is a valid array
+  if (!is_array($campaignIds) || empty($campaignIds)) {
+    return 'N/A';
+  }
+
+  // Fetch metrics for the given campaign IDs
+  $metrics = get_idwiz_metrics(['ids' => $campaignIds]);
+
+  // If metrics couldn't be fetched or returned an empty array, return 'N/A'
+  if (!$metrics || empty($metrics)) {
+    return 'N/A';
+  }
+
+  // Map metric types to corresponding DB fields and divisor fields
+  $metricConfig = [
+    'sends' => ['field' => 'uniqueEmailSends', 'divisor' => null],
+    'delRate' => ['field' => 'uniqueEmailsDelivered', 'divisor' => 'uniqueEmailSends'],
+    'opens' => ['field' => 'uniqueEmailOpens', 'divisor' => 'totalEmailSends'],
+    'clicks' => ['field' => 'uniqueEmailClicks', 'divisor' => null],
+    'ctr' => ['field' => 'uniqueEmailClicks', 'divisor' => 'totalEmailSends'],
+    'cto' => ['field' => 'uniqueEmailClicks', 'divisor' => 'uniqueEmailOpens'],
+    'unsubs' => ['field' => 'uniqueUnsubscribes', 'divisor' => 'totalEmailSends'],
+    'revenue' => ['field' => 'revenue', 'divisor' => null],
+    'gaRevenue' => ['field' => 'gaRevenue', 'divisor' => null],
+    'purchases' => ['field' => 'uniquePurchases', 'divisor' => null],
+    'cvr' => ['field' => 'uniquePurchases', 'divisor' => 'totalEmailSends'],
+    'aov' => ['field' => 'revenue', 'divisor' => 'uniquePurchases']
+  ];
+
+  // Retrieve the DB field and divisor field based on metric type
+  if (!array_key_exists($metricType, $metricConfig)) {
+    return 'Invalid Metric Type';
+  }
+
+  // if ($metricType == 'revenue') {
+  // if ($startDate && $endDate) {
+  //   return get_idwiz_revenue($startDate, $endDate, ['Triggered', 'Blast'], false);
+  //  } else {
+  //   return 'Start date and end date required for revenue metrics';
+  //}
+  //}
+
+  if ($metricType == 'gaRevenue') {
+    if ($startDate && $endDate) {
+      return get_idwiz_revenue($startDate, $endDate, ['Triggered', 'Blast'], true);
+    } else {
+      return 'Start date and end date required for revenue metrics';
+    }
+  }
+
+  $dbField = $metricConfig[$metricType]['field'];
+  $divideBy = $metricConfig[$metricType]['divisor'];
+
+  // Sum up the metrics
+  $allDbField = array_sum(array_column($metrics, $dbField));
+
+
+  if ($divideBy) {
+    // Calculate the total number for the divisor
+    $allDivideBy = array_sum(array_column($metrics, $divideBy));
+
+    // Check for division by zero
+    if ($allDivideBy == 0) {
+      return 'N/A';
+    }
+    // Calculate and return the metric rate
+    $metricRate = $allDbField / $allDivideBy;
+
+    if ($metricType != 'aov') {
+      return $metricRate * 100;
+    } else {
+      return $metricRate;
+    }
+  }
+
+  return $allDbField;
+}
+function parse_idwiz_metric_rate($rate)
+{
+  return floatval(str_replace(['%', ',', '$'], '', $rate));
+}
+
+
+function get_monthly_dashboard_rollup_row($campaignIds)
+{
+  return generate_idwiz_rollup_row(
+    $campaignIds,
+    array(
+      'uniqueEmailSends' => array(
+        'label' => 'Sends',
+        'format' => 'num',
+      ),
+      'wizDeliveryRate' => array(
+        'label' => 'Delivery Rate',
+        'format' => 'perc',
+      ),
+      'uniqueEmailOpens' => array(
+        'label' => 'Opens',
+        'format' => 'num',
+      ),
+      'wizOpenRate' => array(
+        'label' => 'Open Rate',
+        'format' => 'perc',
+      ),
+      'uniqueEmailClicks' => array(
+        'label' => 'Clicks',
+        'format' => 'num',
+      ),
+      'wizCtr' => array(
+        'label' => 'CTR',
+        'format' => 'perc',
+      ),
+      'wizCto' => array(
+        'label' => 'CTO',
+        'format' => 'perc',
+      ),
+      'uniquePurchases' => array(
+        'label' => 'Purchases',
+        'format' => 'num',
+      ),
+      'revenue' => array(
+        'label' => 'Dir. Rev.',
+        'format' => 'money',
+      ),
+      'gaRevenue' => array(
+        'label' => 'GA Rev.',
+        'format' => 'money',
+      ),
+      'wizCvr' => array(
+        'label' => 'CVR.',
+        'format' => 'perc',
+      ),
+      'wizAov' => array(
+        'label' => 'AOV.',
+        'format' => 'money',
+      ),
+
+    ),
+
+  );
+}
+
+
+function get_idwiz_revenue($startDate, $endDate, $campaignTypes = ['Triggered', 'Blast'], $useGa = false)
+{
+  $totalRevenue = 0;
+  $checkCampaignArgs = ['type' => $campaignTypes, 'fields' => 'id'];
+
+  $wizCampaigns = get_idwiz_campaigns($checkCampaignArgs);
+  $wizCampaignIds = array_column($wizCampaigns, 'id');
+
+  if ($useGa) {
+    $allChannelPurchases = get_idwiz_ga_data(['startDate' => $startDate, 'endDate' => $endDate]);
+    $purchases = array_filter($allChannelPurchases, fn($purchase) => in_array($purchase['campaignId'], $wizCampaignIds));
+    if (!$purchases) {
+      return 0;
+    }
+    $revenue = array_sum(array_column($purchases, 'revenue'));
+  } else {
+    $purchaseArgs = ['startAt_start' => $startDate, 'startAt_end' => $endDate, 'fields' => 'id,campaignId,purchaseDate,total'];
+    $purchases = get_idwiz_purchases($purchaseArgs);
+
+    if (!$purchases) {
+      return 0;
+    }
+
+    $uniqueIds = [];
+
+    $revenue = 0;
+
 
     foreach ($purchases as $purchase) {
-        $promo = $purchase['shoppingCartItems_discountCode'];
-        $orderID = $purchase['id'];
+      if (in_array($purchase['id'], $uniqueIds)) {
+        continue;
+      }
 
-        // Keep track of all unique order IDs
-        $totalOrders[$orderID] = true;
+      if (!in_array($purchase['campaignId'], $wizCampaignIds)) {
+        continue;
+      }
 
-        // Skip blank or null promo codes
-        if (empty($promo)) {
-            continue;
-        }
+      $wizCampaign = get_idwiz_campaign($purchase['campaignId']);
 
-        // Keep track of unique order IDs with promo codes
-        $ordersWithPromo[$orderID] = true;
+      if (!in_array($wizCampaign['type'], $campaignTypes)) {
+        continue;
+      }
 
-        if (!isset($promoCounts[$promo])) {
-            $promoCounts[$promo] = [];
-        }
+      $wizAttributionLength = get_field('attribution_length', 'options');
+      $attributeUntil = strtotime(date('Y-m-d', strtotime(date('Y-m-d', $wizCampaign['startAt'] / 1000) . ' +' . $wizAttributionLength . 'days')));
+      $purchaseDate = strtotime(date('Y-m-d', strtotime($purchase['purchaseDate'])));
 
-        if (!isset($promoCounts[$promo][$orderID])) {
-            $promoCounts[$promo][$orderID] = 0;
-        }
-
-        $promoCounts[$promo][$orderID] += 1;
+      if ($purchaseDate <= $attributeUntil) {
+        $revenue += $purchase['total'];
+        $uniqueIds[] = $purchase['id'];
+      }
     }
+  }
 
-    // Calculate the total number of times each promo code was used
-    $promoUseCounts = [];
-    foreach ($promoCounts as $promo => $orders) {
-        $promoUseCounts[$promo] = count($orders);
-    }
+  $totalRevenue += $revenue;
 
-    // Sort promo codes by usage
-    arsort($promoUseCounts);
-
-    // Calculate promo code usage statistics
-    $totalOrderCount = count($totalOrders);
-    $ordersWithPromoCount = count($ordersWithPromo);
-    $percentageWithPromo = ($totalOrderCount > 0) ? ($ordersWithPromoCount / $totalOrderCount) * 100 : 0;
-
-    // Headers for the promo code table
-    $promoHeaders = [
-        'Promo Code' => '80%',
-        'Orders' => '20%'
-    ];
-
-    $promoData = [];
-    foreach ($promoUseCounts as $promo => $useCount) {
-        $promoData[] = [
-            'Promo Code' => htmlspecialchars($promo),
-            'Orders' => $useCount
-        ];
-    }
-
-    echo '<div class="wizcampaign-section short inset">';
-    echo '<div class="wizcampaign-section-title-area">';
-    echo '<h4>Promo Code Use</h4>';
-    echo "<div>{$ordersWithPromoCount} of {$totalOrderCount} orders (" . round($percentageWithPromo, 2) . "%)</div>";
-    echo '</div>';
-    echo '<div class="wizcampaign-section-scrollwrap">';
-    generate_mini_table($promoHeaders, $promoData);  // Assuming generate_mini_table is already defined
-    echo '</div>';
-    echo '</div>';
+  return $totalRevenue;
 }
+
+
+
+
+function formatTowerMetric($value, $format, $includeSign = false)
+{
+  $formattedValue = '';
+  $sign = ($value >= 0) ? '+' : '-';
+
+  switch ($format) {
+    case 'money':
+      $formattedValue = ($includeSign ? $sign : '') . '$' . number_format(abs($value), 0);
+      break;
+    case 'perc':
+      $formattedValue = ($includeSign ? $sign : '') . number_format(abs($value), 2) . '%';
+      break;
+    case 'num':
+      $formattedValue = ($includeSign ? $sign : '') . number_format(abs($value), 0);
+      break;
+    default:
+      $formattedValue = $value;
+  }
+
+  return $formattedValue;
+}
+
+
+function get_idwiz_header_tabs($tabs, $currentActiveItem)
+{
+  echo '<div id="header-tabs">';
+  foreach ($tabs as $tab) {
+    $title = $tab['title'];
+    $view = $tab['view'];
+    $isActive = ($currentActiveItem == $view) ? 'active' : '';
+    $url = add_query_arg(['view' => $view, 'wizMonth' => false, 'wizYear' => false]);
+    echo "<a href=\"{$url}\" class=\"campaign-tab {$isActive}\">{$title}</a>";
+  }
+  echo '</div>';
+}
+
+add_action('wp_ajax_idwiz_handle_repeat_purchase_timing_request', 'idwiz_handle_repeat_purchase_timing_request');
+
+function idwiz_handle_repeat_purchase_timing_request()
+{
+  // Verify nonce and other security checks
+  //check_ajax_referer('dashboard', 'security');
+
+  $lobName = isset($_POST['lobName']) ? $_POST['lobName'] : null; // Getting the passed LOB name
+  $startAt = isset($_POST['startAt']) ? $_POST['startAt'] : null; // Getting the passed LOB name
+  $endAt = isset($_POST['endAt']) ? $_POST['endAt'] : null; // Getting the passed LOB name
+
+  // Get all necessary data
+  $raw_purchase_data = fetch_cohort_purchase_data($startAt, $endAt);
+  $cohorts = group_by_cohort($raw_purchase_data);
+  $lop_data = calculate_lop_data($cohorts);
+
+  // Filter data by the specific LOB if available
+  $filtered_gaps = $lop_data[$lobName] ?? [];
+
+  $count_gaps = array_count_values($filtered_gaps);
+  ksort($count_gaps); // Sort by the day gaps
+
+  $labels = array_keys($count_gaps);
+  $data = array_values($count_gaps);
+
+  // Send JSON response
+  wp_send_json_success([
+    'labels' => $labels,
+    'datasets' => [
+      [
+        'label' => $lobName,
+        'data' => $data
+      ]
+    ]
+  ]);
+}
+
+
+function fetch_cohort_purchase_data($startAt = null, $endAt = null)
+{
+  $campaignArgs = array(
+    'fields' => 'id',
+  );
+
+  if ($startAt) {
+    $startStamp = strtotime($startAt);
+    if (!$startStamp) {
+      error_log("Invalid start date: $startAt");
+      return null;
+    }
+    $campaignArgs['startAt_start'] = date('Y-m-d', $startStamp);
+  }
+
+  if ($endAt) {
+    $endStamp = strtotime($endAt);
+    if (!$endStamp) {
+      error_log("Invalid end date: $endAt");
+      return null;
+    }
+    $campaignArgs['startAt_end'] = date('Y-m-d', $endStamp);
+  }
+
+  $campaign_data = get_idwiz_campaigns($campaignArgs);
+
+  $campaign_ids = array_column($campaign_data, 'id');
+
+  $purchaseArgs = [
+    'fields' => ['accountNumber', 'purchaseDate', 'total', 'shoppingCartItems_divisionName', 'campaignId', 'orderId'],
+    'campaignIds' => $campaign_ids,
+    'sortBy' => 'purchaseDate',
+    'sort' => 'ASC'
+  ];
+
+  return get_idwiz_purchases($purchaseArgs);
+}
+
+
+function group_by_cohort($purchase_data)
+{
+  $cohorts = [];
+
+  foreach ($purchase_data as $row) {
+
+    $accountNumber = $row['accountNumber'];
+    $divisionName = $row['shoppingCartItems_divisionName'];
+    $purchaseDate = $row['purchaseDate'];
+    $orderId = $row['orderId'];
+
+    // Now check
+    if (empty($accountNumber) || empty($divisionName) || empty($orderId)) {
+      error_log("Missing key components: Skipping...");
+      continue;
+    }
+    // Create a unique identifier for each account, division, and order
+    $account_division_order_key = $accountNumber . '-' . $divisionName . '-' . $orderId;
+
+    // Initialize cohort if it doesn't exist
+    if (!isset($cohorts[$account_division_order_key])) {
+      $cohorts[$account_division_order_key] = [
+        'purchaseDate' => $purchaseDate,
+        'total_spent' => 0.0
+      ];
+    }
+
+    // Update cohort data
+    $cohorts[$account_division_order_key]['total_spent'] += floatval($row['total']);
+
+  }
+
+  return $cohorts;
+}
+
+function group_by_purchase_month($purchase_data)
+{
+  $monthly_cohorts = [];
+
+  foreach ($purchase_data as $row) {
+    $accountNumber = $row['accountNumber'];
+    $divisionName = $row['shoppingCartItems_divisionName'];
+    $purchaseDate = new DateTime($row['purchaseDate']);
+    $orderId = $row['orderId'];
+
+    if (empty($accountNumber) || empty($divisionName) || empty($orderId)) {
+      error_log("Missing key components: Skipping...");
+      continue;
+    }
+
+    $purchaseMonth = $purchaseDate->format('m-Y'); // Formatting the date to "mm-yyyy"
+
+    // Initialize the monthly cohort if it doesn't exist
+    if (!isset($monthly_cohorts[$purchaseMonth])) {
+      $monthly_cohorts[$purchaseMonth] = [];
+    }
+
+    // Create a unique identifier for each account, division, and order
+    $account_division_order_key = $accountNumber . '-' . $divisionName . '-' . $orderId;
+
+    if (!isset($monthly_cohorts[$purchaseMonth][$account_division_order_key])) {
+      $monthly_cohorts[$purchaseMonth][$account_division_order_key] = [
+        'purchaseDate' => $purchaseDate,
+        'total_spent' => 0.0
+      ];
+    }
+
+    // Update cohort data
+    $monthly_cohorts[$purchaseMonth][$account_division_order_key]['total_spent'] += floatval($row['total']);
+  }
+
+  return $monthly_cohorts;
+}
+
+
+
+function calculate_time_gaps($cohorts)
+{
+  $time_gaps = [];
+  $account_orders = [];
+
+  // Group by account and LOB, then sort by purchase date
+  error_log(print_r($cohorts, true));
+  foreach ($cohorts as $key => $data) {
+    if (!isset($data['first_purchase_date']) || !isset($data['last_purchase_date'])) {
+      error_log("Missing required data for key: {$key}. Skipping this iteration.");
+      continue;
+    }
+
+    list($accountNumber, $divisionName) = explode('-', $key);
+    $account_division_key = $accountNumber . '-' . $divisionName;
+
+    if (!isset($account_orders[$account_division_key])) {
+      $account_orders[$account_division_key] = [];
+    }
+
+    $account_orders[$account_division_key][] = new DateTime($data['first_purchase_date']);
+    $account_orders[$account_division_key][] = new DateTime($data['last_purchase_date']);
+  }
+
+  // Calculate time gaps for each account and LOB
+  foreach ($account_orders as $account_division_key => $dates) {
+    list($accountNumber, $divisionName) = explode('-', $account_division_key);
+
+    // Sort the dates
+    usort($dates, function ($a, $b) {
+      return $a <=> $b;
+    });
+
+    if (!isset($time_gaps[$divisionName])) {
+      $time_gaps[$divisionName] = [];
+    }
+
+    for ($i = 0; $i < count($dates) - 1; $i++) {
+      $interval = $dates[$i]->diff($dates[$i + 1]);
+      $time_gaps[$divisionName][] = $interval->days;
+    }
+  }
+
+  return $time_gaps;
+}
+
+
+// Calculate the average time to the next purchase for each LOB
+function calculate_average_time_to_next_purchase($lop_data)
+{
+  $average_time_data = [];
+
+  foreach ($lop_data as $divisionName => $intervals) {
+    if (empty($intervals)) {
+      continue; // Skip division with no intervals
+    }
+
+    $average_days = array_sum($intervals) / count($intervals);
+    $average_time_data[] = [
+      'LOP' => $divisionName,
+      'Average Time to Next Purchase (Days)' => round($average_days, 2)
+    ];
+  }
+
+  return $average_time_data;
+}
+
+
+function calculate_time_interval_distribution($lop_data)
+{
+  $interval_distribution_data = [];
+
+  foreach ($lop_data as $divisionName => $intervals) {
+    $distribution = array_count_values($intervals);
+
+    foreach ($distribution as $interval => $frequency) {
+      $interval_distribution_data[] = [
+        'LOB' => $divisionName,
+        'Time Interval (Days)' => $interval,
+        'Frequency' => $frequency
+      ];
+    }
+  }
+
+  // Sort by LOB and Time Interval
+  usort($interval_distribution_data, function ($a, $b) {
+    if ($a['LOB'] !== $b['LOB']) {
+      return strcmp($a['LOB'], $b['LOB']);
+    }
+    return $a['Time Interval (Days)'] <=> $b['Time Interval (Days)'];
+  });
+
+  return $interval_distribution_data;
+}
+
+function calculate_lop_data($cohorts)
+{
+  $lop_data = []; // Key is LOP, Value is an array of time intervals between first and second order
+  $order_data = []; // Key is accountNumber-divisionName, Value is array of unique order dates
+
+  // Group by order and calculate the first and last purchase date for each account-division pair
+  foreach ($cohorts as $key => $data) {
+    list($accountNumber, $divisionName, $orderId) = explode('-', $key);
+    $purchaseDate = new DateTime($data['purchaseDate']);
+
+    $account_division_key = $accountNumber . '-' . $divisionName;
+
+    if (!isset($order_data[$account_division_key])) {
+      $order_data[$account_division_key] = [];
+    }
+
+    if (!in_array($purchaseDate, $order_data[$account_division_key])) {
+      $order_data[$account_division_key][] = $purchaseDate;
+    }
+  }
+
+  // Sort the dates and calculate the time to next purchase
+  foreach ($order_data as $account_division_key => $dates) {
+    usort($dates, function ($a, $b) {
+      return $a <=> $b;
+    });
+
+    list($accountNumber, $divisionName) = explode('-', $account_division_key);
+
+    for ($i = 0; $i < count($dates) - 1; $i++) {
+      $interval = $dates[$i]->diff($dates[$i + 1]);
+      $lop_data[$divisionName][] = $interval->days;
+    }
+  }
+
+  return $lop_data;
+}
+
+function handle_experiment_winner_toggle()
+{
+  error_log('Made it to handler');
+
+  global $wpdb;
+  $table_name = $wpdb->prefix . 'idemailwiz_experiments';
+
+  // Log POST data for debugging
+  error_log('POST data: ' . print_r($_POST, true));
+
+  // Security checks and validation
+  if (!check_ajax_referer('wiz-metrics', 'security', false)) {
+    error_log('Nonce check failed');
+    wp_send_json_error('Nonce check failed');
+    return;
+  }
+
+  $action = $_POST['actionType'];
+  $templateId = intval($_POST['templateId']);
+  $experimentId = intval($_POST['experimentId']);
+
+  if (!$templateId || !$experimentId) {
+    error_log('Invalid templateId or experimentId');
+    wp_send_json_error('Invalid templateId or experimentId');
+    return;
+  }
+
+  if ($action == 'add-winner') {
+    error_log('Action is add-winner');
+
+    // Clear existing winners for the same experimentId
+    $result = $wpdb->update(
+      $table_name,
+      array('wizWinner' => null),
+      array('experimentId' => $experimentId)
+    );
+
+    if ($result === false) {
+      error_log("Database error while clearing winners: " . $wpdb->last_error);
+      wp_send_json_error("Database error while clearing winners: " . $wpdb->last_error);
+      return;
+    }
+
+    // Set new winner
+    $result = $wpdb->update(
+      $table_name,
+      array('wizWinner' => 1),
+      array('templateId' => $templateId)
+    );
+
+    if ($result === false) {
+      error_log("Database error while setting new winner: " . $wpdb->last_error);
+      wp_send_json_error("Database error while setting new winner: " . $wpdb->last_error);
+      return;
+    }
+
+  } elseif ($action == 'remove-winner') {
+    error_log('Action is remove-winner');
+
+    // Remove winner
+    $result = $wpdb->update(
+      $table_name,
+      array('wizWinner' => null),
+      array('templateId' => $templateId)
+    );
+
+    if ($result === false) {
+      error_log("Database error while removing winner: " . $wpdb->last_error);
+      wp_send_json_error("Database error while removing winner: " . $wpdb->last_error);
+      return;
+    }
+
+  } else {
+    error_log('Invalid action: ' . $action);
+    wp_send_json_error('Invalid action');
+    return;
+  }
+
+  error_log('Action completed successfully');
+  wp_send_json_success('Action completed successfully');
+}
+
+add_action('wp_ajax_handle_experiment_winner_toggle', 'handle_experiment_winner_toggle');
+
+
+
+add_action('wp_ajax_save_experiment_notes', 'save_experiment_notes');
+
+function save_experiment_notes()
+{
+  // Security checks and validation
+  if (!check_ajax_referer('wiz-metrics', 'security', false)) {
+    error_log('Nonce check failed');
+    wp_send_json_error('Nonce check failed');
+    return;
+  }
+
+  // Get the experiment notes and ID
+  $experimentId = isset($_POST['experimentId']) ? sanitize_text_field($_POST['experimentId']) : '';
+
+  $allowed_tags = array(
+    'br' => array(),
+    // Add other tags if you wish to allow them
+  );
+  $experimentNotes = isset($_POST['experimentNotes']) ? wp_kses($_POST['experimentNotes'], $allowed_tags) : '';
+
+  // Database update logic
+  global $wpdb;
+  $table_name = $wpdb->prefix . 'idemailwiz_experiments';
+
+  // Update experimentNotes for all records with the same experiment ID
+  $result = $wpdb->update(
+    $table_name,
+    array('experimentNotes' => $experimentNotes),
+    array('experimentId' => (int) $experimentId)
+  );
+
+  if ($wpdb->last_error) {
+    error_log("Database error: " . $wpdb->last_error);
+    wp_send_json_error('Database error: ' . $wpdb->last_error);
+    return;
+  }
+
+  if ($result !== false) {
+    if ($result > 0) {
+      wp_send_json_success('Data saved successfully');
+    } else {
+      wp_send_json_error('No data was updated, the new value may be the same as the existing value');
+    }
+  } else {
+    wp_send_json_error('An error occurred while updating the database');
+  }
+}
+
+
+add_action('wp_ajax_idwiz_generate_cohort_chart', 'idwiz_generate_cohort_chart');
+
+function idwiz_generate_cohort_chart() {
+    global $wpdb;
+    $day_of_year = isset($_POST['dayOfYear']) ? $_POST['dayOfYear'] : null;
+    $divisions = isset($_POST['divisions']) ? $_POST['divisions'] : [];
+
+    // Get the second purchases for the given day of the year
+    $second_purchases = get_second_purchases_within_week($day_of_year, $divisions);
+
+    // Group and count the purchases
+    $grouped_chart_data = [];
+    foreach ($second_purchases as $purchase) {
+        $key = $purchase['day_of_year'] . "_" . $purchase['division'];
+        if (!isset($grouped_chart_data[$key])) {
+            $grouped_chart_data[$key] = [
+                'day_of_year' => $purchase['day_of_year'],
+                'division' => $purchase['division'],
+                'count' => 0
+            ];
+        }
+        $grouped_chart_data[$key]['count']++;
+    }
+
+    // Convert grouped data to a simple array
+    $chart_data = array_values($grouped_chart_data);
+
+    // Send the JSON response
+    wp_send_json_success($chart_data);
+}
+
+function get_orders_grouped_by_customers() {
+    global $wpdb;
+    $query = "SELECT accountNumber, orderId, purchaseDate, cohort_value as division FROM {$wpdb->prefix}idemailwiz_cohorts WHERE cohort_type = 'division' ORDER BY accountNumber, purchaseDate ASC";
+    $results = $wpdb->get_results($query, ARRAY_A);
+    $grouped_orders = [];
+    foreach ($results as $row) {
+        $grouped_orders[$row['accountNumber']][] = $row;
+    }
+    return $grouped_orders;
+}
+
+function get_second_purchases_within_week($day_of_year, $divisions) {
+    $all_orders = get_orders_grouped_by_customers();
+    $second_purchases = [];
+    
+    $specified_date = new DateTime("@" . ($day_of_year * 86400));
+    $specified_week_of_year = (int) $specified_date->format('W');
+    
+    $qualifying_customers = [];
+    foreach ($all_orders as $accountNumber => $orders) {
+        foreach ($orders as $order) {
+            $purchase_date = new DateTime($order['purchaseDate']);
+            $current_week_of_year = (int) $purchase_date->format('W');
+            // Check for the week number and the division
+            if ($current_week_of_year === $specified_week_of_year && in_array($order['division'], $divisions)) {
+                $qualifying_customers[$accountNumber] = $purchase_date;
+                break;
+            }
+        }
+    }
+
+    foreach ($qualifying_customers as $accountNumber => $qualifying_date) {
+        foreach ($all_orders[$accountNumber] as $order) {
+            $purchase_date = new DateTime($order['purchaseDate']);
+            if ($purchase_date > $qualifying_date) {
+                $order['day_of_year'] = (int) $purchase_date->format('z') + 1;
+                $second_purchases[] = $order;
+            }
+        }
+    }
+    
+    return $second_purchases;
+}
+
+
+
+function count_second_purchases_for_camp($year) {
+    global $wpdb;
+
+    $query = "
+        SELECT a.accountNumber 
+        FROM {$wpdb->prefix}idemailwiz_cohorts a
+        JOIN (
+            SELECT accountNumber, MIN(purchaseDate) as firstPurchaseDate
+            FROM {$wpdb->prefix}idemailwiz_cohorts
+            WHERE cohort_type = 'division' 
+            AND YEAR(purchaseDate) = %d
+            GROUP BY accountNumber
+        ) b ON a.accountNumber = b.accountNumber
+        WHERE a.purchaseDate = b.firstPurchaseDate
+        AND a.cohort_value = 'iD Tech Camps'
+    ";
+
+    $accounts_with_first_purchase_as_camp = $wpdb->get_results($wpdb->prepare($query, $year), ARRAY_A);
+    
+    $accountNumbers = array_column($accounts_with_first_purchase_as_camp, 'accountNumber');
+
+  $query = "
+      SELECT accountNumber, orderId, purchaseDate, cohort_value
+      FROM {$wpdb->prefix}idemailwiz_cohorts
+      WHERE accountNumber IN (" . implode(', ', array_fill(0, count($accountNumbers), '%s')) . ")
+      AND cohort_type = 'division'
+      AND YEAR(purchaseDate) = %s
+      ORDER BY accountNumber, purchaseDate ASC
+  ";
+
+  $final_results = $wpdb->get_results($wpdb->prepare($query, array_merge($accountNumbers, [$year])));
+
+  // Group orders by account number
+  $grouped_orders = [];
+  foreach ($final_results as $row) {
+      $grouped_orders[$row->accountNumber][] = [
+          'orderId' => $row->orderId,
+          'purchaseDate' => $row->purchaseDate,
+          'division' => $row->cohort_value
+      ];
+  }
+
+  return $grouped_orders;
+
+}
+
 
 
 

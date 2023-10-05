@@ -33,7 +33,7 @@ if ($useWrapper == true) { ?>
           <td class="body-bg-color" align="center" valign="top" bgcolor="#F4F4F4">
             <table role="presentation" border="0" width="800" align="center" cellpadding="0" cellspacing="0" class="row" style="width: 800px; max-width: 800px;">
               <tr>
-                <td class="bg-color" align="center" valign="top" bgcolor="<?php echo $bgColor; ?>">
+                <td class="bg-color responsive-text" align="center" valign="top" bgcolor="<?php echo $bgColor; ?>">
 <?php } ?>
 <!-- Custom HTML -->
 <?php echo $rawHTML; ?>

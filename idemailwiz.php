@@ -116,8 +116,7 @@ require_once(plugin_dir_path(__FILE__) . 'includes/folder-tree.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/folder-template-actions.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/archive-query.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/iterable-functions.php');
-require_once plugin_dir_path(__FILE__) . 'vendors/Google Client/google-api-php-client--PHP7.4/vendor/autoload.php';
-require_once plugin_dir_path(__FILE__) . 'includes/idemailwiz-google-analytics.php';
+require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-google-sheets-api.php');
 
 
 
@@ -273,6 +272,10 @@ function idemailwiz_template_chooser($template)
     global $wp_query;
     $post_type = get_query_var('post_type');
 
+    if (is_page('playground')) {
+        return dirname(__FILE__) . '/templates/wiz-playground.php';
+    }
+    
     if (is_post_type_archive('idemailwiz_template') || is_tax('idemailwiz_folder')) {
         return dirname(__FILE__) . '/templates/taxonomy-idemailwiz_folder.php';
     }
@@ -434,6 +437,8 @@ function idemailwiz_enqueue_assets()
         'wiz-charts' => array('/js/wiz-charts.js', array('jquery', 'id-general', 'charts-js')),
         'wiz-metrics' => array('/js/metrics.js', array('jquery', 'id-general', 'wiz-charts', 'data-tables')),
         'initiatives' => array('/js/initiatives.js', array('jquery', 'id-general', 'wiz-charts', 'data-tables')),
+        'dashboard' => array('/js/idwiz-dashboard.js', array('jquery', 'id-general', 'wiz-charts', 'data-tables')),
+        'google-sheets-api' => array('/js/google-sheets-api.js', array('jquery', 'id-general')),
 
     );
 

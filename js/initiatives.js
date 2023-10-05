@@ -253,12 +253,11 @@ jQuery(document).ready(function ($) {
 			colReorder: {
 				realtime: true,
 			},
-            language: {
-                search: "",
-                searchPlaceholder: "Search Initiatives",
-            },
+			language: {
+				search: "",
+				searchPlaceholder: "Search Initiatives",
+			},
 			buttons: [
-				
 				{
 					extend: "selected",
 					text: '<i class="fa-solid fa-thumbtack"></i>',
@@ -266,53 +265,53 @@ jQuery(document).ready(function ($) {
 					action: function (e, dt, node, config) {
 						// Get selected rows
 						var selectedRows = dt.rows(".selected").nodes().to$();
-                        
+
 						// Array to store Deferred objects
 						var ajaxCalls = [];
 
-                        var delay = 0; // Initialize delay
-                        var delayIncrement = 500; // 200 ms delay between each AJAX call
+						var delay = 0; // Initialize delay
+						var delayIncrement = 500; // 200 ms delay between each AJAX call
 
 						// Loop through the selected rows and trigger the AJAX function to update the favorite status
-                        selectedRows.each(function () {
-                            var postId = $(this).data("initid");
-                            if (postId) {
-                                setTimeout(function () {
-                                    var ajaxCall = $.ajax({
-                                        url: idAjax.ajaxurl,
-                                        type: "POST",
-                                        data: {
-                                            action: "add_remove_user_favorite",
-                                            security: idAjax_initiatives.nonce,
-                                            object_id: postId,
-                                            object_type: "Initiative",
-                                        },
-                                    }).done(function(response) {
-                                        console.log('AJAX Response:', response);
-                                    });
+						selectedRows.each(function () {
+							var postId = $(this).data("initid");
+							if (postId) {
+								setTimeout(function () {
+									var ajaxCall = $.ajax({
+										url: idAjax.ajaxurl,
+										type: "POST",
+										data: {
+											action: "add_remove_user_favorite",
+											security: idAjax_initiatives.nonce,
+											object_id: postId,
+											object_type: "Initiative",
+										},
+									}).done(function (response) {
+										console.log("AJAX Response:", response);
+									});
 
-                                    ajaxCalls.push(ajaxCall);
-                                }, delay);
+									ajaxCalls.push(ajaxCall);
+								}, delay);
 
-                                delay += delayIncrement; // Increase delay for the next iteration
-                            }
-                        });
+								delay += delayIncrement; // Increase delay for the next iteration
+							}
+						});
 
 						// Wait for all AJAX calls to complete
-                        console.log("Number of AJAX calls:", ajaxCalls.length);
+						console.log("Number of AJAX calls:", ajaxCalls.length);
 						$.when
 							.apply($, ajaxCalls)
 							.then(function () {
 								Swal.fire({
 									icon: "success",
 									title: "Favorites are being toggled...",
-                                    text: "The page will refresh once finished!",
+									text: "The page will refresh once finished!",
 									showConfirmButton: false,
 									timer: delay,
 								});
-                                setTimeout(function() {
-                                  location.reload();
-                                }, delay);
+								setTimeout(function () {
+									location.reload();
+								}, delay);
 							})
 							.fail(function () {
 								Swal.fire({
@@ -364,77 +363,78 @@ jQuery(document).ready(function ($) {
 					extend: "spacer",
 					style: "bar",
 				},
-                {
-                    extend: "selected",
-                    text: '<i class="fa-solid fa-box-archive"></i>',
-                    className: "wiz-dt-button archive-initiatives",
-                    attr: {
-                        title: "Archive initiatives",
-                    },
-                    action: function (e, dt, node, config) {
-                        // Get selected rows
-                        var selectedRows = dt.rows(".selected").nodes().to$();
-        
-                        // Array to store Deferred objects
-                        var ajaxCalls = [];
+				{
+					extend: "selected",
+					text: '<i class="fa-solid fa-box-archive"></i>',
+					className: "wiz-dt-button archive-initiatives",
+					attr: {
+						title: "Archive initiatives",
+					},
+					action: function (e, dt, node, config) {
+						// Get selected rows
+						var selectedRows = dt.rows(".selected").nodes().to$();
 
-                        // Prepare an array to store the initiative IDs
-                        var initiativeIds = [];
+						// Array to store Deferred objects
+						var ajaxCalls = [];
 
-                        // Loop through the selected rows and gather the initiative IDs
-                        selectedRows.each(function () {
-                            var postId = $(this).data("initid");
-                            if (postId) {
-                                initiativeIds.push(postId);
-                            }
-                        });
+						// Prepare an array to store the initiative IDs
+						var initiativeIds = [];
 
-                        // Make the AJAX call to toggle the archive status
-                        var ajaxCall = $.ajax({
-                            url: idAjax.ajaxurl,
-                            type: "POST",
-                            data: {
-                                action: "idemailwiz_archive_initiative",
-                                security: idAjax_initiatives.nonce, // Replace this with the actual nonce for the action
-                                initiativeIds: initiativeIds
-                            }
-                        }).done(function(response) {
-                            console.log('AJAX Response:', response);
-                        });
+						// Loop through the selected rows and gather the initiative IDs
+						selectedRows.each(function () {
+							var postId = $(this).data("initid");
+							if (postId) {
+								initiativeIds.push(postId);
+							}
+						});
 
-                        ajaxCalls.push(ajaxCall);
+						// Make the AJAX call to toggle the archive status
+						var ajaxCall = $.ajax({
+							url: idAjax.ajaxurl,
+							type: "POST",
+							data: {
+								action: "idemailwiz_archive_initiative",
+								security: idAjax_initiatives.nonce, // Replace this with the actual nonce for the action
+								initiativeIds: initiativeIds,
+							},
+						}).done(function (response) {
+							console.log("AJAX Response:", response);
+						});
 
-                        // Wait for the AJAX call to complete
-                        $.when.apply($, ajaxCalls)
-                        .then(function () {
-                            Swal.fire({
-                                icon: "success",
-                                title: "Initiatives are being updated...",
-                                text: "The page will refresh once finished!",
-                                showConfirmButton: false,
-                                timer: 1500,
-                            });
-                            setTimeout(function() {
-                              location.reload();
-                            }, 1500);
-                        })
-                        .fail(function () {
-                            Swal.fire({
-                                icon: "error",
-                                title: "Oops...",
-                                text: "Something went wrong!",
-                            });
-                        });
-                    }
-                },
-                {
-                    extend: "selected",
-                    text: '<i class="fa-solid fa-trash"></i>',
-                    className: "wiz-dt-button remove-initiatives",
-                    attr: {
-                        title: "Delete initiatives",
-                    },
-                },
+						ajaxCalls.push(ajaxCall);
+
+						// Wait for the AJAX call to complete
+						$.when
+							.apply($, ajaxCalls)
+							.then(function () {
+								Swal.fire({
+									icon: "success",
+									title: "Initiatives are being updated...",
+									text: "The page will refresh once finished!",
+									showConfirmButton: false,
+									timer: 1500,
+								});
+								setTimeout(function () {
+									location.reload();
+								}, 1500);
+							})
+							.fail(function () {
+								Swal.fire({
+									icon: "error",
+									title: "Oops...",
+									text: "Something went wrong!",
+								});
+							});
+					},
+				},
+				{
+					extend: "selected",
+					text: '<i class="fa-solid fa-trash"></i>',
+					className: "wiz-dt-button remove-initiatives",
+					attr: {
+						title: "Delete initiatives",
+					},
+				},
 			],
 			drawCallback: initiative_archive_table_callback,
 		});
@@ -465,37 +465,21 @@ jQuery(document).ready(function ($) {
 		}
 	}
 
-	if ($("#idemailwiz_initiative_campaign_table").length) {
+	if ($(".idemailwiz-simple-table").length) {
 		// Custom sorting for date format 'm/d/Y'
 		$.fn.dataTable.ext.type.order["date-mdy-pre"] = function (dateString) {
 			var dateParts = dateString.split("/");
 			return new Date(dateParts[2], dateParts[0] - 1, dateParts[1]).getTime(); // Month is 0-indexed
 		};
 
-		var idemailwiz_initiative_campaign_table = $("#idemailwiz_initiative_campaign_table").DataTable({
+		var idemailwiz_initiative_campaign_table = $(".idemailwiz-simple-table").DataTable({
 			dom: '<"#wiztable_top_wrapper"><"wiztable_toolbar" <"#wiztable_top_search" f><"#wiztable_top_dates">  B>rtp',
-			columns: [
-				{ type: "date-mdy" },
-				null,
-				null,
-				{
-					width: "300px",
-				},
-				null,
-				null,
-				null,
-				null,
-				null,
-				null,
-				null,
-				null,
-				null,
-				null,
-				null,
-				null,
+			columnDefs: [
+				{ targets: "campaignDate", type: "date-mdy" },
+				{ targets: "campaignId", visible: false },
 			],
-
 			order: [[1, "desc"]],
+			autoWidth: false,
 			scrollX: true,
 			scrollY: true,
 			paging: true,

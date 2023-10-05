@@ -26,10 +26,13 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
         }
 
         // Set the HTTP headers
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            "Api-Key: $api_key",
-            "Content-Type: application/json"
-        )
+        curl_setopt(
+            $ch,
+            CURLOPT_HTTPHEADER,
+            array(
+                "Api-Key: $api_key",
+                "Content-Type: application/json"
+            )
         );
 
         // Return the transfer as a string
@@ -215,7 +218,7 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
         foreach ($item as $childKey => $childValue) {
             if (is_array($childValue)) {
                 if (empty($childValue)) {
-                    $item[$childKey] = null;  // Set to NULL if the array is empty
+                    $item[$childKey] = null; // Set to NULL if the array is empty
                 } else {
                     $serialized = serialize($childValue);
                     $item[$childKey] = $serialized;
@@ -715,7 +718,7 @@ function idemailwiz_sync_campaigns($passedCampaigns = null)
                 if ($wizCampaign) {
                     $fieldsDifferent = false;
 
-                    
+
                     foreach ($campaign as $key => $value) {
                         // Perform deep comparison
                         if (!isset($wizCampaign[$key]) || $wizCampaign[$key] != $value) {
@@ -724,7 +727,7 @@ function idemailwiz_sync_campaigns($passedCampaigns = null)
                         }
 
                     }
-                     
+
                     // Update the row if any field is different
                     if ($fieldsDifferent) {
                         // If this is a triggered campaign, get the latest startAt value from our DB
@@ -732,14 +735,14 @@ function idemailwiz_sync_campaigns($passedCampaigns = null)
                             $latestStartAt = get_latest_triggered_startAt($campaign['id']);
                             if ($latestStartAt !== null) {
                                 $campaign['startAt'] = $latestStartAt;
-                                
-                                
+
+
                             } else {
                                 // Skip this campaign if not found in the wp_idemailwiz_triggered_sends database
                                 continue;
                             }
 
-                           
+
                         }
 
                         $records_to_update[] = $campaign;
@@ -760,20 +763,21 @@ function idemailwiz_sync_campaigns($passedCampaigns = null)
 
 global $wpdb; // Make sure to declare this as global if your function is inside a function scope
 
-function get_latest_triggered_startAt($campaignId) {
+function get_latest_triggered_startAt($campaignId)
+{
     global $wpdb;
 
     $table_name = 'wp_idemailwiz_triggered_sends';
-    
+
     // Prepare the SQL query to prevent SQL injection
     $sql = $wpdb->prepare(
         "SELECT startAt FROM $table_name WHERE campaignId = %s ORDER BY startAt DESC LIMIT 1",
         $campaignId
     );
-    
+
     // Execute the SQL query
     $result = $wpdb->get_var($sql);
-    
+
     if ($result !== null) {
         return (int) $result; // Convert to integer if your startAt is stored as string
     } else {
@@ -886,9 +890,9 @@ function idemailwiz_sync_experiments($passedCampaigns = null)
 
 function idemailwiz_sync_metrics($passedCampaigns = null)
 {
-    
-    $metrics = idemailwiz_fetch_metrics($passedCampaigns);// Gets all metrics if none are passed
-    
+
+    $metrics = idemailwiz_fetch_metrics($passedCampaigns); // Gets all metrics if none are passed
+
     //(print_r($metrics, true));
 
     global $wpdb;
@@ -1033,7 +1037,8 @@ function log_wiz_api_results($results, $type)
 
 // Ajax handler for sync button
 // Also creates and logs readable sync responses from response arrays
-function idemailwiz_sync_everything($campaignIds = null) {
+function idemailwiz_sync_everything($campaignIds = null)
+{
     $syncArgs = [];
     $response = [];
 
@@ -1061,7 +1066,8 @@ function idemailwiz_sync_everything($campaignIds = null) {
     return $response;
 }
 
-function idemailwiz_ajax_sync() {
+function idemailwiz_ajax_sync()
+{
     // Check for valid nonce
     if (
         !(
@@ -1272,42 +1278,45 @@ $currentET = $currentUTC->setTimezone(new DateTimeZone('America/New_York'));
 $currentHour = (int) $currentET->format('G');
 $currentMinute = (int) $currentET->format('i');
 
-// Schedule or unschedule event based on time
-if (($currentHour > 5 || ($currentHour === 5 && $currentMinute >= 30)) && $currentHour < 22) {
-    // Schedule event if not already scheduled
-    if (!wp_next_scheduled('idemailwiz_hourly_sync')) {
-        wp_schedule_event(time(), 'hourly', 'idemailwiz_hourly_sync');
-    }
-} else {
-    // Unschedule event if it is scheduled
-    if ($timestamp = wp_next_scheduled('idemailwiz_hourly_sync')) {
-        wp_unschedule_event($timestamp, 'idemailwiz_hourly_sync');
-    }
+
+if (!wp_next_scheduled('idemailwiz_hourly_sync')) {
+    wp_schedule_event(time(), 'hourly', 'idemailwiz_hourly_sync');
 }
+if (!wp_next_scheduled('idemailwiz_hourly_triggered_sync')) {
+    wp_schedule_event(time(), 'hourly', 'idemailwiz_hourly_triggered_sync');
+}
+if (!wp_next_scheduled('idemailwiz_twice_daily_sync')) {
+    wp_schedule_event(time(), 'twicedaily', 'idemailwiz_twice_daily_sync');
+}
+
 
 
 
 // Hook into the custom action and run the function
 // Sync_everything includes syncing triggered campaigns send records
 add_action('idemailwiz_hourly_sync', 'idemailwiz_sync_everything', 1);
-add_action('idemailwiz_hourly_sync', 'idemailwiz_sync_triggered_send_records', 2);
+add_action('idemailwiz_hourly_triggered_sync', 'idemailwiz_sync_triggered_send_records', 1);
+add_action('idemailwiz_hourly_triggered_sync', 'idemailwiz_sync_campaigns', 2);
+
+add_action('idemailwiz_twice_daily_sync', 'sync_ga_campaign_revenue_data', 1);
 
 
-function idemailwiz_get_todays_triggered_send_ids() {
+function idemailwiz_get_todays_triggered_send_ids()
+{
     // Try to get data from the transient
     $uniqueCampaignIds = get_transient('idemailwiz_triggered_send_ids');
 
     if ($uniqueCampaignIds === false) {
         // Data not found in transient, fetch fresh data
         $uniqueCampaignIds = [];
-        $last24Hours = new DateTimeImmutable('-24 hours', new DateTimeZone('UTC'));
-        $get24HourCampaigns = $last24Hours->format('Y-m-d H:i:s');
-        $encodedDateTime = urlencode($get24HourCampaigns);
+        $iterableSendStart = new DateTimeImmutable('-3 hours', new DateTimeZone('UTC'));
+        $sendStartFormatted = $iterableSendStart->format('Y-m-d H:i:s');
+        $encodedDateTime = urlencode($sendStartFormatted);
 
-        wiz_log("Checking last 24 hours of triggered sends from Iterable...");
+        wiz_log("Checking for recent sends from Iterable...");
         try {
             $response = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/data.json?dataTypeName=emailSend&startDateTime=' . $encodedDateTime . '&onlyFields=campaignId');
-            
+
             // Split the response string by lines
             $lines = explode("\n", trim($response['response']));
 
@@ -1332,7 +1341,8 @@ function idemailwiz_get_todays_triggered_send_ids() {
             return;
         }
     } else {
-        wiz_log("Using cached data for last 24 hours of triggered sends.");
+        $countIds = count($uniqueCampaignIds);
+        wiz_log("Using cached data for last 24 hours of triggered sends. Requesting $countIds campaigns from Iterable (1 per second max)...");
     }
 
     return $uniqueCampaignIds;
@@ -1340,32 +1350,26 @@ function idemailwiz_get_todays_triggered_send_ids() {
 
 
 function idemailwiz_sync_triggered_send_records($triggeredCampaigns = null)
-{       wiz_log("Starting triggered sends sync...");
-        global $wpdb;
+{
+    wiz_log("Starting triggered sends sync...");
+    global $wpdb;
 
-        // Initialize or fetch $triggeredCampaigns
-        $triggeredCampaigns = $triggeredCampaigns ?? idemailwiz_get_todays_triggered_send_ids();
+    // Initialize or fetch $triggeredCampaigns
+    //$triggeredCampaigns = $triggeredCampaigns ?? idemailwiz_get_todays_triggered_send_ids();
+    $triggeredCampaigns = get_idwiz_campaigns(['type' => 'triggered', 'campaignState' => 'Running']);
+    $cntTriggered = count($triggeredCampaigns);
+    wiz_log("Requesting sends for $cntTriggered triggered campaigns (max 1 per second)...");
 
-        // Filter out non-triggered campaigns
-        $filteredTriggeredCampaigns = [];
-        foreach ($triggeredCampaigns as $campaignId) {
-            $wizCampaign = get_idwiz_campaign($campaignId);
-            if ($wizCampaign['type'] == 'Triggered') {
-                $filteredTriggeredCampaigns[] = $wizCampaign;
-            }
-        }
-        $triggeredCampaigns = $filteredTriggeredCampaigns;
-
-        $jobIds = [];
-        $logFetched = 0;
-        $log400s = 0;
-        foreach ($triggeredCampaigns as $campaign) {
+    $jobIds = [];
+    $logFetched = 0;
+    $log400s = 0;
+    foreach ($triggeredCampaigns as $campaign) {
         $campaignId = (int) $campaign['id'];
         $messageMedium = $campaign['messageMedium'];
 
-        $exportEvent = $messageMedium === 'Email' ? 'emailSend' : 'smsSend';
+        $exportEvent = $messageMedium == 'Email' ? 'emailSend' : 'smsSend';
 
-        $exportFetchStart = new DateTimeImmutable('-7 days');
+        $exportFetchStart = new DateTimeImmutable('-12 hours');
         //$exportFetchEnd = new DateTimeImmutable('June 30, 2023');
         $exportStartData = [
             "outputFormat" => "application/x-json-stream",
@@ -1396,9 +1400,10 @@ function idemailwiz_sync_triggered_send_records($triggeredCampaigns = null)
 
     wiz_log("Requested $logFetched triggered campaigns from Iterable. $log400s errors encountered.\nRetrieving send data...");
 
-    sleep(1);
+    // Initialize an empty array to store the records
+    $records = [];
     foreach ($jobIds as $campaignId => $jobId) {
-        //error_log('Fetching triggered send data for campaign: '. $campaignId);
+        //error_log('Fetching triggered send data for campaign: '. $campaignId . ' Job ID: ' . $jobId);
         while (true) {
             $apiResponse = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/' . $jobId . '/files');
             if (in_array($apiResponse['response']['jobState'], ['completed', 'failed'])) {
@@ -1407,34 +1412,52 @@ function idemailwiz_sync_triggered_send_records($triggeredCampaigns = null)
             sleep(1);
         }
         if ($apiResponse['response']['jobState'] == "completed") {
-            // Fetch JSON data from the URL
-            $jsonResponse = file_get_contents($apiResponse['response']['files'][0]['url']);
-    
-            // Decode the JSON string into an associative array
-            $decodedData = json_decode($jsonResponse, true) ?? array();
+            // Initialize an empty array to store all lines
+            $allLines = [];
 
-            // Initialize an empty array to store the records
-            $records = array();
+            // Loop through each file URL
+            foreach ($apiResponse['response']['files'] as $file) {
+                // Fetch JSON data from the URL
+                $jsonResponse = file_get_contents($file['url']);
 
-            // Iterate through the decoded data to populate the records
-            foreach ($decodedData as $row) {
-                if (
-                    is_array($row) &&
-                    isset($row['campaignId'], $row['createdAt'], $row['messageId'], $row['templateId'])
-                ) {
+                // Split the string by newline characters to get an array of lines
+                $lines = explode("\n", $jsonResponse);
+
+                // Merge lines with allLines
+                $allLines = array_merge($allLines, $lines);
+            }
+
+            // Loop through each line
+            foreach ($allLines as $line) {
+                // Skip empty lines
+                if (trim($line) === '')
+                    continue;
+
+                // Decode each line individually
+                $decodedData = json_decode($line, true);
+
+                // Check for JSON errors
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    error_log('json_decode error: ' . json_last_error_msg());
+                    continue;
+                }
+
+                // Add the decoded data to your records array
+                if (isset($decodedData['campaignId'], $decodedData['createdAt'], $decodedData['messageId'], $decodedData['templateId'])) {
                     $records[] = [
-                        'messageId' => $row['messageId'],
-                        'campaignId' => $row['campaignId'],
-                        'templateId' => $row['templateId'],
-                        'startAt' => strtotime($row['createdAt']) * 1000,
+                        'messageId' => $decodedData['messageId'],
+                        'campaignId' => $decodedData['campaignId'],
+                        'templateId' => $decodedData['templateId'],
+                        'startAt' => strtotime($decodedData['createdAt']) * 1000,
                     ];
                 }
             }
         }
-
     }
+    //error_log('Filtered Records: '.print_r($records, true));
+    $cntToCheckRecords = count($records);
     if (!empty($records)) {
-        wiz_log('Checking received sends against existing records, and updating...');
+        wiz_log("Checking $cntToCheckRecords received sends against existing records, and updating...");
         // Fetch all existing messageIds in one query
         $tableName = $wpdb->prefix . 'idemailwiz_triggered_sends';
         $existingRecords = $wpdb->get_col("SELECT messageId FROM $tableName");
@@ -1443,19 +1466,21 @@ function idemailwiz_sync_triggered_send_records($triggeredCampaigns = null)
         $existingRecordsMap = array_flip($existingRecords);
 
         // Loop through captured records from all exports
+        $cntRecords = 0;
         foreach ($records as $record) {
             if (isset($existingRecordsMap[$record['messageId']])) {
                 //wiz_log("Record with messageId " . $record['messageId'] . " already exists. Skipping.");
                 continue;
             }
             idemailwiz_insert_triggered_send_record($record);
+            $cntRecords++;
         }
-       
+
     } else {
         wiz_log("No new triggered sends were found.");
     }
 
-    wiz_log("Finished updating triggered send records!");
+    wiz_log("Finished updating $cntRecords triggered send records!");
     return true;
 }
 
@@ -1464,14 +1489,10 @@ function idemailwiz_insert_triggered_send_record($record)
     global $wpdb;
     $tableName = $wpdb->prefix . 'idemailwiz_triggered_sends';
     if (!is_array($record) || empty($record) || !isset($record['messageId'])) {
-        //wiz_log("No new sends found for this campaign.");
+        wiz_log("No new sends found for campaign " . $record['campaignId'] . ".");
         return false;
     }
 
-    // Convert the timestamp to your preferred time zone if needed
-   // $date = new DateTime('@' . ($record['startAt'] / 1000), new DateTimeZone('UTC'));
-    //$date->setTimezone(new DateTimeZone('America/Los_Angeles'));
-    //$timestampPST = $date->getTimestamp() * 1000;
 
     // Prepare the data array for wpdb
     $data = [

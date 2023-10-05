@@ -15,28 +15,11 @@ jQuery(document).ready(function ($) {
 	});
 
 	// On page load, fill canvases with their charts
-	$("canvas").each(function () {
+	$("canvas.wiz-canvas").each(function () {
 		idwiz_fill_chart_canvas(this);
 	});
 
-	// Add styling and visual options here per chart type
-	function idwiz_getBaseLayoutOptions(chartType) {
-		let layoutOptions = {
-			padding: {
-				bottom: 50,
-			},
-		};
 
-		if (chartType === "pie") {
-			layoutOptions.padding = { top: 10, bottom: 20 };
-		} else if (chartType === "line") {
-			layoutOptions.padding = { left: 20, right: 20, bottom: 40 };
-		} else if (chartType === "bar") {
-			layoutOptions.padding = { left: 15, right: 15, bottom: 30 };
-		}
-
-		return layoutOptions;
-	}
 
 	function idwiz_fill_chart_canvas(canvas) {
 		const chartType = $(canvas).attr("data-charttype");
@@ -55,10 +38,9 @@ jQuery(document).ready(function ($) {
 			additionalData,
 			function (response) {
 				if (response.success) {
-					const baseLayout = idwiz_getBaseLayoutOptions(chartType);
 					let options = {
-						layout: baseLayout,
 						responsive: true,
+						maintainAspectRatio: false,
 						plugins: {
 							tooltip: {
 								callbacks: {
@@ -132,12 +114,6 @@ jQuery(document).ready(function ($) {
 
 	function idwiz_create_chart(element, chartType, labels, datasets, baseOptions) {
 		const ctx = element.getContext("2d");
-
-		// Retrieve layout options
-		const layoutOptions = idwiz_getBaseLayoutOptions(chartType);
-
-		// Set height from base layout options
-		element.height = layoutOptions.height;
 
 		const idwizChart = new Chart(ctx, {
 			type: chartType,

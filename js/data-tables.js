@@ -216,7 +216,11 @@ jQuery(document).ready(function ($) {
 				format: "num",
 			},
 			revenue: {
-				label: "Revenue",
+				label: "Dir. Rev.",
+				format: "money",
+			},
+			gaRevenue: {
+				label: "GA Rev.",
 				format: "money",
 			},
 		};
@@ -499,6 +503,16 @@ jQuery(document).ready(function ($) {
 				data: "revenue",
 				name: "revenue",
 				title: "Revenue",
+				render: function (data) {
+					return "$" + parseFloat(data).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+				},
+				className: "idwiz_searchBuilder_enabled",
+				searchBuilderType: "num-fmt",
+			},
+			{
+				data: "ga_revenue",
+				name: "ga_revenue",
+				title: "GA Revenue",
 				render: function (data) {
 					return "$" + parseFloat(data).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 				},
