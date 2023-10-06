@@ -39,8 +39,11 @@ if (isset($_GET['view']) && array_key_exists($_GET['view'], $reportViews)) {
     </header>
 
     <div class="entry-content" itemprop="mainContentOfPage">
-        <?php if ($currentView == 'cohort-2nd-purchases') {
+        <?php 
+        if ($currentView == 'cohort-2nd-purchases') {
             include('parts/dashboard-cohort-analysis.php');
+        } else if ($currentView == 'overview') {
+            echo 'More coming here soon!';
         }
         ?>
     </div>

@@ -1,43 +1,47 @@
 <form id="cohort-selection-form" method="GET" class="cohort-form">
 
     <div class="form-group">
-        <label for="purchaseMonth" class="form-label">Purchase Month</label>
-        <select name="purchaseMonth" id="purchaseMonth" class="form-select">
-            <?php
-            $selectedMonth = $_GET['purchaseMonth'] ?? 9;
-            $monthNames = array('January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December');
-            $monthNumber = 1;
-            $thisMonthSelected = '';
-            foreach ($monthNames as $monthName) {
-                if ($selectedMonth == $monthNumber) {
-                    $thisMonthSelected = 'selected';
-                }
-                echo '<option value="' . $monthNumber . '" '.$thisMonthSelected.'>' . $monthName . '</option>';
-                $monthNumber ++;
+        <label for="purchaseMonth" class="form-label">Purchase Month & Day</label>
+        <div class="field-group-wrap flex">
+            
+            <select name="purchaseMonth" id="purchaseMonth" class="form-select">
+                <?php
+                $selectedMonth = $_GET['purchaseMonth'] ?? date('m');
+                $monthNames = array('January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December');
+                $monthNumber = 1;
                 $thisMonthSelected = '';
-            }
-            ?>
-        </select>
-
-        <label for="purchaseMonthDay" class="form-label">Day of month</label>
-        <select name="purchaseMonthDay" id="purchaseMonthDay" class="form-select">
-            <?php
-            $monthDay = 1;
-            $selectedDay = $_GET['purchaseMonthDay'] ?? 1;
-            $thisDaySelected = '';
-            while ($monthDay <= 31) {
-                if ($selectedDay == $monthDay) {
-                    $thisDaySelected = 'selected';
+                foreach ($monthNames as $monthName) {
+                    if ($selectedMonth == $monthNumber) {
+                        $thisMonthSelected = 'selected';
+                    }
+                    echo '<option value="' . $monthNumber . '" ' . $thisMonthSelected . '>' . $monthName . '</option>';
+                    $monthNumber++;
+                    $thisMonthSelected = '';
                 }
-                echo '<option value="' . $monthDay . '" '.$thisDaySelected.'>' . $monthDay . '</option>';
-                $monthDay ++;
+                ?>
+            </select>
+            <select name="purchaseMonthDay" id="purchaseMonthDay" class="form-select">
+                <?php
+                $monthDay = 1;
+                $selectedDay = $_GET['purchaseMonthDay'] ?? 1;
                 $thisDaySelected = '';
-            }
-            ?>
-        </select>
-        <label for="purchaseWindowDays" class="form-label">Purchase Window (days)</label>
-        <input type="number" name="purchaseWindowDays" id="purchaseWindowDays" value="<?php echo $_GET['purchaseWindowDays']?? 30;?>" class="form-number" />
-
+                while ($monthDay <= 31) {
+                    if ($selectedDay == $monthDay) {
+                        $thisDaySelected = 'selected';
+                    }
+                    echo '<option value="' . $monthDay . '" ' . $thisDaySelected . '>' . $monthDay . '</option>';
+                    $monthDay++;
+                    $thisDaySelected = '';
+                }
+                ?>
+            </select>
+        </div>
+        <div class="field-group-wrap">
+            <label for="purchaseWindowDays" class="form-label">Purchase Window (days)</label>
+            <?php $purchaseWindowDays = $_GET['purchaseWindowDays'] ?? 30; ?>
+            <input type="number" name="purchaseWindowDays" id="purchaseWindowDays"
+                value="<?php echo $purchaseWindowDays; ?>" class="form-number" />
+        </div>
     </div>
 
     <div class="form-group">
@@ -48,8 +52,7 @@
             $result = $wpdb->get_results($query);
 
             // Get divisions from GET parameters
-            $selectedDivisions = isset($_GET['divisions']) ? (array) $_GET['divisions'] : [];
-
+            $selectedDivisions = $_GET['divisions'] ?? ['iD Tech Camps'];
             foreach ($result as $row) {
                 $divisionName = $row->cohort_value;
                 $isSelected = in_array($divisionName, $selectedDivisions) ? 'selected' : '';
@@ -76,7 +79,10 @@
         </div>
         <div class="wizcampaign-section-content">
             <div class="wizChartWrapper cohort2ndPurchases">
-                <canvas id="cohortChart" data-PurchaseMonth="" data-purchaseMonthDay="" data-divisions=""></canvas>
+                <canvas id="cohortChart" data-PurchaseMonth="<?php echo $selectedMonth; ?>"
+                    data-purchaseMonthDay="<?php echo $selectedDay; ?>"
+                    data-purchaseWindowDays="<?php echo $purchaseWindowDays; ?>"
+                    data-divisions='<?php echo json_encode($selectedDivisions); ?>'></canvas>
             </div>
         </div>
     </div>
@@ -92,12 +98,17 @@
             </div>
         </div>
         <div class="wizcampaign-section-content">
-            <p>This report takes a month and day input and gathers all purchases from that day of the year and the 6 days following. 
-                It then locates the next purchase from that same customer any time in the following year and plots it by date and division.</p>
-            <p>The divisions specified in the filters refer to the division of the 1st purchase. The divisions specified in the chart legend (which can be toggled)
+            <p>This report takes a month and day input and gathers all purchases from that day of the year and the 6
+                days following.
+                It then locates the next purchase from that same customer any time in the following year and plots it by
+                date and division.</p>
+            <p>The divisions specified in the filters refer to the division of the 1st purchase. The divisions specified
+                in the chart legend (which can be toggled)
                 refer to the division of the 2nd purchase</p>
-            <p>The filter selection is <strong>year agnostic</strong>, meaning purchases found can have occured within any year on record (currently FY 2021-22 onward), 
-            however the 2nd purchase is always ensured to be <em>after</em> the first one, taking year into account.</p>
+            <p>The filter selection is <strong>year agnostic</strong>, meaning purchases found can have occured within
+                any year on record (currently FY 2021-22 onward),
+                however the 2nd purchase is always ensured to be <em>after</em> the first one, taking year into account.
+            </p>
 
         </div>
     </div>

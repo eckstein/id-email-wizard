@@ -296,18 +296,13 @@ jQuery(document).ready(function ($) {
 	}
 
 	if ($("#cohortChart").length) {
-		// Get URL Parameters
-		const urlParams = new URLSearchParams(window.location.search);
-		const purchaseMonth = urlParams.get("purchaseMonth");
-		const purchaseMonthDay = urlParams.get("purchaseMonthDay");
-		const divisions = urlParams.getAll("divisions[]");
-		const purchaseWindow = urlParams.get("purchaseWindowDays");
-
-		// Update canvas data attributes
 		const canvas = $("#cohortChart");
-		canvas.data("purchaseMonth", purchaseMonth);
-		canvas.data("purchaseMonthDay", purchaseMonthDay);
-		canvas.data("divisions", divisions);
+		const purchaseMonth = canvas.data("purchase-month"); // Note the kebab-case here
+		const purchaseMonthDay = canvas.data("purchase-month-day");
+		const divisions = JSON.parse(canvas.attr("data-divisions")); // Parse the JSON string to get the array
+
+		const purchaseWindow = canvas.data("purchaseWindowDays");
+
 
 		// Add loader
 		$('.wizChartWrapper').append('<span class="wizChartLoader"><i class="fa-solid fa-spinner fa-spin"></i>Fetching chart data...</span>');

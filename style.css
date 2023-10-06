@@ -1469,8 +1469,17 @@ pre#generatedCode {
 	display: flex;
 	flex-direction: column;
 }
+#cohort-selection-form .field-group-wrap {
+	margin-bottom: 5px;
+}
+#cohort-selection-form .field-group-wrap.flex {
+	display: flex;
+	gap: 5px;
+}
 #cohort-selection-form .form-group label {
+	font-size: 14px;
 	display: block;
+	margin-bottom: 5px;
 }
 #cohort-selection-form .form-group input#day-of-year {
 	padding: 8px;
@@ -1488,7 +1497,7 @@ pre#generatedCode {
 }
 
 .wizChartWrapper.cohort2ndPurchases {
-	max-height: 300px;
+	max-height: 350px;
 }
 /* Wizcharts */
 .wizChartWrapper {
