@@ -1580,7 +1580,7 @@ function get_second_purchases_within_week($purchaseMonth, $purchaseMonthDay, $pu
 function get_orders_grouped_by_customers() {
     global $wpdb;
 
-    $batch_size = 5000; // Define a reasonable batch size. You can adjust this based on your server's capabilities.
+    $batch_size = 10000; // Define a reasonable batch size. You can adjust this based on your server's capabilities.
     $offset = 0;
 
     $grouped_orders = [];
