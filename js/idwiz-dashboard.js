@@ -309,6 +309,9 @@ jQuery(document).ready(function ($) {
 		canvas.data("purchaseMonthDay", purchaseMonthDay);
 		canvas.data("divisions", divisions);
 
+		// Add loader
+		$('.wizChartWrapper').append('<span class="wizChartLoader"><i class="fa-solid fa-spinner fa-spin"></i>Fetching chart data...</span>');
+
 		// Prepare data to send in the Ajax call
 		const ajaxData = {
 			purchaseMonth: purchaseMonth,
@@ -323,6 +326,7 @@ jQuery(document).ready(function ($) {
 		});
 
 		function populateCohortChart(responseData) {
+			$('.wizChartLoader').hide();
 			console.log(responseData);
 			const ctx = document.getElementById("cohortChart").getContext("2d");
 
