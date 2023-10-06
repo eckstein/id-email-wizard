@@ -295,7 +295,8 @@
 
                         </div>
                     </div>
-
+                </div>
+                <div class="wizcampaign-sections-row grid">
                     <div class="wizcampaign-section inset short" id="email-info">
                         <h4>Purchases by Date</h4>
                         <?php if (!empty($associated_campaign_ids)) { ?>
@@ -460,7 +461,9 @@
                             ?>
                         </div>
                     </div>
-                    <div class="wizcampaign-section inset short">
+                </div>
+                <div class="wizcampaign-sections-row grid">
+                    <div class="wizcampaign-section inset">
                         <div class="wizcampaign-section-title-area">
                             <h4>Purchases by Topic</h4>
                             <div class="wizcampaign-section-icons">
@@ -476,7 +479,7 @@
                             </div>
                         <?php } ?>
                     </div>
-                    <div class="wizcampaign-section inset short">
+                    <div class="wizcampaign-section inset">
                         <div class="wizcampaign-section-title-area">
                             <h4>Purchases by Campus</h4>
                             <div class="wizcampaign-section-icons">
