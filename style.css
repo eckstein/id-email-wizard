@@ -1390,6 +1390,9 @@ pre#generatedCode {
 	max-height: 250px;
 	overflow-y: auto;
 }
+.wizcampaign-sections-row#single-campaign-sections {
+	margin-top: 20px;
+}
 .wizcampaign-sections-row#single-campaign-sections .wizcampaign-section {
 	flex: 1 1 400px;
 }
