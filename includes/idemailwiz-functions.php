@@ -1577,17 +1577,33 @@ function get_second_purchases_within_week($purchaseMonth, $purchaseMonthDay, $pu
 
 
 
-function get_orders_grouped_by_customers()
-{
-  global $wpdb;
-  $query = "SELECT accountNumber, orderId, purchaseDate, cohort_value as division FROM {$wpdb->prefix}idemailwiz_cohorts WHERE cohort_type = 'division' ORDER BY accountNumber, purchaseDate ASC";
-  $results = $wpdb->get_results($query, ARRAY_A);
-  $grouped_orders = [];
-  foreach ($results as $row) {
-    $grouped_orders[$row['accountNumber']][] = $row;
-  }
-  return $grouped_orders;
+function get_orders_grouped_by_customers() {
+    global $wpdb;
+
+    $batch_size = 5000; // Define a reasonable batch size. You can adjust this based on your server's capabilities.
+    $offset = 0;
+
+    $grouped_orders = [];
+
+    while (true) {
+        $query = $wpdb->prepare("SELECT accountNumber, orderId, purchaseDate, cohort_value as division FROM {$wpdb->prefix}idemailwiz_cohorts WHERE cohort_type = 'division' ORDER BY accountNumber, purchaseDate ASC LIMIT %d OFFSET %d", $batch_size, $offset);
+        $results = $wpdb->get_results($query, ARRAY_A);
+        
+        // If no results, break out of the loop
+        if (empty($results)) {
+            break;
+        }
+
+        foreach ($results as $row) {
+            $grouped_orders[$row['accountNumber']][] = $row;
+        }
+
+        $offset += $batch_size; // Increase the offset for the next batch
+    }
+
+    return $grouped_orders;
 }
+
 
 
 function count_second_purchases_for_camp($year)
