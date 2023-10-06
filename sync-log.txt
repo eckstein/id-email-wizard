@@ -1,3 +1,17 @@
+==========[2023-10-06 13:18:06]==============================<br />
+Campaigns sync results: <br />
+<br />
+Successful update of 12 records.<br />
+========================================<br />
+<br />
+==========[2023-10-06 13:17:50]==============================<br />
+Finished updating 59 triggered send records!<br />
+========================================<br />
+<br />
+==========[2023-10-06 13:17:44]==============================<br />
+Checking 1581 received sends against existing records, and updating...<br />
+========================================<br />
+<br />
 ==========[2023-10-06 13:01:43]==============================<br />
 Requested 128 triggered campaigns from Iterable. 0 errors encountered.<br />
 Retrieving send data...<br />

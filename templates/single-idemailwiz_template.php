@@ -57,9 +57,11 @@ $itTemplateId = get_post_meta(get_the_ID(), 'itTemplateId', true) ?? '';
 		
 		<div id="builder-chunks">
 			<?php
+			$options = get_option('idemailwiz_settings');
+			$wizBuilderFieldGroupId = $options['wizbuilder_field_group'];
 			$acfForm = array(
 				'id' => 'id-chunks-creator',
-				'field_groups' => array(13),
+				'field_groups' => array($wizBuilderFieldGroupId),
 				'updated_message' => false,
 				'html_after_fields' => '<div class="scrollSpace"></div>'
 			);
