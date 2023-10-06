@@ -9,10 +9,6 @@ const monthNumber = new Date(Date.parse(wizMonth + " 1, 2012")).getMonth() + 1;
 const startDate = `${wizYear}-${monthNumber}-01`;
 const endDate = new Date(wizYear, monthNumber, 0).toISOString().slice(0, 10); // 0 means last day of previous month
 
-// Debug log
-console.log("Start Date:", startDate);
-console.log("End Date:", endDate);
-
 // Utility function to get the current URL parameters for month/year
 function getQueryParam(param) {
 	var urlParams = new URLSearchParams(window.location.search);
@@ -150,12 +146,12 @@ jQuery(document).ready(function ($) {
 											const yPos = canvasHeight - 200; // pixels above the bottom
 
 											// Draw the percentage (Bold and Large)
-                                            ctx.font = "bold 22px 'Poppins', sans-serif";
-                                        
+											ctx.font = "bold 22px 'Poppins', sans-serif";
+
 											ctx.fillText(percent + "%", bar.x, yPos); // Stick to the fixed position
 
 											// Draw the revenue amount (Normal and Smaller)
-                                            ctx.font = "normal 16px 'Poppins', sans-serif";
+											ctx.font = "normal 16px 'Poppins', sans-serif";
 											ctx.fillText(formatMoney(data), bar.x, yPos + 25); // pixels above the fixed position
 										});
 									});
@@ -171,209 +167,206 @@ jQuery(document).ready(function ($) {
 				console.error("AJAX Error:", error);
 			}
 		);
-
-		
 	}
 
-    if ($(".wizcampaign-section.playground").length) {
-        // Fetch and prepare data for each LOB chart
-        $(".wizcampaign-section.playground").each(function () {
-            const $section = $(this);
-            const $canvas = $section.find("canvas");
-            const lobName = $canvas.data("lobname");
-            const startAt = $canvas.data("startat");
-            const endAt = $canvas.data("endat");
+	if ($(".wizcampaign-section.playground").length) {
+		// Fetch and prepare data for each LOB chart
+		$(".wizcampaign-section.playground").each(function () {
+			const $section = $(this);
+			const $canvas = $section.find("canvas");
+			const lobName = $canvas.data("lobname");
+			const startAt = $canvas.data("startat");
+			const endAt = $canvas.data("endat");
 
-            idemailwiz_do_ajax(
-                "idwiz_handle_repeat_purchase_timing_request",
-                idAjax_dashboard.nonce, 
-                { lobName, startAt, endAt }, 
-                function (response) {
-                    if (response.success) {
-                        const data = response.data;
-                        const ctx = $canvas[0].getContext("2d");
+			idemailwiz_do_ajax(
+				"idwiz_handle_repeat_purchase_timing_request",
+				idAjax_dashboard.nonce,
+				{ lobName, startAt, endAt },
+				function (response) {
+					if (response.success) {
+						const data = response.data;
+						const ctx = $canvas[0].getContext("2d");
 
-                        // Initialize the Chart.js chart
-                        const lobBarChart = new Chart(ctx, {
-                            type: "bar",
-                            data: {
-                                labels: data.labels,  
-                                datasets: data.datasets  
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                            }
-                        });
-                    } else {
-                        console.error("Error:", response.data.message);
-                    }
-
-                },
-                function (xhr, status, error) {
-                    console.error("AJAX Error:", error);
-                }
-            );
-        });
-    }
-
-
-    if ($("#dashboard-campaigns").length) {
-        // Custom sorting for date format 'm/d/Y'
-        $.fn.dataTable.ext.type.order["date-mdy-pre"] = function (dateString) {
-            var dateParts = dateString.split("/");
-            return new Date(dateParts[2], dateParts[0] - 1, dateParts[1]).getTime(); // Month is 0-indexed
-        };
-
-        var idwiz_dashboard_campaign_table = $("#dashboard-campaigns").DataTable({
-            dom: '<"#wiztable_top_wrapper"><"wiztable_toolbar" <"#wiztable_top_search" f><"#wiztable_top_dates">  B>rtp',
-            columnDefs: [
-                { targets: "campaignDate", type: "date-mdy" },
-                { targets: "campaignId", visible: false },
-            ],
-            order: [[0, "desc"]],
-            autoWidth: false,
-            scrollX: true,
-            scrollY: true,
-            paging: true,
-            pageLength: 10,
-            select: true,
-            fixedHeader: {
-                header: true,
-                footer: false,
-            },
-            colReorder: {
-                realtime: true,
-            },
-            buttons: [
-                {
-                    extend: "collection",
-                    text: '<i class="fa-solid fa-file-arrow-down"></i>',
-                    className: "wiz-dt-button",
-                    attr: {
-                        title: "Export",
-                    },
-                    align: "button-right",
-                    autoClose: true,
-                    buttons: ["copy", "csv", "excel"],
-                    background: false,
-                },
-                {
-                    extend: "collection",
-                    text: '<i class="fa-solid fa-table-columns"></i>',
-                    className: "wiz-dt-button",
-                    attr: {
-                        title: "Show/hide columns",
-                    },
-                    align: "button-right",
-                    buttons: [
-                        "colvis",
-                        {
-                            extend: "colvisRestore",
-                            text: "Restore Defaults",
-                            className: "wizcols_restore",
-                            align: "button-right",
-                        },
-                    ],
-                    background: false,
-                },
-
-                {
-                    extend: "pageLength",
-                    className: "wiz-dt-button",
-                    background: false,
-                },
-                {
-                    extend: "spacer",
-                    style: "bar",
-                },
-                
-            ],
-            language: {
-                search: "",
-                searchPlaceholder: "Quick search",
-            },
-            drawCallback: idwiz_dash_camp_table_callback,
-        });
-
-        function idwiz_dash_camp_table_callback() {
-            var api = this.api();
-
-            // Readjust the column widths on each draw
-            api.columns.adjust();
-
-           
-        }
-    }
-
-if ($("#cohortChart").length) {
-	// Get URL Parameters
-	const urlParams = new URLSearchParams(window.location.search);
-	const dayOfYear = urlParams.get('day-of-year');
-	const divisions = urlParams.getAll('divisions[]');
-
-	// Update canvas data attributes
-	const canvas = $('#cohortChart');
-	canvas.data('day-of-year', dayOfYear);
-	canvas.data('divisions', divisions);
-
-	// Prepare data to send in the Ajax call
-	const ajaxData = {
-		dayOfYear: dayOfYear,
-		divisions: divisions
-	};
-	
-
-	// Make the Ajax call to fetch the chart data
-	idemailwiz_do_ajax('idwiz_generate_cohort_chart', idAjax_dashboard.nonce, ajaxData, populateCohortChart, (xhr, status, error) => {
-		console.error('Error:', error);
-	});
-
-
-	function populateCohortChart(responseData) {
-		console.log(responseData);
-		const ctx = document.getElementById('cohortChart').getContext('2d');
-    
-		// The actual data is in responseData.data
-		const data = responseData.data;
-
-		// Group data by division
-		const groupedByDivision = data.reduce((acc, { day_of_year, division, count }) => {
-			if (!acc[division]) {
-				acc[division] = {};
-			}
-			acc[division][day_of_year] = count;
-			return acc;
-		}, {});
-
-		// Extract labels (day of year)
-		const labels = [...new Set(data.map(item => item.day_of_year))].sort((a, b) => a - b);
-
-		// Create datasets
-		const datasets = Object.keys(groupedByDivision).map(division => ({
-			label: division,
-			data: labels.map(day => groupedByDivision[division][day] || 0),
-			stack: 'Stack 0',
-		}));
-
-		const chart = new Chart(ctx, {
-			type: 'bar',
-			data: {
-				labels: labels,
-				datasets: datasets,
-			},
-			options: {
-				scales: {
-					y: {
-						stacked: true,
-					},
+						// Initialize the Chart.js chart
+						const lobBarChart = new Chart(ctx, {
+							type: "bar",
+							data: {
+								labels: data.labels,
+								datasets: data.datasets,
+							},
+							options: {
+								responsive: true,
+								maintainAspectRatio: false,
+							},
+						});
+					} else {
+						console.error("Error:", response.data.message);
+					}
 				},
-			},
+				function (xhr, status, error) {
+					console.error("AJAX Error:", error);
+				}
+			);
 		});
 	}
 
+	if ($("#dashboard-campaigns").length) {
+		// Custom sorting for date format 'm/d/Y'
+		$.fn.dataTable.ext.type.order["date-mdy-pre"] = function (dateString) {
+			var dateParts = dateString.split("/");
+			return new Date(dateParts[2], dateParts[0] - 1, dateParts[1]).getTime(); // Month is 0-indexed
+		};
 
+		var idwiz_dashboard_campaign_table = $("#dashboard-campaigns").DataTable({
+			dom: '<"#wiztable_top_wrapper"><"wiztable_toolbar" <"#wiztable_top_search" f><"#wiztable_top_dates">  B>rtp',
+			columnDefs: [
+				{ targets: "campaignDate", type: "date-mdy" },
+				{ targets: "campaignId", visible: false },
+			],
+			order: [[0, "desc"]],
+			autoWidth: false,
+			scrollX: true,
+			scrollY: true,
+			paging: true,
+			pageLength: 10,
+			select: true,
+			fixedHeader: {
+				header: true,
+				footer: false,
+			},
+			colReorder: {
+				realtime: true,
+			},
+			buttons: [
+				{
+					extend: "collection",
+					text: '<i class="fa-solid fa-file-arrow-down"></i>',
+					className: "wiz-dt-button",
+					attr: {
+						title: "Export",
+					},
+					align: "button-right",
+					autoClose: true,
+					buttons: ["copy", "csv", "excel"],
+					background: false,
+				},
+				{
+					extend: "collection",
+					text: '<i class="fa-solid fa-table-columns"></i>',
+					className: "wiz-dt-button",
+					attr: {
+						title: "Show/hide columns",
+					},
+					align: "button-right",
+					buttons: [
+						"colvis",
+						{
+							extend: "colvisRestore",
+							text: "Restore Defaults",
+							className: "wizcols_restore",
+							align: "button-right",
+						},
+					],
+					background: false,
+				},
 
-}
+				{
+					extend: "pageLength",
+					className: "wiz-dt-button",
+					background: false,
+				},
+				{
+					extend: "spacer",
+					style: "bar",
+				},
+			],
+			language: {
+				search: "",
+				searchPlaceholder: "Quick search",
+			},
+			drawCallback: idwiz_dash_camp_table_callback,
+		});
 
+		function idwiz_dash_camp_table_callback() {
+			var api = this.api();
+
+			// Readjust the column widths on each draw
+			api.columns.adjust();
+		}
+	}
+
+	if ($("#cohortChart").length) {
+		// Get URL Parameters
+		const urlParams = new URLSearchParams(window.location.search);
+		const purchaseMonth = urlParams.get("purchaseMonth");
+		const purchaseMonthDay = urlParams.get("purchaseMonthDay");
+		const divisions = urlParams.getAll("divisions[]");
+		const purchaseWindow = urlParams.get("purchaseWindowDays");
+
+		// Update canvas data attributes
+		const canvas = $("#cohortChart");
+		canvas.data("purchaseMonth", purchaseMonth);
+		canvas.data("purchaseMonthDay", purchaseMonthDay);
+		canvas.data("divisions", divisions);
+
+		// Prepare data to send in the Ajax call
+		const ajaxData = {
+			purchaseMonth: purchaseMonth,
+			purchaseMonthDay: purchaseMonthDay,
+			divisions: divisions,
+			purchaseWindow: purchaseWindow,
+		};
+
+		// Make the Ajax call to fetch the chart data
+		idemailwiz_do_ajax("idwiz_generate_cohort_chart", idAjax_dashboard.nonce, ajaxData, populateCohortChart, (xhr, status, error) => {
+			console.error("Error:", error);
+		});
+
+		function populateCohortChart(responseData) {
+			console.log(responseData);
+			const ctx = document.getElementById("cohortChart").getContext("2d");
+
+			// The actual data is in responseData.data
+			const data = responseData.data;
+
+			// Group data by division
+			const groupedByDivision = data.reduce((acc, { day_of_year, division, count }) => {
+				if (!acc[division]) {
+					acc[division] = {};
+				}
+				acc[division][day_of_year] = count;
+				return acc;
+			}, {});
+
+			// Extract labels (day of year)
+			const labels = [...new Set(data.map((item) => item.day_of_year))].sort((a, b) => a - b);
+
+			// Create datasets
+			const datasets = Object.keys(groupedByDivision).map((division) => ({
+				label: division,
+				data: labels.map((day) => groupedByDivision[division][day] || 0),
+				stack: "Stack 0",
+			}));
+
+			const chart = new Chart(ctx, {
+				type: "bar",
+				data: {
+					labels: labels,
+					datasets: datasets,
+				},
+				options: {
+					scales: {
+						y: {
+							stacked: true,
+						},
+					},
+					maintainAspectRatio: false,
+					responsive: true,
+				},
+			});
+		}
+	}
+
+	/* Cohort Report */
+	$("#divisionsSelect").select2();
 });

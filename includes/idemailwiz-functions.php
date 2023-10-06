@@ -3,7 +3,6 @@
 function insert_overlay_loader()
 {
   $options = get_option('idemailwiz_settings');
-  $metricsPage = $options['metrics_page'];
   if ((is_single() && get_post_type() == 'idemailwiz_template')) {
     ?>
     <div id="iDoverlay"></div>
@@ -1322,289 +1321,6 @@ function get_idwiz_header_tabs($tabs, $currentActiveItem)
 
 add_action('wp_ajax_idwiz_handle_repeat_purchase_timing_request', 'idwiz_handle_repeat_purchase_timing_request');
 
-function idwiz_handle_repeat_purchase_timing_request()
-{
-  // Verify nonce and other security checks
-  //check_ajax_referer('dashboard', 'security');
-
-  $lobName = isset($_POST['lobName']) ? $_POST['lobName'] : null; // Getting the passed LOB name
-  $startAt = isset($_POST['startAt']) ? $_POST['startAt'] : null; // Getting the passed LOB name
-  $endAt = isset($_POST['endAt']) ? $_POST['endAt'] : null; // Getting the passed LOB name
-
-  // Get all necessary data
-  $raw_purchase_data = fetch_cohort_purchase_data($startAt, $endAt);
-  $cohorts = group_by_cohort($raw_purchase_data);
-  $lop_data = calculate_lop_data($cohorts);
-
-  // Filter data by the specific LOB if available
-  $filtered_gaps = $lop_data[$lobName] ?? [];
-
-  $count_gaps = array_count_values($filtered_gaps);
-  ksort($count_gaps); // Sort by the day gaps
-
-  $labels = array_keys($count_gaps);
-  $data = array_values($count_gaps);
-
-  // Send JSON response
-  wp_send_json_success([
-    'labels' => $labels,
-    'datasets' => [
-      [
-        'label' => $lobName,
-        'data' => $data
-      ]
-    ]
-  ]);
-}
-
-
-function fetch_cohort_purchase_data($startAt = null, $endAt = null)
-{
-  $campaignArgs = array(
-    'fields' => 'id',
-  );
-
-  if ($startAt) {
-    $startStamp = strtotime($startAt);
-    if (!$startStamp) {
-      error_log("Invalid start date: $startAt");
-      return null;
-    }
-    $campaignArgs['startAt_start'] = date('Y-m-d', $startStamp);
-  }
-
-  if ($endAt) {
-    $endStamp = strtotime($endAt);
-    if (!$endStamp) {
-      error_log("Invalid end date: $endAt");
-      return null;
-    }
-    $campaignArgs['startAt_end'] = date('Y-m-d', $endStamp);
-  }
-
-  $campaign_data = get_idwiz_campaigns($campaignArgs);
-
-  $campaign_ids = array_column($campaign_data, 'id');
-
-  $purchaseArgs = [
-    'fields' => ['accountNumber', 'purchaseDate', 'total', 'shoppingCartItems_divisionName', 'campaignId', 'orderId'],
-    'campaignIds' => $campaign_ids,
-    'sortBy' => 'purchaseDate',
-    'sort' => 'ASC'
-  ];
-
-  return get_idwiz_purchases($purchaseArgs);
-}
-
-
-function group_by_cohort($purchase_data)
-{
-  $cohorts = [];
-
-  foreach ($purchase_data as $row) {
-
-    $accountNumber = $row['accountNumber'];
-    $divisionName = $row['shoppingCartItems_divisionName'];
-    $purchaseDate = $row['purchaseDate'];
-    $orderId = $row['orderId'];
-
-    // Now check
-    if (empty($accountNumber) || empty($divisionName) || empty($orderId)) {
-      error_log("Missing key components: Skipping...");
-      continue;
-    }
-    // Create a unique identifier for each account, division, and order
-    $account_division_order_key = $accountNumber . '-' . $divisionName . '-' . $orderId;
-
-    // Initialize cohort if it doesn't exist
-    if (!isset($cohorts[$account_division_order_key])) {
-      $cohorts[$account_division_order_key] = [
-        'purchaseDate' => $purchaseDate,
-        'total_spent' => 0.0
-      ];
-    }
-
-    // Update cohort data
-    $cohorts[$account_division_order_key]['total_spent'] += floatval($row['total']);
-
-  }
-
-  return $cohorts;
-}
-
-function group_by_purchase_month($purchase_data)
-{
-  $monthly_cohorts = [];
-
-  foreach ($purchase_data as $row) {
-    $accountNumber = $row['accountNumber'];
-    $divisionName = $row['shoppingCartItems_divisionName'];
-    $purchaseDate = new DateTime($row['purchaseDate']);
-    $orderId = $row['orderId'];
-
-    if (empty($accountNumber) || empty($divisionName) || empty($orderId)) {
-      error_log("Missing key components: Skipping...");
-      continue;
-    }
-
-    $purchaseMonth = $purchaseDate->format('m-Y'); // Formatting the date to "mm-yyyy"
-
-    // Initialize the monthly cohort if it doesn't exist
-    if (!isset($monthly_cohorts[$purchaseMonth])) {
-      $monthly_cohorts[$purchaseMonth] = [];
-    }
-
-    // Create a unique identifier for each account, division, and order
-    $account_division_order_key = $accountNumber . '-' . $divisionName . '-' . $orderId;
-
-    if (!isset($monthly_cohorts[$purchaseMonth][$account_division_order_key])) {
-      $monthly_cohorts[$purchaseMonth][$account_division_order_key] = [
-        'purchaseDate' => $purchaseDate,
-        'total_spent' => 0.0
-      ];
-    }
-
-    // Update cohort data
-    $monthly_cohorts[$purchaseMonth][$account_division_order_key]['total_spent'] += floatval($row['total']);
-  }
-
-  return $monthly_cohorts;
-}
-
-
-
-function calculate_time_gaps($cohorts)
-{
-  $time_gaps = [];
-  $account_orders = [];
-
-  // Group by account and LOB, then sort by purchase date
-  error_log(print_r($cohorts, true));
-  foreach ($cohorts as $key => $data) {
-    if (!isset($data['first_purchase_date']) || !isset($data['last_purchase_date'])) {
-      error_log("Missing required data for key: {$key}. Skipping this iteration.");
-      continue;
-    }
-
-    list($accountNumber, $divisionName) = explode('-', $key);
-    $account_division_key = $accountNumber . '-' . $divisionName;
-
-    if (!isset($account_orders[$account_division_key])) {
-      $account_orders[$account_division_key] = [];
-    }
-
-    $account_orders[$account_division_key][] = new DateTime($data['first_purchase_date']);
-    $account_orders[$account_division_key][] = new DateTime($data['last_purchase_date']);
-  }
-
-  // Calculate time gaps for each account and LOB
-  foreach ($account_orders as $account_division_key => $dates) {
-    list($accountNumber, $divisionName) = explode('-', $account_division_key);
-
-    // Sort the dates
-    usort($dates, function ($a, $b) {
-      return $a <=> $b;
-    });
-
-    if (!isset($time_gaps[$divisionName])) {
-      $time_gaps[$divisionName] = [];
-    }
-
-    for ($i = 0; $i < count($dates) - 1; $i++) {
-      $interval = $dates[$i]->diff($dates[$i + 1]);
-      $time_gaps[$divisionName][] = $interval->days;
-    }
-  }
-
-  return $time_gaps;
-}
-
-
-// Calculate the average time to the next purchase for each LOB
-function calculate_average_time_to_next_purchase($lop_data)
-{
-  $average_time_data = [];
-
-  foreach ($lop_data as $divisionName => $intervals) {
-    if (empty($intervals)) {
-      continue; // Skip division with no intervals
-    }
-
-    $average_days = array_sum($intervals) / count($intervals);
-    $average_time_data[] = [
-      'LOP' => $divisionName,
-      'Average Time to Next Purchase (Days)' => round($average_days, 2)
-    ];
-  }
-
-  return $average_time_data;
-}
-
-
-function calculate_time_interval_distribution($lop_data)
-{
-  $interval_distribution_data = [];
-
-  foreach ($lop_data as $divisionName => $intervals) {
-    $distribution = array_count_values($intervals);
-
-    foreach ($distribution as $interval => $frequency) {
-      $interval_distribution_data[] = [
-        'LOB' => $divisionName,
-        'Time Interval (Days)' => $interval,
-        'Frequency' => $frequency
-      ];
-    }
-  }
-
-  // Sort by LOB and Time Interval
-  usort($interval_distribution_data, function ($a, $b) {
-    if ($a['LOB'] !== $b['LOB']) {
-      return strcmp($a['LOB'], $b['LOB']);
-    }
-    return $a['Time Interval (Days)'] <=> $b['Time Interval (Days)'];
-  });
-
-  return $interval_distribution_data;
-}
-
-function calculate_lop_data($cohorts)
-{
-  $lop_data = []; // Key is LOP, Value is an array of time intervals between first and second order
-  $order_data = []; // Key is accountNumber-divisionName, Value is array of unique order dates
-
-  // Group by order and calculate the first and last purchase date for each account-division pair
-  foreach ($cohorts as $key => $data) {
-    list($accountNumber, $divisionName, $orderId) = explode('-', $key);
-    $purchaseDate = new DateTime($data['purchaseDate']);
-
-    $account_division_key = $accountNumber . '-' . $divisionName;
-
-    if (!isset($order_data[$account_division_key])) {
-      $order_data[$account_division_key] = [];
-    }
-
-    if (!in_array($purchaseDate, $order_data[$account_division_key])) {
-      $order_data[$account_division_key][] = $purchaseDate;
-    }
-  }
-
-  // Sort the dates and calculate the time to next purchase
-  foreach ($order_data as $account_division_key => $dates) {
-    usort($dates, function ($a, $b) {
-      return $a <=> $b;
-    });
-
-    list($accountNumber, $divisionName) = explode('-', $account_division_key);
-
-    for ($i = 0; $i < count($dates) - 1; $i++) {
-      $interval = $dates[$i]->diff($dates[$i + 1]);
-      $lop_data[$divisionName][] = $interval->days;
-    }
-  }
-
-  return $lop_data;
-}
 
 function handle_experiment_winner_toggle()
 {
@@ -1743,85 +1459,142 @@ function save_experiment_notes()
 
 add_action('wp_ajax_idwiz_generate_cohort_chart', 'idwiz_generate_cohort_chart');
 
-function idwiz_generate_cohort_chart() {
-    global $wpdb;
-    $day_of_year = isset($_POST['dayOfYear']) ? $_POST['dayOfYear'] : null;
-    $divisions = isset($_POST['divisions']) ? $_POST['divisions'] : [];
+function idwiz_generate_cohort_chart()
+{
+  global $wpdb;
+  $purchaseMonth = isset($_POST['purchaseMonth']) ? intval($_POST['purchaseMonth']) : null;
+  $purchaseMonthDay = isset($_POST['purchaseMonthDay']) ? intval($_POST['purchaseMonthDay']) : null;
+  $divisions = isset($_POST['divisions']) ? $_POST['divisions'] : [];
+  $purchaseWindowDays = isset($_POST['purchaseWindow']) ? $_POST['purchaseWindow'] : 30;
 
-    // Get the second purchases for the given day of the year
-    $second_purchases = get_second_purchases_within_week($day_of_year, $divisions);
+  // Construct the specified date using the purchaseMonth and purchaseMonthDay
+  $specified_date = new DateTime();
+  $specified_date->setDate($specified_date->format("Y"), $purchaseMonth, $purchaseMonthDay);
 
-    // Group and count the purchases
-    $grouped_chart_data = [];
-    foreach ($second_purchases as $purchase) {
-        $key = $purchase['day_of_year'] . "_" . $purchase['division'];
-        if (!isset($grouped_chart_data[$key])) {
-            $grouped_chart_data[$key] = [
-                'day_of_year' => $purchase['day_of_year'],
-                'division' => $purchase['division'],
-                'count' => 0
-            ];
-        }
-        $grouped_chart_data[$key]['count']++;
+  // Clone the specified_date and add one year to get next_year_specified_date
+  $next_year_specified_date = (clone $specified_date)->modify('+1 year');
+
+  // Get the second purchases for the given date
+  $second_purchases = get_second_purchases_within_week($purchaseMonth, $purchaseMonthDay, $purchaseWindowDays, $divisions);
+  if (empty($second_purchases)) {
+    wp_send_json_error(['message' => 'No second purchases found.']);
+  }
+
+  $grouped_chart_data = [];
+  foreach ($second_purchases as $purchase) {
+    $purchase_date = new DateTime($purchase['purchaseDate']);
+
+    if ($purchase_date->format("Y") == $specified_date->format("Y")) {
+      // If the purchase is within the same year as the specified_date
+      $days_since_initial = $specified_date->diff($purchase_date)->days;
+    } else {
+      // If the purchase is in the next year
+      $remaining_days_in_specified_year = 365 - $specified_date->format('z'); // Subtracting day of year from total days
+      $days_in_next_year = $purchase_date->format('z'); // Days passed in the next year
+
+      $days_since_initial = $remaining_days_in_specified_year + $days_in_next_year;
+
+      // Adjust for leap year
+      if ($specified_date->format("L") == 1 && $specified_date->format("m") <= 2) {
+        $days_since_initial += 1;
+      }
     }
 
-    // Convert grouped data to a simple array
-    $chart_data = array_values($grouped_chart_data);
+    // Convert days_since_initial to the format "50 - 7/3"
+    $date_from_day = (clone $specified_date)->add(new DateInterval("P{$days_since_initial}D"));
+    $formatted_date = $date_from_day->format('n/j');
+    $label = $days_since_initial . " - " . $formatted_date;
 
-    // Send the JSON response
-    wp_send_json_success($chart_data);
-}
-
-function get_orders_grouped_by_customers() {
-    global $wpdb;
-    $query = "SELECT accountNumber, orderId, purchaseDate, cohort_value as division FROM {$wpdb->prefix}idemailwiz_cohorts WHERE cohort_type = 'division' ORDER BY accountNumber, purchaseDate ASC";
-    $results = $wpdb->get_results($query, ARRAY_A);
-    $grouped_orders = [];
-    foreach ($results as $row) {
-        $grouped_orders[$row['accountNumber']][] = $row;
+    $key = $label . "_" . $purchase['division'];
+    if (!isset($grouped_chart_data[$key])) {
+      $grouped_chart_data[$key] = [
+        'day_of_year' => $label,
+        'division' => $purchase['division'],
+        'count' => 0
+      ];
     }
-    return $grouped_orders;
+    $grouped_chart_data[$key]['count']++;
+  }
+
+  // Sort the data based on the day of the year
+  usort($grouped_chart_data, function ($a, $b) {
+    return explode(' - ', $a['day_of_year'])[0] - explode(' - ', $b['day_of_year'])[0];
+  });
+
+  $chart_data = array_values($grouped_chart_data);
+
+  // Send the JSON response
+  wp_send_json_success($chart_data);
 }
 
-function get_second_purchases_within_week($day_of_year, $divisions) {
+
+function get_second_purchases_within_week($purchaseMonth, $purchaseMonthDay, $purchaseWindowDays, $divisions)
+{
     $all_orders = get_orders_grouped_by_customers();
     $second_purchases = [];
-    
-    $specified_date = new DateTime("@" . ($day_of_year * 86400));
-    $specified_week_of_year = (int) $specified_date->format('W');
-    
-    $qualifying_customers = [];
+
+    $specified_date = new DateTime();
+    $specified_date->setDate($specified_date->format("Y"), $purchaseMonth, $purchaseMonthDay);
+    $week_start = (clone $specified_date)->modify('this week');
+    $purchase_window_end = (clone $week_start)->modify("+$purchaseWindowDays days");
+
     foreach ($all_orders as $accountNumber => $orders) {
+        $qualifying_purchase_date = null;
+
         foreach ($orders as $order) {
             $purchase_date = new DateTime($order['purchaseDate']);
-            $current_week_of_year = (int) $purchase_date->format('W');
-            // Check for the week number and the division
-            if ($current_week_of_year === $specified_week_of_year && in_array($order['division'], $divisions)) {
-                $qualifying_customers[$accountNumber] = $purchase_date;
-                break;
+
+            if (!$qualifying_purchase_date &&
+                $purchase_date->format('z') >= $specified_date->format('z') &&
+                $purchase_date->format('z') <= $purchase_window_end->format('z') &&
+                in_array($order['division'], $divisions)) 
+            {
+                $qualifying_purchase_date = $purchase_date;
+                continue;
             }
+
+          if ($qualifying_purchase_date) {
+              $end_of_qualifying_year = (clone $qualifying_purchase_date)->setDate($qualifying_purchase_date->format("Y"), 12, 31);
+              $days_until_end_of_year = $qualifying_purchase_date->diff($end_of_qualifying_year)->days;
+              $days_from_start_of_next_year = (new DateTime($order['purchaseDate']))->format('z');
+              $days_since_qualifying_order = $days_until_end_of_year + $days_from_start_of_next_year;
+
+              $is_leap_year = ($qualifying_purchase_date->format('L') == 1 && $qualifying_purchase_date->format('m') <= 2) ? true : false;
+              $days_limit = $is_leap_year ? 366 : 365;
+              $days_limit = $days_limit - (int)$purchaseWindowDays;
+
+              if ($days_since_qualifying_order <= $days_limit) {
+                  $order['day_of_year'] = $days_since_qualifying_order;
+                  $second_purchases[] = $order;
+              }
+          }
         }
     }
 
-    foreach ($qualifying_customers as $accountNumber => $qualifying_date) {
-        foreach ($all_orders[$accountNumber] as $order) {
-            $purchase_date = new DateTime($order['purchaseDate']);
-            if ($purchase_date > $qualifying_date) {
-                $order['day_of_year'] = (int) $purchase_date->format('z') + 1;
-                $second_purchases[] = $order;
-            }
-        }
-    }
-    
     return $second_purchases;
 }
 
 
 
-function count_second_purchases_for_camp($year) {
-    global $wpdb;
 
-    $query = "
+function get_orders_grouped_by_customers()
+{
+  global $wpdb;
+  $query = "SELECT accountNumber, orderId, purchaseDate, cohort_value as division FROM {$wpdb->prefix}idemailwiz_cohorts WHERE cohort_type = 'division' ORDER BY accountNumber, purchaseDate ASC";
+  $results = $wpdb->get_results($query, ARRAY_A);
+  $grouped_orders = [];
+  foreach ($results as $row) {
+    $grouped_orders[$row['accountNumber']][] = $row;
+  }
+  return $grouped_orders;
+}
+
+
+function count_second_purchases_for_camp($year)
+{
+  global $wpdb;
+
+  $query = "
         SELECT a.accountNumber 
         FROM {$wpdb->prefix}idemailwiz_cohorts a
         JOIN (
@@ -1835,9 +1608,9 @@ function count_second_purchases_for_camp($year) {
         AND a.cohort_value = 'iD Tech Camps'
     ";
 
-    $accounts_with_first_purchase_as_camp = $wpdb->get_results($wpdb->prepare($query, $year), ARRAY_A);
-    
-    $accountNumbers = array_column($accounts_with_first_purchase_as_camp, 'accountNumber');
+  $accounts_with_first_purchase_as_camp = $wpdb->get_results($wpdb->prepare($query, $year), ARRAY_A);
+
+  $accountNumbers = array_column($accounts_with_first_purchase_as_camp, 'accountNumber');
 
   $query = "
       SELECT accountNumber, orderId, purchaseDate, cohort_value
@@ -1853,11 +1626,11 @@ function count_second_purchases_for_camp($year) {
   // Group orders by account number
   $grouped_orders = [];
   foreach ($final_results as $row) {
-      $grouped_orders[$row->accountNumber][] = [
-          'orderId' => $row->orderId,
-          'purchaseDate' => $row->purchaseDate,
-          'division' => $row->cohort_value
-      ];
+    $grouped_orders[$row->accountNumber][] = [
+      'orderId' => $row->orderId,
+      'purchaseDate' => $row->purchaseDate,
+      'division' => $row->cohort_value
+    ];
   }
 
   return $grouped_orders;

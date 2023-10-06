@@ -5,28 +5,28 @@ global $wpdb;
 
 
 // Fetch data and group by cohort
-$raw_purchase_data = fetch_cohort_purchase_data();
-$cohorts = group_by_cohort($raw_purchase_data);
+//$raw_purchase_data = fetch_cohort_purchase_data();
+//$cohorts = group_by_cohort($raw_purchase_data);
 
 // Calculate the lop_data based on $cohorts
-$lop_data = calculate_lop_data($cohorts); // You will need to define or update this function
+//$lop_data = calculate_lop_data($cohorts); 
 
 
 // Use utility functions to prepare data for tables
-$average_time_data = calculate_average_time_to_next_purchase($lop_data);
-$interval_distribution_data = calculate_time_interval_distribution($lop_data);
+//$average_time_data = calculate_average_time_to_next_purchase($lop_data);
+//$interval_distribution_data = calculate_time_interval_distribution($lop_data);
 
 // Table Headers
-$headers_for_average_time = [
-    'LOP' => '50%',
-    'Average Time to Next Purchase (Days)' => '50%'
-];
+//$headers_for_average_time = [
+  //  'LOP' => '50%',
+  //  'Average Time to Next Purchase (Days)' => '50%'
+//];
 
-$headers_for_interval_distribution = [
-    'LOB' => '33%',
-    'Time Interval (Days)' => '33%',
-    'Frequency' => '34%'
-];
+//$headers_for_interval_distribution = [
+   // 'LOB' => '33%',
+   // 'Time Interval (Days)' => '33%',
+  //  'Frequency' => '34%'
+//];
 
 ?>
 <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>

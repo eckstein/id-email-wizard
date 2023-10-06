@@ -321,10 +321,17 @@ function idemailwiz_template_chooser($template)
         }
     }
 
-    $metrics_page = isset($options['metrics_page']) ? $options['metrics_page'] : '';
-    if ($metrics_page) {
-        if (is_page($metrics_page)) {
-            return dirname(__FILE__) . '/templates/idemailwiz-metrics.php';
+    $campaigns_page = isset($options['campaigns_page']) ? $options['campaigns_page'] : '';
+    if ($campaigns_page) {
+        if (is_page($campaigns_page)) {
+            return dirname(__FILE__) . '/templates/idemailwiz-campaigns.php';
+        }
+    }
+
+    $reports_page = isset($options['reports_page']) ? $options['reports_page'] : '';
+    if ($reports_page) {
+        if (is_page($reports_page)) {
+            return dirname(__FILE__) . '/templates/idemailwiz-reports.php';
         }
     }
 
@@ -336,8 +343,8 @@ add_filter('template_include', 'idemailwiz_template_chooser');
 function idemailwiz_body_classes($classes)
 {
     $options = get_option('idemailwiz_settings');
-    $metricsPage = $options['metrics_page'];
-    if (is_page($metricsPage)) {
+    $campaigns_page = $options['campaigns_page'];
+    if (is_page($campaigns_page)) {
         $classes[] = 'wiz_metrics';
     }
     return $classes;

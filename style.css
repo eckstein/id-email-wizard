@@ -1369,15 +1369,10 @@ pre#generatedCode {
 	flex-wrap: nowrap;
 }
 .wizcampaign-sections-row.grid {
-  display: grid;
-  grid-gap: 20px;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Adjust the min-width (186px) as needed */
+	display: grid;
+	grid-gap: 20px;
+	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Adjust the min-width (186px) as needed */
 }
-
-
-
-
-
 
 .wizcampaign-section {
 	flex: 1 1 auto;
@@ -1440,8 +1435,6 @@ pre#generatedCode {
 	margin: 0;
 }
 
-
-
 .metrics-tower {
 	display: flex;
 	flex-direction: column;
@@ -1461,6 +1454,42 @@ pre#generatedCode {
 	white-space: nowrap;
 }
 
+/* Reports Pages */
+#cohort-selection-form {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 30px;
+	margin-bottom: 20px;
+}
+#cohort-selection-form .form-group {
+	border: 1px solid #eee;
+	border-radius: 5px;
+	padding: 20px;
+	display: flex;
+	flex-direction: column;
+}
+#cohort-selection-form .form-group label {
+	display: block;
+}
+#cohort-selection-form .form-group input#day-of-year {
+	padding: 8px;
+	font-size: 18px;
+}
+#cohort-selection-form .select2-container {
+	min-width: 700px !important;
+}
+#cohort-selection-form .select2-container--default .select2-selection--multiple .select2-selection__choice__display {
+	padding-left: 20px;
+}
+#cohort-selection-form .select2-container--default .select2-selection--multiple .select2-selection__choice__remove > span {
+	position: relative;
+	top: 4px;
+}
+
+.wizChartWrapper.cohort2ndPurchases {
+	max-height: 300px;
+}
 /* Wizcharts */
 .wizChartWrapper {
 	position: relative;
