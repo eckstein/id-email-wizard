@@ -3,7 +3,7 @@
     <div class="form-group">
         <label for="purchaseMonth" class="form-label">Purchase Month & Day</label>
         <div class="field-group-wrap flex">
-            
+
             <select name="purchaseMonth" id="purchaseMonth" class="form-select">
                 <?php
                 $selectedMonth = $_GET['purchaseMonth'] ?? date('m');
@@ -98,13 +98,13 @@
             </div>
         </div>
         <div class="wizcampaign-section-content">
-            <p>This report takes a month and day input and gathers all purchases from that day of the year and the 6
-                days following.
+            <p>This report takes a month and day input and gathers all purchases from that day of the year and X number
+                of days following (specified by the purchase window you define).
                 It then locates the next purchase from that same customer any time in the following year and plots it by
                 date and division.</p>
-            <p>The divisions specified in the filters refer to the division of the 1st purchase. The divisions specified
-                in the chart legend (which can be toggled)
-                refer to the division of the 2nd purchase</p>
+            <p>The divisions specified in the filters refer to the division of the initial purchase. The divisions
+                specified
+                in the chart legend (which can be toggled by clicking) refer to the division of the 2nd purchase</p>
             <p>The filter selection is <strong>year agnostic</strong>, meaning purchases found can have occured within
                 any year on record (currently FY 2021-22 onward),
                 however the 2nd purchase is always ensured to be <em>after</em> the first one, taking year into account.
