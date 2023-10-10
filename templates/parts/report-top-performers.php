@@ -87,7 +87,7 @@ $campaignIds = array_column($filteredTopPerformers, 'id');
                 $topRepeatCampaignName = isset($topRepeatCampaign['name']) ? $topRepeatCampaign['name'] : 'Unknown Campaign';
 
                 // Construct the link
-                $linkedTopRepeatCampaignName = '<a href="https://localhost/metrics/campaign/?id=' . $topRepeatCampaignId . '">' . htmlspecialchars($topRepeatCampaignName) . '</a>';
+                $linkedTopRepeatCampaignName = '<a href="'.get_bloginfo('url').'/metrics/campaign/?id=' . $topRepeatCampaignId . '">' . htmlspecialchars($topRepeatCampaignName) . '</a>';
 
                 $topRepeatsData[] = [
                     'Date' => date('m/d/Y', $topRepeatCampaign['startAt'] / 1000),
@@ -127,7 +127,7 @@ $campaignIds = array_column($filteredTopPerformers, 'id');
                 $topOpenedCampaignMetrics = get_idwiz_metric($topOpenedCampaign['id']);
 
                 // Construct the link
-                $linkedTopOpenedCampaignName = '<a href="https://localhost/metrics/campaign/?id=' . $topOpenedCampaign['id'] . '">' . htmlspecialchars($topOpenedCampaignName) . '</a>';
+                $linkedTopOpenedCampaignName = '<a href="'.get_bloginfo('url').'/metrics/campaign/?id=' . $topOpenedCampaign['id'] . '">' . htmlspecialchars($topOpenedCampaignName) . '</a>';
 
                 $topOpenedData[] = [
                     'Date' => date('m/d/Y', $topOpenedCampaign['startAt'] / 1000),
@@ -167,7 +167,7 @@ $campaignIds = array_column($filteredTopPerformers, 'id');
                 $topCtrCampaignMetrics = get_idwiz_metric($topCtrCampaign['id']);
 
                 // Construct the link
-                $linkedTopCtrCampaignName = '<a href="https://localhost/metrics/campaign/?id=' . $topCtrCampaign['id'] . '">' . htmlspecialchars($topCtrCampaignName) . '</a>';
+                $linkedTopCtrCampaignName = '<a href="'.get_bloginfo('url').'/metrics/campaign/?id=' . $topCtrCampaign['id'] . '">' . htmlspecialchars($topCtrCampaignName) . '</a>';
 
                 $topCtrData[] = [
                     'Date' => date('m/d/Y', $topCtrCampaign['startAt'] / 1000),

@@ -200,7 +200,7 @@ async function id_delete_templates(post_ids) {
 
 		Swal.fire({
 			icon: "success",
-			html: 'All done! Templates can be restored from the <a href="http://localhost/templates/trash/">trash</a> for 30 days.',
+			html: 'All done! Templates can be restored from the <a href="'+idAjax.site_url+'/templates/trash/">trash</a> for 30 days.',
 		}).then(() => {
 			const isTemplatesArchive = window.location.href.indexOf("/templates/") > -1;
 			if (isTemplatesArchive) {

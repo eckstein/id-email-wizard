@@ -94,7 +94,7 @@ $campaignIds = array_column($filteredClicksCampaigns, 'id');
                 foreach ($filteredClicksCampaigns as $filteredCampaign) {
                     $filteredCampaignMetric = get_idwiz_metric($filteredCampaign['id']);
                     $campaignClickRates[] = [
-                        'Campaign Name' => new RawHtml('<a href="https://localhost/metrics/campaign/?id=' . $filteredCampaign['id'] . '">' . $filteredCampaign['name'] . '</a>'),
+                        'Campaign Name' => new RawHtml('<a href="'.get_bloginfo('url').'/metrics/campaign/?id=' . $filteredCampaign['id'] . '">' . $filteredCampaign['name'] . '</a>'),
                         'Click Rate' => number_format($filteredCampaignMetric['wizCtr'], 2) . '%',
                         'Date' => date('m/d/Y', $filteredCampaign['startAt'] / 1000),
                     ];
@@ -131,7 +131,7 @@ $campaignIds = array_column($filteredClicksCampaigns, 'id');
                 foreach ($filteredClicksCampaigns as $filteredCampaign) {
                     $filteredCampaignMetric = get_idwiz_metric($filteredCampaign['id']);
                     $campaignCtoRates[] = [
-                        'Campaign Name' => new RawHtml('<a href="https://localhost/metrics/campaign/?id=' . $filteredCampaign['id'] . '">' . $filteredCampaign['name'] . '</a>'),
+                        'Campaign Name' => new RawHtml('<a href="'.get_bloginfo('url').'/metrics/campaign/?id=' . $filteredCampaign['id'] . '">' . $filteredCampaign['name'] . '</a>'),
                         'Click Rate' => number_format($filteredCampaignMetric['wizCto'], 2) . '%',
                         'Date' => date('m/d/Y', $filteredCampaign['startAt'] / 1000),
                     ];

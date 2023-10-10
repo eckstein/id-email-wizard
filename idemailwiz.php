@@ -275,7 +275,7 @@ function idemailwiz_template_chooser($template)
     if (is_page('playground')) {
         return dirname(__FILE__) . '/templates/wiz-playground.php';
     }
-    
+
     if (is_post_type_archive('idemailwiz_template') || is_tax('idemailwiz_folder')) {
         return dirname(__FILE__) . '/templates/taxonomy-idemailwiz_folder.php';
     }
@@ -393,7 +393,7 @@ function idemailwiz_handle_template_request()
             exit;
         }
 
-        echo '<div style="padding: 30px; text-align: center; font-weight: bold; font-family: Poppins, sans-serif;"><i style="font-family: Font Awesome 5;" class="fas fa-spinner fa-spin"></i>  Loading template...<br/><img style="margin: 20px auto;" src="http://localhost/wp-content/uploads/2023/08/animated_loader_gif_n6b5x0.gif">';
+        echo '<div style="padding: 30px; text-align: center; font-weight: bold; font-family: Poppins, sans-serif;"><i style="font-family: Font Awesome 5;" class="fas fa-spinner fa-spin"></i>  Loading template...<br/>';
         exit;
     }
 }
@@ -415,7 +415,7 @@ function idemailwiz_enqueue_assets()
 {
 
     wp_enqueue_script('jquery');
-    
+
     wp_enqueue_script('sweetalert2', 'https://cdn.jsdelivr.net/npm/sweetalert2@11', array(), '11.0', true);
     wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array(), '4.1.0', true);
     wp_enqueue_script('charts-js', 'https://cdn.jsdelivr.net/npm/chart.js', array('jquery'), null, true);
@@ -428,7 +428,7 @@ function idemailwiz_enqueue_assets()
 
     wp_enqueue_style('font-awesome-6', plugin_dir_url(__FILE__) . 'vendors/Font Awesome/css/all.css', array());
 
-    
+
 
     wp_enqueue_style('DataTablesCss', plugin_dir_url(__FILE__) . 'vendors/DataTables/datatables.css', array());
     //wp_enqueue_style('DataTablesCss', 'https://cdn.datatables.net/v/dt/jszip-3.10.1/dt-1.13.6/b-2.4.2/b-colvis-2.4.2/b-html5-2.4.2/cr-1.7.0/date-1.5.1/fc-4.3.0/fh-3.4.0/rr-1.4.1/sc-2.2.0/sb-1.5.0/sl-1.7.0/sr-1.3.0/datatables.min.css', array());

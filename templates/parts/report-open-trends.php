@@ -92,7 +92,7 @@ $campaignIds = array_column($filteredOpenCampaigns, 'id');
                 foreach ($filteredOpenCampaigns as $filteredCampaign) {
                     $filteredCampaignMetric = get_idwiz_metric($filteredCampaign['id']);
                     $campaignOpenRates[] = [
-                        'Campaign Name' => new RawHtml('<a href="https://localhost/metrics/campaign/?id=' . $filteredCampaign['id'] . '">' . $filteredCampaign['name'] . '</a>'),
+                        'Campaign Name' => new RawHtml('<a href="'.get_bloginfo('url').'/metrics/campaign/?id=' . $filteredCampaign['id'] . '">' . $filteredCampaign['name'] . '</a>'),
                         'Open Rate' => number_format($filteredCampaignMetric['wizOpenRate'], 2) . '%',
                         'Date' => date('m/d/Y', $filteredCampaign['startAt'] / 1000),
                     ];

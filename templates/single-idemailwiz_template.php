@@ -32,7 +32,7 @@ $itTemplateId = get_post_meta(get_the_ID(), 'itTemplateId', true) ?? '';
 						//print_r($wizTemplate);
 						if ($wizTemplate) {
 							$wizCampaign = get_idwiz_campaigns(array('templateId' => $itTemplateId));
-							echo '<br/><br/><strong><em>The <a href="https://localhost/metrics/campaign/?id=' . $wizCampaign[0]['id'] . '">campaign</a> for this template was sent on ' . date('m/d/Y', $wizCampaign[0]['startAt'] / 1000) . '.</em></strong>';
+							echo '<br/><br/><strong><em>The <a href="'.get_bloginfo('url').'/metrics/campaign/?id=' . $wizCampaign[0]['id'] . '">campaign</a> for this template was sent on ' . date('m/d/Y', $wizCampaign[0]['startAt'] / 1000) . '.</em></strong>';
 							echo '<br/><em>Templates for sent campaigns can no longer be synced. You can either duplicate this template or sync it to another, unsent template in Iterable.</em>';
 						}
 					} else {
@@ -95,7 +95,7 @@ $itTemplateId = get_post_meta(get_the_ID(), 'itTemplateId', true) ?? '';
 					data-postid="<?php echo get_the_id(); ?>"><i class="fa-solid fa-code"></i>&nbsp;&nbsp;Code</a>
 				<a title="Sync to Iterable" class="wiz-button" id="sendToIterable"
 					data-postid="<?php echo get_the_id(); ?>"><img style="width: 20px; height: 20px;"
-						src="http://localhost/wp-content/uploads/2023/03/Iterable_square_logo-e1677898367554.png" />&nbsp;&nbsp
+						src="https://idemailwiz.com/wp-content/uploads/2023/10/Iterable_square_logo-e1677898367554.png" />&nbsp;&nbsp
 					Sync</a>
 				<span class="templateActions-divider"></span>
 				<a title="Duplicate Template" class="wiz-button duplicate-template"
