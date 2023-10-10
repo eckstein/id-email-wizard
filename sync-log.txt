@@ -1,3 +1,83 @@
+==========[2023-10-10 10:56:04]==============================<br />
+Requested 127 triggered campaigns from Iterable. 0 errors encountered.<br />
+Retrieving send data...<br />
+========================================<br />
+<br />
+==========[2023-10-10 10:53:00]==============================<br />
+Requesting sends for 127 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-10-10 10:53:00]==============================<br />
+Starting triggered sends sync...<br />
+========================================<br />
+<br />
+==========[2023-10-10 10:53:00]==============================<br />
+Experiments sync results: <br />
+The experiments sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-10-10 10:52:49]==============================<br />
+Purchases sync results: <br />
+Successful insert of 2 records.<br />
+<br />
+========================================<br />
+<br />
+==========[2023-10-10 10:52:43]==============================<br />
+Metrics sync results: <br />
+<br />
+Successful update of 48 records.<br />
+========================================<br />
+<br />
+==========[2023-10-10 10:52:19]==============================<br />
+Templates sync results: <br />
+The templates sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-10-10 10:52:10]==============================<br />
+Campaigns sync results: <br />
+The campaigns sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-10-10 09:51:34]==============================<br />
+Requested 127 triggered campaigns from Iterable. 0 errors encountered.<br />
+Retrieving send data...<br />
+========================================<br />
+<br />
+==========[2023-10-10 09:48:29]==============================<br />
+Requesting sends for 127 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-10-10 09:48:29]==============================<br />
+Starting triggered sends sync...<br />
+========================================<br />
+<br />
+==========[2023-10-10 09:46:02]==============================<br />
+Experiments sync results: <br />
+The experiments sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-10-10 09:45:51]==============================<br />
+Purchases sync results: <br />
+Successful insert of 3 records.<br />
+<br />
+========================================<br />
+<br />
+==========[2023-10-10 09:45:46]==============================<br />
+Metrics sync results: <br />
+<br />
+Successful update of 44 records.<br />
+========================================<br />
+<br />
+==========[2023-10-10 09:45:24]==============================<br />
+Templates sync results: <br />
+The templates sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-10-10 09:45:17]==============================<br />
+Campaigns sync results: <br />
+The campaigns sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
 ==========[2023-10-10 08:51:25]==============================<br />
 Requested 127 triggered campaigns from Iterable. 0 errors encountered.<br />
 Retrieving send data...<br />

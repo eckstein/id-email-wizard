@@ -317,7 +317,7 @@ jQuery(document).ready(function ($) {
 				title: "Campaign Name",
 				render: function (data, type, row, meta) {
 					var campaignId = row.campaign_id;
-					var url = "https://localhost/metrics/campaign/?id=" + campaignId;
+					var url = idAjax.site_url + "/metrics/campaign/?id=" + campaignId;
 					return '<a href="' + url + '">' + data + "</i></a>";
 				},
 				className: "idwiz_searchBuilder_enabled",

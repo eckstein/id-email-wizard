@@ -492,6 +492,7 @@ function idemailwiz_enqueue_assets()
             'ajaxurl' => esc_url(admin_url('admin-ajax.php')),
             'currentPost' => get_post(get_the_ID()),
             'stylesheet' => plugins_url('', __FILE__),
+            'site_url' => get_bloginfo('url'),
         )
     );
 
