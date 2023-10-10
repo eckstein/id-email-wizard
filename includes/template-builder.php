@@ -19,6 +19,7 @@ function idemailwiz_build_template() {
     $chunkSeps = $_POST['showseps'] === 'true';
     $template_id = $_POST['templateid'];
     $chunkSepsClass = $chunkSeps ? '' : 'hide-seps';
+    $previewMode = $_POST['previewMode'] ?? 'desktop';
 
     // Prepare form data
     $formData = array_map('stripslashes_deep', $_POST);
@@ -64,16 +65,29 @@ function idemailwiz_build_template() {
                 if ($externalUTMs) {
                     $html = idwiz_add_utms($html, $externalUTMstring);
                 }
+            
+                // Determine if the chunk should be hidden based on the preview mode
+                $hiddenClass = '';
+                if ($previewMode == 'desktop' && isset($chunk['chunk_settings']['desktop_visibility']) && !$chunk['chunk_settings']['desktop_visibility']) {
+                    $hiddenClass = 'hiddenChunk';
+                } elseif ($previewMode == 'mobile' && isset($chunk['chunk_settings']['mobile_visibility']) && !$chunk['chunk_settings']['mobile_visibility']) {
+                    $hiddenClass = 'hiddenChunk';
+                }
 
-                echo "<div class='chunkWrap $chunkSepsClass' data-id='$chunkId' data-chunk-layout='{$chunk['acf_fc_layout']}'>";
+                $desktopVisibility = isset($chunk['chunk_settings']['desktop_visibility']) ? $chunk['chunk_settings']['desktop_visibility'] : true;
+                $mobileVisibility = isset($chunk['chunk_settings']['mobile_visibility']) ? $chunk['chunk_settings']['mobile_visibility'] : true;
+
+                echo "<div class='chunkWrap $chunkSepsClass $hiddenClass' data-id='$chunkId' data-chunk-layout='{$chunk['acf_fc_layout']}' data-desktop-visibility='$desktopVisibility' data-mobile-visibility='$mobileVisibility'>";
                 echo $html;
                 echo "<div class='chunkOverlay'><span class='chunk-label'>Chunk Type: {$chunk['acf_fc_layout']}</span><button class='showChunkCode' data-id='$chunkId' data-templateid='$template_id'>Get Code</button></div>";
                 echo '</div>';
+
             }
         }
     } else {
         echo '<div style="color: #343434; padding: 20px; margin-top: 20px; font-family: Arial, sans-serif; text-align: center;"><span style="font-size: 20px;"><strong>Choose a chunk to start building your layout here.</strong></span><br/><br/><em>Hint: You can turn off the default header and footer sections from the settings tab.</em></div>';
     }
+
 
     // Email footer
     if ($templateSettings['id_tech_footer'] == true) {

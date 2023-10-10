@@ -1,3 +1,49 @@
+==========[2023-10-10 13:17:20]==============================<br />
+Checking 1422 received sends against existing records, and updating...<br />
+========================================<br />
+<br />
+==========[2023-10-10 13:01:24]==============================<br />
+Requested 127 triggered campaigns from Iterable. 0 errors encountered.<br />
+Retrieving send data...<br />
+========================================<br />
+<br />
+==========[2023-10-10 12:58:14]==============================<br />
+Requesting sends for 127 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-10-10 12:58:14]==============================<br />
+Starting triggered sends sync...<br />
+========================================<br />
+<br />
+==========[2023-10-10 12:58:14]==============================<br />
+Experiments sync results: <br />
+The experiments sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-10-10 12:58:02]==============================<br />
+Purchases sync results: <br />
+Successful insert of 2 records.<br />
+<br />
+========================================<br />
+<br />
+==========[2023-10-10 12:57:57]==============================<br />
+Metrics sync results: <br />
+Successful insert of 1 records.<br />
+Successful update of 55 records.<br />
+========================================<br />
+<br />
+==========[2023-10-10 12:57:35]==============================<br />
+Templates sync results: <br />
+Successful insert of 1 records.<br />
+<br />
+========================================<br />
+<br />
+==========[2023-10-10 12:57:27]==============================<br />
+Campaigns sync results: <br />
+Successful insert of 1 records.<br />
+<br />
+========================================<br />
+<br />
 ==========[2023-10-10 10:56:04]==============================<br />
 Requested 127 triggered campaigns from Iterable. 0 errors encountered.<br />
 Retrieving send data...<br />
