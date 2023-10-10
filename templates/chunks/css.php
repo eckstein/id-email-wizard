@@ -6,6 +6,7 @@ $mobHeight = $templateStyles['mobile_line_height'] ?? '24px';
 $linkColor = $templateStyles['link_color'] ?? '#94D500';
 $visLinkColor = $templateStyles['visited_link_color'] ?? '#94d500';
 $linkUnderline = $templateStyles['underline_links'] ?? true;
+$templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
 ?>
 <!--[if (gte mso 9)|(IE)]>
     <style>
@@ -292,7 +293,7 @@ $linkUnderline = $templateStyles['underline_links'] ?? true;
   }
 
   body {
-    background-color: #F4F4F4 !important;
+    background-color: <?php echo $templateBgColor; ?> !important;
   }
 
   /*]]>*/

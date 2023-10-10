@@ -5,30 +5,35 @@
 <?php //print_r(get_idwiz_campaigns()); ?>
 <?php $activeTab = $_GET['view'] ?? 'Blast'; ?>
 <header class="wizHeader">
-    <div class="wizHeader-left">
-        <h1 class="wizEntry-title single-wizcampaign-title" itemprop="name">
-            Campaigns
-        </h1>
-        
-        <div id="header-tabs">
-            
-            <a href="<?php echo add_query_arg(['view'=>'Blast']); ?>" class="campaign-tab <?php if ($activeTab == 'Blast') {  echo 'active'; } ?>">
-                Blast
-            </a>
-            <a href="<?php echo add_query_arg(['view'=>'Triggered']); ?>" class="campaign-tab <?php if ($activeTab == 'Triggered') {  echo 'active'; } ?>">
-                Triggered
-            </a>
-            <a href="<?php echo add_query_arg(['view'=>'All']); ?>" class="campaign-tab <?php if ($activeTab == 'All') {  echo 'active'; } ?>" >
-                All
-            </a>
+    <div class="wizHeaderInnerWrap">
+        <div class="wizHeader-left">
+            <h1 class="wizEntry-title single-wizcampaign-title" itemprop="name">
+                Campaigns
+            </h1>
+
+            <div id="header-tabs">
+
+                <a href="<?php echo add_query_arg(['view'=>'Blast']); ?>"
+                    class="campaign-tab <?php if ($activeTab == 'Blast') {  echo 'active'; } ?>">
+                    Blast
+                </a>
+                <a href="<?php echo add_query_arg(['view'=>'Triggered']); ?>"
+                    class="campaign-tab <?php if ($activeTab == 'Triggered') {  echo 'active'; } ?>">
+                    Triggered
+                </a>
+                <a href="<?php echo add_query_arg(['view'=>'All']); ?>"
+                    class="campaign-tab <?php if ($activeTab == 'All') {  echo 'active'; } ?>">
+                    All
+                </a>
+            </div>
         </div>
-    </div>
-    <div class="wizHeader-right">
-        <div class="wizHeader-actions">
-            <button class="wiz-button green sync-db sync-everything"><i class="fa-solid fa-rotate"></i>&nbsp;Sync
-                Databases</button>
-            <button class="wiz-button green new-initiative"><i class="fa-regular fa-plus"></i>&nbsp;Add
-                Initiative</button>
+        <div class="wizHeader-right">
+            <div class="wizHeader-actions">
+                <button class="wiz-button green sync-db sync-everything"><i class="fa-solid fa-rotate"></i>&nbsp;Sync
+                    Databases</button>
+                <button class="wiz-button green new-initiative"><i class="fa-regular fa-plus"></i>&nbsp;Add
+                    Initiative</button>
+            </div>
         </div>
     </div>
 </header>

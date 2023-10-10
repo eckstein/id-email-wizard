@@ -627,6 +627,48 @@ jQuery(document).ready(function ($) {
 			window.location.href = "/initiatives";
 		});
 	});
+
+	$(".init_asset_wrap img").on("click", function () {
+		var imageUrl = $(this).attr("src");
+		var index = $(".init_asset_wrap img").index($(this));
+		showImageModal(imageUrl, index);
+	});
+	function showImageModal(imageUrl, index) {
+		var images = $(".init_asset_wrap img")
+			.map(function () {
+				return $(this).attr("src");
+			})
+			.get();
+
+		Swal.fire({
+			imageUrl: imageUrl,
+			width: '1000px',
+			imageAlt: "Selected Image",
+			showCloseButton: true,
+			showDenyButton: index > 0, // Show "Previous" only if not the first image
+			showConfirmButton: index < images.length - 1, // Show "Next" only if not the last image
+			confirmButtonText: '<i class="fa fa-arrow-right"></i>',
+			denyButtonText: '<i class="fa fa-arrow-left"></i>',
+			reverseButtons: true,
+			showClass: {
+				backdrop: "", // disable backdrop animation
+				popup: "no-animation-popup", // disable popup animation
+				icon: "", // disable icon animation
+			},
+			hideClass: {
+				popup: "", // disable popup fade-out animation
+			},
+
+		}).then((result) => {
+			if (result.isConfirmed) {
+				// Go to next image
+				showImageModal(images[index + 1], index + 1);
+			} else if (result.isDenied) {
+				// Go to previous image
+				showImageModal(images[index - 1], index - 1);
+			} 
+		});
+	}
 });
 
 //Global scope

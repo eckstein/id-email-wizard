@@ -1,4 +1,5 @@
 <?php 
+$templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4'; 
 
 $chunkSettings = $chunk['chunk_settings'];
 $textContent = $chunk['plain_text_content'] ?? 'Your content goes here!';
@@ -33,7 +34,7 @@ $hideDesktop = 'hide-desktop';
     <td align="center" valign="top">
       <table role="presentation" border="0" width="100%" align="center" cellpadding="0" cellspacing="0" class="row" style="width: 100%; max-width: 100%;">
         <tr>
-          <td class="body-bg-color" align="center" valign="top" bgcolor="#F4F4F4">
+          <td class="body-bg-color" align="center" valign="top" bgcolor="<?php echo $templateBgColor; ?>">
             <table role="presentation" border="0" width="800" align="center" cellpadding="0" cellspacing="0" class="row" style="width: 800px; max-width: 800px;">
               <tr>
                 <td class="bg-color" align="center" valign="top" bgcolor="<?php echo $bgColor; ?>">

@@ -1,4 +1,6 @@
 <?php
+$templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
+
 $chunkSettings = $chunk['chunk_settings'];
 	$ctaText = $chunk['cta_text'] ?? 'Click here';
 	$ctaUrl = $chunk['cta_url'] ?? 'https://www.idtech.com';
@@ -38,7 +40,7 @@ $chunkSettings = $chunk['chunk_settings'];
         <table border="0" width="100%" align="center" cellpadding="0" cellspacing="0" class="row" style="width:100%;max-width:100%;">
           <tbody>
             <tr>
-              <td class="body-bg-color" align="center" valign="top" bgcolor="#F4F4F4">
+              <td class="body-bg-color" align="center" valign="top" bgcolor="<?php echo $templateBgColor; ?>">
                 <table border="0" width="800" align="center" cellpadding="0" cellspacing="0" class="row" style="width:800px;max-width:800px;">
                   <tbody>
                     <tr>

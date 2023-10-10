@@ -66,6 +66,7 @@ function idemailwiz_create_databases()
         INDEX startAt (startAt)
     ) $charset_collate;";
 
+   
     $ga_campaign_rev_table_name = $wpdb->prefix . 'idemailwiz_ga_campaign_revenue';
     $ga_campaign_rev_sql = "CREATE TABLE IF NOT EXISTS $ga_campaign_rev_table_name (
         transactionId VARCHAR(7),
@@ -400,6 +401,7 @@ function build_idwiz_query($args, $table_name)
     unset($where_args['sortBy']);
     unset($where_args['sort']);
     unset($where_args['offset']);
+    unset($where_args['not-ids']);
 
     // Setup special variable cases
     $campaignKey = 'id';
@@ -477,9 +479,20 @@ function build_idwiz_query($args, $table_name)
                     $sql .= $wpdb->prepare(" AND $key = %s", $value);
                 }
             }
+
+            if (isset($args['not-ids']) && is_array($args['not-ids'])) {
+                $placeholders = implode(',', array_fill(0, count($args['not-ids']), '%d'));
+                $sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND $campaignKey NOT IN ($placeholders)"), $args['not-ids']));
+            }
+
         }
     }
 
+    if (isset($args['not-ids']) && is_array($args['not-ids'])) {
+        $placeholders = implode(',', array_fill(0, count($args['not-ids']), '%d'));
+        $sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND $campaignKey NOT IN ($placeholders)"), $args['not-ids']));
+    }
+    
     if (isset($args['sortBy'])) {
         $sort = isset($args['sort']) && ($args['sort'] === 'ASC' || $args['sort'] === 'DESC') ? $args['sort'] : 'DESC';
         $sql .= " ORDER BY {$args['sortBy']} $sort";

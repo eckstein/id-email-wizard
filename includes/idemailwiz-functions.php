@@ -947,7 +947,9 @@ function generate_mini_table(
     foreach ($data as $row) {
       echo '<tr>';
       foreach ($headers as $col => $width) {
-        echo '<td width="' . $width . '">' . htmlspecialchars($row[$col]) . '</td>';
+        $value = $row[$col] instanceof RawHtml ? (string) $row[$col] : htmlspecialchars($row[$col]);
+        echo '<td width="' . $width . '">' . $value . '</td>';
+
       }
       echo '</tr>';
     }
@@ -959,7 +961,7 @@ function generate_mini_table(
 }
 
 
-function generate_promo_code_section($purchases)
+function prepare_promo_code_summary_data($purchases)
 {
   // Initialize variables and prepare data based on your existing logic for promo codes
   $promoCounts = [];
@@ -1020,15 +1022,14 @@ function generate_promo_code_section($purchases)
     ];
   }
 
-  echo '<div class="wizcampaign-section short inset">';
-  echo '<div class="wizcampaign-section-title-area">';
-  echo '<h4>Promo Code Use</h4>';
-  echo "<div>{$ordersWithPromoCount} of {$totalOrderCount} orders (" . round($percentageWithPromo, 2) . "%)</div>";
-  echo '</div>';
-  echo '<div class="wizcampaign-section-scrollwrap">';
-  generate_mini_table($promoHeaders, $promoData); // Assuming generate_mini_table is already defined
-  echo '</div>';
-  echo '</div>';
+  return [
+    'ordersWithPromoCount' => $ordersWithPromoCount,
+    'totalOrderCount' => $totalOrderCount,
+    'percentageWithPromo' => number_format($percentageWithPromo),
+    // Not rounding here
+    'promoHeaders' => $promoHeaders,
+    'promoData' => $promoData
+  ];
 }
 
 
@@ -1319,7 +1320,7 @@ function get_idwiz_header_tabs($tabs, $currentActiveItem)
   echo '</div>';
 }
 
-add_action('wp_ajax_idwiz_handle_repeat_purchase_timing_request', 'idwiz_handle_repeat_purchase_timing_request');
+
 
 
 function handle_experiment_winner_toggle()
@@ -1457,202 +1458,229 @@ function save_experiment_notes()
 }
 
 
-add_action('wp_ajax_idwiz_generate_cohort_chart', 'idwiz_generate_cohort_chart');
-
-function idwiz_generate_cohort_chart()
-{
-  global $wpdb;
-  $purchaseMonth = isset($_POST['purchaseMonth']) ? intval($_POST['purchaseMonth']) : null;
-  $purchaseMonthDay = isset($_POST['purchaseMonthDay']) ? intval($_POST['purchaseMonthDay']) : null;
-  $divisions = isset($_POST['divisions']) ? $_POST['divisions'] : [];
-  $purchaseWindowDays = isset($_POST['purchaseWindow']) ? $_POST['purchaseWindow'] : 30;
-
-  // Construct the specified date using the purchaseMonth and purchaseMonthDay
-  $specified_date = new DateTime();
-  $specified_date->setDate($specified_date->format("Y"), $purchaseMonth, $purchaseMonthDay);
-
-  // Clone the specified_date and add one year to get next_year_specified_date
-  $next_year_specified_date = (clone $specified_date)->modify('+1 year');
-
-  // Get the second purchases for the given date
-  $second_purchases = get_second_purchases_within_week($purchaseMonth, $purchaseMonthDay, $purchaseWindowDays, $divisions);
-  if (empty($second_purchases)) {
-    wp_send_json_error(['message' => 'No second purchases found.']);
-  }
-
-  $grouped_chart_data = [];
-  foreach ($second_purchases as $purchase) {
-    $purchase_date = new DateTime($purchase['purchaseDate']);
-
-    if ($purchase_date->format("Y") == $specified_date->format("Y")) {
-      // If the purchase is within the same year as the specified_date
-      $days_since_initial = $specified_date->diff($purchase_date)->days;
-    } else {
-      // If the purchase is in the next year
-      $remaining_days_in_specified_year = 365 - $specified_date->format('z'); // Subtracting day of year from total days
-      $days_in_next_year = $purchase_date->format('z'); // Days passed in the next year
-
-      $days_since_initial = $remaining_days_in_specified_year + $days_in_next_year;
-
-      // Adjust for leap year
-      if ($specified_date->format("L") == 1 && $specified_date->format("m") <= 2) {
-        $days_since_initial += 1;
-      }
-    }
-
-    // Convert days_since_initial to the format "50 - 7/3"
-    $date_from_day = (clone $specified_date)->add(new DateInterval("P{$days_since_initial}D"));
-    $formatted_date = $date_from_day->format('n/j');
-    $label = $days_since_initial . " - " . $formatted_date;
-
-    $key = $label . "_" . $purchase['division'];
-    if (!isset($grouped_chart_data[$key])) {
-      $grouped_chart_data[$key] = [
-        'day_of_year' => $label,
-        'division' => $purchase['division'],
-        'count' => 0
-      ];
-    }
-    $grouped_chart_data[$key]['count']++;
-  }
-
-  // Sort the data based on the day of the year
-  usort($grouped_chart_data, function ($a, $b) {
-    return explode(' - ', $a['day_of_year'])[0] - explode(' - ', $b['day_of_year'])[0];
-  });
-
-  $chart_data = array_values($grouped_chart_data);
-
-  // Send the JSON response
-  wp_send_json_success($chart_data);
-}
-
-
 function get_second_purchases_within_week($purchaseMonth, $purchaseMonthDay, $purchaseWindowDays, $divisions)
 {
-    $all_orders = get_orders_grouped_by_customers();
-    $second_purchases = [];
+  $all_orders = get_orders_grouped_by_customers();
+  $second_purchases = [];
 
-    $specified_date = new DateTime();
-    $specified_date->setDate($specified_date->format("Y"), $purchaseMonth, $purchaseMonthDay);
-    $week_start = (clone $specified_date)->modify('this week');
-    $purchase_window_end = (clone $week_start)->modify("+$purchaseWindowDays days");
+  $specified_date = new DateTime();
+  $specified_date->setDate($specified_date->format("Y"), $purchaseMonth, $purchaseMonthDay);
+  $week_start = (clone $specified_date)->modify('this week');
+  $purchase_window_end = (clone $week_start)->modify("+$purchaseWindowDays days");
 
-    foreach ($all_orders as $accountNumber => $orders) {
-        $qualifying_purchase_date = null;
+  foreach ($all_orders as $accountNumber => $orders) {
+    $qualifying_purchase_date = null;
 
-        foreach ($orders as $order) {
-            $purchase_date = new DateTime($order['purchaseDate']);
+    foreach ($orders as $order) {
+      $purchase_date = new DateTime($order['purchaseDate']);
 
-            if (!$qualifying_purchase_date &&
-                $purchase_date->format('z') >= $specified_date->format('z') &&
-                $purchase_date->format('z') <= $purchase_window_end->format('z') &&
-                in_array($order['division'], $divisions)) 
-            {
-                $qualifying_purchase_date = $purchase_date;
-                continue;
-            }
+      if (
+        !$qualifying_purchase_date &&
+        $purchase_date->format('z') >= $specified_date->format('z') &&
+        $purchase_date->format('z') <= $purchase_window_end->format('z') &&
+        in_array($order['division'], $divisions)
+      ) {
+        $qualifying_purchase_date = $purchase_date;
+        continue;
+      }
 
-          if ($qualifying_purchase_date) {
-              $end_of_qualifying_year = (clone $qualifying_purchase_date)->setDate($qualifying_purchase_date->format("Y"), 12, 31);
-              $days_until_end_of_year = $qualifying_purchase_date->diff($end_of_qualifying_year)->days;
-              $days_from_start_of_next_year = (new DateTime($order['purchaseDate']))->format('z');
-              $days_since_qualifying_order = $days_until_end_of_year + $days_from_start_of_next_year;
+      if ($qualifying_purchase_date) {
+        $end_of_qualifying_year = (clone $qualifying_purchase_date)->setDate($qualifying_purchase_date->format("Y"), 12, 31);
+        $days_until_end_of_year = $qualifying_purchase_date->diff($end_of_qualifying_year)->days;
+        $days_from_start_of_next_year = (new DateTime($order['purchaseDate']))->format('z');
+        $days_since_qualifying_order = $days_until_end_of_year + $days_from_start_of_next_year;
 
-              $is_leap_year = ($qualifying_purchase_date->format('L') == 1 && $qualifying_purchase_date->format('m') <= 2) ? true : false;
-              $days_limit = $is_leap_year ? 366 : 365;
-              $days_limit = $days_limit - (int)$purchaseWindowDays;
+        $is_leap_year = ($qualifying_purchase_date->format('L') == 1 && $qualifying_purchase_date->format('m') <= 2) ? true : false;
+        $days_limit = $is_leap_year ? 366 : 365;
+        $days_limit = $days_limit - (int) $purchaseWindowDays;
 
-              if ($days_since_qualifying_order <= $days_limit) {
-                  $order['day_of_year'] = $days_since_qualifying_order;
-                  $second_purchases[] = $order;
-              }
-          }
+        if ($days_since_qualifying_order <= $days_limit) {
+          $order['day_of_year'] = $days_since_qualifying_order;
+          $second_purchases[] = $order;
         }
+      }
     }
+  }
 
-    return $second_purchases;
+  return $second_purchases;
 }
 
 
 
 
-function get_orders_grouped_by_customers() {
-    global $wpdb;
-
-    $batch_size = 20000; // Define a reasonable batch size. You can adjust this based on your server's capabilities.
-    $offset = 0;
-
-    $grouped_orders = [];
-
-    while (true) {
-        $query = $wpdb->prepare("SELECT accountNumber, orderId, purchaseDate, cohort_value as division FROM {$wpdb->prefix}idemailwiz_cohorts WHERE cohort_type = 'division' ORDER BY accountNumber, purchaseDate ASC LIMIT %d OFFSET %d", $batch_size, $offset);
-        $results = $wpdb->get_results($query, ARRAY_A);
-        
-        // If no results, break out of the loop
-        if (empty($results)) {
-            break;
-        }
-
-        foreach ($results as $row) {
-            $grouped_orders[$row['accountNumber']][] = $row;
-        }
-
-        $offset += $batch_size; // Increase the offset for the next batch
-    }
-
-    return $grouped_orders;
-}
 
 
 
-function count_second_purchases_for_camp($year)
+function transfigure_purchases_by_product($purchases)
 {
-  global $wpdb;
+  $data = [];
+  $products = array();
+  $productRevenue = array();
+  $productTopics = array();
 
-  $query = "
-        SELECT a.accountNumber 
-        FROM {$wpdb->prefix}idemailwiz_cohorts a
-        JOIN (
-            SELECT accountNumber, MIN(purchaseDate) as firstPurchaseDate
-            FROM {$wpdb->prefix}idemailwiz_cohorts
-            WHERE cohort_type = 'division' 
-            AND YEAR(purchaseDate) = %d
-            GROUP BY accountNumber
-        ) b ON a.accountNumber = b.accountNumber
-        WHERE a.purchaseDate = b.firstPurchaseDate
-        AND a.cohort_value = 'iD Tech Camps'
-    ";
+  foreach ($purchases as $purchase) {
+    $product = $purchase['shoppingCartItems_name'];
 
-  $accounts_with_first_purchase_as_camp = $wpdb->get_results($wpdb->prepare($query, $year), ARRAY_A);
+    if (!isset($products[$product])) {
+      $products[$product] = 0;
+      $productRevenue[$product] = 0;
+      $productTopics[$product] = str_replace(',', ', ', $purchase['shoppingCartItems_categories']); // Add spaces after commas
+    }
 
-  $accountNumbers = array_column($accounts_with_first_purchase_as_camp, 'accountNumber');
+    $products[$product]++;
+    $productRevenue[$product] += $purchase['shoppingCartItems_price'];
+  }
 
-  $query = "
-      SELECT accountNumber, orderId, purchaseDate, cohort_value
-      FROM {$wpdb->prefix}idemailwiz_cohorts
-      WHERE accountNumber IN (" . implode(', ', array_fill(0, count($accountNumbers), '%s')) . ")
-      AND cohort_type = 'division'
-      AND YEAR(purchaseDate) = %s
-      ORDER BY accountNumber, purchaseDate ASC
-  ";
+  // Sort products by the number of purchases in descending order
+  arsort($products);
 
-  $final_results = $wpdb->get_results($wpdb->prepare($query, array_merge($accountNumbers, [$year])));
-
-  // Group orders by account number
-  $grouped_orders = [];
-  foreach ($final_results as $row) {
-    $grouped_orders[$row->accountNumber][] = [
-      'orderId' => $row->orderId,
-      'purchaseDate' => $row->purchaseDate,
-      'division' => $row->cohort_value
+  // Prepare the data for the table
+  foreach ($products as $productName => $purchaseCount) {
+    $data[] = [
+      'Product' => $productName,
+      'Topics' => $productTopics[$productName],
+      'Purchases' => $purchaseCount,
+      'Revenue' => '$' . number_format($productRevenue[$productName], 2)
     ];
   }
 
-  return $grouped_orders;
-
+  return $data;
 }
 
+class RawHtml
+{
+  private $html;
+
+  public function __construct($html)
+  {
+    $this->html = $html;
+  }
+
+  public function __toString()
+  {
+    return $this->html;
+  }
+}
+
+function get_orders_grouped_by_customers()
+{
+  global $wpdb;
+
+  $batch_size = 25000; // Define a reasonable batch size. You can adjust this based on your server's capabilities.
+  $offset = 0;
+
+  $grouped_orders = [];
+
+  while (true) {
+    $query = $wpdb->prepare("SELECT accountNumber, orderId, purchaseDate, cohort_value as division FROM {$wpdb->prefix}idemailwiz_cohorts WHERE cohort_type = 'division' ORDER BY accountNumber, purchaseDate ASC LIMIT %d OFFSET %d", $batch_size, $offset);
+    $results = $wpdb->get_results($query, ARRAY_A);
+
+    // If no results, break out of the loop
+    if (empty($results)) {
+      break;
+    }
+
+    foreach ($results as $row) {
+      $grouped_orders[$row['accountNumber']][] = $row;
+    }
+
+    $offset += $batch_size; // Increase the offset for the next batch
+  }
+
+  return $grouped_orders;
+}
+function get_campaigns_with_most_returning_customers($campaigns) {
+    $campaignsCount = [];
+
+    foreach ($campaigns as $campaign) {
+        $campaignId = $campaign['id'];
+        $purchasesForCampaign = get_idwiz_purchases(['ids' => [$campaignId], 'fields' => 'campaignId,orderId,accountNumber,purchaseDate']);
+        
+        $customerCounts = return_new_and_returning_customers($purchasesForCampaign);
+
+        $campaignsCount[$campaignId] = $customerCounts['returning'];
+    }
+
+    // Sort campaigns by number of returning customers in descending order
+    arsort($campaignsCount);
+
+    return $campaignsCount;
+}
+
+
+function get_campaigns_by_open_rate($campaigns) {
+    $openRates = [];
+
+    foreach ($campaigns as $campaign) {
+        $campaignMetrics = get_idwiz_metric($campaign['id']);
+        if ($campaignMetrics['wizOpenRate'] != 0) {
+        $openRates[$campaign['id']] = $campaignMetrics['wizOpenRate'];
+        }
+    }
+
+    // Sort by open rate in descending order
+    arsort($openRates);
+
+    $sortedCampaigns = [];
+    foreach ($openRates as $campaignId => $openRate) {
+        foreach ($campaigns as $campaign) {
+            if ($campaign['id'] == $campaignId) {
+                $sortedCampaigns[] = $campaign;
+                break;
+            }
+        }
+    }
+
+    return $sortedCampaigns;
+}
+
+function get_campaigns_by_ctr($campaigns) {
+    $ctrs = [];
+
+    foreach ($campaigns as $campaign) {
+        $campaignMetrics = get_idwiz_metric($campaign['id']);
+        $ctrs[$campaign['id']] = floatval($campaignMetrics['wizCtr']);  // Convert to float
+    }
+
+    // Sort by open rate in descending order
+    arsort($ctrs);
+
+    $sortedCampaigns = [];
+    foreach ($ctrs as $campaignId => $ctr) {
+        foreach ($campaigns as $campaign) {
+            if ($campaign['id'] == $campaignId) {
+                $sortedCampaigns[] = $campaign;
+                break;
+            }
+        }
+    }
+
+    return $sortedCampaigns;
+}
+
+function get_campaigns_by_cto($campaigns) {
+    $ctos = [];
+
+    foreach ($campaigns as $campaign) {
+        $campaignMetrics = get_idwiz_metric($campaign['id']);
+        $ctos[$campaign['id']] = floatval($campaignMetrics['wizCto']);  // Convert to float
+    }
+
+    // Sort by open rate in descending order
+    arsort($ctos);
+
+    $sortedCampaigns = [];
+    foreach ($ctos as $campaignId => $cto) {
+        foreach ($campaigns as $campaign) {
+            if ($campaign['id'] == $campaignId) {
+                $sortedCampaigns[] = $campaign;
+                break;
+            }
+        }
+    }
+
+    return $sortedCampaigns;
+}
 
 
 

@@ -1,4 +1,5 @@
 
+<?php $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4'; ?>
 <!-- Disclaimer Text -->
 <table border="0" width="100%" align="center" cellpadding="0" cellspacing="0" style="width:100%;max-width:100%;">
   <tbody>
@@ -7,11 +8,11 @@
         <table border="0" width="100%" align="center" cellpadding="0" cellspacing="0" class="row" style="width:100%;max-width:100%;">
           <tbody>
             <tr>
-              <td class="body-bg-color" align="center" valign="top" bgcolor="#F4F4F4">
+              <td class="body-bg-color" align="center" valign="top" bgcolor="<?php echo $templateBgColor; ?>">
                 <table border="0" width="800" align="center" cellpadding="0" cellspacing="0" class="row" style="width:800px;max-width:800px;">
                   <tbody>
                     <tr>
-                      <td class="bg-color" align="center" valign="top" bgcolor="#F4F4F4">
+                      <td class="bg-color" align="center" valign="top" bgcolor="#f4f4f4">
                         <table width="600" border="0" cellpadding="0" cellspacing="0" align="center" class="row" style="width:600px;max-width:600px;">
                           <tbody>
                             <tr>

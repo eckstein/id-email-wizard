@@ -60,7 +60,7 @@ jQuery(document).ready(function ($) {
 					const monthlyGoalChart = new Chart(ctx, {
 						type: "bar",
 						data: {
-							labels: ["Progress"],
+							labels: [""],
 							datasets: [
 								{
 									yAxisID: "revenue",

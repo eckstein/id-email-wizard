@@ -36,35 +36,37 @@ $linkedExperimentIds = array_map(function ($id) {
     ?>
 
     <header class="wizHeader">
-        <div class="wizHeader-left">
-            <h1 class="wizEntry-title single-wizcampaign-title" itemprop="name">
-                <?php echo $campaign['name']; ?>
-            </h1>
-            <div class="wizEntry-meta">
-                <strong>Campaign <a
-                        href="https://app.iterable.com/campaigns/<?php echo $campaign['id']; ?>?view=summary">
-                        <?php echo $campaign['id']; ?>
-                    </a>
-                    <?php if ($experimentIds) {
-                        echo '&nbsp;&nbsp;&#x2022;&nbsp;&nbsp; with Experiment ' . implode(', ', $linkedExperimentIds) . '</a>';
-                    } ?>
-                </strong>
-                &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
-                <?php echo $campaign['messageMedium']; ?>
-                &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
-                <?php echo '<a href="' . get_bloginfo('url') . '/campaigns/?view=' . $campaign['type'] . '">' . $campaign['type'] . '</a>'; ?>
-                &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Sent on
-                <?php echo $startAt; ?>
-                &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
-                <?php echo 'Wiz Template: <a href="' . get_bloginfo('url') . '?p=' . $template['clientTemplateId'] . '">' . $template['clientTemplateId'] . '</a>'; ?>
+        <div class="wizHeaderInnerWrap">
+            <div class="wizHeader-left">
+                <h1 class="wizEntry-title single-wizcampaign-title" itemprop="name">
+                    <?php echo $campaign['name']; ?>
+                </h1>
+                <div class="wizEntry-meta">
+                    <strong>Campaign <a
+                            href="https://app.iterable.com/campaigns/<?php echo $campaign['id']; ?>?view=summary">
+                            <?php echo $campaign['id']; ?>
+                        </a>
+                        <?php if ($experimentIds) {
+                            echo '&nbsp;&nbsp;&#x2022;&nbsp;&nbsp; with Experiment ' . implode(', ', $linkedExperimentIds) . '</a>';
+                        } ?>
+                    </strong>
+                    &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
+                    <?php echo $campaign['messageMedium']; ?>
+                    &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
+                    <?php echo '<a href="' . get_bloginfo('url') . '/campaigns/?view=' . $campaign['type'] . '">' . $campaign['type'] . '</a>'; ?>
+                    &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Sent on
+                    <?php echo $startAt; ?>
+                    &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
+                    <?php echo 'Wiz Template: <a href="' . get_bloginfo('url') . '?p=' . $template['clientTemplateId'] . '">' . $template['clientTemplateId'] . '</a>'; ?>
+                </div>
+                <?php echo generate_initiative_flags($campaign['id']); ?>
             </div>
-            <?php echo generate_initiative_flags($campaign['id']); ?>
-        </div>
-        <div class="wizHeader-right">
-            <div class="wizHeader-actions">
-                <button class="wiz-button green sync-campaign" data-campaignid="<?php echo $campaign['id']; ?>">Sync
-                    Campaign</button>
-                <button class="wiz-button green">View Template</button>
+            <div class="wizHeader-right">
+                <div class="wizHeader-actions">
+                    <button class="wiz-button green sync-campaign" data-campaignid="<?php echo $campaign['id']; ?>">Sync
+                        Campaign</button>
+                    <button class="wiz-button green">View Template</button>
+                </div>
             </div>
         </div>
     </header>
@@ -77,17 +79,22 @@ $linkedExperimentIds = array_map(function ($id) {
         <?php
         if ($campaign['type'] == 'Triggered') {
             ?>
-            <div class="wizmodules">
+            <div class=".wizcampaign-sections-row">
                 <?php
                 $triggeredSends = get_triggered_sends_by_campaign_id($campaign['id']);
                 if (!empty($triggeredSends)) {
                     ?>
-                    <div class="wizcampaign-section short inset span3" id="sendsByDateSection">
-                        <h4>Sends by Date</h4>
-                        <div class="wizChartWrapper">
-                        <canvas class="sendsByDate wiz-canvas" data-chartid="sendsByDate"
-                            data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>' data-charttype="bar"></canvas>
+                    <div class="wizcampaign-sections-row">
+                        <div class="wizcampaign-section inset" id="sendsByDateSection">
+                            <div class="wizcampaign-section-title-area">
+                                <h4>Sends by Date</h4>
                             </div>
+                            <div class="wizChartWrapper">
+                                <canvas class="sendsByDate wiz-canvas" data-chartid="sendsByDate"
+                                    data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>'
+                                    data-charttype="bar"></canvas>
+                            </div>
+                        </div>
                     </div>
 
                     <?php
@@ -97,112 +104,11 @@ $linkedExperimentIds = array_map(function ($id) {
             <?php
         }
 
-        ?>
-        <div class="wizcampaign-sections-row" id="single-campaign-sections">
+        // Setup standard chart variables
+        $standardChartCampaignIds = array($campaign['id']);
+        $standardChartPurchases = $purchases;
+        include plugin_dir_path(__FILE__) . 'parts/standard-charts.php';
 
-            <div class="wizcampaign-section short inset" id="email-info">
-                <h4>Purchases by Date</h4>
-                <div class="wizChartWrapper">
-                    <canvas class="purchByDate wiz-canvas" data-chartid="purchasesByDate"
-                        data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>'
-                        data-charttype="bar"></canvas>
-                </div>
-            </div>
-
-            <div class="wizcampaign-section short inset">
-                <div class="wizcampaign-section-title-area">
-                    <h4>Purchases by Division</h4>
-                    <div class="wizcampaign-section-icons">
-                        <i class="fa-solid fa-chart-simple active chart-type-switcher" data-chart-type="bar"></i><i
-                            class="fa-solid fa-chart-pie chart-type-switcher" data-chart-type="pie"></i>
-                    </div>
-                </div>
-                <div class="wizChartWrapper">
-                    <canvas class="purchByDivision wiz-canvas" data-chartid="purchasesByDivision"
-                        data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>'
-                        data-charttype="bar"></canvas>
-                </div>
-            </div>
-
-            <div class="wizcampaign-section short inset">
-                <div class="wizcampaign-section-title-area">
-                    <h4>Purchases by Product</h4>
-                    <div class="wizcampaign-section-icons">
-                        
-                    </div>
-                </div>
-                
-                <?php
-                $headers = [
-                    'Product' => '50%',
-                    'Purchases' => '25%',
-                    'Revenue' => '25%'
-                ];
-
-                $data = [];
-                $products = array();
-                $productRevenue = array();
-                foreach ($purchases as $purchase) {
-                    $product = $purchase['shoppingCartItems_name'];
-                    if (!isset($products[$product])) {
-                        $products[$product] = 0;
-                        $productRevenue[$product] = 0;
-                    }
-                    $products[$product]++;
-                    $productRevenue[$product] += $purchase['shoppingCartItems_price'];
-                }
-
-                // Sort products by the number of purchases in descending order
-                arsort($products);
-
-                // Prepare the data for the table
-                foreach ($products as $productName => $purchaseCount) {
-                    $data[] = [
-                        'Product' => $productName,
-                        'Purchases' => $purchaseCount,
-                        'Revenue' => '$' . number_format($productRevenue[$productName], 2)
-                    ];
-                }
-
-                generate_mini_table($headers, $data);
-                ?>
-            </div>
-
-            <?php generate_promo_code_section($purchases); ?>
-
-            <div class="wizcampaign-section short inset">
-                <div class="wizcampaign-section-title-area">
-                    <h4>Purchases by Topic</h4>
-                    <div class="wizcampaign-section-icons">
-                        <i class="fa-solid fa-chart-simple active chart-type-switcher" data-chart-type="bar"></i><i
-                            class="fa-solid fa-chart-pie chart-type-switcher" data-chart-type="pie"></i>
-                    </div>
-                </div>
-                <div class="wizChartWrapper">
-                    <canvas class="purchByTopic wiz-canvas" data-chartid="purchasesByTopic"
-                        data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>'
-                        data-charttype="pie"></canvas>
-                </div>
-            </div>
-
-            <div class="wizcampaign-section short inset">
-                <div class="wizcampaign-section-title-area">
-                    <h4>Purchases by Campus</h4>
-                    <div class="wizcampaign-section-icons">
-                        <i class="fa-solid fa-chart-simple active chart-type-switcher" data-chart-type="bar"></i><i
-                            class="fa-solid fa-chart-pie chart-type-switcher" data-chart-type="pie"></i>
-                    </div>
-                </div>
-                <div class="wizChartWrapper">
-                    <canvas class="purchByLocation wiz-canvas" data-chartid="purchasesByLocation"
-                        data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>'
-                        data-charttype="pie"></canvas>
-                </div>
-            </div>
-
-
-        </div>
-        <?php
         if ($experiments) {
             ?>
             <div class="wizcampaign-section inset wizcampaign-experiments">
@@ -461,46 +367,4 @@ function get_single_metrics_campaign_rollup($campaign)
         ),
 
     );
-}
-
-function get_display_templates($experiments, $template)
-{
-    $displayTemplates = [];
-    if ($experiments) {
-        foreach ($experiments as $experiment) {
-            $displayTemplates[] = get_idwiz_template($experiment['templateId']);
-        }
-    } else {
-        $displayTemplates = array($template);
-    }
-    return $displayTemplates;
-}
-
-
-function generate_initiative_flags($campaignId)
-{
-    $initIds = idemailwiz_get_initiative_ids_for_campaign($campaignId);
-    ob_start(); // Start output buffering
-    ?>
-    <div class="campaign-init-flags">
-        <?php if ($initIds) { ?>
-            <?php foreach ($initIds as $initId): ?>
-                <span class="campaign-init-flag">
-                    <a href="<?php echo get_the_permalink($initId); ?>" title="Go to Initiative">
-                        <?php echo get_the_title($initId); ?>
-                    </a>
-                    <span class="remove-initiative-icon fa fa-times" data-action="remove" data-initid="<?php echo $initId; ?>"
-                        data-campaignid="<?php echo $campaignId; ?>" title="Remove campaign from Initiative">
-                    </span>
-                </span>
-            <?php endforeach; ?>
-        <?php } else {
-            echo '<em>No connected initiatives</em>';
-        } ?>
-        <span class="add-initiative-icon fa fa-plus" data-action="add" data-initids='<?php echo json_encode($initIds); ?>'
-            data-campaignid="<?php echo $campaignId; ?>" class="add-edit-campaign-initiative">
-        </span>
-    </div>
-    <?php
-    return ob_get_clean(); // End output buffering and return the captured HTML
 }

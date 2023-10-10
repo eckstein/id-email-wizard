@@ -513,3 +513,31 @@ function display_init_date_range($associated_campaign_ids)
         return $initDateRange['startDate'] . ' - ' . $initDateRange['endDate'];
     }
 }
+
+function generate_initiative_flags($campaignId)
+{
+    $initIds = idemailwiz_get_initiative_ids_for_campaign($campaignId);
+    ob_start(); // Start output buffering
+    ?>
+    <div class="campaign-init-flags">
+        <?php if ($initIds) { ?>
+            <?php foreach ($initIds as $initId): ?>
+                <span class="campaign-init-flag">
+                    <a href="<?php echo get_the_permalink($initId); ?>" title="Go to Initiative">
+                        <?php echo get_the_title($initId); ?>
+                    </a>
+                    <span class="remove-initiative-icon fa fa-times" data-action="remove" data-initid="<?php echo $initId; ?>"
+                        data-campaignid="<?php echo $campaignId; ?>" title="Remove campaign from Initiative">
+                    </span>
+                </span>
+            <?php endforeach; ?>
+        <?php } else {
+            echo '<em>No connected initiatives</em>';
+        } ?>
+        <span class="add-initiative-icon fa fa-plus" data-action="add" data-initids='<?php echo json_encode($initIds); ?>'
+            data-campaignid="<?php echo $campaignId; ?>" class="add-edit-campaign-initiative">
+        </span>
+    </div>
+    <?php
+    return ob_get_clean(); // End output buffering and return the captured HTML
+}

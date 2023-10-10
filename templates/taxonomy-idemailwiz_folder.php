@@ -29,34 +29,39 @@ if (is_user_favorite($current_folder_id, 'Folder')) {
 ?>
 
 <header class="wizHeader">
-	<div class="wizHeader-left">
-		<h1 class="wizEntry-title single-wizcampaign-title" itemprop="name">
-			Templates
-		</h1>
-		<div class="wizHeader-meta">
-			<span class="single-folder-title" colspan="3">
-				<?php echo display_folder_hierarchy(); ?>
-			</span>
+	<div class="wizHeaderInnerWrap">
+		<div class="wizHeader-left">
+			<h1 class="wizEntry-title single-wizcampaign-title" itemprop="name">
+				Templates
+			</h1>
+			<div class="wizHeader-meta">
+				<span class="single-folder-title" colspan="3">
+					<?php echo display_folder_hierarchy(); ?>
+				</span>
+			</div>
+			<h2 id="saved_state_title"></h2>
 		</div>
-		<h2 id="saved_state_title"></h2>
-	</div>
-	<div class="wizHeader-right">
-		<div class="wizHeader-actions">
-			<?php if ($current_folder_id != $baseFolder && $current_folder_id != $trashTerm && $current_folder_id != $baseTemplatesTerm) { ?>
-			<div class="wiz-button outline addRemoveFavorite" title="Add/Remove Favorite"
-			data-objecttype="Folder" data-objectid="<?php echo $current_folder_id; ?>"><i class="<?php echo $folderStarClass; ?> fa-star"></i></div>
+		<div class="wizHeader-right">
+			<div class="wizHeader-actions">
+				<?php if ($current_folder_id != $baseFolder && $current_folder_id != $trashTerm && $current_folder_id != $baseTemplatesTerm) { ?>
+					<div class="wiz-button outline addRemoveFavorite" title="Add/Remove Favorite" data-objecttype="Folder"
+						data-objectid="<?php echo $current_folder_id; ?>"><i
+							class="<?php echo $folderStarClass; ?> fa-star"></i></div>
 
-			<div class="wiz-button green moveFolder" title="Move Folder" data-folderid="<?php echo $current_folder_id; ?>"><i class="fa-solid fa-folder-tree"></i></div>
+					<div class="wiz-button green moveFolder" title="Move Folder"
+						data-folderid="<?php echo $current_folder_id; ?>"><i class="fa-solid fa-folder-tree"></i></div>
 
-			<div class="wiz-button red deleteFolder" title="Delete Folder"
-				data-postid="<?php echo get_the_ID(); ?>"><i class="fa fa-trash"></i></div>
+					<div class="wiz-button red deleteFolder" title="Delete Folder"
+						data-postid="<?php echo get_the_ID(); ?>"><i class="fa fa-trash"></i></div>
 
-			&nbsp;&nbsp;|&nbsp;&nbsp;
-			<?php } ?>
-			<div class="wiz-button green" id="addNewFolder"><i title="Add new folder"
-					class="fa-solid fa-folder-plus"></i>&nbsp;&nbsp;New Folder</div>
+					&nbsp;&nbsp;|&nbsp;&nbsp;
+				<?php } ?>
+				<div class="wiz-button green" id="addNewFolder"><i title="Add new folder"
+						class="fa-solid fa-folder-plus"></i>&nbsp;&nbsp;New Folder</div>
 
-			<div class="wiz-button green show-new-template-ui"><i class="fa-solid fa-plus"></i>&nbsp;&nbsp;New Template</div>
+				<div class="wiz-button green show-new-template-ui"><i class="fa-solid fa-plus"></i>&nbsp;&nbsp;New
+					Template</div>
+			</div>
 		</div>
 	</div>
 </header>
@@ -87,7 +92,7 @@ if (is_user_favorite($current_folder_id, 'Folder')) {
 
 		</div>
 		<table>
-			
+
 
 			<tbody>
 				<?php
@@ -98,7 +103,8 @@ if (is_user_favorite($current_folder_id, 'Folder')) {
 						'taxonomy' => 'idemailwiz_folder',
 						'parent' => $current_folder_id,
 						'hide_empty' => false,
-					));
+					)
+				);
 
 				// Loop through the child terms/folders
 				if (!empty($child_terms) && !is_wp_error($child_terms)) {
@@ -144,24 +150,24 @@ if (is_user_favorite($current_folder_id, 'Folder')) {
 						echo '<tr class="table-separator"><td colspan="6" style="background-color: #fff; padding: 40px 0 0 0; border: 0;"></td></tr>';
 					}
 					?>
-					
-						<tr>
 
-							<th></th>
-							<th>Template Name</th>
-							<th>Created</th>
-							<th>Last Updated</th>
-							<th>
-								<center>Actions</center>
-							</th>
-							<th>
-								<?php if ($trashTerm != $current_folder_id) { ?>
-									<center>Sync</center>
-								<?php } ?>
-							</th>
-						</tr>
+					<tr>
 
-					
+						<th></th>
+						<th>Template Name</th>
+						<th>Created</th>
+						<th>Last Updated</th>
+						<th>
+							<center>Actions</center>
+						</th>
+						<th>
+							<?php if ($trashTerm != $current_folder_id) { ?>
+								<center>Sync</center>
+							<?php } ?>
+						</th>
+					</tr>
+
+
 					<?php while (have_posts()) {
 						the_post();
 						// Get the post data
@@ -184,11 +190,10 @@ if (is_user_favorite($current_folder_id, 'Folder')) {
 
 
 						?>
-						<tr id="template-<?php echo get_the_ID(); ?>"
-							class="<?php if (is_user_favorite(get_the_ID(), 'Template')) {
-								echo 'favorite';
-							} ?> <?php echo $trashedClass; ?>"
-							data-foldertitle="<?php echo get_the_title(); ?>" data-objectid="<?php echo get_the_ID(); ?>">
+						<tr id="template-<?php echo get_the_ID(); ?>" class="<?php if (is_user_favorite(get_the_ID(), 'Template')) {
+							   echo 'favorite';
+						   } ?> <?php echo $trashedClass; ?>" data-foldertitle="<?php echo get_the_title(); ?>"
+							data-objectid="<?php echo get_the_ID(); ?>">
 
 							<?php if (is_user_favorite(get_the_ID(), 'Template')) {
 								$starClass = 'fa-solid';
@@ -268,7 +273,8 @@ if (is_user_favorite($current_folder_id, 'Folder')) {
 					'format' => 'page/%#%',
 					'current' => $current_page,
 					'total' => $total_pages,
-				));
+				)
+			);
 			echo '</div>';
 			?>
 		<?php } else if (!empty($child_terms)) {

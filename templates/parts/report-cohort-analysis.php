@@ -1,4 +1,4 @@
-<form id="cohort-selection-form" method="GET" class="cohort-form">
+<form id="cohort-selection-form" method="GET" class="cohort-form report-controls-form">
 
     <div class="form-group">
         <label for="purchaseMonth" class="form-label">Purchase Month & Day</label>
@@ -98,19 +98,26 @@
             </div>
         </div>
         <div class="wizcampaign-section-content">
-            <p>This report takes a month and day input and gathers all purchases from that day of the year and X number
+            <p>This report takes a month and day input and gathers all purchases from that day of the year and X
+                number
                 of days following (specified by the purchase window you define).
-                It then locates the next purchase from that same customer any time in the following year and plots it by
+                It then locates the next purchase from that same customer any time in the following year and
+                plots it by
                 date and division.</p>
-            <p>The divisions specified in the filters refer to the division of the initial purchase. The divisions
+            <p>The divisions specified in the filters refer to the division of the initial purchase. The
+                divisions
                 specified
-                in the chart legend (which can be toggled by clicking) refer to the division of the 2nd purchase</p>
-            <p>The filter selection is <strong>year agnostic</strong>, meaning purchases found can have occured within
+                in the chart legend (which can be toggled by clicking) refer to the division of the 2nd purchase
+            </p>
+            <p>The filter selection is <strong>year agnostic</strong>, meaning purchases found can have occured
+                within
                 any year on record (currently FY 2021-22 onward),
-                however the 2nd purchase is always ensured to be <em>after</em> the first one, taking year into account.
+                however the 2nd purchase is always ensured to be <em>after</em> the first one, taking year into
+                account.
             </p>
 
         </div>
     </div>
+
 
 </div>

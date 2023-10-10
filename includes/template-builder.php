@@ -43,7 +43,7 @@ function idemailwiz_build_template() {
 
     // Standard email header
     if ($templateSettings['id_tech_header'] == true) {
-        include dirname(plugin_dir_path(__FILE__)) . '/templates/chunks/preview-header.html';
+        include dirname(plugin_dir_path(__FILE__)) . '/templates/chunks/preview-header.php';
     }
 
     // Build chunks
@@ -77,7 +77,7 @@ function idemailwiz_build_template() {
 
     // Email footer
     if ($templateSettings['id_tech_footer'] == true) {
-        include dirname(plugin_dir_path(__FILE__)) . '/templates/chunks/preview-footer.html';
+        include dirname(plugin_dir_path(__FILE__)) . '/templates/chunks/preview-footer.php';
     }
 
     // Fine print/disclaimer

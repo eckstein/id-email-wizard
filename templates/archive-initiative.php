@@ -7,25 +7,33 @@ $activeTab = $_GET['view'] ?? 'Active';
 ?>
 
 <header class="wizHeader">
-    <div class="wizHeader-left">
-        <h1 class="wizEntry-title" itemprop="name">
-            Initiatives
-        </h1>
-        <div id="header-tabs">
-            
-            <a href="<?php echo add_query_arg(['view'=>'Active']); ?>" class="campaign-tab <?php if ($activeTab == 'Active') {  echo 'active'; } ?>">
-                Active
-            </a>
-            <a href="<?php echo add_query_arg(['view'=>'Archive']); ?>" class="campaign-tab <?php if ($activeTab == 'Archive') {  echo 'active'; } ?>">
-                Archive
-            </a>
-        </div>
-    </div>
-    <div class="wizHeader-right">
-        <div class="wizHeader-actions">
+    <div class="wizHeaderInnerWrap">
+        <div class="wizHeader-left">
+            <h1 class="wizEntry-title" itemprop="name">
+                Initiatives
+            </h1>
+            <div id="header-tabs">
 
-            <button class="wiz-button green new-initiative"><i class="fa-regular fa-plus"></i>&nbsp;New
-                Initiative</button>
+                <a href="<?php echo add_query_arg(['view' => 'Active']); ?>"
+                    class="campaign-tab <?php if ($activeTab == 'Active') {
+                        echo 'active';
+                    } ?>">
+                    Active
+                </a>
+                <a href="<?php echo add_query_arg(['view' => 'Archive']); ?>"
+                    class="campaign-tab <?php if ($activeTab == 'Archive') {
+                        echo 'active';
+                    } ?>">
+                    Archive
+                </a>
+            </div>
+        </div>
+        <div class="wizHeader-right">
+            <div class="wizHeader-actions">
+
+                <button class="wiz-button green new-initiative"><i class="fa-regular fa-plus"></i>&nbsp;New
+                    Initiative</button>
+            </div>
         </div>
     </div>
 </header>
@@ -112,7 +120,7 @@ $activeTab = $_GET['view'] ?? 'Active';
                         ?>
                         <tr data-initid="<?php echo get_the_ID(); ?>" class="<?php echo $isFavorite; ?>">
                             <td>
-                            <?php echo $isFavorite; ?>
+                                <?php echo $isFavorite; ?>
                             </td>
                             <td>
                                 <a href="<?php echo get_the_permalink(); ?>">

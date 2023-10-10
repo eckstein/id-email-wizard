@@ -69,31 +69,34 @@ if ($triggeredCampaigns) {
 ?>
 <article id="post-<?php the_ID(); ?>" <?php post_class('wiz_dashboard'); ?>>
     <header class="wizHeader">
-        <div class="wizHeader-left">
-            <h1 class="wizEntry-title" itemprop="name">
-                Dashboard
-            </h1>
+        <div class="wizHeaderInnerWrap">
+            <div class="wizHeader-left">
+                <h1 class="wizEntry-title" itemprop="name">
+                    Dashboard
+                </h1>
 
-            <?php
-            $currentView = $_GET['view'] ?? 'Month';
-            $viewTabs = [
-                ['title' => 'This Month', 'view' => 'Month'],
-                ['title' => 'Fiscal Year', 'view' => 'FY'],
-            ];
+                <?php
+                $currentView = $_GET['view'] ?? 'Month';
+                $viewTabs = [
+                    ['title' => 'This Month', 'view' => 'Month'],
+                    ['title' => 'Fiscal Year', 'view' => 'FY'],
+                ];
 
-            get_idwiz_header_tabs($viewTabs, $currentView);
+                get_idwiz_header_tabs($viewTabs, $currentView);
 
-            ?>
-        </div>
-        <div class="wizHeader-right">
-            <div class="wizHeader-actions">
+                ?>
+            </div>
+            <div class="wizHeader-right">
+                <div class="wizHeader-actions">
 
-                <button class="wiz-button green new-initiative"><i class="fa-regular fa-plus"></i>&nbsp;New
-                    Initiative</button>
-                <button class="wiz-button green show-new-template-ui"><i class="fa fa-plus"></i>&nbsp;&nbsp;New
-                    Template</button>
-                <button class="wiz-button green sync-db sync-everything"><i class="fa-solid fa-rotate"></i>&nbsp;Sync
-                    Databases</button>
+                    <button class="wiz-button green new-initiative"><i class="fa-regular fa-plus"></i>&nbsp;New
+                        Initiative</button>
+                    <button class="wiz-button green show-new-template-ui"><i class="fa fa-plus"></i>&nbsp;&nbsp;New
+                        Template</button>
+                    <button class="wiz-button green sync-db sync-everything"><i
+                            class="fa-solid fa-rotate"></i>&nbsp;Sync
+                        Databases</button>
+                </div>
             </div>
         </div>
     </header>
@@ -106,103 +109,16 @@ if ($triggeredCampaigns) {
 
         <?php include plugin_dir_path(__FILE__) . 'parts/dashboard-top-row.php'; ?>
 
-        <div class="wizcampaign-sections-row grid">
-
-            <div class="wizcampaign-section inset" id="revByLOB">
-                <div class="wizcampaign-section-title-area">
-                    <h4>Revenue by LOB</h4>
-                    <div class="wizcampaign-section-title-area-right wizcampaign-section-icons">
-                        <em>Direct Revenue</em>
-                    </div>
-                </div>
-                <div class="wizcampaign-section-content">
-                    <div class="wizChartWrapper purchasesByDivision">
-                        <canvas class="purchByDivision wiz-canvas" data-chartid="purchasesByDivision"
-                            data-campaignids='<?php echo json_encode(array_column($campaigns, 'id')); ?>'
-                            data-charttype="bar"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="wizcampaign-section short inset">
-                <div class="wizcampaign-section-title-area">
-                    <h4>Purchases by Product</h4>
-                    <div class="wizcampaign-section-icons">
-
-                    </div>
-                </div>
-
-                <?php
-                $headers = [
-                    'Product' => '50%',
-                    'Purchases' => '25%',
-                    'Revenue' => '25%'
-                ];
-
-                $data = [];
-                $products = array();
-                $productRevenue = array();
-
-                foreach ($purchases as $purchase) {
-                    $product = $purchase['shoppingCartItems_name'];
-                    if (!isset($products[$product])) {
-                        $products[$product] = 0;
-                        $productRevenue[$product] = 0;
-                    }
-                    $products[$product]++;
-                    $productRevenue[$product] += $purchase['shoppingCartItems_price'];
-                }
-
-                // Sort products by the number of purchases in descending order
-                arsort($products);
-
-                // Prepare the data for the table
-                foreach ($products as $productName => $purchaseCount) {
-                    $data[] = [
-                        'Product' => $productName,
-                        'Purchases' => $purchaseCount,
-                        'Revenue' => '$' . number_format($productRevenue[$productName], 2)
-                    ];
-                }
-
-                generate_mini_table($headers, $data);
-                ?>
-            </div>
-            <div class="wizcampaign-section inset">
-                <div class="wizcampaign-section-title-area">
-                    <h4>Purchases by Topic</h4>
-                    <div class="wizcampaign-section-icons">
-                        <i class="fa-solid fa-chart-simple chart-type-switcher" data-chart-type="bar"></i><i
-                            class="fa-solid fa-chart-pie active chart-type-switcher" data-chart-type="pie"></i>
-                    </div>
-                </div>
-                <div class="wizChartWrapper">
-                    <canvas class="purchByTopic wiz-canvas" data-chartid="purchasesByTopic"
-                        data-campaignids='<?php echo json_encode($campaignIds); ?>' data-charttype="pie"></canvas>
-                </div>
-            </div>
-            <div class="wizcampaign-section short inset">
-                <div class="wizcampaign-section-title-area">
-                    <h4>Purchases by Campus</h4>
-                    <div class="wizcampaign-section-icons">
-                        <i class="fa-solid fa-chart-simple active chart-type-switcher" data-chart-type="bar"></i><i
-                            class="fa-solid fa-chart-pie chart-type-switcher" data-chart-type="pie"></i>
-                    </div>
-                </div>
-                <div class="wizChartWrapper">
-                    <canvas class="purchByLocation wiz-canvas" data-chartid="purchasesByLocation"
-                        data-campaignids='<?php echo json_encode($campaignIds); ?>' data-charttype="pie"></canvas>
-                </div>
-            </div>
-        </div>
+        <?php
+         // Setup standard chart variables
+        $standardChartCampaignIds = array_column($campaigns, 'id');
+        $standardChartPurchases = $purchases;
+        include plugin_dir_path(__FILE__) . 'parts/standard-charts.php';
+        ?>
+        
         <div class="wizcampaign-sections-row">
             <div class="wizcampaign-section inset" id="dashboard-campaigns-table">
-                <div class="wizcampaign-section-title-area">
-                    <h4>Campaigns</h4>
-                    <div class="wizcampaign-section-title-area-right wizcampaign-section-icons">
-                        <i class="fa-solid fa-chart-simple active chart-type-switcher" data-chart-type="bar"></i><i
-                            class="fa-solid fa-chart-pie chart-type-switcher" data-chart-type="pie"></i>
-                    </div>
-                </div>
+                
                 <div class="wizcampaign-section-content">
                     <table class="idemailwiz_table display" id="dashboard-campaigns"
                         style="width: 100%; vertical-align: middle;" valign="middle" width="100%"

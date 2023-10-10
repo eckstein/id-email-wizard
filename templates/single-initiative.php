@@ -15,32 +15,36 @@
         ?>
         <article id="post-<?php the_ID(); ?>" data-initiativeid="<?php echo get_the_ID(); ?>" <?php post_class('has-wiz-chart'); ?>>
             <header class="wizHeader">
-                <div class="wizHeader-left">
-                    <h1 class="wizEntry-title single-wizcampaign-title" title="<?php echo get_the_title(); ?>" itemprop="name">
-                        <input type="text" id="initiative-title-editable" data-initUpdateType="title"
-                            value="<?php echo get_the_title(); ?>" />
-                    </h1>
-                    <div class="wizEntry-meta"><strong>Initiative</strong>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Send dates:
-                        <?php echo display_init_date_range($associated_campaign_ids); ?>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Includes
-                        <?php echo count($associated_campaign_ids); ?> campaigns
+                <div class="wizHeaderInnerWrap">
+                    <div class="wizHeader-left">
+                        <h1 class="wizEntry-title single-wizcampaign-title" title="<?php echo get_the_title(); ?>"
+                            itemprop="name">
+                            <input type="text" id="initiative-title-editable" data-initUpdateType="title"
+                                value="<?php echo get_the_title(); ?>" />
+                        </h1>
+                        <div class="wizEntry-meta"><strong>Initiative</strong>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Send dates:
+                            <?php echo display_init_date_range($associated_campaign_ids); ?>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Includes
+                            <?php echo count($associated_campaign_ids); ?> campaigns
+                        </div>
+
                     </div>
+                    <div class="wizHeader-right">
+                        <div class="wizHeader-actions">
+                            <button class="wiz-button green sync-initiative"
+                                data-initids="<?php echo htmlspecialchars(json_encode($associated_campaign_ids)); ?>">Sync
+                                Campaigns</button>
 
-                </div>
-                <div class="wizHeader-right">
-                    <div class="wizHeader-actions">
-                        <button class="wiz-button green sync-initiative"
-                            data-initids="<?php echo htmlspecialchars(json_encode($associated_campaign_ids)); ?>">Sync
-                            Campaigns</button>
-
-                        <button class="wiz-button green add-init-campaign" data-initiativeid="<?php echo get_the_ID(); ?>"><i
-                                class="fa-regular fa-plus"></i>&nbsp;Add Campaigns</button>
-                        <button class="wiz-button red remove-single-initiative" title="Delete Initiative"
-                            data-initiativeid="<?php echo get_the_ID(); ?>"><i class="fa-solid fa-trash"></i></button>
-                        &nbsp;&nbsp;|&nbsp;&nbsp;
-                        <button class="wiz-button green new-initiative"><i class="fa-regular fa-plus"></i>&nbsp;New
-                            Initiative</button>
+                            <button class="wiz-button green add-init-campaign"
+                                data-initiativeid="<?php echo get_the_ID(); ?>"><i class="fa-regular fa-plus"></i>&nbsp;Add
+                                Campaigns</button>
+                            <button class="wiz-button red remove-single-initiative" title="Delete Initiative"
+                                data-initiativeid="<?php echo get_the_ID(); ?>"><i class="fa-solid fa-trash"></i></button>
+                            &nbsp;&nbsp;|&nbsp;&nbsp;
+                            <button class="wiz-button green new-initiative"><i class="fa-regular fa-plus"></i>&nbsp;New
+                                Initiative</button>
 
 
+                        </div>
                     </div>
                 </div>
             </header>
@@ -115,7 +119,7 @@
                     );
                 }
                 ?>
-                <div class="wizcampaign-sections-row" id="single-initiative-sections">
+                <div class="wizcampaign-sections-row">
                     <div id="initiative-campaigns-table" class="wizcampaign-section inset span4">
 
                         <table class="idemailwiz_table display idemailwiz-simple-table"
@@ -213,10 +217,11 @@
                         </table>
 
                     </div>
+                </div>
 
+                <div class="wizcampaign-sections-row">
 
-
-                    <div class="wizcampaign-section short inset">
+                    <div class="wizcampaign-section inset">
                         <div class="initiative-about">
                             <h4>About
                                 <?php the_title(); ?>
@@ -296,208 +301,13 @@
                         </div>
                     </div>
                 </div>
-                <div class="wizcampaign-sections-row grid">
-                    <div class="wizcampaign-section inset short" id="email-info">
-                        <h4>Purchases by Date</h4>
-                        <?php if (!empty($associated_campaign_ids)) { ?>
-                            <div class="wizChartWrapper">
-                                <canvas class="purchByDate wiz-canvas" data-chartid="purchasesByDate"
-                                    data-campaignids='<?php echo json_encode($associated_campaign_ids); ?>'
-                                    data-charttype="bar"></canvas>
-                            </div>
-                        <?php } ?>
-                    </div>
-                    <div class="wizcampaign-section inset short">
-                        <div class="wizcampaign-section-title-area">
-                            <h4>Purchases by Division</h4>
-                            <div class="wizcampaign-section-icons">
-                                <i class="fa-solid fa-chart-simple active chart-type-switcher" data-chart-type="bar"></i><i
-                                    class="fa-solid fa-chart-pie chart-type-switcher" data-chart-type="pie"></i>
-                            </div>
-                        </div>
-                        <?php if (!empty($associated_campaign_ids)) { ?>
-                            <div class="wizChartWrapper">
-                                <canvas class="purchByDivision wiz-canvas" data-chartid="purchasesByDivision"
-                                    data-campaignids='<?php echo json_encode($associated_campaign_ids); ?>'
-                                    data-charttype="bar"></canvas>
-                            </div>
-                        <?php } ?>
-                    </div>
-                    <div class="wizcampaign-section inset short">
-                        <h4>Purchases by Product</h4>
-                        <table class="wizcampaign-tiny-table-sticky-header">
-                            <thead>
-                                <tr>
-                                    <th width="50%">Product</th>
-                                    <th width="25%">Purchases</th>
-                                    <th width="25%">Revenue</th>
-                                </tr>
-                            </thead>
-                        </table>
-                        <div class="wizcampaign-section-scrollwrap">
-                            <?php
-                            if (!empty($associated_campaign_ids)) {
-                                $products = array();
-                                $productRevenue = array();
-                                foreach ($purchases as $purchase) {
-                                    $product = $purchase['shoppingCartItems_name'];
-                                    if (!isset($products[$product])) {
-                                        $products[$product] = 0;
-                                        $productRevenue[$product] = 0; // Initialize revenue for the division
-                                    }
-                                    $products[$product]++;
-                                    $productRevenue[$product] += $purchase['shoppingCartItems_price']; // Add the revenue for this purchase
-                                }
 
-                                // Sort products by the number of purchases in descending order
-                                arsort($products);
-
-                                // Start building the table
-                                echo '<table class="wizcampaign-tiny-table">';
-                                echo '<tbody>';
-
-                                // Loop through the products and add rows to the table
-                                foreach ($products as $productName => $purchaseCount) {
-                                    echo '<tr>';
-                                    echo '<td width="50%">' . htmlspecialchars($productName) . '</td>'; // Product name
-                                    echo '<td width="25%">' . $purchaseCount . '</td>'; // Number of purchases
-                                    echo '<td width="25%">$' . number_format($productRevenue[$productName], 2) . '</td>'; // Revenue, formatted with 2 decimal places
-                                    echo '</tr>';
-                                }
-
-                                echo '</tbody>';
-                                echo '</table>';
-                            }
-                            ?>
-                        </div>
-                    </div>
-                    <div class="wizcampaign-section short inset">
-
-                        <?php
-                        if (!empty($associated_campaign_ids)) {
-                            // Initialize variables
-                            $promoCounts = [];
-                            $totalOrders = [];
-                            $ordersWithPromo = [];
-
-                            foreach ($purchases as $purchase) {
-                                $promo = $purchase['shoppingCartItems_discountCode'];
-                                $orderID = $purchase['id'];
-
-                                // Keep track of all unique order IDs
-                                $totalOrders[$orderID] = true;
-
-                                // Skip blank or null promo codes
-                                if (empty($promo)) {
-                                    continue;
-                                }
-
-                                // Keep track of unique order IDs with promo codes
-                                $ordersWithPromo[$orderID] = true;
-
-                                if (!isset($promoCounts[$promo])) {
-                                    $promoCounts[$promo] = [];
-                                }
-
-                                if (!isset($promoCounts[$promo][$orderID])) {
-                                    $promoCounts[$promo][$orderID] = 0;
-                                }
-
-                                $promoCounts[$promo][$orderID] += 1;
-                            }
-
-                            // Calculate the total number of times each promo code was used
-                            $promoUseCounts = [];
-                            foreach ($promoCounts as $promo => $orders) {
-                                $promoUseCounts[$promo] = count($orders);
-                            }
-
-                            // Calculate promo code usage statistics
-                            $totalOrderCount = count($totalOrders);
-                            $ordersWithPromoCount = count($ordersWithPromo);
-                            $percentageWithPromo = ($totalOrderCount > 0) ? ($ordersWithPromoCount / $totalOrderCount) * 100 : 0;
-
-                        }
-                        ?>
-
-                        <div class="wizcampaign-section-title-area">
-                            <h4>Promo Code Use</h4>
-                            <div>
-                                <?php
-                                if (!empty($associated_campaign_ids)) {
-                                    echo "{$ordersWithPromoCount} of {$totalOrderCount} orders (" . round($percentageWithPromo, 2) . "%)";
-                                }
-                                ?>
-                            </div>
-                        </div>
-                        <div class="wizcampaign-section-scrollwrap">
-
-                            <?php
-                            if (!empty($associated_campaign_ids)) {
-                                // Sort promo codes by usage
-                                arsort($promoUseCounts);
-
-                                // Start building the table
-                                echo '<table class="wizcampaign-tiny-table">';
-                                echo '<thead>';
-                                echo '<tr>';
-                                echo '<th>Promo Code</th>';
-                                echo '<th>Orders</th>';
-                                echo '</tr>';
-                                echo '</thead>';
-                                echo '<tbody>';
-
-                                // Loop through the sorted promo codes and add rows to the table
-                                foreach ($promoUseCounts as $promo => $useCount) {
-                                    echo '<tr>';
-                                    echo '<td>' . htmlspecialchars($promo) . '</td>';
-                                    echo '<td>' . $useCount . '</td>';
-                                    echo '</tr>';
-                                }
-
-                                echo '</tbody>';
-                                echo '</table>';
-                            }
-                            ?>
-                        </div>
-                    </div>
-                </div>
-                <div class="wizcampaign-sections-row grid">
-                    <div class="wizcampaign-section inset">
-                        <div class="wizcampaign-section-title-area">
-                            <h4>Purchases by Topic</h4>
-                            <div class="wizcampaign-section-icons">
-                                <i class="fa-solid fa-chart-simple active chart-type-switcher" data-chart-type="bar"></i><i
-                                    class="fa-solid fa-chart-pie chart-type-switcher" data-chart-type="pie"></i>
-                            </div>
-                        </div>
-                        <?php if (!empty($associated_campaign_ids)) { ?>
-                            <div class="wizChartWrapper">
-                                <canvas class="purchByTopic wiz-canvas" data-chartid="purchasesByTopic"
-                                    data-campaignids='<?php echo json_encode($associated_campaign_ids); ?>'
-                                    data-charttype="bar"></canvas>
-                            </div>
-                        <?php } ?>
-                    </div>
-                    <div class="wizcampaign-section inset">
-                        <div class="wizcampaign-section-title-area">
-                            <h4>Purchases by Campus</h4>
-                            <div class="wizcampaign-section-icons">
-                                <i class="fa-solid fa-chart-simple active chart-type-switcher" data-chart-type="bar"></i><i
-                                    class="fa-solid fa-chart-pie chart-type-switcher" data-chart-type="pie"></i>
-                            </div>
-                        </div>
-                        <?php if (!empty($associated_campaign_ids)) { ?>
-                            <div class="wizChartWrapper">
-                                <canvas class="purchByLocation wiz-canvas" data-chartid="purchasesByLocation"
-                                    data-campaignids='<?php echo json_encode($associated_campaign_ids); ?>'
-                                    data-charttype="pie"></canvas>
-                            </div>
-                        <?php } ?>
-                    </div>
-
-
-                </div>
+                 <?php
+                 // Setup standard chart variables
+                $standardChartCampaignIds = $associated_campaign_ids;
+                $standardChartPurchases = $purchases;
+                include plugin_dir_path(__FILE__) . 'parts/standard-charts.php';
+                ?>
 
 
 

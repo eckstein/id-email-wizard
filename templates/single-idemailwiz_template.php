@@ -13,39 +13,43 @@ $current_user = wp_get_current_user();
 $itTemplateId = get_post_meta(get_the_ID(), 'itTemplateId', true) ?? '';
 ?>
 <header class="wizHeader">
-	<div class="wizHeader-left">
-		<h1 id="single-template-title" class="wizEntry-title" title="<?php echo get_the_title(); ?>" itemprop="name">
-			<input type="text" name="templateTitle" id="idwiz_templateTitle"
-				data-templateid="<?php echo get_the_ID(); ?>" value="<?php echo get_the_title(get_the_ID()); ?>" />
-		</h1>
-		<div class="wizEntry-meta">
-			<strong>WizTemplate</strong>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
-			<span class="iDbreadcrumb">Located in:
-				<?php echo display_template_folder_hierarchy(get_the_ID()); ?>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
-				<?php if ($itTemplateId) {
-					$lastIterableSync = get_post_meta(get_the_ID(), 'lastIterableSync', true) ?? '<em>an unknown date and time.</em>';
-					echo 'Last synced to Iterable template <a target="_blank" href="https://app.iterable.com/templates/editor?templateId=' . $itTemplateId . '">' . $itTemplateId . '</a> on ' . $lastIterableSync;
-					// check for wiz template to see if the campaign has been sent
-					$wizTemplate = get_idwiz_template((int) $itTemplateId);
-					//print_r($wizTemplate);
-					if ($wizTemplate) {
-						$wizCampaign = get_idwiz_campaigns(array('templateId' => $itTemplateId));
-						echo '<br/><br/><strong><em>The <a href="https://localhost/metrics/campaign/?id=' . $wizCampaign[0]['id'] . '">campaign</a> for this template was sent on ' . date('m/d/Y', $wizCampaign[0]['startAt'] / 1000) . '.</em></strong>';
-						echo '<br/><em>Templates for sent campaigns can no longer be synced. You can either duplicate this template or sync it to another, unsent template in Iterable.</em>';
-					}
-				} else {
-					echo '<em>Not synced.</em>';
-				} ?>
-			</span>
+	<div class="wizHeaderInnerWrap">
+		<div class="wizHeader-left">
+			<h1 id="single-template-title" class="wizEntry-title" title="<?php echo get_the_title(); ?>"
+				itemprop="name">
+				<input type="text" name="templateTitle" id="idwiz_templateTitle"
+					data-templateid="<?php echo get_the_ID(); ?>" value="<?php echo get_the_title(get_the_ID()); ?>" />
+			</h1>
+			<div class="wizEntry-meta">
+				<strong>WizTemplate</strong>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
+				<span class="iDbreadcrumb">Located in:
+					<?php echo display_template_folder_hierarchy(get_the_ID()); ?>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
+					<?php if ($itTemplateId) {
+						$lastIterableSync = get_post_meta(get_the_ID(), 'lastIterableSync', true) ?? '<em>an unknown date and time.</em>';
+						echo 'Last synced to Iterable template <a target="_blank" href="https://app.iterable.com/templates/editor?templateId=' . $itTemplateId . '">' . $itTemplateId . '</a> on ' . $lastIterableSync;
+						// check for wiz template to see if the campaign has been sent
+						$wizTemplate = get_idwiz_template((int) $itTemplateId);
+						//print_r($wizTemplate);
+						if ($wizTemplate) {
+							$wizCampaign = get_idwiz_campaigns(array('templateId' => $itTemplateId));
+							echo '<br/><br/><strong><em>The <a href="https://localhost/metrics/campaign/?id=' . $wizCampaign[0]['id'] . '">campaign</a> for this template was sent on ' . date('m/d/Y', $wizCampaign[0]['startAt'] / 1000) . '.</em></strong>';
+							echo '<br/><em>Templates for sent campaigns can no longer be synced. You can either duplicate this template or sync it to another, unsent template in Iterable.</em>';
+						}
+					} else {
+						echo '<em>Not synced.</em>';
+					} ?>
+				</span>
 
-		</div>
-	</div>
-	<div class="wizHeader-right">
-		<div class="wizHeader-actions">
-			<div id="search-templates">
-				<input type="text" id="live-template-search" placeholder="Search templates..." />
 			</div>
-			<div class="wiz-button green show-new-template-ui"><i class="fa fa-plus"></i>&nbsp;&nbsp;New Template</div>
+		</div>
+		<div class="wizHeader-right">
+			<div class="wizHeader-actions">
+				<div id="search-templates">
+					<input type="text" id="live-template-search" placeholder="Search templates..." />
+				</div>
+				<div class="wiz-button green show-new-template-ui"><i class="fa fa-plus"></i>&nbsp;&nbsp;New Template
+				</div>
+			</div>
 		</div>
 	</div>
 </header>
@@ -54,7 +58,7 @@ $itTemplateId = get_post_meta(get_the_ID(), 'itTemplateId', true) ?? '';
 	data-iterableid="<?php echo $itTemplateId; ?>" itemprop="mainContentOfPage">
 	<div class="left" id="builder">
 
-		
+
 		<div id="builder-chunks">
 			<?php
 			$options = get_option('idemailwiz_settings');

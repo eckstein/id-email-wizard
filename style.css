@@ -100,7 +100,7 @@ a.wiz-button:hover {
 }
 
 #templateUI.two-col-wrap .right {
-	flex: 0 0 820px;
+	flex: 0 0 870px;
 	position: relative;
 	height: 928px;
 }
@@ -1063,6 +1063,7 @@ pre#generatedCode {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: center;
+	margin-bottom: 20px;
 }
 
 .metric-item {
@@ -1262,11 +1263,21 @@ pre#generatedCode {
 /* Single WizCampaign Metrics Page */
 
 .wizHeader {
-	display: flex;
-	justify-content: space-between;
-	padding: 30px 40px;
+	
 	box-shadow: inset 0 0 20px 1px rgba(0, 0, 0, 0.1);
 	margin-bottom: 20px;
+}
+.wizHeader .wizHeaderInnerWrap {
+	display: flex;
+	justify-content: space-between;
+	padding: 30px 0;
+	max-width: 1800px;
+	margin: 0 auto;
+}
+@media screen and (max-width: 1800px) {
+	.wizHeader .wizHeaderInnerWrap {
+		padding: 30px 40px;
+	}
 }
 .wizHeader .wizEntry-title input {
 	font-size: 24px;
@@ -1353,9 +1364,7 @@ pre#generatedCode {
 	color: #fff;
 }
 
-#sendsByDateSection {
-	margin-top: 20px;
-}
+
 
 /* wizcampaign-section styles */
 .wizcampaign-sections-row {
@@ -1368,35 +1377,53 @@ pre#generatedCode {
 .wizcampaign-sections-row.noWrap {
 	flex-wrap: nowrap;
 }
-.wizcampaign-sections-row.grid {
-	display: grid;
-	grid-gap: 20px;
-	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Adjust the min-width (186px) as needed */
+
+.wizcampaign-section {
+	flex: 1; 
+	min-width: 300px; 
+	box-sizing: border-box;
+	padding: 20px;
+	border: 1px solid #eee;
+	border-radius: 5px;
 }
 
 .wizcampaign-section {
-	flex: 1 1 auto;
-	padding: 20px;
-	border-radius: 5px;
-	border: 1px solid #eee;
-	max-width: 100%;
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+}
+.wizcampaign-section.span2 {
+	flex: 2;
+}
+.wizcampaign-section.span3 {
+	flex: 3;
+}
+.wizcampaign-section.span4 {
+	flex: 4;
+}
+@media (max-width: 768px) {
+	.wizcampaign-section {
+		flex: none;
+		width: 100%;
+		margin: 10px 0; /* Adjust the margin to be vertical since they stack */
+	}
 }
 .wizcampaign-section-scrollwrap {
 	max-height: 250px;
 	overflow-y: auto;
 }
-.wizcampaign-sections-row#single-campaign-sections {
-	margin-top: 20px;
-}
-.wizcampaign-sections-row#single-campaign-sections .wizcampaign-section {
-	flex: 1 1 400px;
-}
+
 .wizcampaign-section-title-area {
 	display: flex;
 	gap: 20px;
 	justify-content: space-between;
 	align-items: baseline;
 	flex-wrap: wrap;
+	margin-bottom: 10px;
+}
+.wizcampaign-section-title-area h4 {
+	color: #666;
+	font-weight: 300;
 }
 .wizcampaign-section-title-area-right {
 	font-size: 0.8em;
@@ -1446,7 +1473,8 @@ pre#generatedCode {
 
 .metrics-tower-group .wizcampaign-section-content {
 	display: flex;
-	justify-content: center;
+	justify-content: space-between;
+	overflow-y: auto;
 }
 
 /* Dashboard Campaigns Table */
@@ -1455,43 +1483,63 @@ pre#generatedCode {
 }
 
 /* Reports Pages */
-#cohort-selection-form {
+#reportsOverview .wizcampaign-section-content {
 	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	gap: 20px;
+	min-height: 140px;
+}
+#reportsOverview .wizcampaign-section-content .wiz-button {
+	margin-right: auto;
+}
+.report-controls-form {
+	display: flex;
+	flex-wrap: wrap;
 	justify-content: center;
 	align-items: center;
 	gap: 30px;
 	margin-bottom: 20px;
 }
-#cohort-selection-form .form-group {
+.report-controls-form .form-group {
 	border: 1px solid #eee;
 	border-radius: 5px;
 	padding: 20px;
 	display: flex;
 	flex-direction: column;
 }
-#cohort-selection-form .field-group-wrap {
+
+.report-controls-form .field-group-wrap {
 	margin-bottom: 5px;
 }
-#cohort-selection-form .field-group-wrap.flex {
+.report-controls-form .field-group-wrap.flex {
 	display: flex;
 	gap: 5px;
 }
-#cohort-selection-form .form-group label {
+.report-controls-form .form-group label {
 	font-size: 14px;
 	display: block;
 	margin-bottom: 5px;
 }
-#cohort-selection-form .form-group input#day-of-year {
+.report-controls-form .form-group input#day-of-year {
 	padding: 8px;
 	font-size: 18px;
 }
-#cohort-selection-form .select2-container {
+.report-controls-form .form-group .check-group {
+	display: flex;
+	align-items: baseline;
+	gap: 4px;
+}
+.report-controls-form input[type=number] {
+	max-width: 80px;
+}
+.report-controls-form .select2-container {
 	min-width: 700px !important;
 }
-#cohort-selection-form .select2-container--default .select2-selection--multiple .select2-selection__choice__display {
+.report-controls-form .select2-container--default .select2-selection--multiple .select2-selection__choice__display {
 	padding-left: 20px;
 }
-#cohort-selection-form .select2-container--default .select2-selection--multiple .select2-selection__choice__remove > span {
+.report-controls-form .select2-container--default .select2-selection--multiple .select2-selection__choice__remove > span {
 	position: relative;
 	top: 4px;
 }
@@ -1503,7 +1551,7 @@ pre#generatedCode {
 .wizChartWrapper {
 	position: relative;
 	min-height: 250px;
-	margin: auto;
+	
 }
 .wizChartLoader {
 	position: absolute;
@@ -1521,17 +1569,11 @@ pre#generatedCode {
 	display: flex;
 	flex-direction: column;
 }
-#monthlyGoalSection {
-	margin-bottom: 20px;
-	display: flex;
-	flex-direction: column;
-}
-#monthlyGoalSection .wizcampaign-section-content,
-#monthlyStackedCampaignRev .wizcampaign-section-content {
-	width: 150px;
-}
-.wizChartWrapper.monthlyGoalTracker {
-	width: 150px;
+
+
+#monthly-goal-section {
+	flex: 0 0 150px;
+	min-width: 150px;
 }
 
 .wizChartWrapper.monthlyCampaignStack {
@@ -1699,9 +1741,7 @@ pre#generatedCode {
 .single-idwiz_initiative .initStatusIndicator i.active {
 	color: #94c52a;
 }
-#initiative-campaigns-table {
-	margin-top: 20px;
-}
+
 #initiative-campaigns-table tbody th,
 #initiative-campaigns-table tbody td {
 	white-space: nowrap;
@@ -1718,20 +1758,21 @@ pre#generatedCode {
 	margin-top: 10px;
 }
 /* Init assets library container */
+
 #initiativeAssets {
 	max-width: 50%;
 }
 .initAssetsLibrary {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(16.66%, 1fr));
-	gap: 16px; /* Adjust the gap between grid items */
+	gap: 16px; 
 }
 
 /* Init assets library item */
 .initAssetsLibrary img {
 	width: 100%;
 	height: 100%;
-	object-fit: cover; /* Makes image cover the entire grid item */
+	object-fit: cover; 
 }
 
 #initAssetsUI {
@@ -1740,11 +1781,25 @@ pre#generatedCode {
 }
 #initAssetsUI .init_asset_wrap {
 	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-	border: 1px solid #fff;
+	border: 2px solid #fff;
+	cursor: pointer;
 }
 #initAssetsUI .init_asset_wrap:hover {
-	border: 1px solid #77b900;
+	border: 2px solid #77b900;
 }
+
+
+.no-animation-popup {
+	box-shadow: 0 0 5px 3px rgba(0, 0, 0, 0.1);
+}
+.no-animation-popup img {
+	padding-top: 20px;
+	max-height: 400px!important;
+	width: auto!important;
+	max-width: 100%;
+	display: block!important;
+}
+
 
 /* Simple Table */
 .idemailwiz-simple-table {
@@ -1870,3 +1925,5 @@ table.compact th {
 #idemailwiz_initiatives_table_wrapper {
 	margin-bottom: 40px;
 }
+
+

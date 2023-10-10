@@ -1,16 +1,16 @@
 <div class="wizcampaign-sections-row">
-    <div class="wizcampaign-section inset">
+    <div class="wizcampaign-section inset" id="monthly-goal-section">
         <div class="wizcampaign-section-title-area">
-            <h4>GA Goal: $
-                <?php echo number_format($displayGoal, 2); ?>
+            <h4>To GA Goal
+                
             </h4>
             <div class="wizcampaign-section-title-area-right">
-
+                $<?php echo number_format($displayGoal, 2); ?>
             </div>
         </div>
         <?php if (isset($_GET['view']) && $_GET['view'] != 'FY' || !isset($_GET['view'])) { ?>
-            <div class="wizcampaign-section-content">
-                <div class="wizChartWrapper monthlyGoalTracker">
+            <div class="wizcampaign-section-content monthlyGoalTracker">
+                <div class="wizChartWrapper">
                     <canvas id="monthlyGoalTracker" data-default-month="<?php echo $month; ?>"
                         data-default-year="<?php echo $year; ?>"></canvas>
                 </div>
@@ -18,7 +18,7 @@
             </div>
         <?php } ?>
     </div>
-    <div class="wizcampaign-section inset metrics-tower-group">
+    <div class="wizcampaign-section inset metrics-tower-group span2">
         <div class="wizcampaign-section-title-area">
             <h4>Purchases & Revenue</h4>
             <div class="wizcampaign-section-title-area-right wizcampaign-section-icons">
@@ -73,7 +73,7 @@
             ?>
         </div>
     </div>
-    <div class="wizcampaign-section inset metrics-tower-group">
+    <div class="wizcampaign-section inset metrics-tower-group span3">
         <div class="wizcampaign-section-title-area">
             <h4>Engagement</h4>
             <div class="wizcampaign-section-title-area-right wizcampaign-section-icons">
