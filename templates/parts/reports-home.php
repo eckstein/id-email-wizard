@@ -1,5 +1,5 @@
-<h2>Choose a report to view</h2>
-<div class="wizcampaign-sections-row">
+<h2 class="wizArticle-title">Choose a report to view</h2>
+<div class="wizcampaign-sections-row grid">
 
     <?php
     foreach ($child_pages as $page) {

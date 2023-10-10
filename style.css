@@ -1364,7 +1364,9 @@ pre#generatedCode {
 	color: #fff;
 }
 
-
+h2.wizArticle-title {
+	margin: 40px 0 30px 0;
+}
 
 /* wizcampaign-section styles */
 .wizcampaign-sections-row {
@@ -1377,7 +1379,27 @@ pre#generatedCode {
 .wizcampaign-sections-row.noWrap {
 	flex-wrap: nowrap;
 }
-
+.wizcampaign-sections-row.grid {
+	display: grid;
+	grid-template-columns: repeat(5, 1fr); /* 5 columns of equal width */
+	gap: 20px; /* Optional: space between grid items */
+}
+@media screen and (max-width: 1750px) {
+	.wizcampaign-sections-row.grid {
+		grid-template-columns: repeat(3, 1fr);
+	}
+}
+@media screen and (max-width: 1000px) {
+	.wizcampaign-sections-row.grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+@media screen and (max-width: 768px) {
+	.wizcampaign-sections-row.grid {
+		grid-template-columns: repeat(1, 1fr);
+		gap: 0;
+	}
+}
 .wizcampaign-section {
 	flex: 1; 
 	min-width: 300px; 

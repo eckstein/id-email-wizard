@@ -88,6 +88,7 @@ $campaignIds = array_column($filteredSlCampaigns, 'id');
                         <th>Campaign Name</th>
                         <th>Subject Line</th>
                         <th>Preview Text</th>
+                        <th>Total Sent</th>
                         <th>Open Rate</th>
                     </tr>
                 </thead>
@@ -102,7 +103,9 @@ $campaignIds = array_column($filteredSlCampaigns, 'id');
                         <td><a href="<?php get_bloginfo('url'); ?>/metrics/campaign?id=<?php echo $filteredSlCampaign['id']; ?>"><?php echo $filteredSlCampaign['name']; ?></a></td>
                         <td><?php echo $slTemplate[0]['subject']; ?></td>
                         <td><?php echo $slTemplate[0]['preheaderText']; ?></td>
+                        <td><?php echo number_format($slMetric['uniqueEmailSends']); ?></td>
                         <td><?php echo number_format($slMetric['wizOpenRate']) . '%'; ?></td>
+                        
                     </tr>
                     <?php } ?>
                 </tbody>
