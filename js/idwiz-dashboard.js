@@ -368,4 +368,86 @@ jQuery(document).ready(function ($) {
 
 	/* Cohort Report */
 	$("#divisionsSelect").select2();
+
+
+	if ($(".idemailwiz_table.report-table").length) {
+		// Custom sorting for date format 'm/d/Y'
+		$.fn.dataTable.ext.type.order["date-mdy-pre"] = function (dateString) {
+			var dateParts = dateString.split("/");
+			return new Date(dateParts[2], dateParts[0] - 1, dateParts[1]).getTime(); // Month is 0-indexed
+		};
+
+		var idwiz_dashboard_campaign_table = $(".idemailwiz_table.report-table").DataTable({
+			dom: '<"#wiztable_top_wrapper"><"wiztable_toolbar" <"#wiztable_top_search" f><"#wiztable_top_dates">  B>rtp',
+			columnDefs: [
+				{ targets: "campaignDate", type: "date-mdy" },
+			],
+			order: [[0, "desc"]],
+			autoWidth: false,
+			scrollX: true,
+			scrollY: true,
+			paging: true,
+			pageLength: 40,
+			select: true,
+			fixedHeader: {
+				header: true,
+				footer: false,
+			},
+			colReorder: {
+				realtime: true,
+			},
+			buttons: [
+				{
+					extend: "collection",
+					text: '<i class="fa-solid fa-file-arrow-down"></i>',
+					className: "wiz-dt-button",
+					attr: {
+						title: "Export",
+					},
+					align: "button-right",
+					autoClose: true,
+					buttons: ["copy", "csv", "excel"],
+					background: false,
+				},
+				{
+					extend: "collection",
+					text: '<i class="fa-solid fa-table-columns"></i>',
+					className: "wiz-dt-button",
+					attr: {
+						title: "Show/hide columns",
+					},
+					align: "button-right",
+					buttons: [
+						"colvis",
+						{
+							extend: "colvisRestore",
+							text: "Restore Defaults",
+							className: "wizcols_restore",
+							align: "button-right",
+						},
+					],
+					background: false,
+				},
+
+				{
+					extend: "pageLength",
+					className: "wiz-dt-button",
+					background: false,
+				},
+				
+			],
+			language: {
+				search: "",
+				searchPlaceholder: "Quick search",
+			},
+			drawCallback: idwiz_dash_camp_table_callback,
+		});
+
+		function idwiz_dash_camp_table_callback() {
+			var api = this.api();
+
+			// Readjust the column widths on each draw
+			api.columns.adjust();
+		}
+	}
 });

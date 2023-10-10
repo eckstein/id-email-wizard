@@ -1,3 +1,55 @@
+==========[2023-10-10 14:54:55]==============================<br />
+GA campaign revenue data synced successfully. 10080 updates and 52 inserts performed<br />
+========================================<br />
+<br />
+==========[2023-10-10 14:54:37]==============================<br />
+Starting GA campaign revenue data sync.<br />
+========================================<br />
+<br />
+==========[2023-10-10 14:52:37]==============================<br />
+Checking 1506 received sends against existing records, and updating...<br />
+========================================<br />
+<br />
+==========[2023-10-10 14:50:34]==============================<br />
+Requested 127 triggered campaigns from Iterable. 0 errors encountered.<br />
+Retrieving send data...<br />
+========================================<br />
+<br />
+==========[2023-10-10 14:47:30]==============================<br />
+Requesting sends for 127 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-10-10 14:47:30]==============================<br />
+Starting triggered sends sync...<br />
+========================================<br />
+<br />
+==========[2023-10-10 14:47:30]==============================<br />
+Experiments sync results: <br />
+The experiments sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-10-10 14:47:19]==============================<br />
+Purchases sync results: <br />
+Successful insert of 4 records.<br />
+<br />
+========================================<br />
+<br />
+==========[2023-10-10 14:47:08]==============================<br />
+Metrics sync results: <br />
+<br />
+Successful update of 54 records.<br />
+========================================<br />
+<br />
+==========[2023-10-10 14:46:45]==============================<br />
+Templates sync results: <br />
+The templates sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-10-10 14:46:38]==============================<br />
+Campaigns sync results: <br />
+The campaigns sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
 ==========[2023-10-10 13:17:20]==============================<br />
 Checking 1422 received sends against existing records, and updating...<br />
 ========================================<br />

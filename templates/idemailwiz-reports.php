@@ -77,6 +77,10 @@ $reports_home_link = get_permalink($reports_page);
                 include('parts/report-top-performers.php');
                 break;
 
+            case 'subject-line-performance':
+                include('parts/report-sl-performance.php');
+                break;
+
             default:
                 // Default content or report
                 include('parts/reports-home.php');
