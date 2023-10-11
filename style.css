@@ -1475,12 +1475,24 @@ h2.wizArticle-title {
 	padding: 20px;
 	text-align: center;
 }
+#dashboardDateNav .select2-container {
+	font-size: 22px;
+	font-weight: bold;
 
-#dashboardDateNav .dateNav-left,
-#dashboardDateNav .dateNav-right {
-	font-size: 24px;
 }
-#dashboardDateNav .dateNav-title h1 {
+#dashboardDateNav #wizMonthDropdown {
+	width: 200px;
+}
+#dashboardDateNav #wizYearDropdown {
+	width: 130px;
+}
+#dashboardDateNav .wizDateNav-left ,
+#dashboardDateNav .wizDateNav-right {
+	font-size: 26px;
+	position: relative;
+	top: 2px;
+}
+#dashboardDateNav .wizDateNav-title h1 {
 	margin: 0;
 }
 
@@ -1928,9 +1940,7 @@ table.compact th {
 }
 
 /* Select2 Styles */
-.select2-container {
-	min-width: 300px !important;
-}
+
 .select2-container .select2-search--inline {
 	float: none !important;
 }

@@ -1,12 +1,37 @@
 <div class="wizcampaign-sections-row">
 
     <div class="wizcampaign-section inset span2" id="email-info">
+        <?php
+        //For purchases by date, we want to get purchases (not campaigns) by date.
+        ?>
         <div class="wizcampaign-section-title-area">
-        <h4>Purchases by Date</h4>
+            <h4>Purchases by Date</h4>
         </diV>
         <div class="wizChartWrapper">
-            <canvas class="purchByDate wiz-canvas" data-chartid="purchasesByDate"
-                data-campaignids='<?php echo json_encode($standardChartCampaignIds); ?>' data-charttype="bar"></canvas>
+            <?php
+            // Set up the data attributes
+            $dataAttributes = [];
+            if (isset($startDate)) {
+                $dataAttributes[] = 'data-startdate="' . $startDate . '"';
+            }
+            if (isset($endDate)) {
+                $dataAttributes[] = 'data-enddate="' . $endDate . '"';
+            }
+            if (!isset($startDate) || !isset($endDate)) {
+                $dataAttributes[] = 'data-chartid="purchasesByCampaign"';
+                $dataAttributes[] = 'data-campaignids=\'' . json_encode($standardChartCampaignIds) . '\'';
+
+            } else {
+                $dataAttributes[] = 'data-chartid="purchasesByDate"';
+            }
+            $dataAttributes[] = 'data-charttype="bar"';
+
+            // Convert the array to a string for echoing
+            $dataAttributesString = implode(' ', $dataAttributes);
+            ?>
+
+            <canvas class="purchByDate wiz-canvas" <?php echo $dataAttributesString; ?>></canvas>
+
         </div>
     </div>
 
@@ -37,7 +62,7 @@
         </div>
     </div>
 
-    
+
 
 </div>
 <div class="wizcampaign-sections-row">
@@ -94,7 +119,8 @@
             <h4>Promo Code Use</h4>
             <div>
                 <?php $promoCodeData = prepare_promo_code_summary_data($standardChartPurchases); ?>
-                <?php echo $promoCodeData['ordersWithPromoCount'] ?>/<?php echo $promoCodeData['totalOrderCount'] ?> (
+                <?php echo $promoCodeData['ordersWithPromoCount'] ?>/
+                <?php echo $promoCodeData['totalOrderCount'] ?> (
                 <?php echo $promoCodeData['percentageWithPromo'] ?>%)
             </div>
         </div>

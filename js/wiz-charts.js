@@ -33,16 +33,25 @@ jQuery(document).ready(function ($) {
 
 		const chartType = $(canvas).attr("data-charttype");
 		const chartId = $(canvas).attr("data-chartid");
-		const campaignIds = $(canvas).attr("data-campaignids");
 		const isStacked = $(canvas).attr("data-stacked") === "true";
 		const xAxisDate = $(canvas).attr("data-xAxisDate") === "true"; 
 
 		const additionalData = {
 			chartType: chartType,
 			chartId: chartId,
-			campaignIds: campaignIds,
 			xAxisDate: xAxisDate,
 		};
+
+		// Check for other potential attributes and add them if they're present
+		if ($(canvas).attr("data-startdate")) {
+			additionalData.startDate = $(canvas).attr("data-startdate");
+		}
+		if ($(canvas).attr("data-enddate")) {
+			additionalData.endDate = $(canvas).attr("data-enddate");
+		}
+		if ($(canvas).attr("data-campaignids")) {
+			additionalData.campaignIds = $(canvas).attr("data-campaignids");
+		}
 
 		idemailwiz_do_ajax(
 			"idwiz_fetch_flexible_chart_data",
@@ -68,7 +77,7 @@ jQuery(document).ready(function ($) {
 							tooltip: {
 								callbacks: {
 									title: function() {
-										return '';  // This effectively removes the title from the tooltip.
+										return '';  // Removes the title from the tooltip.
 									},
 									label: function (context) {
 										let dataset = context.chart.data.datasets[context.datasetIndex];

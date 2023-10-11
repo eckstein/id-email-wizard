@@ -1,3 +1,5 @@
+
+
 // Set month/year based on query params
 var wizMonth = getQueryParam("wizMonth") || (new Date().getMonth() + 1).toString().padStart(2, "0");
 var wizYear = getQueryParam("wizYear") || new Date().getFullYear();
@@ -44,6 +46,12 @@ function getFormatFunction(dataType) {
 }
 
 jQuery(document).ready(function ($) {
+
+	/* Select2 Inits */
+	$("#divisionsSelect").select2();
+	$('#wizMonthDropdown, #wizYearDropdown').select2();
+
+	
 	if ($("article.wiz_dashboard").length) {
 		// Fetch the data via AJAX
 		idemailwiz_do_ajax(
@@ -366,8 +374,7 @@ jQuery(document).ready(function ($) {
 		}
 	}
 
-	/* Cohort Report */
-	$("#divisionsSelect").select2();
+	
 
 
 	if ($(".idemailwiz_table.report-table").length) {
@@ -450,4 +457,37 @@ jQuery(document).ready(function ($) {
 			api.columns.adjust();
 		}
 	}
+
+	// Handler for month/year dropdown changes
+	
+
+	$("#wizMonthDropdown, #wizYearDropdown").change(function() {
+		var selectedMonth = $("#wizMonthDropdown").val();
+		var selectedYear = $("#wizYearDropdown").val();
+
+		// Construct the URL with the selected month and year
+		var newUrl = "?wizMonth=" + selectedMonth + "&wizYear=" + selectedYear;
+		window.location.href = newUrl;
+	});
+
+	// Handler for left navigation arrow
+	$(".wizDateNav-left a").click(function(e) {
+		e.preventDefault();
+        
+		// Get the previous month and year from the href attribute of the link
+		var href = $(this).attr('href');
+		window.location.href = href;
+	});
+
+	// Handler for right navigation arrow
+	$(".wizDateNav-right a").click(function(e) {
+		e.preventDefault();
+
+		// Check if the arrow is not disabled
+		if(!$(this).children('i').hasClass('disabled')) {
+			// Get the next month and year from the href attribute of the link
+			var href = $(this).attr('href');
+			window.location.href = href;
+		}
+	});
 });

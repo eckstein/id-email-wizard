@@ -7,15 +7,30 @@ function idwiz_fetch_flexible_chart_data()
         wp_send_json_error(['message' => 'Security check failed'], 403);
         exit;
     }
-
     $chartId = $_POST['chartId'];
     $chartType = $_POST['chartType'];
+    error_log(print_r($_POST, true));
     $campaignIds = json_decode(stripslashes($_POST['campaignIds']), true);
+
+    $params = [
+        'campaignIds' => $campaignIds,
+        'chartType' => $chartType,
+        'startDate' => isset($_POST['startDate']) ? $_POST['startDate'] : null,
+        'endDate' => isset($_POST['endDate']) ? $_POST['endDate'] : null
+    ];
 
     $function_name = 'idwiz_generate_' . $chartId . '_chart';
 
     if (function_exists($function_name)) {
-        $chartData = call_user_func($function_name, $campaignIds, $chartType);
+        // Get the expected parameters of the function
+        $reflection = new ReflectionFunction($function_name);
+        $expectedParams = $reflection->getParameters();
+
+        // Filter the params array to only include the expected parameters
+        $args = array_intersect_key($params, array_flip(array_column($expectedParams, 'name')));
+
+        // Call the function with the filtered arguments
+        $chartData = call_user_func_array($function_name, $args);
 
         if (!$chartData) {
             wp_send_json_error(['message' => 'Data function returned null or false'], 500);
@@ -42,7 +57,7 @@ function idwiz_fetch_flexible_chart_data()
 
         wp_send_json_success($response);
     } else {
-        wp_send_json_error(['message' => 'Invalid chartId'], 400);
+        wp_send_json_error(['message' => "Invalid chartId: $chartId"], 400);
     }
 
     exit;
@@ -115,7 +130,7 @@ function idwiz_prepare_chart_data($data, $yAxis, $dualYAxis, $chartType)
     ];
 
 
-    
+
     $yAxisDataType = idwiz_get_axis_data_type($yAxis);
     $dualYAxisDataType = $dualYAxis ? idwiz_get_axis_data_type($dualYAxis) : false;
 
@@ -126,7 +141,7 @@ function idwiz_prepare_chart_data($data, $yAxis, $dualYAxis, $chartType)
             'yAxisID' => 'y-axis-2'
         ];
     }
-    
+
     return [
         'labels' => array_keys($data),
         'datasets' => $datasets,
@@ -160,7 +175,7 @@ function idwiz_generate_metricByDate_chart($campaignIds, $chartType, $metricName
         $sendDateTimestampInSeconds = floor($campaign['startAt'] / 1000);
         $dateObject = new DateTime("@{$sendDateTimestampInSeconds}");
         $formattedDate = $dateObject->format('Y-m-d');
-        
+
         $dateData[$formattedDate] = [$metricName => $metricValue];
     }
 
@@ -170,7 +185,7 @@ function idwiz_generate_metricByDate_chart($campaignIds, $chartType, $metricName
     foreach ($dateData as $formattedDate => $data) {
         $dateObject = DateTime::createFromFormat('Y-m-d', $formattedDate);
         $reformattedDate = $dateObject->format('m/d/Y');
-        $reformattedDateData[$reformattedDate.' - '.$campaign['name']] = $data;
+        $reformattedDateData[$reformattedDate . ' - ' . $campaign['name']] = $data;
     }
 
     return idwiz_prepare_chart_data($reformattedDateData, $metricName, null, $chartType);
@@ -255,7 +270,61 @@ function idwiz_generate_sendsByDate_chart($campaignIds, $chartType)
 
 
 
-function idwiz_generate_purchasesByDate_chart($campaignIds, $chartType)
+function idwiz_generate_purchasesByDate_chart($chartType, $startDate = null, $endDate = null)
+{
+    if (!$startDate || !$endDate) {
+        return ['error' => 'Invalid date range.'];
+    }
+
+    // Fetch purchases based on the date range and the utmMedium filter
+    $purchases = get_idwiz_purchases([
+        'startAt_start' => $startDate,
+        'startAt_end' => $endDate,
+        'not-ids' => [0],
+        'shoppingCartItems_utmMedium' => 'email',
+        'sortBy' => 'purchaseDate',
+        'sort' => 'ASC'
+    ]);
+
+    if (!$purchases) {
+        return ['error' => 'No purchases found for the provided date range.'];
+    }
+
+    $dateData = [];
+    $startDateTime = new DateTime($startDate);
+    $endDateTime = new DateTime($endDate);
+    $formattedStartDate = $startDateTime->format('Y-m-d');
+    $formattedEndDate = $endDateTime->format('Y-m-d');
+
+    foreach ($purchases as $purchase) {
+        $dateString = $purchase['purchaseDate'];
+
+        // Check if the purchaseDate is within the desired range
+        if ($dateString < $formattedStartDate || $dateString > $formattedEndDate) {
+            continue; // Skip this purchase if it doesn't match
+        }
+
+        $formattedDate = DateTime::createFromFormat('Y-m-d', $dateString)->format('m/d/Y');
+
+        if (!isset($dateData[$formattedDate])) {
+            $dateData[$formattedDate] = ['Purchases' => 0, 'Revenue' => 0];
+        }
+
+        $dateData[$formattedDate]['Purchases'] += 1;
+        $dateData[$formattedDate]['Revenue'] += $purchase['total'];
+    }
+
+    $yAxis = 'Purchases';
+    $dualYAxis = null;
+
+    if ($chartType !== 'pie') {
+        $dualYAxis = 'Revenue';
+    }
+
+    return idwiz_prepare_chart_data($dateData, $yAxis, $dualYAxis, $chartType);
+}
+
+function idwiz_generate_purchasesByCampaign_chart($campaignIds, $chartType)
 {
 
     if (!is_array($campaignIds)) {
@@ -305,6 +374,7 @@ function idwiz_generate_purchasesByDate_chart($campaignIds, $chartType)
 
     return idwiz_prepare_chart_data($dateData, $yAxis, $dualYAxis, $chartType);
 }
+
 
 function idwiz_generate_purchasesByDivision_chart($campaignIds, $chartType)
 {
@@ -629,7 +699,8 @@ function idwiz_generate_cohort_chart()
     wp_send_json_success($chart_data);
 }
 
-function return_new_and_returning_customers($purchases) {
+function return_new_and_returning_customers($purchases)
+{
     // Group purchases by orderId
     $ordersGroupedByOrderId = [];
     foreach ($purchases as $purchase) {
@@ -715,4 +786,3 @@ function idwiz_fetch_customer_types_chart_data()
     wp_send_json_success(['data' => $data]);
 }
 add_action('wp_ajax_idwiz_fetch_customer_types_chart_data', 'idwiz_fetch_customer_types_chart_data');
-
