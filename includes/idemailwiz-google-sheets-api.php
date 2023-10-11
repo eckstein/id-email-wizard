@@ -15,9 +15,17 @@ function sync_ga_campaign_revenue_data()
     $countInserts = 0;
 
     // Fetch GA data from SheetDB 
-    $url = "https://sheetdb.io/api/v1/9mvdxfdluq3iv?sheet=Purchases by date with campaign and LOB Clean";
-    $response = idwiz_google_sheet_api_curl_call($url);
-    $ga_data = json_decode($response, true);
+    $url = get_field('ga_rev_sheet_url', 'options');
+    $result = idemailwiz_iterable_curl_call($url, null, false, 3, 5);
+
+    $ga_data = $result['response'];
+
+    if (isset($result['httpCode']) && $result['httpCode'] >= 400) {
+        wiz_log("Error fetching GA campaign revenue data: HTTP " . $result['httpCode']);
+        return "Error fetching GA campaign revenue data.";
+    }
+
+
 
     //error_log(print_r($ga_data, true));
 
@@ -29,15 +37,15 @@ function sync_ga_campaign_revenue_data()
 
     // Loop GA data
     foreach ($ga_data as $row) {
-        if (!isset($row['Date']) || !isset($row['Transaction ID'])) {
+        if (!isset($row['date']) || !isset($row['transactionId'])) {
             continue;
         }
-        $transactionId = (string) ($row['Transaction ID']);
-        $date = (string) ($row['Date']);
-        $campaignId = (string) ($row['Campaign']);
-        $division = (string) ($row['ga:dimension2']);
-        $revenue = $row['Product Revenue'] ?? 0;
-        $purchases = $row['Unique Purchases'] ?? 0;
+        $transactionId = (string) ($row['transactionId']);
+        $date = (string) ($row['date']);
+        $campaignId = (string) ($row['campaignId']);
+        $division = (string) ($row['division']);
+        $revenue = (float) $row['revenue'] ?? 0;
+        $purchases = (float) $row['purchases'] ?? 0;
 
         // Check if a record with the same transactionId exists in the table
         $existing_record = $wpdb->get_row(
@@ -55,13 +63,14 @@ function sync_ga_campaign_revenue_data()
                 $ga_campaign_rev_table_name,
                 [   
                     'revenue' => $revenue,
-                    'purchases' => $purchases
+                    'purchases' => $purchases,
+                    'date' => date('Y-m-d', strtotime($date)),
                 ],
                 [
                     'transactionId' => $transactionId,
                     'campaignId' => $campaignId,
                     'division' => $division,
-                    'date' => $date,
+                    
                 ]
             );
             $countUpdates++;
@@ -71,7 +80,7 @@ function sync_ga_campaign_revenue_data()
                 $ga_campaign_rev_table_name,
                 [
                     'transactionId' => $transactionId,
-                    'date' => $date,
+                    'date' => date('Y-m-d', strtotime($date)),
                     'campaignId' => $campaignId,
                     'division' => $division,
                     'revenue' => $revenue,
@@ -116,6 +125,7 @@ function idwiz_google_sheet_api_curl_call($url)
 
     // Initialize cURL session
     $ch = curl_init();
+    
 
     // Set cURL options
     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
@@ -132,6 +142,9 @@ function idwiz_google_sheet_api_curl_call($url)
 
     // Execute cURL session and get the response
     $response = curl_exec($ch);
+    if(curl_errno($ch)) {
+        echo 'Curl error: ' . curl_error($ch);
+    }
 
     // Close cURL session
     curl_close($ch);

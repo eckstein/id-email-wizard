@@ -4,20 +4,28 @@ global $wpdb;
 
 
 
-function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = false, $retryAttempts = 3, $maxConsecutive400Errors = 5)
+function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = false, $retryAttempts = 3, $maxConsecutive400Errors = 5) 
 {
-    // Fetch the API key
-    $api_key = idwiz_itAPI();
-
     $attempts = 0;
     $consecutive400Errors = 0;
+    $bearerToken = get_field('ga_revenue_api_sheet_bearer_token', 'options');
 
     do {
         // Initialize cURL
         $ch = curl_init($apiURL);
 
+        // Set the appropriate headers based on the URL
+        $headers = ["Content-Type: application/json"];
+        if (strpos($apiURL, 'iterable')) {
+        
+            $api_key = idwiz_itAPI();
+            $headers[] = "Api-Key: $api_key";
+        }
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
         // Set SSL verification
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $verifySSL);
+        
 
         // If POST data is provided, set up a POST request
         if ($postData !== null) {
@@ -25,27 +33,34 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($postData));
         }
 
-        // Set the HTTP headers
-        curl_setopt(
-            $ch,
-            CURLOPT_HTTPHEADER,
-            array(
-                "Api-Key: $api_key",
-                "Content-Type: application/json"
-            )
-        );
-
         // Return the transfer as a string
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 
         // Execute the request
         $response = curl_exec($ch);
+        if ($response === false) {
+            $error = curl_error($ch);
+            error_log("cURL Error: $error");
+        }
 
         // Get the HTTP status code
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
         // Close cURL
         curl_close($ch);
+
+        // Check for rate limit
+        if ($httpCode === 429) {
+            error_log("Rate limit hit. Waiting before retrying...");
+            sleep(10);  // Adjust this delay as needed.
+            continue;
+        }
+
+        // Check for authentication error
+        if ($httpCode === 401) {
+            error_log("Error fetching data from the API. HTTP Code: $httpCode. Response: $response");
+            throw new Exception("Authentication failed for API endpoint $apiURL. Check your bearer token: $bearerToken");
+        }
 
         // If a 400 error occurs, log the response and attempt details
         if ($httpCode === 400) {
@@ -65,7 +80,7 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
             throw new Exception("HTTP 400 Error after $retryAttempts attempts. Stopping execution.");
         }
 
-    } while ($httpCode === 400);
+    } while ($httpCode === 400 || $httpCode === 429);
 
     // Check for other HTTP errors
     if ($httpCode >= 400) {
@@ -81,6 +96,7 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
     // Return both the decoded response and the HTTP status code
     return ['response' => $response, 'httpCode' => $httpCode];
 }
+
 
 function idemailwiz_iterable_curl_multi_call($apiURLs, $verifySSL = false)
 {
@@ -1456,6 +1472,8 @@ function idemailwiz_sync_triggered_send_records($triggeredCampaigns = null)
     }
     //error_log('Filtered Records: '.print_r($records, true));
     $cntToCheckRecords = count($records);
+    
+
     if (!empty($records)) {
         wiz_log("Checking $cntToCheckRecords received sends against existing records, and updating...");
         // Fetch all existing messageIds in one query
@@ -1463,18 +1481,19 @@ function idemailwiz_sync_triggered_send_records($triggeredCampaigns = null)
         $existingRecords = $wpdb->get_col("SELECT messageId FROM $tableName");
 
         // Convert to associative array for quick look-up
-        $existingRecordsMap = array_flip($existingRecords);
+        $existingRecordsSet = array_fill_keys($existingRecords, true);
 
         // Loop through captured records from all exports
         $cntRecords = 0;
         foreach ($records as $record) {
-            if (isset($existingRecordsMap[$record['messageId']])) {
-                //wiz_log("Record with messageId " . $record['messageId'] . " already exists. Skipping.");
+            if (isset($existingRecordsSet[$record['messageId']])) {
+                // This messageId already exists in the database, so skip.
                 continue;
             }
             idemailwiz_insert_triggered_send_record($record);
             $cntRecords++;
         }
+
 
     } else {
         wiz_log("No new triggered sends were found.");
