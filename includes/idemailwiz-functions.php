@@ -268,10 +268,10 @@ function idemailwiz_generate_template_html()
 
 
   $template_id = $_POST['template_id'];
-  $chunks = get_field('field_63e3c7cfc01c6', $template_id);
-  $templateSettings = get_field('field_63e3d8d8cfd3a', $template_id);
-  $templateFonts = get_field('field_63e3d784ed5b5', $template_id);
-  $emailSettings = get_field('field_63e898c6dcd23', $template_id);
+  $chunks = get_field('add_chunk', $template_id);
+  $templateSettings = get_field('template_settings', $template_id);
+  $templateStyles = get_field('template_styles', $template_id);
+  $emailSettings = get_field('email_settings', $template_id);
   $externalUTMs = $emailSettings['external_utms'];
   $extUTMstring = $emailSettings['external_utm_string'];
   ob_start();

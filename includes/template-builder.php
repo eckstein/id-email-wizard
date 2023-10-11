@@ -36,8 +36,10 @@ function idemailwiz_build_template() {
     // Start output buffering
     ob_start();
 
-    // Include styles and templates
+    // Include styles for preview pant
     include dirname(plugin_dir_path(__FILE__)) . '/styles/preview-pane-styles.html';
+
+    // Include template chunk sections
     include dirname(plugin_dir_path(__FILE__)) . '/templates/chunks/email-top.php';
     include dirname(plugin_dir_path(__FILE__)) . '/templates/chunks/css.php';
     include dirname(plugin_dir_path(__FILE__)) . '/templates/chunks/end-email-top.php';
