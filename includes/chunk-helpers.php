@@ -164,7 +164,7 @@ function inline_button($inlineButton=false) {
                     font-size:19px;font-family:Poppins, sans-serif;line-height:24px;font-weight: bold;text-decoration:none;
                     display:inline-block;
                     margin: 0 auto;
-                    padding:14px 30px;
+                    padding:14px 7vw;
                     color:<?php echo $textColor; ?>;
                     border-radius:<?php echo $borderRad; ?>;
                     border:<?php echo $borderSize; ?> solid <?php echo $borderColor; ?>;
