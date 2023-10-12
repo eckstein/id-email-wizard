@@ -1,3 +1,12 @@
+==========[2023-10-12 11:52:39]==============================<br />
+Checking 1259 received sends against existing records, and updating...<br />
+========================================<br />
+<br />
+==========[2023-10-12 11:50:32]==============================<br />
+Requested 127 triggered campaigns from Iterable. 0 errors encountered.<br />
+Retrieving send data...<br />
+========================================<br />
+<br />
 ==========[2023-10-12 11:49:06]==============================<br />
 GA campaign revenue data synced successfully. 2564 updates and 2 inserts performed<br />
 ========================================<br />
