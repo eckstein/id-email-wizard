@@ -89,7 +89,7 @@ $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
   }
 
   td ul {
-    margin-top: 0;
+    margin-top: .5em;
   }
 
   td ul li {
