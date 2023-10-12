@@ -81,6 +81,10 @@ $reports_home_link = get_permalink($reports_page);
                 include('parts/report-sl-performance.php');
                 break;
 
+            case 'repeat-purchase-trends':
+                include('parts/report-repeat-purchase-trends.php');
+                break;
+
             default:
                 // Default content or report
                 include('parts/reports-home.php');

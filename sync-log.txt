@@ -1,3 +1,296 @@
+==========[2023-10-12 11:49:06]==============================<br />
+GA campaign revenue data synced successfully. 2564 updates and 2 inserts performed<br />
+========================================<br />
+<br />
+==========[2023-10-12 11:49:01]==============================<br />
+Starting GA campaign revenue data sync.<br />
+========================================<br />
+<br />
+==========[2023-10-12 11:47:26]==============================<br />
+Requesting sends for 127 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-10-12 11:47:26]==============================<br />
+Starting triggered sends sync...<br />
+========================================<br />
+<br />
+==========[2023-10-12 11:47:26]==============================<br />
+Experiments sync results: <br />
+The experiments sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-10-12 11:46:13]==============================<br />
+Purchases sync results: <br />
+Successful insert of 37 records.1 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: 2d8b1a8db3a34c1aae6db54e9351579e). Database Error: Duplicate entry '2d8b1a8db3a34c1aae6db54e9351579e' for key 'PRIMARY'.<br />
+2 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: 809b0081ff4247a38fbde165f3db6e82). Database Error: Duplicate entry '809b0081ff4247a38fbde165f3db6e82' for key 'PRIMARY'.<br />
+3 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: bb44f1e440ce4789beed2b8a552abb0d). Database Error: Duplicate entry 'bb44f1e440ce4789beed2b8a552abb0d' for key 'PRIMARY'.<br />
+4 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: 230b8ead4c234c30b57d855ef8d6752e). Database Error: Duplicate entry '230b8ead4c234c30b57d855ef8d6752e' for key 'PRIMARY'.<br />
+5 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: 6e6421c19a7f4fe1966bf675488d1163). Database Error: Duplicate entry '6e6421c19a7f4fe1966bf675488d1163' for key 'PRIMARY'.<br />
+<br />
+========================================<br />
+<br />
+==========[2023-10-12 11:46:04]==============================<br />
+Metrics sync results: <br />
+<br />
+Successful update of 76 records.<br />
+========================================<br />
+<br />
+==========[2023-10-12 11:45:30]==============================<br />
+Templates sync results: <br />
+The templates sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-10-12 11:45:23]==============================<br />
+Campaigns sync results: <br />
+The campaigns sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-10-11 19:22:43]==============================<br />
+Checking 1572 received sends against existing records, and updating...<br />
+========================================<br />
+<br />
+==========[2023-10-11 19:20:27]==============================<br />
+Requested 127 triggered campaigns from Iterable. 0 errors encountered.<br />
+Retrieving send data...<br />
+========================================<br />
+<br />
+==========[2023-10-11 19:17:20]==============================<br />
+Requesting sends for 127 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-10-11 19:17:20]==============================<br />
+Starting triggered sends sync...<br />
+========================================<br />
+<br />
+==========[2023-10-11 19:17:20]==============================<br />
+Experiments sync results: <br />
+The experiments sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-10-11 19:16:07]==============================<br />
+Purchases sync results: <br />
+Successful insert of 4 records.1 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: 2d8b1a8db3a34c1aae6db54e9351579e). Database Error: Duplicate entry '2d8b1a8db3a34c1aae6db54e9351579e' for key 'PRIMARY'.<br />
+2 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: 809b0081ff4247a38fbde165f3db6e82). Database Error: Duplicate entry '809b0081ff4247a38fbde165f3db6e82' for key 'PRIMARY'.<br />
+3 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: bb44f1e440ce4789beed2b8a552abb0d). Database Error: Duplicate entry 'bb44f1e440ce4789beed2b8a552abb0d' for key 'PRIMARY'.<br />
+4 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: 230b8ead4c234c30b57d855ef8d6752e). Database Error: Duplicate entry '230b8ead4c234c30b57d855ef8d6752e' for key 'PRIMARY'.<br />
+5 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: 6e6421c19a7f4fe1966bf675488d1163). Database Error: Duplicate entry '6e6421c19a7f4fe1966bf675488d1163' for key 'PRIMARY'.<br />
+<br />
+========================================<br />
+<br />
+==========[2023-10-11 19:15:56]==============================<br />
+Metrics sync results: <br />
+<br />
+Successful update of 61 records.<br />
+========================================<br />
+<br />
+==========[2023-10-11 19:15:35]==============================<br />
+Templates sync results: <br />
+The templates sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-10-11 19:15:28]==============================<br />
+Campaigns sync results: <br />
+The campaigns sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-10-11 15:53:05]==============================<br />
+Campaigns sync results: <br />
+<br />
+Successful update of 16 records.<br />
+========================================<br />
+<br />
+==========[2023-10-11 15:52:49]==============================<br />
+Finished updating 44 triggered send records!<br />
+========================================<br />
+<br />
+==========[2023-10-11 15:52:44]==============================<br />
+Checking 1395 received sends against existing records, and updating...<br />
+========================================<br />
+<br />
+==========[2023-10-11 15:50:41]==============================<br />
+Requested 127 triggered campaigns from Iterable. 0 errors encountered.<br />
+Retrieving send data...<br />
+========================================<br />
+<br />
+==========[2023-10-11 15:47:58]==============================<br />
+Experiments sync results: <br />
+The experiments sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-10-11 15:47:34]==============================<br />
+Requesting sends for 127 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-10-11 15:47:34]==============================<br />
+Starting triggered sends sync...<br />
+========================================<br />
+<br />
+==========[2023-10-11 15:46:27]==============================<br />
+Purchases sync results: <br />
+Successful insert of 2 records.1 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: 809b0081ff4247a38fbde165f3db6e82). Database Error: Duplicate entry '809b0081ff4247a38fbde165f3db6e82' for key 'PRIMARY'.<br />
+2 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: bb44f1e440ce4789beed2b8a552abb0d). Database Error: Duplicate entry 'bb44f1e440ce4789beed2b8a552abb0d' for key 'PRIMARY'.<br />
+3 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: 2d8b1a8db3a34c1aae6db54e9351579e). Database Error: Duplicate entry '2d8b1a8db3a34c1aae6db54e9351579e' for key 'PRIMARY'.<br />
+4 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: 230b8ead4c234c30b57d855ef8d6752e). Database Error: Duplicate entry '230b8ead4c234c30b57d855ef8d6752e' for key 'PRIMARY'.<br />
+5 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: 6e6421c19a7f4fe1966bf675488d1163). Database Error: Duplicate entry '6e6421c19a7f4fe1966bf675488d1163' for key 'PRIMARY'.<br />
+<br />
+========================================<br />
+<br />
+==========[2023-10-11 15:46:18]==============================<br />
+Metrics sync results: <br />
+<br />
+Successful update of 40 records.<br />
+========================================<br />
+<br />
+==========[2023-10-11 15:45:57]==============================<br />
+Templates sync results: <br />
+The templates sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-10-11 15:45:49]==============================<br />
+Campaigns sync results: <br />
+The campaigns sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:52:33]==============================<br />
+Campaigns sync results: <br />
+<br />
+Successful update of 18 records.<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:52:17]==============================<br />
+Finished updating 49 triggered send records!<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:52:12]==============================<br />
+Checking 1351 received sends against existing records, and updating...<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:50:09]==============================<br />
+Requested 127 triggered campaigns from Iterable. 0 errors encountered.<br />
+Retrieving send data...<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:47:20]==============================<br />
+Experiments sync results: <br />
+The experiments sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:47:04]==============================<br />
+Requesting sends for 127 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:47:04]==============================<br />
+Starting triggered sends sync...<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:45:56]==============================<br />
+Purchases sync results: <br />
+Successful insert of 0 records.1 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: 809b0081ff4247a38fbde165f3db6e82). Database Error: Duplicate entry '809b0081ff4247a38fbde165f3db6e82' for key 'PRIMARY'.<br />
+2 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: bb44f1e440ce4789beed2b8a552abb0d). Database Error: Duplicate entry 'bb44f1e440ce4789beed2b8a552abb0d' for key 'PRIMARY'.<br />
+3 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: 2d8b1a8db3a34c1aae6db54e9351579e). Database Error: Duplicate entry '2d8b1a8db3a34c1aae6db54e9351579e' for key 'PRIMARY'.<br />
+4 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: 230b8ead4c234c30b57d855ef8d6752e). Database Error: Duplicate entry '230b8ead4c234c30b57d855ef8d6752e' for key 'PRIMARY'.<br />
+5 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: 6e6421c19a7f4fe1966bf675488d1163). Database Error: Duplicate entry '6e6421c19a7f4fe1966bf675488d1163' for key 'PRIMARY'.<br />
+<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:45:47]==============================<br />
+Metrics sync results: <br />
+<br />
+Successful update of 39 records.<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:45:27]==============================<br />
+Templates sync results: <br />
+The templates sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:45:19]==============================<br />
+Campaigns sync results: <br />
+The campaigns sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:43:07]==============================<br />
+GA campaign revenue data synced successfully. 2562 updates and 4 inserts performed<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:43:02]==============================<br />
+Starting GA campaign revenue data sync.<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:18:15]==============================<br />
+Campaigns sync results: <br />
+<br />
+Successful update of 20 records.<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:17:59]==============================<br />
+Finished updating 176 triggered send records!<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:17:53]==============================<br />
+Checking 1225 received sends against existing records, and updating...<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:13:45]==============================<br />
+Requested 126 triggered campaigns from Iterable. 1 errors encountered.<br />
+Retrieving send data...<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:11:27]==============================<br />
+Experiments sync results: <br />
+The experiments sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:10:41]==============================<br />
+Requesting sends for 127 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:10:40]==============================<br />
+Starting triggered sends sync...<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:10:03]==============================<br />
+Purchases sync results: <br />
+Successful insert of 1 records.<br />
+<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:09:56]==============================<br />
+Metrics sync results: <br />
+<br />
+Successful update of 41 records.<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:09:29]==============================<br />
+Templates sync results: <br />
+The templates sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-10-11 14:09:22]==============================<br />
+Campaigns sync results: <br />
+The campaigns sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
 ==========[2023-10-11 12:51:54]==============================<br />
 Checking 1241 received sends against existing records, and updating...<br />
 ========================================<br />

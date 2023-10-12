@@ -7,17 +7,21 @@ function idwiz_fetch_flexible_chart_data()
         wp_send_json_error(['message' => 'Security check failed'], 403);
         exit;
     }
+
+    $params = [];
     $chartId = $_POST['chartId'];
     $chartType = $_POST['chartType'];
-    error_log(print_r($_POST, true));
-    $campaignIds = json_decode(stripslashes($_POST['campaignIds']), true);
+    
+    if (isset($_POST['campaignIds'])) {
+        $campaignIds = json_decode(stripslashes($_POST['campaignIds']), true);
+        $params['campaignIds'] = $campaignIds;
+    } else {
+        $campaignIds = [];
+    }
 
-    $params = [
-        'campaignIds' => $campaignIds,
-        'chartType' => $chartType,
-        'startDate' => isset($_POST['startDate']) ? $_POST['startDate'] : null,
-        'endDate' => isset($_POST['endDate']) ? $_POST['endDate'] : null
-    ];
+    $params['chartType'] = $chartType;
+    $params['startDate'] = isset($_POST['startDate']) ? $_POST['startDate'] : null;
+    $params['endDate'] = isset($_POST['endDate']) ? $_POST['endDate'] : null;
 
     $function_name = 'idwiz_generate_' . $chartId . '_chart';
 
@@ -699,59 +703,7 @@ function idwiz_generate_cohort_chart()
     wp_send_json_success($chart_data);
 }
 
-function return_new_and_returning_customers($purchases)
-{
-    // Group purchases by orderId
-    $ordersGroupedByOrderId = [];
-    foreach ($purchases as $purchase) {
-        $orderId = $purchase['orderId'];
-        if (!isset($ordersGroupedByOrderId[$orderId])) {
-            $ordersGroupedByOrderId[$orderId] = [];
-        }
-        $ordersGroupedByOrderId[$orderId][] = $purchase;
-    }
 
-    $newOrdersCount = 0;
-    $returningOrdersCount = 0;
-    $processedCustomers = []; // To track which customers have been processed
-
-    // Loop through each unique order and categorize as 'new' or 'returning'
-    foreach ($ordersGroupedByOrderId as $orderId => $orderPurchases) {
-        $firstPurchase = reset($orderPurchases); // Get the first purchase from this order
-        $accountId = $firstPurchase['accountNumber'];
-
-        // If this customer has already been processed, skip the loop iteration
-        if (in_array($accountId, $processedCustomers)) {
-            continue;
-        }
-
-        $processedCustomers[] = $accountId; // Mark this customer as processed
-
-        // Query all purchases for this account
-        $allCustomerPurchases = get_idwiz_purchases([
-            'fields' => 'accountNumber, orderId, purchaseDate',
-            'accountNumber' => $accountId
-        ]);
-
-        usort($allCustomerPurchases, function ($a, $b) {
-            return strcmp($a['purchaseDate'], $b['purchaseDate']);
-        });
-
-        // The first purchase date for this account
-        $firstPurchaseDate = $allCustomerPurchases[0]['purchaseDate'];
-
-        if ($firstPurchase['purchaseDate'] == $firstPurchaseDate) {
-            $newOrdersCount++;
-        } else {
-            $returningOrdersCount++;
-        }
-    }
-
-    return [
-        'new' => $newOrdersCount,
-        'returning' => $returningOrdersCount
-    ];
-}
 
 
 

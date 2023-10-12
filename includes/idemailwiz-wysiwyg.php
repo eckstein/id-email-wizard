@@ -2,7 +2,7 @@
 
 
 // Override wpautop filter and curly quotes for ACF WYSIWYG fields
-function idemailwiz_acf_wywiwyg_custom()
+function idemailwiz_acf_wysiwyg_custom()
 {
     // Remove curly quotes
     remove_filter('acf_the_content', 'wptexturize');
@@ -11,7 +11,7 @@ function idemailwiz_acf_wywiwyg_custom()
     //remove_filter('acf_the_content', 'wpautop');
 
 }
-add_action('init', 'idemailwiz_acf_wywiwyg_custom');
+add_action('init', 'idemailwiz_acf_wysiwyg_custom');
 
 
 

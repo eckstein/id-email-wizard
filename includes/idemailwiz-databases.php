@@ -417,6 +417,9 @@ function build_idwiz_query($args, $table_name)
 
     if ($table_name == $wpdb->prefix . 'idemailwiz_purchases') {
         $dateKey = 'purchaseDate';
+        $sql .= $wpdb->prepare(" AND shoppingCartItems_productCategory != %s", '17004');
+        $sql .= $wpdb->prepare(" AND shoppingCartItems_productCategory != %s", '17003');
+        $sql .= $wpdb->prepare(" AND shoppingCartItems_productCategory != %s", '17001');
     }
 
     foreach ($where_args as $key => $value) {

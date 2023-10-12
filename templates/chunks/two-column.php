@@ -157,7 +157,7 @@ switch ($layout) {
                                     <table role="presentation" width="400" border="0" cellpadding="0" cellspacing="0" align="<?php echo $layoutDirLeft; ?>" class="row" style="width:400px;max-width:400px;">
                                       <tr>
                                         <td align="center" valign="top">
-<?php echo $colLeft; ?>
+<?php echo idwiz_pReplace(wpautop($colLeft)); ?>
                                         </td>
                                       </tr>
                                     </table>
@@ -169,7 +169,7 @@ switch ($layout) {
                                     <table role="presentation" width="400" border="0" cellpadding="0" cellspacing="0" align="left" class="row" style="width:400px;max-width:400px;">
                                       <tr>
                                         <td align="center" valign="top">
-<?php echo $colRight; ?>
+<?php echo idwiz_pReplace(wpautop($colRight)); ?>
                                         </td>
                                       </tr>
                                     </table>

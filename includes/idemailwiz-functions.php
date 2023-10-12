@@ -1547,6 +1547,8 @@ function transfigure_purchases_by_product($purchases)
   return $data;
 }
 
+
+
 class RawHtml
 {
   private $html;
@@ -1561,6 +1563,62 @@ class RawHtml
     return $this->html;
   }
 }
+function group_first_and_repeat_purchases($purchases) {
+    $ordersGroupedByOrderId = [];
+    foreach ($purchases as $purchase) {
+        $orderId = $purchase['orderId'];
+        if (!isset($ordersGroupedByOrderId[$orderId])) {
+            $ordersGroupedByOrderId[$orderId] = [];
+        }
+        $ordersGroupedByOrderId[$orderId][] = $purchase;
+    }
+
+    $newOrdersCount = 0;
+    $returningOrdersCount = 0;
+    $processedCustomers = [];
+
+    foreach ($ordersGroupedByOrderId as $orderId => $orderPurchases) {
+        $firstPurchase = reset($orderPurchases);
+        $accountId = $firstPurchase['accountNumber'];
+
+        if (in_array($accountId, $processedCustomers)) {
+            continue;
+        }
+
+        $processedCustomers[] = $accountId;
+
+        $allCustomerPurchases = get_idwiz_purchases([
+            'fields' => 'accountNumber, orderId, purchaseDate',
+            'accountNumber' => $accountId
+        ]);
+
+        usort($allCustomerPurchases, function ($a, $b) {
+            return strcmp($a['purchaseDate'], $b['purchaseDate']);
+        });
+
+        $firstPurchaseDate = $allCustomerPurchases[0]['purchaseDate'];
+
+        if ($firstPurchase['purchaseDate'] == $firstPurchaseDate) {
+            $newOrdersCount++;
+        } else {
+            $returningOrdersCount++;
+        }
+    }
+
+    return [
+        'groupedPurchases' => $ordersGroupedByOrderId,
+        'counts' => [
+            'new' => $newOrdersCount,
+            'returning' => $returningOrdersCount
+        ]
+    ];
+}
+
+function return_new_and_returning_customers($purchases) {
+    $results = group_first_and_repeat_purchases($purchases);
+    return $results['counts'];
+}
+
 
 function get_orders_grouped_by_customers()
 {
