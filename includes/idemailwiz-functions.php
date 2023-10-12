@@ -336,7 +336,7 @@ function idemailwiz_generate_template_html()
 //Replaced <p> tags with <br/> tags
 function idwiz_pReplace($content)
 {
-  $content = preg_replace(array('/<p>/', '/<\/p>/'), array('<br>', '<br>'), $content);
+  $content = preg_replace(array('/<p>/', '/<\/p>/'), array('', '<br/>'), $content);
   return $content;
 }
 
