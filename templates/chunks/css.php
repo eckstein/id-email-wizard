@@ -93,7 +93,7 @@ $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
   }
 
   td ul li {
-    margin-bottom: 1em;
+    margin-bottom: .5em;
   }
 
   /*Outlook*/
