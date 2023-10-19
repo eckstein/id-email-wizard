@@ -193,8 +193,8 @@ $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
     }
 
     .id-button {
-      padding: 14px 40px;
-      font-size: 19px;
+      padding: 14px 30px;
+      font-size: 18px;
     }
   }
 
@@ -217,8 +217,8 @@ $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
 
 
     .id-button {
-      padding: 14px 20px;
-      font-size: 17px;
+      padding: 12px 14px;
+      font-size: 16px;
     }
 
     .items-row-wrapped tr td {
