@@ -84,7 +84,7 @@ $chunkSettings = $chunk['chunk_settings'];
                                                               <a target="_blank"
                                                                 class="id-button" 
                                                                 style="
-                                                                  font-size:19px;font-family:Poppins, sans-serif;line-height:24px;font-weight: bold;text-decoration:none;
+                                                                  font-family:Poppins, sans-serif;line-height:24px;font-weight: bold;text-decoration:none;
                                                                   display:inline-block;
                                                                   color:<?php echo $textColor; ?>;
                                                                   border-radius:<?php echo $borderRad; ?>;
