@@ -191,6 +191,10 @@ $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
         <?php echo $dtHeight; ?>
         !important;
     }
+
+    .id-button {
+      padding: 14px 40px;
+    }
   }
 
   /*Mobile Only Style*/
@@ -208,6 +212,11 @@ $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
     .hide-desktop {
       display: table !important;
       height: auto !important;
+    }
+
+
+    .id-button {
+      padding: 14px 20px;
     }
 
     .items-row-wrapped tr td {

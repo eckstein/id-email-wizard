@@ -82,10 +82,10 @@ $chunkSettings = $chunk['chunk_settings'];
                                                             <!--Button Content Start-->
                                                               <td align="center" bgcolor="<?php echo $bgColor; ?>" style="border-radius:<?php echo $borderRad; ?>; color:<?php echo $textColor; ?>;">
                                                               <a target="_blank"
-                                                                class="button-link" 
+                                                                class="id-button" 
                                                                 style="
                                                                   font-size:19px;font-family:Poppins, sans-serif;line-height:24px;font-weight: bold;text-decoration:none;
-                                                                  display:inline-block;padding:14px 20px;
+                                                                  display:inline-block;
                                                                   color:<?php echo $textColor; ?>;
                                                                   border-radius:<?php echo $borderRad; ?>;
                                                                   border:<?php echo $borderSize; ?> solid <?php echo $borderColor; ?>;
