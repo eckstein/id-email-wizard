@@ -85,7 +85,7 @@ $chunkSettings = $chunk['chunk_settings'];
                                                                 class="button-link" 
                                                                 style="
                                                                   font-size:19px;font-family:Poppins, sans-serif;line-height:24px;font-weight: bold;text-decoration:none;
-                                                                  display:inline-block;padding:14px 10vw;
+                                                                  display:inline-block;padding:14px 20px;
                                                                   color:<?php echo $textColor; ?>;
                                                                   border-radius:<?php echo $borderRad; ?>;
                                                                   border:<?php echo $borderSize; ?> solid <?php echo $borderColor; ?>;
