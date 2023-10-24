@@ -166,6 +166,9 @@ $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
     overflow: hidden;
     display: none;
   }
+   
+
+
 
   /*Responsive*/
   /*Hide and show mobile and desktop versions*/
@@ -196,6 +199,9 @@ $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
       padding: 14px 30px;
       font-size: 18px;
     }
+    .email-icon-cell {
+      width: 16.66%;
+    }
   }
 
   /*Mobile Only Style*/
@@ -220,7 +226,11 @@ $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
       padding: 12px 14px;
       font-size: 16px;
     }
-
+    .email-icon-cell {
+      width: 100%;
+      display: block;
+      box-sizing: border-box;
+    }
     .items-row-wrapped tr td {
     display: inline-block;
     width: 80px!important;
