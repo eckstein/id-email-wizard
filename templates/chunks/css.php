@@ -196,7 +196,7 @@ $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
     }
 
     .id-button {
-      padding: 14px 30px;
+      padding: 14px 22px;
       font-size: 18px;
     }
     .email-icon-cell {
@@ -223,7 +223,7 @@ $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
 
 
     .id-button {
-      padding: 12px 14px;
+      padding: 12px 16px;
       font-size: 16px;
     }
     .email-icon-cell {
