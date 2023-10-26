@@ -159,7 +159,7 @@ function inline_button($inlineButton=false) {
             <!--Button Content Start-->
                 <td align="center" bgcolor="<?php echo $bgColor; ?>" style="border-radius:<?php echo $borderRad; ?>; color:<?php echo $textColor; ?>;">
                 <a target="_blank"
-                class="button-link" 
+                class="id-button" 
                 style="
                     font-size:19px;font-family:Poppins, sans-serif;line-height:24px;font-weight: bold;text-decoration:none;
                     display:inline-block;
