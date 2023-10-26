@@ -227,8 +227,8 @@ $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
       font-size: 16px;
     }
     .email-icon-cell {
-      width: 100%;
-      display: block;
+      width: 50%;
+      display: inlne-block;
       box-sizing: border-box;
     }
     .items-row-wrapped tr td {
