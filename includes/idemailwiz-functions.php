@@ -202,14 +202,14 @@ function idemailwiz_mergemap()
     '{{{snippet "FirstName" "your child"}}}' => 'Garfield',
     '{{{snippet "FirstName" "Your child"}}}' => 'Garfield',
     '{{{snippet "FirstName" "Your Child"}}}' => 'Garfield',
-    '{{{snippet "pronoun" GenderCode "S"}}}' => 'he',
-    '{{{snippet "pronoun" GenderCode "O"}}}' => 'him',
-    '{{{snippet "pronoun" GenderCode "SP"}}}' => 'his',
-    '{{{snippet "pronoun" GenderCode "OP"}}}' => 'his',
-    '{{{snippet "Pronoun" GenderCode "S"}}}' => 'He',
-    '{{{snippet "Pronoun" GenderCode "O"}}}' => 'Him',
-    '{{{snippet "Pronoun" GenderCode "SP"}}}' => 'His',
-    '{{{snippet "Pronoun" GenderCode "OP"}}}' => 'His',
+    '{{{snippet "pronoun" "S"}}}' => 'he',
+    '{{{snippet "pronoun" "O"}}}' => 'him',
+    '{{{snippet "pronoun" "SP"}}}' => 'his',
+    '{{{snippet "pronoun" "OP"}}}' => 'his',
+    '{{{snippet "Pronoun" "S"}}}' => 'He',
+    '{{{snippet "Pronoun" "O"}}}' => 'Him',
+    '{{{snippet "Pronoun" "SP"}}}' => 'His',
+    '{{{snippet "Pronoun" "OP"}}}' => 'His',
   );
 
   return $mergeMapping;
@@ -386,7 +386,6 @@ function convert_keys_to_names($array)
     } else {
       $new_value = $value;
     }
-
     $new_array[$new_key] = $new_value;
   }
   return $new_array;
@@ -396,108 +395,174 @@ function convert_keys_to_names($array)
 
 
 //Add chunk element content to the acf layout chunk title area for easy IDing of content
+const CHUNK_PREVIEW_STYLE = 'font-weight:300; font-size: 12px;color: #666;';
+const CHUNK_PREVIEW_IMAGE_STYLE = 'max-width: 60px;';
+
 function id_filter_acf_chunk_title($title, $field, $layout, $i)
 {
-  // Only modify title for specific layout
-  if ($layout['name'] === 'full_width_image' || $layout['name'] === 'contained_image') {
-    $image_url = get_sub_field('desktop_image_url', $layout['key']);
-    if ($image_url) {
-      if (!empty($image_url)) {
-        $title = $title . '&nbsp;&nbsp;<img style="max-width: 60px;" src="' . $image_url . '"/>';
-      }
-    }
-  } else if ($layout['name'] === 'two-column' || $layout['name'] === 'two-column-contained') {
-    $twoColSettings = get_sub_field('chunk_settings');
-    if ($twoColSettings) { //make sure this field has saved settings		
-      $twoColLayout = $twoColSettings['layout'];
-      $leftImage = get_sub_field('left_image', $layout['key']);
-      $leftImageURL = $leftImage['left_image_url'];
-      $leftContent = get_sub_field('left_text', $layout['key']);
-      $leftText = $leftContent['text_content'] ?? '';
-      $firstFiveLeft = strip_tags(implode(" ", array_slice(explode(" ", html_entity_decode($leftText)), 0, 10))) . '...';
-      $rightImage = get_sub_field('right_image', $layout['key']);
-      $rightImageUrl = $rightImage['right_image_url'];
-      $rightContent = get_sub_field('right_text', $layout['key']);
-      $rightText = $rightContent['text_content'] ?? '';
-      $firstFiveRight = strip_tags(implode(" ", array_slice(explode(" ", html_entity_decode($rightText)), 0, 10))) . '...';
-      if ($twoColLayout == 'ltr') {
-        $title = $title . '&nbsp;&nbsp;<img style="max-width: 60px;" src="' . $leftImageURL . '"/>';
-        $title = $title . '  <span style="font-weight:300; font-size: 12px;color: #666;">' . $firstFiveRight . '</span>';
-      } else if ($twoColLayout == 'rtl') {
-        $title = $title . '&nbsp;&nbsp;<span style="font-weight:300; font-size: 12px;color: #666;">' . $firstFiveLeft . '</span>';
-        $title = $title . '  <img style="max-width: 60px;" src="' . $rightImageUrl . '"/>';
-      } else if ($twoColLayout == 'txt') {
-        $title = $title . '&nbsp;&nbsp;<span style="font-weight:300; font-size: 12px;color: #666;">' . $firstFiveLeft . '</span>';
-        $title = $title . '  <span style="font-weight:300; font-size: 12px;color: #666;">' . $firstFiveRight . '</span>';
-      } else if ($twoColLayout == 'img') {
-        $title = $title . '&nbsp;&nbsp;<img style="max-width: 60px;" src="' . $leftImageURL . '"/>';
-        $title = $title . '  <img style="max-width: 60px;" src="' . $rightImageUrl . '"/>';
-      }
-    }
-  } else if ($layout['name'] === 'three-column') {
-    $threeColSettings = get_sub_field('chunk_settings');
-    if ($threeColSettings) { //make sure this field has saved settings	
-      $leftContent = get_sub_field('left_content');
-      $Ltype = $leftContent['content_type'];
-      if ($Ltype == 'text') {
-        $Ltext = $leftContent['left_text'];
-        $LtextAlign = $Ltext['align'];
-        $LtextColor = $Ltext['text_color'];
-        $LtextContent = $Ltext['text_content'];
-        $title = $title . '&nbsp;&nbsp;<span style="font-weight:300; font-size: 12px;color: #666;">' . strip_tags(implode(" ", array_slice(explode(" ", html_entity_decode($LtextContent)), 0, 5))) . '...</span>';
-      } else {
-        $Limage = $leftContent['left_image'];
-        $LimageSrc = $Limage['left_image_url'];
-        $LimageLink = $Limage['left_image_link'];
-        $LimageAlt = $Limage['left_image_alt'];
-        $title = $title . '&nbsp;&nbsp;<img style="max-width: 60px;" src="' . $LimageSrc . '"/>';
-      }
-      $middleContent = get_sub_field('middle_content');
-      $Mtype = $middleContent['content_type'];
-      if ($Mtype == 'text') {
-        $Mtext = $middleContent['middle_text'];
-        $MtextAlign = $Mtext['align'];
-        $MtextColor = $Mtext['text_color'];
-        $MtextContent = $Mtext['text_content'];
-        $title = $title . '&nbsp;&nbsp;<span style="font-weight:300; font-size: 12px;color: #666;">' . strip_tags(implode(" ", array_slice(explode(" ", html_entity_decode($MtextContent)), 0, 5))) . '...</span>';
-      } else {
-        $Mimage = $middleContent['middle_image'];
-        $MimageSrc = $Mimage['middle_image_url'];
-        $MimageMink = $Mimage['middle_image_link'];
-        $MimageAlt = $Mimage['middle_image_alt'];
-        $title = $title . '&nbsp;&nbsp;<img style="max-width: 60px;" src="' . $MimageSrc . '"/>';
-      }
-      $rightContent = get_sub_field('right_content');
-      $Rtype = $rightContent['content_type'];
-      if ($Rtype == 'text') {
-        $Rtext = $rightContent['right_text'];
-        $RtextAlign = $Rtext['align'];
-        $RtextColor = $Rtext['text_color'];
-        $RtextContent = $Rtext['text_content'];
-        $title = $title . '&nbsp;&nbsp;<span style="font-weight:300; font-size: 12px;color: #666;">' . strip_tags(implode(" ", array_slice(explode(" ", html_entity_decode($RtextContent)), 0, 5))) . '...</span>';
-      } else {
-        $Rimage = $rightContent['right_image'];
-        $RimageSrc = $Rimage['right_image_url'];
-        $RimageRink = $Rimage['right_image_link'];
-        $RimageAlt = $Rimage['right_image_alt'];
-        $title = $title . '&nbsp;&nbsp;<img style="max-width: 60px;" src="' . $RimageSrc . '"/>';
-      }
-    }
-  } else if ($layout['name'] === 'plain_text') {
-    $plainText = get_sub_field('plain_text_content', $layout['key']);
-    if (isset($plainText)) {
-      $textContent = strip_tags(implode(" ", array_slice(explode(" ", html_entity_decode($plainText)), 0, 10))) . '...';
-      $title = $title . '&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-weight:300; font-size: 12px;color: #666;">' . $textContent . '</span>';
-    }
-  } else if ($layout['name'] === 'button') {
-    $buttonCTA = get_sub_field('cta_text', $layout['key']);
-    if ($buttonCTA) {
-      $title = $title . '&nbsp;&nbsp;<button class="wiz-button gray">' . $buttonCTA . '</button>';
-    }
+  switch ($layout['name']) {
+    case 'full_width_image':
+    case 'contained_image':
+      $title = handleImageLayout($title, $layout);
+      break;
+    case 'two-column':
+    case 'two-column-contained':
+      $title = handleTwoColumnLayout($title, $layout);
+      break;
+    case 'three-column':
+      $title = handleThreeColumnLayout($title);
+      break;
+    case 'plain_text':
+      $title = handlePlainTextLayout($title, $layout);
+      break;
+    case 'button':
+      $title = handleButtonLayout($title, $layout);
+      break;
+    case 'spacer':
+      $title = handleSpacerLayout($title, $layout);
+      break;
   }
 
   return $title;
 }
+
+function handleSpacerLayout($title, $layout)
+{
+  $spacerSettings = get_sub_field('chunk_settings');
+  $spacerHeight = get_sub_field('spacer_height');
+  $visibility = getChunkVisibility($spacerSettings);
+  $title .= "&nbsp;&nbsp;<span style='" . CHUNK_PREVIEW_STYLE . "'>{$spacerHeight}</span><div style='float: right; padding-right: 100px;'>&nbsp;&nbsp;<span style='" . CHUNK_PREVIEW_STYLE . "'>{$visibility}</span></div>";
+  return $title;
+}
+function handleImageLayout($title, $layout)
+{
+  $image_url = get_sub_field('desktop_image_url', $layout['key']);
+  if (!empty($image_url)) {
+    $title .= "&nbsp;&nbsp;<img style='" . CHUNK_PREVIEW_IMAGE_STYLE . "' src='{$image_url}'/>";
+  }
+  return $title;
+}
+
+function getChunkVisibility($chunkSettings)
+{
+  $mobileVisible = isset($chunkSettings['mobile_visibility']) && $chunkSettings['mobile_visibility'];
+  $desktopVisible = isset($chunkSettings['desktop_visibility']) && $chunkSettings['desktop_visibility'];
+
+  if ($mobileVisible && $desktopVisible) {
+    return "<i class='fa-solid fa-desktop'></i>&nbsp;&nbsp;<i class='fa-solid fa-mobile-screen'></i>";
+  } elseif ($mobileVisible) {
+    return "<i class='fa-solid fa-mobile-screen'></i>";
+  } elseif ($desktopVisible) {
+    return "<i class='fa-solid fa-desktop active'></i>";
+  } else {
+    return ""; // In case both are off, though it's unlikely based on your description
+  }
+}
+
+
+
+function handleTwoColumnLayout($title, $layout)
+{
+  $twoColSettings = get_sub_field('chunk_settings');
+  if ($twoColSettings) {
+    $twoColLayout = $twoColSettings['layout'];
+    $visibility = getChunkVisibility($twoColSettings);
+
+    $leftTextPreview = getPreviewText('left_text', $layout, 10);
+    $rightTextPreview = getPreviewText('right_text', $layout, 10);
+    $leftImageURL = getImageURL('left_image', $layout);
+    $rightImageUrl = getImageURL('right_image', $layout);
+
+    switch ($twoColLayout) {
+      case 'ltr':
+        $title .= "&nbsp;&nbsp;<img style='" . CHUNK_PREVIEW_IMAGE_STYLE . "' src='{$leftImageURL}'/>";
+        $title .= "  <span style='" . CHUNK_PREVIEW_STYLE . "'>{$rightTextPreview}</span>";
+        break;
+      case 'rtl':
+        $title .= "&nbsp;&nbsp;<span style='" . CHUNK_PREVIEW_STYLE . "'>{$leftTextPreview}</span>";
+        $title .= "  <img style='" . CHUNK_PREVIEW_IMAGE_STYLE . "' src='{$rightImageUrl}'/>";
+        break;
+      case 'txt':
+        $title .= "&nbsp;&nbsp;<span style='" . CHUNK_PREVIEW_STYLE . "'>{$leftTextPreview}</span>";
+        $title .= "  <span style='" . CHUNK_PREVIEW_STYLE . "'>{$rightTextPreview}</span>";
+        break;
+      case 'img':
+        $title .= "&nbsp;&nbsp;<img style='" . CHUNK_PREVIEW_IMAGE_STYLE . "' src='{$leftImageURL}'/>";
+        $title .= "  <img style='" . CHUNK_PREVIEW_IMAGE_STYLE . "' src='{$rightImageUrl}'/>";
+        break;
+    }
+    $title .= "<div style='float: right; padding-right: 100px;'>&nbsp;&nbsp;<span style='" . CHUNK_PREVIEW_STYLE . "'>{$visibility}</span></div>";
+  }
+  return $title;
+}
+
+function handleThreeColumnLayout($title)
+{
+  $threeColSettings = get_sub_field('chunk_settings');
+  $visibility = getChunkVisibility($threeColSettings);
+  if ($threeColSettings) {
+    foreach (['left', 'middle', 'right'] as $position) {
+      $content = get_sub_field("{$position}_content");
+      $type = $content['content_type'];
+
+      if ($type === 'text') {
+        $textContent = $content["{$position}_text"]['text_content'];
+        $previewText = getPreviewTextFromPlain($textContent, 5);
+        $title .= "&nbsp;&nbsp;<span style='" . CHUNK_PREVIEW_STYLE . "'>{$previewText}</span>";
+      } else {
+        $imageSrc = $content["{$position}_image"]["{$position}_image_url"];
+        $title .= "&nbsp;&nbsp;<img style='" . CHUNK_PREVIEW_IMAGE_STYLE . "' src='{$imageSrc}'/>";
+      }
+    }
+  }
+  $title .= "<div style='float: right; padding-right: 100px;'>&nbsp;&nbsp;<span style='" . CHUNK_PREVIEW_STYLE . "'>{$visibility}</span></div>";
+  return $title;
+}
+
+
+function handlePlainTextLayout($title, $layout)
+{
+  $plainText = get_sub_field('plain_text_content', $layout['key']);
+  $plainTextSettings = get_sub_field('chunk_settings');
+  $visibility = getChunkVisibility($plainTextSettings);
+  if (isset($plainText)) {
+    $textContent = getPreviewTextFromPlain($plainText, 10);
+    $title .= stripslashes("&nbsp;&nbsp;&nbsp;&nbsp;<span style='" . CHUNK_PREVIEW_STYLE . "'>{$textContent}</span>");
+  }
+  $title .= "<div style='float: right; padding-right: 100px;'>&nbsp;&nbsp;<span style='" . CHUNK_PREVIEW_STYLE . "'>{$visibility}</span></div>";
+  return $title;
+}
+
+function handleButtonLayout($title, $layout)
+{
+  $buttonCTA = get_sub_field('cta_text', $layout['key']);
+  $buttonSettings = get_sub_field('chunk_settings');
+  $visibility = getChunkVisibility($buttonSettings);
+  if ($buttonCTA) {
+    $title .= "&nbsp;&nbsp;<button class='wiz-button gray' style='border-radius: 2em;'>{$buttonCTA}</button>";
+  }
+  $title .= "<div style='float: right; padding-right: 100px;'>&nbsp;&nbsp;<span style='" . CHUNK_PREVIEW_STYLE . "'>{$visibility}</span></div>";
+  return $title;
+}
+
+function getPreviewText($fieldName, $layout, $wordCount)
+{
+  $content = get_sub_field($fieldName, $layout['key']);
+  $text = $content['text_content'] ?? '';
+  return strip_tags(implode(" ", array_slice(explode(" ", html_entity_decode($text)), 0, $wordCount))) . '...';
+}
+
+function getImageURL($fieldName, $layout)
+{
+  $image = get_sub_field($fieldName, $layout['key']);
+  return $image[$fieldName . '_url'];
+}
+
+function getPreviewTextFromPlain($plainText, $wordCount)
+{
+  return strip_tags(implode(" ", array_slice(explode(" ", html_entity_decode($plainText)), 0, $wordCount))) . '...';
+}
+
 
 add_filter('acf/fields/flexible_content/layout_title', 'id_filter_acf_chunk_title', 10, 4);
 
@@ -604,26 +669,19 @@ function idwiz_extract_campaigns_images($campaignIds = [])
 
 function idwiz_generate_dynamic_rollup()
 {
-  if (!isset($_POST['campaignIds'])) {
-    return;
-  }
-  $syncButton = false;
-  if (isset($_POST['syncButton']) && $_POST['syncButton'] != false) {
-    $syncButton = true;
-  }
+
+
   $fields = $_POST['fields'] ?? array();
-  echo generate_idwiz_rollup_row($_POST['campaignIds'], $fields, $syncButton);
+  if (isset($_POST['campaignIds'])) {
+    echo generate_campaigns_table_rollup_row($_POST['campaignIds'], $fields);
+  }
   wp_die();
 }
 
 add_action('wp_ajax_idwiz_generate_dynamic_rollup', 'idwiz_generate_dynamic_rollup');
 
-function generate_idwiz_rollup_row($campaignIds, $fields, $syncButton = false)
+function generate_campaigns_table_rollup_row($campaignIds, $fields)
 {
-  if (!$campaignIds) {
-    return false;
-  }
-
   // Use the aggregate function to get the processed metrics
   $aggregatedMetrics = idemailwiz_calculate_aggregate_metrics($campaignIds);
 
@@ -631,21 +689,121 @@ function generate_idwiz_rollup_row($campaignIds, $fields, $syncButton = false)
 
   // Initialize $displayMetrics based on the order of $fields
   foreach ($fields as $column => $info) {
-    if (array_key_exists($column, $aggregatedMetrics) || isset($fields[$column])) {
-      $value = array_key_exists($column, $aggregatedMetrics) ? $aggregatedMetrics[$column] : 0;
+    if (array_key_exists($column, $aggregatedMetrics)) {
+      $value = $aggregatedMetrics[$column];
+      // Skip the formatting function if the value is 0 or null
+      $formattedValue = ($value !== 0 && $value !== null) ? idwiz_format_rollup_row_values($value, $info['format']) : '-';
+      $displayMetrics[] = [
+        'label' => $info['label'],
+        'value' => $formattedValue,
+        'format' => $info['format'] // valid values are num, perc, and money
+      ];
+    }
+  }
+
+  $html = '<div class="wiztable_view_metrics_div" id="campaigns-table-rollup">';
+  foreach ($displayMetrics as $metric) {
+    $html .= '<div class="metric-item">';
+    $html .= "<span class='metric-label'>{$metric['label']}</span>";
+    $html .= "<span class='metric-value'>{$metric['value']}</span>";
+    $html .= '</div>'; // End of metric-item
+  }
+  $html .= '</div>'; // End of wiztable_view_metrics_div
+
+  return $html;
+}
+
+
+
+
+function generate_single_campaign_rollup_row($campaign, $fields, $startDate = null, $endDate = null)
+{
+  $campaignMetrics = get_idwiz_metric($campaign['id']);
+
+  $triggeredArgs = [
+    'campaignIds' => [$campaign['id']],
+  ];
+
+  $purchaseArgs = [
+    'ids' => [$campaign['id']],
+  ];
+
+  if ($campaign['type'] == 'Triggered') {
+    if ($startDate || $endDate) {
+      if ($startDate) {
+        $purchaseArgs['startAt_start'] = $startDate;
+        $triggeredArgs['startAt_start'] = $startDate;
+      }
+      if ($endDate) {
+        $purchaseArgs['startAt_end'] = $endDate;
+        $triggeredArgs['startAt_end'] = $endDate;
+      }
+    }
+
+    $triggeredSendData = get_idemailwiz_triggered_data('idemailwiz_triggered_sends', $triggeredArgs);
+    $triggeredOpenData = get_idemailwiz_triggered_data('idemailwiz_triggered_opens', $triggeredArgs);
+    $triggeredClickData = get_idemailwiz_triggered_data('idemailwiz_triggered_clicks', $triggeredArgs);
+
+    $totalSends = count($triggeredSendData);
+    $totalOpens = count($triggeredOpenData);
+    $totalClicks = count($triggeredClickData);
+
+    $openRate = ($totalSends > 0) ? ($totalOpens / $totalSends) * 100 : 0;
+    $ctr = ($totalSends > 0) ? ($totalClicks / $totalSends) : 0;
+    $cto = ($totalOpens > 0) ? ($totalClicks / $totalOpens) : 0;
+    $cto = ($totalOpens > 0) ? ($totalClicks / $totalOpens) : 0;
+  }
+
+  // Get true revenue from purchase DB (for both triggered and blast)
+  $campaignPurchases = get_idwiz_purchases($purchaseArgs);
+
+  $campaignRevenue = 0;
+  foreach ($campaignPurchases as $purchase) {
+    $campaignRevenue += $purchase['total']; // Corrected the revenue calculation
+  }
+
+  $displayMetrics = [];
+
+  foreach ($fields as $column => $info) {
+    if (array_key_exists($column, $campaignMetrics) || isset($fields[$column])) {
+      $value = array_key_exists($column, $campaignMetrics) ? $campaignMetrics[$column] : 0;
+
+      // Set custom values for 'Triggered' campaigns
+      if ($campaign['type'] == 'Triggered') {
+        if ($column == 'uniqueEmailSends')
+          $value = $totalSends;
+        if ($column == 'uniqueEmailsDelivered')
+          $value = 0;
+        if ($column == 'wizDeliveryRate')
+          $value = 0;
+        if ($column == 'uniqueEmailOpens')
+          $value = $totalOpens;
+        if ($column == 'uniqueEmailClicks')
+          $value = $totalClicks;
+        if ($column == 'wizOpenRate')
+          $value = $openRate;
+        if ($column == 'wizCtr')
+          $value = $ctr;
+        if ($column == 'wizCto')
+          $value = $cto;
+        if ($column == 'uniqueUnsubscribes')
+          $value = 0;
+        if ($column == 'wizUnsubRate')
+          $value = 0;
+        if ($column == 'uniquePurchases')
+          $value = count($campaignPurchases);
+      }
+
+      if ($column == 'revenue') {
+        $value = $campaignRevenue;
+      }
+
       $displayMetrics[] = [
         'label' => $info['label'],
         'value' => $value,
         'format' => $info['format'] // valid values are num, perc, and money
       ];
     }
-  }
-  if ($syncButton) {
-    $displayMetrics[] = [
-      'label' => 'Sync',
-      'value' => $syncButton,
-      'format' => false
-    ];
   }
 
   $html = '';
@@ -659,9 +817,9 @@ function generate_idwiz_rollup_row($campaignIds, $fields, $syncButton = false)
   }
   $html .= '</div>'; // End of wiztable_view_metrics_div
 
-
   return $html;
 }
+
 
 
 
@@ -926,23 +1084,20 @@ function generate_mini_table(
   string $tableClass = '',
   string $scrollWrapClass = ''
 ) {
-  // Table with sticky header
-  echo '<table class="wizcampaign-tiny-table-sticky-header">';
-  echo '<thead><tr>';
-  foreach ($headers as $col => $width) {
-    echo '<th width="' . $width . '">' . $col . '</th>';
-  }
-  echo '</tr></thead>';
-  echo '</table>';
-
-  // Scroll wrap and main table
-  echo '<div class="wizcampaign-section-scrollwrap ' . $scrollWrapClass . '">';
-  echo '<table class="wizcampaign-tiny-table ' . $tableClass . '">';
-  echo '<tbody>';
-
   if (empty($data)) {
-    echo '<tr><td class="wizsection-error-message" colspan="' . count($headers) . '">No data available</td></tr>';
+    echo 'No data available';
   } else {
+    // Table with sticky header
+    echo '<table class="wizcampaign-tiny-table ' . $tableClass . '">';
+    echo '<thead><tr>';
+    foreach ($headers as $col => $width) {
+      echo '<th width="' . $width . '">' . $col . '</th>';
+    }
+    echo '</tr></thead>';
+
+    echo '<tbody>';
+
+
     // Table rows
     foreach ($data as $row) {
       echo '<tr>';
@@ -957,7 +1112,6 @@ function generate_mini_table(
 
   echo '</tbody>';
   echo '</table>';
-  echo '</div>'; // End scroll wrap
 }
 
 
@@ -1034,50 +1188,10 @@ function prepare_promo_code_summary_data($purchases)
 
 
 
-function get_idemailwiz_triggered_sends($args = [])
-{
-  global $wpdb;
-
-  // Initialize query components
-  $where_clauses = [];
-  $query_params = [];
-
-  // Check if campaignIds are provided
-  if (isset($args['campaignIds']) && is_array($args['campaignIds']) && !empty($args['campaignIds'])) {
-    $placeholders = array_fill(0, count($args['campaignIds']), '%d');
-    $where_clauses[] = "campaignId IN (" . implode(", ", $placeholders) . ")";
-    $query_params = array_merge($query_params, $args['campaignIds']);
-  }
-
-  // Check if startAt_start is provided
-  if (isset($args['startAt_start'])) {
-    $where_clauses[] = "startAt >= %d";
-    $query_params[] = $args['startAt_start'];
-  }
-
-  // Check if startAt_end is provided
-  if (isset($args['startAt_end'])) {
-    $where_clauses[] = "startAt <= %d";
-    $query_params[] = $args['startAt_end'];
-  }
-
-  // Construct the SQL query
-  $sql = "SELECT * FROM " . $wpdb->prefix . "idemailwiz_triggered_sends";
-  if (!empty($where_clauses)) {
-    $sql .= " WHERE " . implode(" AND ", $where_clauses);
-  }
-
-  // Prepare the SQL query with parameters
-  $prepared_sql = $wpdb->prepare($sql, $query_params);
-
-  // Execute the query and fetch results
-  $results = $wpdb->get_results($prepared_sql, ARRAY_A);
-
-  return $results;
-}
 
 
-function get_wizcampaigns_metric_rate($campaignIds, $metricType, $startDate = null, $endDate = null)
+
+function get_metricsTower_rate($campaignIds, $metricType, $startDate = null, $endDate = null, $campaignTypes = ['Blast', 'Triggered'])
 {
   // Check if $campaignIds is a valid array
   if (!is_array($campaignIds) || empty($campaignIds)) {
@@ -1096,7 +1210,8 @@ function get_wizcampaigns_metric_rate($campaignIds, $metricType, $startDate = nu
   $metricConfig = [
     'sends' => ['field' => 'uniqueEmailSends', 'divisor' => null],
     'delRate' => ['field' => 'uniqueEmailsDelivered', 'divisor' => 'uniqueEmailSends'],
-    'opens' => ['field' => 'uniqueEmailOpens', 'divisor' => 'totalEmailSends'],
+    'opens' => ['field' => 'uniqueEmailOpens', 'divisor' => null],
+    'openRate' => ['field' => 'uniqueEmailOpens', 'divisor' => 'totalEmailSends'],
     'clicks' => ['field' => 'uniqueEmailClicks', 'divisor' => null],
     'ctr' => ['field' => 'uniqueEmailClicks', 'divisor' => 'totalEmailSends'],
     'cto' => ['field' => 'uniqueEmailClicks', 'divisor' => 'uniqueEmailOpens'],
@@ -1113,20 +1228,33 @@ function get_wizcampaigns_metric_rate($campaignIds, $metricType, $startDate = nu
     return 'Invalid Metric Type';
   }
 
-  // if ($metricType == 'revenue') {
-  // if ($startDate && $endDate) {
-  //   return get_idwiz_revenue($startDate, $endDate, ['Triggered', 'Blast'], false);
-  //  } else {
-  //   return 'Start date and end date required for revenue metrics';
-  //}
-  //}
 
-  if ($metricType == 'gaRevenue') {
+  if ($metricType == 'revenue') {
     if ($startDate && $endDate) {
-      return get_idwiz_revenue($startDate, $endDate, ['Triggered', 'Blast'], true);
+      return get_idwiz_revenue($startDate, $endDate, $campaignTypes, false);
     } else {
       return 'Start date and end date required for revenue metrics';
     }
+  }
+
+  if ($metricType == 'gaRevenue') {
+    if ($startDate && $endDate) {
+      return get_idwiz_revenue($startDate, $endDate, $campaignTypes, true);
+    } else {
+      return 'Start date and end date required for revenue metrics';
+    }
+  }
+
+  if ($metricType == 'purchases') {
+    // If 'Triggered' campaign type is included, count them as well
+    $purchasesOptions = [
+      'startDate' => $startDate,
+      'endDate' => $endDate,
+      'campaignTypes' => $campaignTypes
+    ];
+    $allPurchases = idwiz_find_matching_purchases($purchasesOptions);
+
+    return number_format(count($allPurchases), 0);
   }
 
   $dbField = $metricConfig[$metricType]['field'];
@@ -1156,69 +1284,10 @@ function get_wizcampaigns_metric_rate($campaignIds, $metricType, $startDate = nu
 
   return $allDbField;
 }
+
 function parse_idwiz_metric_rate($rate)
 {
   return floatval(str_replace(['%', ',', '$'], '', $rate));
-}
-
-
-function get_monthly_dashboard_rollup_row($campaignIds)
-{
-  return generate_idwiz_rollup_row(
-    $campaignIds,
-    array(
-      'uniqueEmailSends' => array(
-        'label' => 'Sends',
-        'format' => 'num',
-      ),
-      'wizDeliveryRate' => array(
-        'label' => 'Delivery Rate',
-        'format' => 'perc',
-      ),
-      'uniqueEmailOpens' => array(
-        'label' => 'Opens',
-        'format' => 'num',
-      ),
-      'wizOpenRate' => array(
-        'label' => 'Open Rate',
-        'format' => 'perc',
-      ),
-      'uniqueEmailClicks' => array(
-        'label' => 'Clicks',
-        'format' => 'num',
-      ),
-      'wizCtr' => array(
-        'label' => 'CTR',
-        'format' => 'perc',
-      ),
-      'wizCto' => array(
-        'label' => 'CTO',
-        'format' => 'perc',
-      ),
-      'uniquePurchases' => array(
-        'label' => 'Purchases',
-        'format' => 'num',
-      ),
-      'revenue' => array(
-        'label' => 'Dir. Rev.',
-        'format' => 'money',
-      ),
-      'gaRevenue' => array(
-        'label' => 'GA Rev.',
-        'format' => 'money',
-      ),
-      'wizCvr' => array(
-        'label' => 'CVR.',
-        'format' => 'perc',
-      ),
-      'wizAov' => array(
-        'label' => 'AOV.',
-        'format' => 'money',
-      ),
-
-    ),
-
-  );
 }
 
 
@@ -1238,7 +1307,7 @@ function get_idwiz_revenue($startDate, $endDate, $campaignTypes = ['Triggered', 
     }
     $revenue = array_sum(array_column($purchases, 'revenue'));
   } else {
-    $purchaseArgs = ['startAt_start' => $startDate, 'startAt_end' => $endDate, 'fields' => 'id,campaignId,purchaseDate,total'];
+    $purchaseArgs = ['startAt_start' => $startDate, 'startAt_end' => $endDate, 'shoppingCartItems_utmMedium' => 'email', 'fields' => 'id,campaignId,purchaseDate,total'];
     $purchases = get_idwiz_purchases($purchaseArgs);
 
     if (!$purchases) {
@@ -1255,24 +1324,35 @@ function get_idwiz_revenue($startDate, $endDate, $campaignTypes = ['Triggered', 
         continue;
       }
 
-      if (!in_array($purchase['campaignId'], $wizCampaignIds)) {
-        continue;
-      }
+      //if (!in_array($purchase['campaignId'], $wizCampaignIds)) {
+        //continue;
+     // }
+
+     if (!isset($purchase['campaignId'])) {
+      continue;
+     }
 
       $wizCampaign = get_idwiz_campaign($purchase['campaignId']);
+
+      if (!$wizCampaign) {
+        continue;
+      }
 
       if (!in_array($wizCampaign['type'], $campaignTypes)) {
         continue;
       }
 
-      $wizAttributionLength = get_field('attribution_length', 'options');
-      $attributeUntil = strtotime(date('Y-m-d', strtotime(date('Y-m-d', $wizCampaign['startAt'] / 1000) . ' +' . $wizAttributionLength . 'days')));
-      $purchaseDate = strtotime(date('Y-m-d', strtotime($purchase['purchaseDate'])));
+      // $wizAttributionLength = get_field('attribution_length', 'options');
+      // $attributeUntil = strtotime(date('Y-m-d', strtotime(date('Y-m-d', $wizCampaign['startAt'] / 1000) . ' +' . $wizAttributionLength . 'days')));
+      // $purchaseDate = strtotime(date('Y-m-d', strtotime($purchase['purchaseDate'])));
 
-      if ($purchaseDate <= $attributeUntil) {
-        $revenue += $purchase['total'];
-        $uniqueIds[] = $purchase['id'];
-      }
+      // if ($purchaseDate <= $attributeUntil) {
+      //   $revenue += $purchase['total'];
+      //   $uniqueIds[] = $purchase['id'];
+      // }
+
+      $revenue += $purchase['total'];
+      $uniqueIds[] = $purchase['id'];
     }
   }
 
@@ -1330,8 +1410,6 @@ function handle_experiment_winner_toggle()
   global $wpdb;
   $table_name = $wpdb->prefix . 'idemailwiz_experiments';
 
-  // Log POST data for debugging
-  error_log('POST data: ' . print_r($_POST, true));
 
   // Security checks and validation
   if (!check_ajax_referer('wiz-metrics', 'security', false)) {
@@ -1563,60 +1641,62 @@ class RawHtml
     return $this->html;
   }
 }
-function group_first_and_repeat_purchases($purchases) {
-    $ordersGroupedByOrderId = [];
-    foreach ($purchases as $purchase) {
-        $orderId = $purchase['orderId'];
-        if (!isset($ordersGroupedByOrderId[$orderId])) {
-            $ordersGroupedByOrderId[$orderId] = [];
-        }
-        $ordersGroupedByOrderId[$orderId][] = $purchase;
+function group_first_and_repeat_purchases($purchases)
+{
+  $ordersGroupedByOrderId = [];
+  foreach ($purchases as $purchase) {
+    $orderId = $purchase['orderId'];
+    if (!isset($ordersGroupedByOrderId[$orderId])) {
+      $ordersGroupedByOrderId[$orderId] = [];
+    }
+    $ordersGroupedByOrderId[$orderId][] = $purchase;
+  }
+
+  $newOrdersCount = 0;
+  $returningOrdersCount = 0;
+  $processedCustomers = [];
+
+  foreach ($ordersGroupedByOrderId as $orderId => $orderPurchases) {
+    $firstPurchase = reset($orderPurchases);
+    $accountId = $firstPurchase['accountNumber'];
+
+    if (in_array($accountId, $processedCustomers)) {
+      continue;
     }
 
-    $newOrdersCount = 0;
-    $returningOrdersCount = 0;
-    $processedCustomers = [];
+    $processedCustomers[] = $accountId;
 
-    foreach ($ordersGroupedByOrderId as $orderId => $orderPurchases) {
-        $firstPurchase = reset($orderPurchases);
-        $accountId = $firstPurchase['accountNumber'];
+    $allCustomerPurchases = get_idwiz_purchases([
+      'fields' => 'accountNumber, orderId, purchaseDate',
+      'accountNumber' => $accountId
+    ]);
 
-        if (in_array($accountId, $processedCustomers)) {
-            continue;
-        }
+    usort($allCustomerPurchases, function ($a, $b) {
+      return strcmp($a['purchaseDate'], $b['purchaseDate']);
+    });
 
-        $processedCustomers[] = $accountId;
+    $firstPurchaseDate = $allCustomerPurchases[0]['purchaseDate'];
 
-        $allCustomerPurchases = get_idwiz_purchases([
-            'fields' => 'accountNumber, orderId, purchaseDate',
-            'accountNumber' => $accountId
-        ]);
-
-        usort($allCustomerPurchases, function ($a, $b) {
-            return strcmp($a['purchaseDate'], $b['purchaseDate']);
-        });
-
-        $firstPurchaseDate = $allCustomerPurchases[0]['purchaseDate'];
-
-        if ($firstPurchase['purchaseDate'] == $firstPurchaseDate) {
-            $newOrdersCount++;
-        } else {
-            $returningOrdersCount++;
-        }
+    if ($firstPurchase['purchaseDate'] == $firstPurchaseDate) {
+      $newOrdersCount++;
+    } else {
+      $returningOrdersCount++;
     }
+  }
 
-    return [
-        'groupedPurchases' => $ordersGroupedByOrderId,
-        'counts' => [
-            'new' => $newOrdersCount,
-            'returning' => $returningOrdersCount
-        ]
-    ];
+  return [
+    'groupedPurchases' => $ordersGroupedByOrderId,
+    'counts' => [
+      'new' => $newOrdersCount,
+      'returning' => $returningOrdersCount
+    ]
+  ];
 }
 
-function return_new_and_returning_customers($purchases) {
-    $results = group_first_and_repeat_purchases($purchases);
-    return $results['counts'];
+function return_new_and_returning_customers($purchases)
+{
+  $results = group_first_and_repeat_purchases($purchases);
+  return $results['counts'];
 }
 
 
@@ -1647,99 +1727,109 @@ function get_orders_grouped_by_customers()
 
   return $grouped_orders;
 }
-function get_campaigns_with_most_returning_customers($campaigns) {
-    $campaignsCount = [];
+function get_campaigns_with_most_returning_customers($campaigns)
+{
+  $campaignsCount = [];
 
-    foreach ($campaigns as $campaign) {
-        $campaignId = $campaign['id'];
-        $purchasesForCampaign = get_idwiz_purchases(['ids' => [$campaignId], 'fields' => 'campaignId,orderId,accountNumber,purchaseDate']);
-        
-        $customerCounts = return_new_and_returning_customers($purchasesForCampaign);
+  foreach ($campaigns as $campaign) {
+    $campaignId = $campaign['id'];
+    $purchasesForCampaign = get_idwiz_purchases(['ids' => [$campaignId], 'fields' => 'campaignId,orderId,accountNumber,purchaseDate']);
 
-        $campaignsCount[$campaignId] = $customerCounts['returning'];
-    }
+    $customerCounts = return_new_and_returning_customers($purchasesForCampaign);
 
-    // Sort campaigns by number of returning customers in descending order
-    arsort($campaignsCount);
+    $campaignsCount[$campaignId] = $customerCounts['returning'];
+  }
 
-    return $campaignsCount;
+  // Sort campaigns by number of returning customers in descending order
+  arsort($campaignsCount);
+
+  return $campaignsCount;
 }
 
 
-function get_campaigns_by_open_rate($campaigns) {
-    $openRates = [];
+function get_campaigns_by_open_rate($campaigns)
+{
+  $openRates = [];
 
+  foreach ($campaigns as $campaign) {
+    $campaignMetrics = get_idwiz_metric($campaign['id']);
+    if ($campaignMetrics['wizOpenRate'] != 0) {
+      $openRates[$campaign['id']] = $campaignMetrics['wizOpenRate'];
+    }
+  }
+
+  // Sort by open rate in descending order
+  arsort($openRates);
+
+  $sortedCampaigns = [];
+  foreach ($openRates as $campaignId => $openRate) {
     foreach ($campaigns as $campaign) {
-        $campaignMetrics = get_idwiz_metric($campaign['id']);
-        if ($campaignMetrics['wizOpenRate'] != 0) {
-        $openRates[$campaign['id']] = $campaignMetrics['wizOpenRate'];
-        }
+      if ($campaign['id'] == $campaignId) {
+        $sortedCampaigns[] = $campaign;
+        break;
+      }
     }
+  }
 
-    // Sort by open rate in descending order
-    arsort($openRates);
-
-    $sortedCampaigns = [];
-    foreach ($openRates as $campaignId => $openRate) {
-        foreach ($campaigns as $campaign) {
-            if ($campaign['id'] == $campaignId) {
-                $sortedCampaigns[] = $campaign;
-                break;
-            }
-        }
-    }
-
-    return $sortedCampaigns;
+  return $sortedCampaigns;
 }
 
-function get_campaigns_by_ctr($campaigns) {
-    $ctrs = [];
+function get_campaigns_by_ctr($campaigns)
+{
+  $ctrs = [];
 
+  foreach ($campaigns as $campaign) {
+    $campaignMetrics = get_idwiz_metric($campaign['id']);
+    $ctrs[$campaign['id']] = floatval($campaignMetrics['wizCtr']); // Convert to float
+  }
+
+  // Sort by open rate in descending order
+  arsort($ctrs);
+
+  $sortedCampaigns = [];
+  foreach ($ctrs as $campaignId => $ctr) {
     foreach ($campaigns as $campaign) {
-        $campaignMetrics = get_idwiz_metric($campaign['id']);
-        $ctrs[$campaign['id']] = floatval($campaignMetrics['wizCtr']);  // Convert to float
+      if ($campaign['id'] == $campaignId) {
+        $sortedCampaigns[] = $campaign;
+        break;
+      }
     }
+  }
 
-    // Sort by open rate in descending order
-    arsort($ctrs);
-
-    $sortedCampaigns = [];
-    foreach ($ctrs as $campaignId => $ctr) {
-        foreach ($campaigns as $campaign) {
-            if ($campaign['id'] == $campaignId) {
-                $sortedCampaigns[] = $campaign;
-                break;
-            }
-        }
-    }
-
-    return $sortedCampaigns;
+  return $sortedCampaigns;
 }
 
-function get_campaigns_by_cto($campaigns) {
-    $ctos = [];
+function get_campaigns_by_cto($campaigns)
+{
+  $ctos = [];
 
+  foreach ($campaigns as $campaign) {
+    $campaignMetrics = get_idwiz_metric($campaign['id']);
+    $ctos[$campaign['id']] = floatval($campaignMetrics['wizCto']); // Convert to float
+  }
+
+  // Sort by open rate in descending order
+  arsort($ctos);
+
+  $sortedCampaigns = [];
+  foreach ($ctos as $campaignId => $cto) {
     foreach ($campaigns as $campaign) {
-        $campaignMetrics = get_idwiz_metric($campaign['id']);
-        $ctos[$campaign['id']] = floatval($campaignMetrics['wizCto']);  // Convert to float
+      if ($campaign['id'] == $campaignId) {
+        $sortedCampaigns[] = $campaign;
+        break;
+      }
     }
+  }
 
-    // Sort by open rate in descending order
-    arsort($ctos);
-
-    $sortedCampaigns = [];
-    foreach ($ctos as $campaignId => $cto) {
-        foreach ($campaigns as $campaign) {
-            if ($campaign['id'] == $campaignId) {
-                $sortedCampaigns[] = $campaign;
-                break;
-            }
-        }
-    }
-
-    return $sortedCampaigns;
+  return $sortedCampaigns;
 }
 
-
+function wiz_truncate_string($string, $length)
+{
+    if (strlen($string) > $length) {
+        return substr($string, 0, $length - 3) . '...';
+    }
+    return $string;
+}
 
 ?>

@@ -272,6 +272,26 @@ function wizReloadThing(selector) {
 		console.warn("Element not found:", selector);
 	}
 }
+
+jQuery(document).on('click', '.sync-single-triggered', function() {
+	var campaignId = jQuery(this).attr("data-campaignid");
+	idemailwiz_do_ajax(
+		"sync_single_triggered_campaign",
+		idAjax_id_general.nonce,
+		{
+			campaignId: campaignId
+		},
+		function (result) {
+			//success
+			console.log('Success: '+result);
+			alert('Triggered sync success!');
+		},
+		function (error) {
+			console.log(error);
+		}
+	);
+});
+
 jQuery(document).on('click', '.sync-everything', function() {
 	handle_idwiz_sync_buttons("idemailwiz_ajax_sync", idAjax_id_general.nonce, null);
 });

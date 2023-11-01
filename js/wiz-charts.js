@@ -14,6 +14,8 @@ jQuery(document).ready(function ($) {
 		idwiz_fill_chart_canvas(canvas);
 	});
 
+
+
 	// On page load, fill canvases with their charts
 	$("canvas.wiz-canvas").each(function () {
 		if ($(this).attr("data-chartid") === "customerTypesChart") {
@@ -25,21 +27,18 @@ jQuery(document).ready(function ($) {
 
 	function idwiz_fill_chart_canvas(canvas) {
 		const metricLabelMappings = {
-			"wizOpenRate": "Open Rate",
-			"wizCto": "CTO",
-			"wizCtr": "CTR",
+			wizOpenRate: "Open Rate",
+			wizCto: "CTO",
+			wizCtr: "CTR",
 			// Add more mappings as needed
 		};
 
 		const chartType = $(canvas).attr("data-charttype");
 		const chartId = $(canvas).attr("data-chartid");
-		const isStacked = $(canvas).attr("data-stacked") === "true";
-		const xAxisDate = $(canvas).attr("data-xAxisDate") === "true"; 
 
 		const additionalData = {
 			chartType: chartType,
 			chartId: chartId,
-			xAxisDate: xAxisDate,
 		};
 
 		// Check for other potential attributes and add them if they're present
@@ -49,152 +48,116 @@ jQuery(document).ready(function ($) {
 		if ($(canvas).attr("data-enddate")) {
 			additionalData.endDate = $(canvas).attr("data-enddate");
 		}
+		if ($(canvas).attr("data-minsends")) {
+			additionalData.minSends = $(canvas).attr("data-minsends");
+		}
+		if ($(canvas).attr("data-maxsends")) {
+			additionalData.maxSends = $(canvas).attr("data-maxsends");
+		}
+		if ($(canvas).attr("data-minmetric")) {
+			additionalData.minMetric = $(canvas).attr("data-minmetric");
+		}
+		if ($(canvas).attr("data-maxmetric")) {
+			additionalData.maxMetric = $(canvas).attr("data-maxmetric");
+		}
 		if ($(canvas).attr("data-campaignids")) {
 			additionalData.campaignIds = $(canvas).attr("data-campaignids");
 		}
 
+		if ($(canvas).attr("data-campaigntypes")) {
+			additionalData.campaignTypes = $(canvas).attr("data-campaigntypes");
+		}
+
 		idemailwiz_do_ajax(
-			"idwiz_fetch_flexible_chart_data",
+			"idwiz_catch_chart_request",
 			idAjax_wiz_charts.nonce,
 			additionalData,
 			function (response) {
+				if (response.data.error) {
+					$(canvas).before('<div class="wizsection-error-message">No data available</div>');
+				}
 				if (response.success) {
-					console.log("Chart data:", response.data);
-					// Modify the label of the dataset
-					let datasets = response.data.data.datasets.map(dataset => {
-						let userFriendlyLabel = metricLabelMappings[dataset.label] || dataset.label;
-						return {
-							...dataset,
-							label: userFriendlyLabel
-						};
-					});
-					response.data.data.datasets = datasets;
-					
-					let options = {
-						responsive: true,
-						maintainAspectRatio: false,
-						plugins: {
-							tooltip: {
-								callbacks: {
-									title: function() {
-										return '';  // Removes the title from the tooltip.
-									},
-									label: function (context) {
-										let dataset = context.chart.data.datasets[context.datasetIndex];
-										let yAxisType = dataset.yAxisID === "y-axis-1" ? response.data.options.yAxisDataType : response.data.options.dualYAxisDataType;
-										let formatFunction = idwiz_getFormatFunction(yAxisType);
-										let value = Number(context.raw);
-    
-										// Fetch the original label using the context's index
-										let originalLabel = response.data.data.labels[context.dataIndex];
-    
-										return originalLabel + ": " + formatFunction(value);
-									},
+					let options = response.data.options;
 
+					// Dynamically get the yAxisID from the datasets
+					let yAxisIDs = response.data.data.datasets.map(dataset => dataset.yAxisID);
 
-								},
-							},
-						},
-					};
+					// Determine the format function for each yAxisID
+					let formatFunctions = {};
 
-					const xAxisType = response.data.options.xAxisType;
-
-					let xAxesOptions = {};
-					
-
-					if (chartType === "pie") {
-						options.plugins.legend = {
-							position: "right",
-						};
+					// Loop through all y-axes in the scale configuration
+					for (let yAxisID in response.data.options.scales) {
+						if (response.data.options.scales[yAxisID].dataType) {
+							// Use the dataType from the y-axis configuration to get the format function
+							formatFunctions[yAxisID] = idwiz_getFormatFunction(response.data.options.scales[yAxisID].dataType);
+						}
 					}
 
-					const { yAxisDataType, dualYAxisDataType, dualYAxis } = response.data.options;
-
-					// Determine y-axis min and max based on data type
-					let yAxisMin, yAxisMax, yAxisGrace;
-					if (yAxisDataType == "percent") {
-						yAxisMin = 0;
-						//yAxisGrace = '30%';
-						//yAxisMax = 100;
+					// Loop through scales and apply formatting
+					for (let scale in options.scales) {
+						if (options.scales.hasOwnProperty(scale) && formatFunctions[scale]) {
+							options.scales[scale].ticks = options.scales[scale].ticks || {};
+							options.scales[scale].ticks.callback = formatFunctions[scale];
+						}
 					}
 
-					if (chartType !== "pie") {
-						options.scales = {
-							x: xAxesOptions,
-							"y-axis-1": {
-								position: "left",
-								min: yAxisMin, // Apply the determined min value
-								max: yAxisMax,  // Apply the determined max value
-								grace: yAxisGrace,
-								ticks: {
-									callback: idwiz_getFormatFunction(yAxisDataType),
-									
-								},
-							},
-						};
 
-						if (dualYAxis) {
-							options.scales["y-axis-2"] = {
-								id: "y-axis-2",
-								position: "right",
-								ticks: {
-									callback: idwiz_getFormatFunction(dualYAxisDataType),
-								},
+					// Tooltips formatting
+					if (options && options.plugins && options.plugins.tooltip) {
+						if (!options.plugins.tooltip.callbacks) {
+							options.plugins.tooltip.callbacks = {};
+						}
+						if (response.data.options.hideTooltipTitle) {
+							options.plugins.tooltip.callbacks.title = function() {
+								return ''; // hides the default label (x-axis label) from the tooltip
+							};
+						} else {
+							options.plugins.tooltip.callbacks.title = function(tooltipItems) {
+								return tooltipItems[0].label;
 							};
 						}
 
-						if (isStacked && chartType == "bar") {
-							options.scales = {
-								x: {
-									stacked: true,
-								},
-								"y-axis-1": {
-									position: "left",
-									stacked: true,
-									ticks: {
-										callback: idwiz_getFormatFunction(yAxisDataType),
-									},
-								},
-							};
-							options.scales["y-axis-2"] = {
-								id: "y-axis-2",
-								position: "right",
-								ticks: {
-									callback: idwiz_getFormatFunction(dualYAxisDataType),
-								},
-							};
-						}	
-					}
+						options.plugins.tooltip.callbacks.label = function (context) {
+							let labelsArray = [];
+    
+							if (response.data.type === "pie" || response.data.type === "doughnut") {
+								let total = context.dataset.data.reduce((a, b) => a + b, 0);
+								let percentage = ((context.raw / total) * 100).toFixed(2);
 
-					if (xAxisType == "date") {
-						xAxesOptions = {
-							type: "time",
-							time: {
-								unit: "day",
-								displayFormats: {
-									day: "MM/DD/YYYY",
-								},
-							},
+								// Access the revenue using context.dataIndex and the correct path
+								let revenue = response.data.data.revenues && response.data.data.revenues[context.dataIndex] ? response.data.data.revenues[context.dataIndex] : "N/A";
+								let formattedRevenue = formatFunctions['y-axis-rev'](revenue);
+
+								labelsArray.push(`${context.raw} (${percentage}%)`);
+								labelsArray.push(`Revenue: ${formattedRevenue}`);
+							} else {
+								let formatFunc = formatFunctions[context.dataset.yAxisID];
+								if (formatFunc) {
+									labelsArray.push(formatFunc(context.parsed.y));
+								} else {
+									labelsArray.push(context.parsed.y);
+								}
+							}
+
+							// Check if tooltipLabels is present and is not empty
+							if (response.data.data.tooltipLabels && response.data.data.tooltipLabels[context.dataIndex]) {
+								let tooltipLabels = response.data.data.tooltipLabels[context.dataIndex];
+								labelsArray = labelsArray.concat(tooltipLabels);
+							}
+
+							return labelsArray;
 						};
 
-						
-					} else {
-						// Any other default options for non-time x-axes
-						xAxesOptions = {
-							type: xAxisType,
-						};
+
+
 					}
 
-					// Extract just the dates from the labels
-					let dateLabels = response.data.data.labels.map(label => label.split(' - ')[0]);
-
-					// Use dateLabels instead of response.data.data.labels
-					idwiz_create_chart(canvas, chartType, dateLabels, response.data.data.datasets, options);
-
-
+					idwiz_create_chart(canvas, response.data.type, response.data.data.labels, response.data.data.datasets, options);
 				} else {
 					console.error("AJAX request successful but response indicated failure:", response);
+					
 				}
+
 			},
 			function (error) {
 				console.error("An error occurred during the AJAX request:", error);
@@ -208,7 +171,34 @@ jQuery(document).ready(function ($) {
 		);
 	}
 
+	function idwiz_create_chart(element, chartType, labels, datasets, options) {
+		const ctx = element.getContext("2d");
 
+		const idwizChart = new Chart(ctx, {
+			type: chartType,
+			data: {
+				labels: labels,
+				datasets: datasets,
+			},
+			options: options,
+		});
+
+		element.chartInstance = idwizChart;
+	}
+
+	function idwiz_getFormatFunction(dataType) {
+		return (valueOrTooltipItem, chartData) => {
+			let value = valueOrTooltipItem.value ? valueOrTooltipItem.value : valueOrTooltipItem; // Handle both direct values and tooltip items
+
+			if (dataType === "number") {
+				return value.toLocaleString();
+			} else if (dataType === "percent") {
+				return `${value.toFixed(2)}%`;
+			} else if (dataType === "money") {
+				return value.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0, maximumFractionDigits: 0 });
+			}
+		};
+	}
 
 	function populate_customer_types_chart(canvas) {
 		const chartId = $(canvas).attr("data-chartid");
@@ -218,6 +208,8 @@ jQuery(document).ready(function ($) {
 		const additionalData = {
 			chartId: chartId,
 			campaignIds: campaignIds,
+			startDate: $(canvas).attr("data-startdate"),
+			endDate: $(canvas).attr("data-enddate"),
 		};
 
 		idemailwiz_do_ajax(
@@ -226,26 +218,17 @@ jQuery(document).ready(function ($) {
 			additionalData,
 			function (response) {
 				if (response.success) {
-					let options = {
-						responsive: true,
-						maintainAspectRatio: false,
-						plugins: {
-							tooltip: {
-								callbacks: {
-									label: function (context) {
-										let dataset = context.chart.data.datasets[context.datasetIndex];
-										let totalCount = dataset.data.reduce((acc, val) => acc + val, 0);
-										let percentage = ((context.raw / totalCount) * 100).toFixed(2);
+					// Update the tooltip callback function from the placeholder
+					response.data.options.plugins.tooltip.callbacks.label = function (context) {
+						let dataset = context.chart.data.datasets[context.datasetIndex];
+						let totalCount = dataset.data.reduce((acc, val) => acc + val, 0);
+						let percentage = ((context.raw / totalCount) * 100).toFixed(2);
 
-										let formatFunction = idwiz_getFormatFunction("number"); // Assuming number type for count
-										return formatFunction(context.raw) + ` (${percentage}%)`;
-									},
-								},
-							},
-						},
+						let formatFunction = idwiz_getFormatFunction("number"); // Assuming number type for count
+						return formatFunction(context.raw) + ` (${percentage}%)`;
 					};
 
-					idwiz_create_chart(canvas, "pie", response.data.data.labels, response.data.data.datasets, options);
+					idwiz_create_chart(canvas, response.data.type, response.data.data.labels, response.data.data.datasets, response.data.options);
 				} else {
 					console.error("AJAX request successful but response indicated failure:", response);
 				}
@@ -260,30 +243,5 @@ jQuery(document).ready(function ($) {
 				}
 			}
 		);
-	}
-
-	function idwiz_getFormatFunction(dataType) {
-		if (dataType === "number") {
-			return (value) => value.toLocaleString();
-		} else if (dataType === "percent") {
-			return (value) => `${value.toFixed(2)}%`;
-		} else if (dataType === "money") {
-			return (value) => value.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0, maximumFractionDigits: 0 });
-		}
-	}
-
-	function idwiz_create_chart(element, chartType, labels, datasets, baseOptions) {
-		const ctx = element.getContext("2d");
-
-		const idwizChart = new Chart(ctx, {
-			type: chartType,
-			data: {
-				labels: labels,
-				datasets: datasets,
-			},
-			options: baseOptions,
-		});
-
-		element.chartInstance = idwizChart;
 	}
 });

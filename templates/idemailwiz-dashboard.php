@@ -4,14 +4,18 @@
 date_default_timezone_set('America/Los_Angeles');
 $startDate = '';
 $endDate = '';
+$wizMonth = '';
+$wizYear = '';
 
-// Set up date range
-if (isset($_GET['wizMonth']) && $_GET['wizMonth'] !== '' && isset($_GET['wizYear']) && $_GET['wizYear'] !== '') {
-    // When month and year are provided
-    $month = intval($_GET['wizMonth']);
-    $year = intval($_GET['wizYear']);
-    $startDate = "{$year}-" . str_pad($month, 2, '0', STR_PAD_LEFT) . "-01";
-    $endDate = date("Y-m-t", strtotime($startDate));
+// Check if startDate and endDate are provided
+if (isset($_GET['startDate']) && $_GET['startDate'] !== '' && isset($_GET['endDate']) && $_GET['endDate'] !== '') {
+    $startDate = $_GET['startDate'];
+    $endDate = $_GET['endDate'];
+
+    // Derive month and year from startDate
+    $startDateTime = new DateTime($startDate);
+    $wizMonth = $startDateTime->format('m');
+    $wizYear = $startDateTime->format('Y');
 } elseif (isset($_GET['view']) && $_GET['view'] === 'FY') {
     $currentDate = new DateTime();
     $currentYear = $currentDate->format('Y');
@@ -26,44 +30,64 @@ if (isset($_GET['wizMonth']) && $_GET['wizMonth'] !== '' && isset($_GET['wizYear
     // Default to current month if no parameters are provided
     $startDate = date("Y-m-01");
     $endDate = date("Y-m-t");
-    $month = date("m");
-    $year = date("Y");
+    $wizMonth = date("m");
+    $wizYear = date("Y");
 }
 
 if (isset($_GET['view']) && $_GET['view'] === 'FY') {
     $fyProjections = get_field('fy_' . $endYear . '_projections', 'options');
     $displayGoal = 0;
-    foreach ($fyProjections as $monthName => $monthlyGoal) {
+    foreach ($fyProjections as $wizMonthName => $monthlyGoal) {
         $displayGoal += $monthlyGoal;
     }
 } else {
-    $monthDateObj = DateTime::createFromFormat('!m', $month);
-    $monthName = $monthDateObj->format('F');
-    $monthNameLower = strtolower($monthName);
+    $monthDateObj = DateTime::createFromFormat('!m', $wizMonth);
+    $wizMonthName = $monthDateObj->format('F');
+    $monthNameLower = strtolower($wizMonthName);
 
-    $fyProjections = get_field('fy_' . $year . '_projections', 'options');
-    $displayGoal = $fyProjections[$monthNameLower];
+    $fyProjections = get_field('fy_' . $wizYear . '_projections', 'options');
+    if ($fyProjections) {
+        $displayGoal = $fyProjections[$monthNameLower];
+    } else {
+        $displayGoal = 0;
+    }
 }
 
+if (isset($_GET['showTriggered']) && $_GET['showTriggered'] === 'true') {
+    $campaignTypes = ['Blast', 'Triggered'];
+} else {
+    $campaignTypes = ['Blast'];
+}
+
+$blastCampaignIds = [];
+$triggeredCampaignIds = [];
+$allPurchases = [];
+$gaPurchases = [];
+$gaRevenue = [];
 
 // Fetch campaigns
 $campaigns = get_idwiz_campaigns(['startAt_start' => $startDate, 'startAt_end' => $endDate, 'type' => 'Blast']);
 $triggeredCampaigns = get_idwiz_campaigns(['startAt_start' => $startDate, 'startAt_end' => $endDate, 'type' => 'Triggered']);
 
-$campaignIds = [];
-$purchases = [];
-$gaPurchases = [];
-$gaRevenue = [];
+$blastCampaignIds = array_column($campaigns, 'id');
+$triggeredCampaignIds = array_column($triggeredCampaigns, 'id');
 
-// Extract campaign IDs and fetch purchases
-if ($campaigns) {
-    $campaignIds = array_column($campaigns, 'id');
-    $purchases = get_idwiz_purchases_by_campaign($campaignIds, $startDate, $endDate) ?? [];
-}
 
-if ($triggeredCampaigns) {
-    $triggeredCampaignIds = array_column($triggeredCampaigns, 'id');
-    $triggeredPurchases = get_idwiz_purchases_by_campaign($triggeredCampaigns, $startDate, $endDate);
+
+$purchaseArgs = ['startAt_start' => $startDate, 'startAt_end' => $endDate, 'shoppingCartItems_utmMedium' => "Email"];
+$blastPurchases = [];
+$triggeredPurchases = [];
+$allPurchases = get_idwiz_purchases($purchaseArgs);
+
+foreach ($allPurchases as $purchase) {
+    $purchaseCampaign = get_idwiz_campaign($purchase['campaignId']);
+    if ($purchaseCampaign) {
+        if ($purchaseCampaign['type'] == 'Blast') {
+            $blastPurchases[] = $purchase;
+        } else if ($purchaseCampaign['type'] == 'Triggered') {
+            $triggeredPurchases[] = $purchase;
+        }
+    }
 }
 
 ?>
@@ -104,25 +128,42 @@ if ($triggeredCampaigns) {
             sync log&nbsp;<i class="fa-solid fa-chevron-down"></i></span></div>
     <div id="wiztable_status_sync_details">Sync log will show here...</div>
     <div class="entry-content" itemprop="mainContentOfPage">
+        <div class="dashboard-nav-area">
+            <div class="dashboard-nav-area-left">
 
-        <?php include plugin_dir_path(__FILE__) . 'parts/dashboard-month-nav.php'; ?>
+            </div>
+            <div class="dashboard-nav-area-main">
+                <?php include plugin_dir_path(__FILE__) . 'parts/dashboard-month-nav.php'; ?>
+                <?php include plugin_dir_path(__FILE__) . 'parts/dashboard-date-buttons.php'; ?>
+            </div>
+            <div class="dashboard-nav-area-right">
+                <div class="wizToggle-container">
+                    <span class="wizToggle-text">Include Triggered:</span>
+                    <div class="wizToggle-switch">
+                        <input name="showTriggered" type="checkbox" id="toggleTriggeredDash"
+                            class="wizToggle-input wizDashControl">
+                        <label for="toggleTriggeredDash" class="wizToggle-label"></label>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <?php include plugin_dir_path(__FILE__) . 'parts/dashboard-top-row.php'; ?>
 
         <?php
-         // Setup standard chart variables
-        $standardChartCampaignIds = array_column($campaigns, 'id');
-        $standardChartPurchases = $purchases;
+        // Setup standard chart variables
+        //$standardChartCampaignIds = array_column($campaigns, 'id');
+        $standardChartCampaignIds = false;
+        $standardChartPurchases = array_merge($blastPurchases, $triggeredPurchases);
         include plugin_dir_path(__FILE__) . 'parts/standard-charts.php';
         ?>
-        
+
         <div class="wizcampaign-sections-row">
             <div class="wizcampaign-section inset" id="dashboard-campaigns-table">
-                
                 <div class="wizcampaign-section-content">
                     <table class="idemailwiz_table display" id="dashboard-campaigns"
                         style="width: 100%; vertical-align: middle;" valign="middle" width="100%"
-                        data-campaignids='<?php echo json_encode($campaignIds); ?>'>
+                        data-campaignids='<?php echo json_encode($blastCampaignIds); ?>'>
                         <thead>
                             <tr>
                                 <th class="campaignDate">Date</th>

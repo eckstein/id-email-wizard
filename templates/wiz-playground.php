@@ -3,31 +3,6 @@ get_header();
 
 global $wpdb;
 
-
-// Fetch data and group by cohort
-//$raw_purchase_data = fetch_cohort_purchase_data();
-//$cohorts = group_by_cohort($raw_purchase_data);
-
-// Calculate the lop_data based on $cohorts
-//$lop_data = calculate_lop_data($cohorts); 
-
-
-// Use utility functions to prepare data for tables
-//$average_time_data = calculate_average_time_to_next_purchase($lop_data);
-//$interval_distribution_data = calculate_time_interval_distribution($lop_data);
-
-// Table Headers
-//$headers_for_average_time = [
-//  'LOP' => '50%',
-//  'Average Time to Next Purchase (Days)' => '50%'
-//];
-
-//$headers_for_interval_distribution = [
-// 'LOB' => '33%',
-// 'Time Interval (Days)' => '33%',
-//  'Frequency' => '34%'
-//];
-
 ?>
 <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
     <header class="wizHeader">
@@ -39,31 +14,6 @@ global $wpdb;
             </div>
             <div class="wizHeader-right">
                 <div class="wizHeader-actions">
-                    <form id="cohort-selection-form" method="GET">
-                        <label for="cohort-day">Select Cohort Day-of-Year:</label>
-                        <input type="date" id="day-of-year" name="day-of-year"
-                            value="<?php echo isset($_GET['day-of-year']) ? esc_attr($_GET['day-of-year']) : ''; ?>" />
-
-                        <fieldset>
-                            <legend>Select Divisions:</legend>
-                            <?php
-                            $query = "SELECT DISTINCT cohort_value FROM {$wpdb->prefix}idemailwiz_cohorts WHERE cohort_type = 'division'";
-                            $result = $wpdb->get_results($query);
-
-                            // Get divisions from GET parameters
-                            $selectedDivisions = isset($_GET['divisions']) ? (array) $_GET['divisions'] : [];
-
-                            // Generate checkboxes
-                            foreach ($result as $row) {
-                                $divisionName = $row->cohort_value;
-                                $isChecked = in_array($divisionName, $selectedDivisions) ? 'checked' : '';
-                                echo '<label><input type="checkbox" name="divisions[]" value="' . esc_attr($divisionName) . '" ' . $isChecked . '> ' . esc_html($divisionName) . '</label><br>';
-                            }
-                            ?>
-                        </fieldset>
-
-                        <input type="submit" value="Generate Chart">
-                    </form>
 
                 </div>
             </div>
@@ -79,7 +29,73 @@ global $wpdb;
                     </div>
                 </div>
                 <div class="wizcampaign-section-content">
-                    <canvas id="cohortChart" data-day-of-year="" data-divisions=""></canvas>
+                    <?php
+                    function getTotalSendsBetweenDates($startDate, $endDate)
+                    {
+                        // Step 1: Retrieve the campaigns between the two dates.
+                        $campaigns = get_idwiz_campaigns([
+                            'type' => 'Blast',
+                            'fields' => 'startAt, id',
+                            'startAt_start' => $startDate,
+                            'startAt_end' => $endDate
+                        ]);
+
+                        // Step 2: Extract the campaignId and get the blast metrics.
+                        $campaignIds = array_column($campaigns, 'id');
+                        $blastMetrics = get_idwiz_metrics(['ids' => $campaignIds, 'fields' => 'uniqueEmailSends']);
+
+                        // Step 3: Count the blast sends.
+                        $blastSendCount = 0;
+                        foreach ($blastMetrics as $metric) {
+                            $blastSendCount += $metric['uniqueEmailSends'];
+                        }
+
+                        // Step 4: Use SQL to retrieve the count of triggered sends between the two dates.
+                        global $wpdb; // Assuming you are using WordPress's global $wpdb object for database operations.
+                        $startDateInMillis = strtotime($startDate) * 1000;
+                        $endDateInMillis = strtotime($endDate) * 1000;
+                        $tableName = $wpdb->prefix . 'idemailwiz_triggered_sends';
+
+                        $query = $wpdb->prepare(
+                            "SELECT COUNT(*) FROM $tableName WHERE startAt BETWEEN %d AND %d",
+                            $startDateInMillis,
+                            $endDateInMillis
+                        );
+                        $triggeredSendCount = $wpdb->get_var($query);
+
+
+
+
+                        // Step 5: Return the counts in an array.
+                        return [
+                            'blastSends' => $blastSendCount,
+                            'triggeredSends' => $triggeredSendCount
+                        ];
+                    }
+
+                    // Example usage:
+                    $thisYear = getTotalSendsBetweenDates('2022-12-15', '2023-12-15');
+                    $thisYearBlast = number_format($thisYear['blastSends']);
+                    $thisYearTriggered = number_format($thisYear['triggeredSends']);
+                    echo '12/15/22 - Today<br/>';
+                    echo "Blast Sends: {$thisYearBlast}";
+                    echo "<br/>"."Triggered Sends: {$thisYearTriggered}";
+
+                     $lastYear = getTotalSendsBetweenDates('2021-12-15', '2022-12-15');
+                    $lastYearBlast = number_format($lastYear['blastSends']);
+                    $lastYearTriggered = number_format($lastYear['triggeredSends']);
+                    echo '<br/><br/>12/15/21 - 12/15/22<br/>';
+                    echo "Blast Sends: {$lastYearBlast}";
+                    echo "<br/>"."Triggered Sends: {$lastYearTriggered}";
+
+                     $oct_dec = getTotalSendsBetweenDates('2022-10-15', '2022-12-15');
+                    $oct_decBlast = number_format($oct_dec['blastSends']);
+                    $oct_decTriggered = number_format($oct_dec['triggeredSends']);
+                    echo '<br/><br/>12/15/21 - 12/15/22<br/>';
+                    echo "Blast Sends: {$oct_decBlast}";
+                    echo "<br/>"."Triggered Sends: {$oct_decTriggered}";
+
+                    ?>
                 </div>
             </div>
 

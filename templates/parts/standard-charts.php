@@ -1,3 +1,9 @@
+<?php
+
+//If start and end date are set, we re-get purchases just for between the dates
+
+
+?>
 <div class="wizcampaign-sections-row">
 
     <div class="wizcampaign-section inset span2" id="email-info">
@@ -10,27 +16,39 @@
         <div class="wizChartWrapper">
             <?php
             // Set up the data attributes
-            $dataAttributes = [];
-            if (isset($startDate)) {
-                $dataAttributes[] = 'data-startdate="' . $startDate . '"';
-            }
-            if (isset($endDate)) {
-                $dataAttributes[] = 'data-enddate="' . $endDate . '"';
-            }
-            if (!isset($startDate) || !isset($endDate)) {
-                $dataAttributes[] = 'data-chartid="purchasesByCampaign"';
-                $dataAttributes[] = 'data-campaignids=\'' . json_encode($standardChartCampaignIds) . '\'';
+            $purchByDateAtts = [];
 
+
+            $purchByDateAtts[] = 'data-chartid="purchasesByDate"';
+
+            if ($standardChartCampaignIds) {
+                $purchByDateAtts[] = 'data-campaignids=\'' . json_encode($standardChartCampaignIds) . '\'';
             } else {
-                $dataAttributes[] = 'data-chartid="purchasesByDate"';
+                $purchByDateAtts[] = 'data-campaignids=\'' . json_encode('') . '\'';
             }
-            $dataAttributes[] = 'data-charttype="bar"';
+
+            //$purchByDateAtts[] = 'data-campaignids=\'' . json_encode([]) . '\'';
+            
+            if (isset($campaignTypes)) {
+                $purchByDateAtts[] = 'data-campaigntypes=\'' . json_encode($campaignTypes) . '\'';
+            }
+
+            $purchByDateAtts[] = "data-startdate='{$startDate}'";
+            $purchByDateAtts[] = "data-enddate='{$endDate}'";
+
+            $purchByDateAtts[] = 'data-charttype="bar"';
+
+            if (isset($campaignTypes)) {
+                $purchByDateAtts[] = 'data-campaigntypes=\'' . json_encode($campaignTypes) . '\'';
+            } else {
+                $purchByDateAtts[] = 'data-campaigntypes=\'' . json_encode(['Blast', 'Triggered']) . '\'';
+            }
 
             // Convert the array to a string for echoing
-            $dataAttributesString = implode(' ', $dataAttributes);
+            $purchByDateAttsString = implode(' ', $purchByDateAtts);
             ?>
 
-            <canvas class="purchByDate wiz-canvas" <?php echo $dataAttributesString; ?>></canvas>
+            <canvas class="purchByDate wiz-canvas" <?php echo $purchByDateAttsString; ?>></canvas>
 
         </div>
     </div>
@@ -44,8 +62,28 @@
             </div>
         </div>
         <div class="wizChartWrapper">
+            <?php
+            // Set up the data attributes
+            $purchByDivisionAtts = [];
+
+            $purchByDivisionAtts[] = 'data-campaignids=\'' . json_encode($standardChartCampaignIds) . '\'';
+
+            $purchByDivisionAtts[] = "data-startdate='{$startDate}'";
+            $purchByDivisionAtts[] = "data-enddate='{$endDate}'";
+
+            $purchByDivisionAtts[] = 'data-charttype="bar"';
+
+            if (isset($campaignTypes)) {
+                $purchByDivisionAtts[] = 'data-campaigntypes=\'' . json_encode($campaignTypes) . '\'';
+            } else {
+                $purchByDivisionAtts[] = 'data-campaigntypes=\'' . json_encode(['Blast', 'Triggered']) . '\'';
+            }
+
+            // Convert the array to a string for echoing
+            $purchByDivisionAttsString = implode(' ', $purchByDivisionAtts);
+            ?>
             <canvas class="purchByDivision wiz-canvas" data-chartid="purchasesByDivision"
-                data-campaignids='<?php echo json_encode($standardChartCampaignIds); ?>' data-charttype="bar"></canvas>
+                data-campaignids='<?php echo json_encode($standardChartCampaignIds); ?>' <?php echo $purchByDivisionAttsString; ?>></canvas>
         </div>
     </div>
     <div class="wizcampaign-section inset">
@@ -57,8 +95,29 @@
             </div>
         </div>
         <div class="wizChartWrapper">
-            <canvas class="purchByTopic wiz-canvas" data-chartid="purchasesByTopic"
-                data-campaignids='<?php echo json_encode($standardChartCampaignIds); ?>' data-charttype="pie"></canvas>
+            <?php
+            // Set up the data attributes
+            $purchByTopicAtts = [];
+
+            $purchByTopicAtts[] = 'data-chartid="purchasesByTopic"';
+
+            $purchByTopicAtts[] = 'data-campaignids=\'' . json_encode($standardChartCampaignIds) . '\'';
+
+            $purchByTopicAtts[] = "data-startdate='{$startDate}'";
+            $purchByTopicAtts[] = "data-enddate='{$endDate}'";
+
+            $purchByTopicAtts[] = 'data-charttype="pie"';
+
+            if (isset($campaignTypes)) {
+                $purchByTopicAtts[] = 'data-campaigntypes=\'' . json_encode($campaignTypes) . '\'';
+            } else {
+                $purchByTopicAtts[] = 'data-campaigntypes=\'' . json_encode(['Blast', 'Triggered']) . '\'';
+            }
+
+            // Convert the array to a string for echoing
+            $purchByTopicAttsString = implode(' ', $purchByTopicAtts);
+            ?>
+            <canvas class="purchByTopic wiz-canvas" <?php echo $purchByTopicAttsString; ?>></canvas>
         </div>
     </div>
 
@@ -73,20 +132,21 @@
 
             </div>
         </div>
+        <div class="tinyTableWrapper">
+            <?php
+            $byProductHeaders = [
+                'Product' => '30%',
+                'Topics' => '30%',
+                'Purchases' => '15%',
+                'Revenue' => '15%'
+            ];
 
-        <?php
-        $byProductHeaders = [
-            'Product' => '30%',
-            'Topics' => '30%',
-            'Purchases' => '15%',
-            'Revenue' => '15%'
-        ];
+            $purchasesByProduct = transfigure_purchases_by_product($standardChartPurchases);
 
-        $purchasesByProduct = transfigure_purchases_by_product($standardChartPurchases);
+            generate_mini_table($byProductHeaders, $purchasesByProduct);
 
-        generate_mini_table($byProductHeaders, $purchasesByProduct);
-
-        ?>
+            ?>
+        </div>
     </div>
     <div class="wizcampaign-section inset span2">
         <div class="wizcampaign-section-title-area">
@@ -96,9 +156,31 @@
                     class="fa-solid fa-chart-pie chart-type-switcher" data-chart-type="pie"></i>
             </div>
         </div>
-        <div class="wizChartWrapper">
-            <canvas class="purchByLocation wiz-canvas" data-chartid="purchasesByLocation"
-                data-campaignids='<?php echo json_encode($standardChartCampaignIds); ?>' data-charttype="bar"></canvas>
+        <div class="tinyTableWrapper">
+            <?php 
+            // Group purchases by location
+            $locationData = idwiz_group_purchases_by_location($standardChartPurchases);
+
+            // Convert the grouped data into a format suitable for the table generator
+            $tableData = [];
+            foreach ($locationData as $location => $data) {
+                $tableData[] = [
+                    'Location' => $location,
+                    'Purchases' => $data['Purchases'],
+                    'Revenue' => '$' . number_format($data['Revenue'], 2)
+                ];
+            }
+
+            // Define headers for the table
+            $headers = [
+                'Location' => 'auto',
+                'Purchases' => 'auto',
+                'Revenue' => 'auto'
+            ];
+
+            // Generate the table
+            generate_mini_table($headers, $tableData);
+             ?>
         </div>
     </div>
     <div class="wizcampaign-section inset">
@@ -109,8 +191,29 @@
             </div>
         </div>
         <div class="wizChartWrapper">
-            <canvas class="wiz-canvas" id="customerTypeChart" data-charttype="pie" data-chartid="customerTypesChart"
-                data-campaignids='<?php echo json_encode($standardChartCampaignIds); ?>'></canvas>
+            <?php
+            // Set up the data attributes
+            $newVsReturningAtts = [];
+
+            $newVsReturningAtts[] = 'data-chartid="customerTypesChart"';
+
+            $newVsReturningAtts[] = 'data-campaignids=\'' . json_encode($standardChartCampaignIds) . '\'';
+
+            $newVsReturningAtts[] = "data-startdate='{$startDate}'";
+            $newVsReturningAtts[] = "data-enddate='{$endDate}'";
+
+            $newVsReturningAtts[] = 'data-charttype="pie"';
+
+            if (isset($campaignTypes)) {
+                $newVsReturningAtts[] = 'data-campaigntypes=\'' . json_encode($campaignTypes) . '\'';
+            } else {
+                $newVsReturningAtts[] = 'data-campaigntypes=\'' . json_encode(['Blast']) . '\'';
+            }
+
+            // Convert the array to a string for echoing
+            $newVsReturningAttsString = implode(' ', $newVsReturningAtts);
+            ?>
+            <canvas class="wiz-canvas" id="customerTypeChart" <?php echo $newVsReturningAttsString; ?>></canvas>
         </div>
     </div>
 
@@ -118,19 +221,16 @@
         <div class="wizcampaign-section-title-area">
             <h4>Promo Code Use</h4>
             <div>
-                <?php $promoCodeData = prepare_promo_code_summary_data($standardChartPurchases); ?>
+                <?php
+
+                $promoCodeData = prepare_promo_code_summary_data($standardChartPurchases); ?>
                 <?php echo $promoCodeData['ordersWithPromoCount'] ?>/
                 <?php echo $promoCodeData['totalOrderCount'] ?> (
                 <?php echo $promoCodeData['percentageWithPromo'] ?>%)
             </div>
         </div>
-        <div class="wizcampaign-section-scrollwrap">
+        <div class="tinyTableWrapper">
             <?php generate_mini_table($promoCodeData['promoHeaders'], $promoCodeData['promoData']); ?>
         </div>
     </div>
-</div>
-<div class="wizcampaign-sections-row noWrap">
-
-
-
 </div>

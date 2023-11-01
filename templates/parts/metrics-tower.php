@@ -1,7 +1,7 @@
 <?php
 
 // Create DateTime object for the first day of the current dashboard month and year
-$currentMonthDateTime = new DateTime("first day of $monthName $year");
+$currentMonthDateTime = new DateTime("first day of $wizMonthName $wizYear");
 
 // Clone DateTime object to calculate the last month and last year
 $lastMonthDateTime = clone $currentMonthDateTime;
@@ -23,17 +23,22 @@ $lastYearMonthStart = $lastYearDateTime->format('Y-m-d');
 $lastYearDateTime->modify('last day of this month');
 $lastYearMonthEnd = $lastYearDateTime->format('Y-m-d');
 
+$campaignTypes = $campaignTypes ?? ['Blast', 'Triggered'];
 
+if (in_array('Triggered', $campaignTypes)) {
+    $thisMonthCampaigns = array_merge($campaigns, $triggeredCampaigns);
+} else {
+    $thisMonthCampaigns = $campaigns;
+}
 
-
-$thisMonthMetricRate = get_wizcampaigns_metric_rate($campaignIds, $metricType, $startDate, $endDate);
+$thisMonthMetricRate = get_metricsTower_rate(array_column($thisMonthCampaigns, 'id'), $metricType, $startDate, $endDate, $campaignTypes);
 
 $lastMonthCampaigns = get_idwiz_campaigns(['startAt_start'=>$lastMonthStart, 'startAt_end'=>$lastMonthEnd, 'type'=>'Blast']);
-$lastMonthMetricRate = get_wizcampaigns_metric_rate(array_column($lastMonthCampaigns, 'id'), $metricType, $lastMonthStart, $lastMonthEnd);
+$lastMonthMetricRate = get_metricsTower_rate(array_column($lastMonthCampaigns, 'id'), $metricType, $lastMonthStart, $lastMonthEnd, $campaignTypes);
 $lastMonthDifference = parse_idwiz_metric_rate($thisMonthMetricRate) - parse_idwiz_metric_rate($lastMonthMetricRate);
 
 $lastYearMonthCampaigns = get_idwiz_campaigns(['startAt_start'=>$lastYearMonthStart, 'startAt_end'=>$lastYearMonthEnd, 'type'=>'Blast']);
-$lastYearMonthMetricRate = get_wizcampaigns_metric_rate(array_column($lastYearMonthCampaigns, 'id'), $metricType, $lastYearMonthStart, $lastYearMonthEnd);
+$lastYearMonthMetricRate = get_metricsTower_rate(array_column($lastYearMonthCampaigns, 'id'), $metricType, $lastYearMonthStart, $lastYearMonthEnd, $campaignTypes);
 $lastYearDifference = parse_idwiz_metric_rate($thisMonthMetricRate) - parse_idwiz_metric_rate($lastYearMonthMetricRate);
 
 // Determine if a dollar sign should be prepended

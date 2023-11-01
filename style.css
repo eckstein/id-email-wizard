@@ -54,6 +54,61 @@ a.wiz-button:hover {
 	background-color: #eee;
 }
 
+/* Checkbox Toggles */
+/* Basic structure and hiding the checkbox */
+.wizToggle-container {
+	display: flex;
+	align-items: center;
+}
+
+.wizToggle-text {
+	margin-right: 10px;
+}
+
+.wizToggle-switch {
+	position: relative;
+	width: 40px;
+	height: 20px;
+}
+
+.wizToggle-input {
+	display: none;
+}
+
+/* Styling the toggle switch */
+.wizToggle-label {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 40px;
+	height: 20px;
+	background-color: #e6e6e6;
+	border-radius: 20px;
+	cursor: pointer;
+	transition: background-color 0.3s;
+}
+
+.wizToggle-label:before {
+	content: "";
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 16px;
+	height: 16px;
+	background-color: #fff;
+	border-radius: 50%;
+	transition: transform 0.3s;
+}
+
+/* Applying styles when checkbox is checked */
+.wizToggle-input:checked + .wizToggle-label {
+	background-color: #4caf50;
+}
+
+.wizToggle-input:checked + .wizToggle-label:before {
+	transform: translateX(20px);
+}
+
 /* Favorites Icons */
 .addRemoveFavorite {
 	cursor: pointer;
@@ -992,7 +1047,9 @@ pre#generatedCode {
 	color: #666;
 	padding-left: 20px;
 }
-
+.idemailwiz-table td.campaignName {
+	white-space: nowrap;
+}
 /* Popup Modal Styles */
 /* Modal Overlay */
 .idwiz-modal-overlay {
@@ -1263,7 +1320,6 @@ pre#generatedCode {
 /* Single WizCampaign Metrics Page */
 
 .wizHeader {
-	
 	box-shadow: inset 0 0 20px 1px rgba(0, 0, 0, 0.1);
 	margin-bottom: 20px;
 }
@@ -1401,19 +1457,17 @@ h2.wizArticle-title {
 	}
 }
 .wizcampaign-section {
-	flex: 1; 
-	min-width: 300px; 
+	flex: 1;
+	min-width: 300px;
 	box-sizing: border-box;
 	padding: 20px;
 	border: 1px solid #eee;
 	border-radius: 5px;
-}
-
-.wizcampaign-section {
 	display: flex;
 	flex-direction: column;
 	gap: 20px;
 }
+
 .wizcampaign-section.span2 {
 	flex: 2;
 }
@@ -1466,6 +1520,24 @@ h2.wizArticle-title {
 	box-shadow: inset 0 0 15px 1px rgba(0, 0, 0, 0.1);
 }
 
+/* Dashboard Nav Area */
+.dashboard-nav-area {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+.dashboard-nav-area .dashboard-nav-area-left,
+.dashboard-nav-area .dashboard-nav-area-right {
+	flex: 1;
+}
+.dashboard-nav-area .dashboard-nav-area-main {
+	flex: 4;
+	text-align: center;
+}
+.dashboard-nav-area .wizToggle-container {
+	justify-content: flex-end;
+}
+
 /* Dashboard/Home Page */
 #dashboardDateNav {
 	display: flex;
@@ -1478,7 +1550,6 @@ h2.wizArticle-title {
 #dashboardDateNav .select2-container {
 	font-size: 22px;
 	font-weight: bold;
-
 }
 #dashboardDateNav #wizMonthDropdown {
 	width: 200px;
@@ -1486,14 +1557,46 @@ h2.wizArticle-title {
 #dashboardDateNav #wizYearDropdown {
 	width: 130px;
 }
-#dashboardDateNav .wizDateNav-left ,
+#dashboardDateNav .wizDateNav-left,
 #dashboardDateNav .wizDateNav-right {
 	font-size: 26px;
 	position: relative;
 	top: 2px;
 }
+#dashboardDateNav .wizDateNav-left a:visited,
+#dashboardDateNav .wizDateNav-right a:visited {
+	color: #7fb707;
+}
 #dashboardDateNav .wizDateNav-title h1 {
 	margin: 0;
+}
+
+.dashboard-date-pickers {
+	display: flex;
+	justify-content: center;
+	margin-bottom: 20px;
+	align-items: center;
+	gap: 40px;
+}
+#wizStartDate,
+#wizEndDate,
+.dashboard-date-pickers .form-control.input {
+	padding: 3px 10px;
+	border: 1px solid #eee;
+	border-radius: 3px;
+	font-weight: bold;
+	font-size: 18px;
+	width: 160px;
+}
+
+.wiz_dashboard .dashboard-date-buttons {
+	margin-bottom: 20px;
+}
+.dashboard-date-buttons {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 10px;
 }
 
 .metrics-tower {
@@ -1536,9 +1639,6 @@ h2.wizArticle-title {
 	margin-bottom: 20px;
 }
 .report-controls-form .form-group {
-	border: 1px solid #eee;
-	border-radius: 5px;
-	padding: 20px;
 	display: flex;
 	flex-direction: column;
 }
@@ -1564,7 +1664,7 @@ h2.wizArticle-title {
 	align-items: baseline;
 	gap: 4px;
 }
-.report-controls-form input[type=number] {
+.report-controls-form input[type="number"] {
 	max-width: 80px;
 }
 .report-controls-form .select2-container {
@@ -1585,7 +1685,7 @@ h2.wizArticle-title {
 .wizChartWrapper {
 	position: relative;
 	min-height: 250px;
-	
+	max-height: 350px;
 }
 .wizChartLoader {
 	position: absolute;
@@ -1603,7 +1703,6 @@ h2.wizArticle-title {
 	display: flex;
 	flex-direction: column;
 }
-
 
 #monthly-goal-section {
 	flex: 0 0 150px;
@@ -1727,18 +1826,29 @@ h2.wizArticle-title {
 	z-index: 9999;
 	word-break: break-all;
 }
-
-.wizcampaign-tiny-table,
-.wizcampaign-tiny-table-sticky-header {
+.tinyTableWrapper {
+	min-width: 260px;
+}
+.tinyTableWrapper table {
+	border-collapse: collapse;
+}
+.wizcampaign-tiny-table {
 	width: 100%;
 }
-.wizcampaign-tiny-table th,
-.wizcampaign-tiny-table-sticky-header th {
+.tinyTableWrapper .dataTables_paginate {
+	margin-top: 10px;
+}
+.tinyTableWrapper .dataTables_length {
+	margin-bottom: 10px;
+	float: right;
+}
+.wizcampaign-tiny-table th {
 	text-align: left;
 	background-color: #343434;
 	color: #fff;
 	padding: 5px 10px;
 	font-size: 14px;
+	border: 1px solid #000;
 }
 
 .wizcampaign-tiny-table td {
@@ -1799,14 +1909,14 @@ h2.wizArticle-title {
 .initAssetsLibrary {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(16.66%, 1fr));
-	gap: 16px; 
+	gap: 16px;
 }
 
 /* Init assets library item */
 .initAssetsLibrary img {
 	width: 100%;
 	height: 100%;
-	object-fit: cover; 
+	object-fit: cover;
 }
 
 #initAssetsUI {
@@ -1822,18 +1932,16 @@ h2.wizArticle-title {
 	border: 2px solid #77b900;
 }
 
-
 .no-animation-popup {
 	box-shadow: 0 0 5px 3px rgba(0, 0, 0, 0.1);
 }
 .no-animation-popup img {
 	padding-top: 20px;
-	max-height: 400px!important;
-	width: auto!important;
+	max-height: 400px !important;
+	width: auto !important;
 	max-width: 100%;
-	display: block!important;
+	display: block !important;
 }
-
 
 /* Simple Table */
 .idemailwiz-simple-table {
@@ -1845,9 +1953,7 @@ h2.wizArticle-title {
 	color: #333;
 	margin: 20px 0;
 }
-.idemailwiz-simple-table td.campaignName {
-	white-space: nowrap;
-}
+
 /* Base table styles */
 #showAttachBaseTemplate {
 	display: none;
@@ -1957,5 +2063,3 @@ table.compact th {
 #idemailwiz_initiatives_table_wrapper {
 	margin-bottom: 40px;
 }
-
-

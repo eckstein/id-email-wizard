@@ -1,23 +1,26 @@
 <div class="wizcampaign-sections-row">
-    <div class="wizcampaign-section inset" id="monthly-goal-section">
-        <div class="wizcampaign-section-title-area">
-            <h4>To GA Goal
-                
-            </h4>
-            <div class="wizcampaign-section-title-area-right">
-                $<?php echo number_format($displayGoal, 2); ?>
-            </div>
-        </div>
-        <?php if (isset($_GET['view']) && $_GET['view'] != 'FY' || !isset($_GET['view'])) { ?>
-            <div class="wizcampaign-section-content monthlyGoalTracker">
-                <div class="wizChartWrapper">
-                    <canvas id="monthlyGoalTracker" data-default-month="<?php echo $month; ?>"
-                        data-default-year="<?php echo $year; ?>"></canvas>
-                </div>
+    <?php if ($displayGoal) { ?>
+        <div class="wizcampaign-section inset" id="monthly-goal-section">
+            <div class="wizcampaign-section-title-area">
+                <h4>To GA Goal
 
+                </h4>
+                <div class="wizcampaign-section-title-area-right">
+                    $
+                    <?php echo number_format($displayGoal, 2); ?>
+                </div>
             </div>
-        <?php } ?>
-    </div>
+            <?php if (isset($_GET['view']) && $_GET['view'] != 'FY' || !isset($_GET['view'])) { ?>
+                <div class="wizcampaign-section-content monthlyGoalTracker">
+                    <div class="wizChartWrapper">
+                        <canvas id="monthlyGoalTracker" data-startDate="<?php echo $_GET['startDate'] ?? date('Y-m-01'); ?>"
+                            data-endDate="<?php echo $_GET['endDate'] ?? date('Y-m-d'); ?>"></canvas>
+                    </div>
+
+                </div>
+            <?php } ?>
+        </div>
+    <?php } ?>
     <div class="wizcampaign-section inset metrics-tower-group span2">
         <div class="wizcampaign-section-title-area">
             <h4>Purchases & Revenue</h4>
@@ -99,9 +102,15 @@
                 ],
                 [
                     'metricType' => 'opens',
+                    'metricFormat' => 'num',
+                    'sectionTitle' => 'Opens',
+                    'sectionID' => 'monthlyOpenRate'
+                ],
+                [
+                    'metricType' => 'openRate',
                     'metricFormat' => 'perc',
                     'sectionTitle' => 'Open Rate',
-                    'sectionID' => 'monthlyOpens'
+                    'sectionID' => 'monthlyOpenRate'
                 ],
                 [
                     'metricType' => 'clicks',

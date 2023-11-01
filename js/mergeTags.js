@@ -7,7 +7,6 @@ tinymce.PluginManager.add('merge_tags_button', function(editor, url) {
       items: [
         { text: 'Student First', value: '{{{snippet "FirstName" "your child"}}}' },
         { text: 'Student Last', value: '{{StudentLast}}' },
-        { text: 'Gender', value: '{{defaultIfEmpty GenderCode "U"}}' },
         { text: 'Unscheduled Lessons', value: '{{StudentArray.UnscheduledLessons}}' },
         { text: 'L10 Level', value: '{{StudentArray.L10Level}}' },
         { text: 'Account #', value: '{{StudentArray.StudentAccountNumber}}' },
@@ -20,11 +19,10 @@ tinymce.PluginManager.add('merge_tags_button', function(editor, url) {
 	{
       text: 'Pronouns',
       items: [
-        { text: 'He/She/They', value: '{{{snippet "pronoun" GenderCode "S"}}}' },
-        { text: 'Him/Her/Them', value: '{{{snippet "pronoun" GenderCode "O"}}}' },
-        { text: 'His/Her/Their', value: '{{{snippet "pronoun" GenderCode "SP"}}}' },
-        { text: 'His/Hers/Theirs', value: '{{{snippet "pronoun" GenderCode "OP"}}}' },
-        { text: 'Conditional Phrase', value: '{{#if (eq genderCode "M")}}he loves{{else if (eq genderCode "F")}}she loves{{else}}they love{{/if}}' },
+        { text: 'He/She/They', value: '{{{snippet "pronoun" "S"}}}' },
+        { text: 'Him/Her/Them', value: '{{{snippet "pronoun" "O"}}}' },
+        { text: 'His/Her/Their', value: '{{{snippet "pronoun" "SP"}}}' },
+        { text: 'His/Hers/Theirs', value: '{{{snippet "pronoun" "OP"}}}' },
 		
       ]
     },

@@ -1,8 +1,5 @@
 <?php
 
-function idwiz_itAPI() {
-	return '282da5d7dd77450eae45bdc715ead2a4';
-  }
 
 
 //Get all the postdata needed to create or update a template in Iterable

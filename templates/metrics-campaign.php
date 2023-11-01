@@ -8,14 +8,17 @@
 global $wpdb; // Declare the WordPress Database variable
 
 date_default_timezone_set('America/Los_Angeles');
-//print_r(idemailwiz_sync_templates(array(7652831)));
+
+// Check if the startDate and endDate parameters are present in the $_GET array
+$startDate = $_GET['startDate'] ?? '2021-11-01';
+$endDate = $_GET['endDate'] ?? date('Y-m-d');
 
 $campaign_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $campaign = get_idwiz_campaign($campaign_id);
 $metrics = get_idwiz_metric($campaign['id']);
 $template = get_idwiz_template($campaign['templateId']);
 
-$startAt = date('m/d/Y \a\t g:ia', $campaign['startAt'] / 1000);
+$campaignStartAt = date('m/d/Y \a\t g:ia', $campaign['startAt'] / 1000);
 
 $purchases = get_idwiz_purchases(array('campaignId' => $campaign['id']));
 //$experimentIds = maybe_unserialize($campaign['experimentIds']) ?? array();
@@ -55,7 +58,7 @@ $linkedExperimentIds = array_map(function ($id) {
                     &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
                     <?php echo '<a href="' . get_bloginfo('url') . '/campaigns/?view=' . $campaign['type'] . '">' . $campaign['type'] . '</a>'; ?>
                     &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Sent on
-                    <?php echo $startAt; ?>
+                    <?php echo $campaignStartAt; ?>
                     &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
                     <?php echo 'Wiz Template: <a href="' . get_bloginfo('url') . '?p=' . $template['clientTemplateId'] . '">' . $template['clientTemplateId'] . '</a>'; ?>
                 </div>
@@ -65,6 +68,9 @@ $linkedExperimentIds = array_map(function ($id) {
                 <div class="wizHeader-actions">
                     <button class="wiz-button green sync-campaign" data-campaignid="<?php echo $campaign['id']; ?>">Sync
                         Campaign</button>
+                    <button class="wiz-button green sync-single-triggered"
+                        data-campaignid="<?php echo $campaign['id']; ?>">Sync
+                        Triggered Data</button>
                     <button class="wiz-button green">View Template</button>
                 </div>
             </div>
@@ -75,24 +81,61 @@ $linkedExperimentIds = array_map(function ($id) {
     <div id="wiztable_status_sync_details">Sync log will show here...</div>
 
     <div class="entry-content" itemprop="mainContentOfPage">
-        <?php echo get_single_metrics_campaign_rollup($campaign); ?>
+
+        <?php if ($campaign['type'] == 'Triggered') {
+            include plugin_dir_path(__FILE__) . 'parts/dashboard-date-pickers.php';
+        }
+        ?>
+
+        <?php echo get_single_metrics_campaign_rollup($campaign, $startDate, $endDate); ?>
+        
         <?php
         if ($campaign['type'] == 'Triggered') {
             ?>
-            <div class=".wizcampaign-sections-row">
+            <div>
                 <?php
-                $triggeredSends = get_triggered_sends_by_campaign_id($campaign['id']);
+                $triggeredSends = get_triggered_data_by_campaign_id($campaign['id'], 'send');
                 if (!empty($triggeredSends)) {
                     ?>
+
+
                     <div class="wizcampaign-sections-row">
                         <div class="wizcampaign-section inset" id="sendsByDateSection">
                             <div class="wizcampaign-section-title-area">
                                 <h4>Sends by Date</h4>
                             </div>
                             <div class="wizChartWrapper">
+
+
                                 <canvas class="sendsByDate wiz-canvas" data-chartid="sendsByDate"
-                                    data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>'
-                                    data-charttype="bar"></canvas>
+                                    data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>' data-charttype="bar"
+                                    data-startdate="<?php echo $startDate; ?>" data-enddate="<?php echo $endDate; ?>"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="wizcampaign-section inset" id="openedByDateSection">
+                            <div class="wizcampaign-section-title-area">
+                                <h4>Opens by Date</h4>
+                            </div>
+                            <div class="wizChartWrapper">
+
+
+                                <canvas class="opensByDate wiz-canvas" data-chartid="opensByDate"
+                                    data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>' data-charttype="bar"
+                                    data-startdate="<?php echo $startDate; ?>" data-enddate="<?php echo $endDate; ?>"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="wizcampaign-section inset" id="clicksByDateSection">
+                            <div class="wizcampaign-section-title-area">
+                                <h4>Clicks by Date</h4>
+                            </div>
+                            <div class="wizChartWrapper">
+
+
+                                <canvas class="clicksByDate wiz-canvas" data-chartid="clicksByDate"
+                                    data-campaignids='<?php echo json_encode(array($campaign['id'])); ?>' data-charttype="bar"
+                                    data-startdate="<?php echo $startDate; ?>" data-enddate="<?php echo $endDate; ?>"></canvas>
                             </div>
                         </div>
                     </div>
@@ -322,49 +365,86 @@ $linkedExperimentIds = array_map(function ($id) {
 
 <?php
 // Helper Functions
-function get_single_metrics_campaign_rollup($campaign)
+function get_single_metrics_campaign_rollup($campaign, $startDate, $endDate)
 {
-    return generate_idwiz_rollup_row(
-        array($campaign['id']),
-        array(
-            'uniqueEmailSends' => array(
-                'label' => 'Sends',
-                'format' => 'num',
-            ),
-            'uniqueEmailOpens' => array(
-                'label' => 'Opens',
-                'format' => 'num',
-            ),
-            'wizOpenRate' => array(
-                'label' => 'Open Rate',
-                'format' => 'perc',
-            ),
-            'uniqueEmailClicks' => array(
-                'label' => 'Clicks',
-                'format' => 'num',
-            ),
-            'wizCtr' => array(
-                'label' => 'CTR',
-                'format' => 'perc',
-            ),
-            'wizCto' => array(
-                'label' => 'CTO',
-                'format' => 'perc',
-            ),
-            'uniquePurchases' => array(
-                'label' => 'Purchases',
-                'format' => 'num',
-            ),
-            'revenue' => array(
-                'label' => 'Dir. Rev.',
-                'format' => 'money',
-            ),
-            'gaRevenue' => array(
-                'label' => 'GA Rev.',
-                'format' => 'money',
-            ),
-
+    // Initial fields
+    $fields = array(
+        'uniqueEmailSends' => array(
+            'label' => 'Sends',
+            'format' => 'num',
         ),
-
     );
+
+    // Conditionally add delivery fields for 'Blast' campaigns
+    if ($campaign['type'] == 'Blast') {
+        $deliveryFields = array(
+            'uniqueEmailsDelivered' => array(
+                'label' => 'Delivered',
+                'format' => 'num',
+            ),
+            'wizDeliveryRate' => array(
+                'label' => 'Delivery',
+                'format' => 'perc',
+            ),
+        );
+        $fields = array_merge($fields, $deliveryFields);
+    }
+
+    // Continue with the rest of the fields
+    $additionalFields = array(
+        'uniqueEmailOpens' => array(
+            'label' => 'Opens',
+            'format' => 'num',
+        ),
+        'wizOpenRate' => array(
+            'label' => 'Open Rate',
+            'format' => 'perc',
+        ),
+        'uniqueEmailClicks' => array(
+            'label' => 'Clicks',
+            'format' => 'num',
+        ),
+        'wizCtr' => array(
+            'label' => 'CTR',
+            'format' => 'perc',
+        ),
+        'wizCto' => array(
+            'label' => 'CTO',
+            'format' => 'perc',
+        ),
+        'uniquePurchases' => array(
+            'label' => 'Purchases',
+            'format' => 'num',
+        ),
+        'revenue' => array(
+            'label' => 'Dir. Rev.',
+            'format' => 'money',
+        ),
+        'gaRevenue' => array(
+            'label' => 'GA Rev.',
+            'format' => 'money',
+        ),
+    );
+
+    $fields = array_merge($fields, $additionalFields);
+
+    // Conditionally add unsub fields for 'Blast' campaigns
+    if ($campaign['type'] == 'Blast') {
+        $unsubFields = array(
+            'uniqueUnsubscribes' => array(
+                'label' => 'Unsubs',
+                'format' => 'num',
+            ),
+            'wizUnsubRate' => array(
+                'label' => 'Unsub. Rate',
+                'format' => 'perc',
+            ),
+        );
+        $fields = array_merge($fields, $unsubFields);
+    }
+
+    // Call the function
+    return generate_single_campaign_rollup_row($campaign, $fields, $startDate, $endDate);
+
+
 }

@@ -1,24 +1,19 @@
 <?php
 if (isset($_GET['view']) && $_GET['view'] != 'FY' || !isset($_GET['view'])) {
     // Get the current month and year from the query parameters or use the current date as default
-    $currentMonth = isset($_GET['wizMonth']) ? intval($_GET['wizMonth']) : date('m');
-    $currentYear = isset($_GET['wizYear']) ? intval($_GET['wizYear']) : date('Y');
+    $currentMonth = isset($_GET['startDate']) ? (new DateTime($_GET['startDate']))->format('m') : date('m');
+    $currentYear = isset($_GET['startDate']) ? (new DateTime($_GET['startDate']))->format('Y') : date('Y');
 
     // Calculate the previous and next month and year
-    $prevMonth = $currentMonth - 1;
-    $prevYear = $currentYear;
-    $nextMonth = $currentMonth + 1;
-    $nextYear = $currentYear;
+    $prevDate = new DateTime("{$currentYear}-{$currentMonth}-01");
+    $prevDate->modify('-1 month');
+    $nextDate = new DateTime("{$currentYear}-{$currentMonth}-01");
+    $nextDate->modify('+1 month');
 
-    if ($prevMonth <= 0) {
-        $prevMonth = 12;
-        $prevYear -= 1;
-    }
-
-    if ($nextMonth > 12) {
-        $nextMonth = 1;
-        $nextYear += 1;
-    }
+    $prevMonth = $prevDate->format('m');
+    $prevYear = $prevDate->format('Y');
+    $nextMonth = $nextDate->format('m');
+    $nextYear = $nextDate->format('Y');
 
     // Disable the right arrow if the next month would be in the future
     $disableRightArrow = ($nextYear == date('Y') && $nextMonth > date('m')) || ($nextYear > date('Y'));
@@ -26,7 +21,7 @@ if (isset($_GET['view']) && $_GET['view'] != 'FY' || !isset($_GET['view'])) {
 
     <div id="dashboardDateNav">
         <div class="wizDateNav-left">
-            <a href="?wizMonth=<?php echo $prevMonth; ?>&wizYear=<?php echo $prevYear; ?>"><i class="fa-solid fa-square-caret-left"></i></a>
+            <a href="<?php echo esc_url(add_query_arg(array('startDate' => "{$prevYear}-{$prevMonth}-01", 'endDate' => $prevDate->format('Y-m-t')))); ?>"><i class="fa-solid fa-square-caret-left"></i></a>
         </div>
         <div class="wizDateNav-title">
             <!-- Month Dropdown -->
@@ -49,7 +44,7 @@ if (isset($_GET['view']) && $_GET['view'] != 'FY' || !isset($_GET['view'])) {
         </div>
         <div class="wizDateNav-right">
             <?php if (!$disableRightArrow): ?>
-                <a href="?wizMonth=<?php echo $nextMonth; ?>&wizYear=<?php echo $nextYear; ?>"><i class="fa-solid fa-square-caret-right"></i></a>
+                <a href="<?php echo esc_url(add_query_arg(array('startDate' => "{$nextYear}-{$nextMonth}-01", 'endDate' => $nextDate->format('Y-m-t')))); ?>"><i class="fa-solid fa-square-caret-right"></i></a>
             <?php else: ?>
                 <span><i class="fa-solid fa-square-caret-right disabled"></i></span>
             <?php endif; ?>
@@ -69,4 +64,3 @@ if (isset($_GET['view']) && $_GET['view'] != 'FY' || !isset($_GET['view'])) {
 <?php
 }
 ?>
-

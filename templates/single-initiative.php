@@ -72,7 +72,7 @@
 
                 <?php
                 if (!empty($associated_campaign_ids)) {
-                    echo generate_idwiz_rollup_row(
+                    echo generate_campaigns_table_rollup_row(
                         $associated_campaign_ids,
                         array(
                             'campaignCount' => array(
@@ -306,6 +306,8 @@
                  // Setup standard chart variables
                 $standardChartCampaignIds = $associated_campaign_ids;
                 $standardChartPurchases = $purchases;
+                $startDate = '2021-11-01';
+                $endDate = date('Y-m-d');
                 include plugin_dir_path(__FILE__) . 'parts/standard-charts.php';
                 ?>
 
