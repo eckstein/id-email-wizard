@@ -13,6 +13,7 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
     do {
         // Initialize cURL
         $ch = curl_init($apiURL);
+        
 
         // Set the appropriate headers based on the URL
         $headers = ["Content-Type: application/json"];
@@ -38,6 +39,7 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
 
         // Execute the request
         $response = curl_exec($ch);
+        $info = curl_getinfo($ch);
         if ($response === false) {
             $error = curl_error($ch);
             error_log("cURL Error: $error");
@@ -51,8 +53,8 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
 
         // Check for rate limit
         if ($httpCode === 429) {
-            error_log("Rate limit hit. Waiting before retrying...");
-            sleep(10); // Adjust this delay as needed.
+            error_log("Rate limit hit. Waiting 20 seconds before retrying...");
+            sleep(20); // Adjust this delay as needed.
             continue;
         }
 
@@ -161,18 +163,18 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
     $name_field = 'name'; // Default name field
 
     // Determine the ID and name fields based on the table name
-    if ($table_name == 'wp_idemailwiz_templates' || $table_name == 'wp_idemailwiz_experiments') {
+    if ($table_name == $wpdb->prefix.'idemailwiz_templates' || $table_name == $wpdb->prefix.'idemailwiz_experiments') {
         $id_field = 'templateId';
     }
     foreach ($items as $key => $item) {
         // Add 'name' to the metrics array
-        if ($table_name == 'wp_idemailwiz_metrics') {
+        if ($table_name == $wpdb->prefix.'idemailwiz_metrics') {
             $metricCampaign = get_idwiz_campaign($item['id']);
             $metricName = $metricCampaign['name'];
         }
 
         // If this is a template record, we check if there's a wiz builder template with this template ID set as the sync-to
-        if ($table_name == 'wp_idemailwiz_templates') {
+        if ($table_name == $wpdb->prefix.'idemailwiz_templates') {
             $incomingTemplateId = $item['templateId'];
             $wizDbTemplate = get_idwiz_template($incomingTemplateId);
             $args = array(
@@ -187,7 +189,7 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
             if (!empty($builderTemplates)) {
 
                 $sql = $wpdb->prepare(
-                    "UPDATE wp_idemailwiz_templates SET clientTemplateId = %d WHERE templateId = %d",
+                    "UPDATE $wpdb->prefix.idemailwiz_templates SET clientTemplateId = %d WHERE templateId = %d",
                     $builderTemplates[0]->ID,
                     $wizDbTemplate['templateId']
 
@@ -195,7 +197,7 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
                 $wpdb->query($sql);
             } else {
                 $sql = $wpdb->prepare(
-                    "UPDATE wp_idemailwiz_templates SET clientTemplateId = NULL WHERE templateId = %d",
+                    "UPDATE $wpdb->prefix.idemailwiz_templates SET clientTemplateId = NULL WHERE templateId = %d",
                     $incomingTemplateId
                 );
                 $wpdb->query($sql);
@@ -203,8 +205,10 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 
         }
 
+
+
         //If this is an experiment record, we check if the corrosponding campaign in the campaign table has the experiment ID present. If not, add it.
-        if ($table_name == 'wp_idemailwiz_experiments') {
+        if ($table_name == $wpdb->prefix.'idemailwiz_experiments') {
             $experimentId = $item['experimentId']; // Retrieve the current experiment ID
 
             $experimentCampaign = get_idwiz_campaign($item['campaignId']);
@@ -223,7 +227,7 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 
             // Using prepare to safely insert values into the query
             $sql = $wpdb->prepare(
-                "UPDATE wp_idemailwiz_campaigns SET experimentIds = %s WHERE id = %d",
+                "UPDATE $wpdb->prefix.idemailwiz_campaigns SET experimentIds = %s WHERE id = %d",
                 $serializedExperimentIds,
                 $item['campaignId']
             );
@@ -245,22 +249,32 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
         // Convert key/header to camel case for db compatibility
         $key = to_camel_case($key);
 
-        $fields = implode(",", array_keys($item));
-        $values = "'" . implode("','", array_map('esc_sql', $item)) . "'";
-        $updates = implode(",", array_map(function ($field, $value) {
-            return "{$field}='" . esc_sql($value) . "'";
-        }, array_keys($item), $item));
+        $fields = implode(",", array_map(function ($field) {
+            return "`" . esc_sql($field) . "`";
+        }, array_keys($item)));
+        $placeholders = implode(",", array_fill(0, count($item), "%s"));
+        $prepared_values = array_values($item);
 
-        $sql = $operation === "insert" ?
-            "INSERT INTO {$table_name} ({$fields}) VALUES ({$values})" :
-            "UPDATE {$table_name} SET {$updates} WHERE {$id_field}={$item[$id_field]}";
+        if ($operation === "insert") {
+            $sql = "INSERT INTO `{$table_name}` ({$fields}) VALUES ({$placeholders})";
+            $prepared_sql = $wpdb->prepare($sql, $prepared_values);
+        } else {
+            $updates = implode(", ", array_map(function ($field) {
+                return "`$field` = %s";
+            }, array_keys($item)));
+            $sql = "UPDATE `{$table_name}` SET {$updates} WHERE `{$id_field}` = %s";
+            $prepared_sql = $wpdb->prepare($sql, array_merge($prepared_values, [$item[$id_field]]));
+        }
 
         // Do the insert/update
-        $query_result = $wpdb->query($sql);
+        $query_result = $wpdb->query($prepared_sql);
+
+
+
 
         // Extracting relevant details for logging
         $item_name = isset($item[$name_field]) ? $item[$name_field] : ''; // Item name
-        if ($table_name == 'wp_idemailwiz_metrics') {
+        if ($table_name == $wpdb->prefix.'idemailwiz_metrics') {
             $item_name = $metricName;
         }
         $item_id = $item[$id_field]; // Item ID
@@ -314,7 +328,7 @@ function idemailwiz_fetch_templates($campaignIds = null)
     $templateAPIurls = [];
 
     // Fetch campaigns based on whether IDs are provided
-    $wizCampaigns = $campaignIds ? get_idwiz_campaigns(['ids' => $campaignIds]) : get_idwiz_campaigns();
+    $wizCampaigns = $campaignIds ? get_idwiz_campaigns(['campaignIds' => $campaignIds]) : get_idwiz_campaigns();
 
     if ($campaignIds) {
         foreach ($wizCampaigns as $campaign) {
@@ -460,7 +474,7 @@ function idemailwiz_fetch_experiments($campaignIds = null)
     );
 
     if ($campaignIds) {
-        $fetchCampArgs['ids'] = $campaignIds;
+        $fetchCampArgs['campaignIds'] = $campaignIds;
     }
 
     $allCampaigns = get_idwiz_campaigns($fetchCampArgs);
@@ -536,7 +550,7 @@ function idemailwiz_fetch_metrics($campaignIds = null)
     );
 
     if ($campaignIds) {
-        $metricCampaignArgs['ids'] = $campaignIds;
+        $metricCampaignArgs['campaignIds'] = $campaignIds;
     } else {
         // If not campaigns are passed, limit the call to a timeframe
         $metricCampaignArgs['startAt_start'] = $startFetchDate;
@@ -622,56 +636,62 @@ function idemailwiz_fetch_metrics($campaignIds = null)
 
 
 
+function idemailwiz_fetch_purchases($campaignIds = null) {
+    date_default_timezone_set('UTC'); // Set timezone to UTC to match Iterable
+    
 
-function idemailwiz_fetch_purchases($campaignIds = null)
-{
+    // Define the base URL
+    $baseUrl = 'https://api.iterable.com/api/export/data.csv';
 
-    // Get purchases for the specified campaigns or get all purchases from the past 30 days
-    // If campaignIds are specified, we limit our API call by date based on the earliest campaign startAt date
+    // Define the fields to be omitted
+    $omitFields = [
+        'shoppingCartItems.orderDetailId',
+        'shoppingCartItems.parentOrderDetailId',
+        'shoppingCartItems.predecessorOrderDetailId',
+        'shoppingCartItems.financeUnitId',
+        'shoppingCartItems.id',
+        'shoppingCartItems.imageUrl',
+        'shoppingCartItems.subsidiaryId',
+        'shoppingCartItems.packageType',
+        'userId',
+        'shoppingCartItems.StudentFirstName',
+        'shoppingCartItems.StudentLastName',
+        'email',
+    ];
 
-    date_default_timezone_set('UTC'); // UTC to match Iterable
-    $startDateTime = date('Y-m-d H:i:s', strtotime('-30 days'));
-    $endDateTime = date('Y-m-d H:i:s'); // End date is always today
-    $url = 'https://api.iterable.com/api/export/data.csv?
-    dataTypeName=purchase
-    &delimiter=%2C
-    &omitFields=shoppingCartItems
-    %2CshoppingCartItems_orderDetailId
-    %2CshoppingCartItems_parentOrderDetailId
-    %2CshoppingCartItems_predecessorOrderDetailId
-    %2CshoppingCartItems_financeUnitId
-    %2CshoppingCartItems_id
-    %2CshoppingCartItems_imageUrl
-    %2CshoppingCartItems_subsidiaryId
-    %2CshoppingCartItems_packageType
-    %2CuserId
-    %2CshoppingCartItems.StudentFirstName
-    %2CshoppingCartItems.StudentLastName
-    %2Cemail
-    %2CshoppingCartItems.StudentFirstName
-    %2CshoppingCartItems.StudentLastName';
+    // Create the array of query parameters
+    $queryParams = [
+        'dataTypeName' => 'purchase',
+        'delimiter' => ',',
+        'omitFields' => implode(',', $omitFields)
+    ];
 
+    // Handle the campaign IDs if provided
     if ($campaignIds) {
-        if (count($campaignIds) == 1) {
-            $url = $url . '&campaignId=' . $campaignIds[0];
+        if (count($campaignIds) === 1) {
+            // If there's only one campaign ID, add it directly
+            $queryParams['campaignId'] = $campaignIds[0];
         } else {
-            $campaigns = get_idwiz_campaigns(array('ids' => $campaignIds));
-            $earliestDate = strtotime('today') * 1000;
-            foreach ($campaigns as $campaign) {
-                if ($campaign['startAt'] < $earliestDate) {
-                    $earliestDate = $campaign['startAt'];
-                }
-            }
-            $startDateTime = date('Y-m-d H:i:s', $earliestDate / 1000);
+            // If multiple campaign IDs, find the earliest date
+            $campaigns = get_idwiz_campaigns(['campaignIds' => $campaignIds]);
+            $earliestDate = min(array_column($campaigns, 'startAt'));
+            $startDateTime = date('Y-m-d', $earliestDate / 1000);
         }
     }
 
-    // URL encode the date parameters
-    $encodedStartDateTime = urlencode($startDateTime);
-    $encodedEndDateTime = urlencode($endDateTime);
+    // Define the start and end date time for the API call
+    $startDateTime = date('Y-m-d', strtotime('-21 days'));
+    $endDateTime = date('Y-m-d', strtotime('+1 day')); // End date is always today
 
-    // Append the new parameters to the existing URL
-    $url = $url . "&startDateTime={$encodedStartDateTime}&endDateTime={$encodedEndDateTime}";
+    // Add the start and end datetime to the query parameters
+    $queryParams['startDateTime'] = $startDateTime;
+    $queryParams['endDateTime'] = $endDateTime;
+
+    // Build the query string
+    $queryString = http_build_query($queryParams);
+
+    // Combine the base URL with the query string
+    $url = $baseUrl . '?' . $queryString;
 
     try {
         $response = idemailwiz_iterable_curl_call($url);
@@ -682,46 +702,64 @@ function idemailwiz_fetch_purchases($campaignIds = null)
             return;
         }
     }
+    
 
     // Split the CSV data into lines
-    $lines = explode("\n", $response['response']);
+    $lines = explode("\n", trim($response['response']));
 
     // Parse the header line into headers
-    $headers = str_getcsv($lines[0]);
+    $headers = str_getcsv(array_shift($lines));
 
-    // Swap in underscores for periods
-    $headers = array_map(function ($header) {
+    // Prepare the headers by replacing periods with underscores and making them lowercase
+    // Also, handle the '_id' field specially to convert it to 'id'
+    $processedHeaders = array_map(function ($header) {
         // Remove existing underscores (to handle the 'id' field)
-        $header = str_replace('_', '', $header);
-        // Replace periods with new underscores
-        $header = str_replace('.', '_', $header);
-        return lcfirst($header); // Lowercase first letter
+        $headerWithoutUnderscores = str_replace('_', '', $header);
+        // Replace periods with new underscores and make lowercase
+        return strtolower(str_replace('.', '_', $headerWithoutUnderscores));
     }, $headers);
 
-    $allPurchases = []; // Initialize $data as an array
-
-    // Iterate over the non-header lines
-    for ($i = 1; $i < count($lines); $i++) {
-        // Parse the line into values
-        $values = str_getcsv($lines[$i]);
-
-        // Check if the number of headers and values matches
-        if (count($headers) != count($values)) {
-            continue;
+    // Prepare the omit fields to match the processed headers format
+    $omitFields[] = 'shoppingCartItems';
+    $processedOmitFields = array_map(function ($field) {
+        // Special handling for '_id' field to be 'id'
+        if ($field === '_id') {
+            return 'id';
         }
+        return strtolower(str_replace('.', '_', $field));
+    }, $omitFields);
 
-        // Clean values
-        $values = array_map(function ($value) {
-            $value = str_replace(['[', ']', '"'], '', $value);
-            return $value;
-        }, $values);
+    $allPurchases = []; // Initialize $allPurchases as an array
 
+    // Iterate over the lines of data
+    foreach ($lines as $line) {
+        if (empty($line)) continue; // Skip empty lines
+    
+        // Parse the line into values
+        $values = str_getcsv($line);
+    
         // Combine headers and values into an associative array
-        $allPurchases[] = array_combine($headers, $values);
+        $purchaseData = array_combine($processedHeaders, $values);
+    
+        // Filter out the values with omitted headers and clean up values
+        $filteredPurchaseData = [];
+        foreach ($purchaseData as $key => $value) {
+            if (!in_array($key, $processedOmitFields)) {
+                // Remove square brackets and quotes
+                $cleanValue = str_replace(['[', ']', '"'], '', $value);
+                $filteredPurchaseData[$key] = $cleanValue;
+            }
+        }
+    
+        // Add the filtered data to the purchases array
+        $allPurchases[] = $filteredPurchaseData;
     }
+
 
     // Return the data array
     return $allPurchases;
+
+
 }
 
 
@@ -800,7 +838,7 @@ function get_latest_triggered_startAt($campaignId)
 {
     global $wpdb;
 
-    $table_name = 'wp_idemailwiz_triggered_sends';
+    $table_name = $wpdb->prefix.'idemailwiz_triggered_sends';
 
     // Prepare the SQL query to prevent SQL injection
     $sql = $wpdb->prepare(
@@ -855,33 +893,30 @@ function idemailwiz_sync_templates($passedCampaigns = null)
 
 function idemailwiz_sync_purchases($campaignIds = null)
 {
-
-    // If a campaign IDs are passed to the fetch function, we'll only get purchases for dates on or after the earliest campaign
-    // If campaign IDs is null, it will sync all purchases for the past 30 days
     $purchases = idemailwiz_fetch_purchases($campaignIds);
 
     global $wpdb;
     $table_name = $wpdb->prefix . 'idemailwiz_purchases';
 
-    // Prepare array
+    // Fetch all existing purchase IDs from the database in one go
+    $existing_purchase_ids = $wpdb->get_col("SELECT id FROM $table_name");
+
     $records_to_insert = [];
+    $records_to_update = [];
 
     foreach ($purchases as $purchase) {
-
-        $wizPurchase = get_idwiz_purchase($purchase['id']);
-
-        if (!$wizPurchase) {
-            // purchase not in db, we'll add it
+        // Check if the purchase ID is not in the array of existing purchases
+        if (!in_array($purchase['id'], $existing_purchase_ids)) {
             $records_to_insert[] = $purchase;
         } else {
-            //error_log("Purchase with ID " . $purchase['id'] . " already exists in DB. Skipping.");
+            $records_to_update[] = $purchase;
         }
     }
 
-    // Does our wiz_logging and returns the returns data about the insert/update
-    return idemailwiz_process_and_log_sync($table_name, $records_to_insert, null);
-
+    return idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update);
 }
+
+
 
 function idemailwiz_sync_experiments($passedCampaigns = null)
 {
@@ -1076,7 +1111,7 @@ function idemailwiz_sync_non_triggered_metrics($campaignIds = null)
     $response = [];
 
     if ($campaignIds) {
-        $wizCampaignIds = get_idwiz_campaigns(array('ids' => $campaignIds, 'fields' => 'id'));
+        $wizCampaignIds = get_idwiz_campaigns(array('campaignIds' => $campaignIds, 'fields' => 'id'));
     }
 
     $sync_dbs = ['campaigns', 'templates', 'metrics', 'purchases', 'experiments'];
@@ -1317,22 +1352,29 @@ add_action('idemailwiz_hourly_sync', 'idemailwiz_hourly_sync_and_schedule_trigge
 
 function idemailwiz_hourly_sync_and_schedule_triggered()
 {
-    // Perform the non-triggered sync
-    idemailwiz_sync_non_triggered_metrics();
+    $wizSettings = get_option('idemailwiz_settings');
+    $syncToggle = $wizSettings['iterable_sync_toggle'];
 
-    // Schedule the triggered sync for 'send'
-    if (!wp_next_scheduled('idemailwiz_hourly_triggered_sync_send')) {
-        wp_schedule_single_event(time() + 3 * MINUTE_IN_SECONDS, 'idemailwiz_hourly_triggered_sync_send');
-    }
+    if ($syncToggle == 'on') {
+        // Perform the non-triggered sync
+        idemailwiz_sync_non_triggered_metrics();
 
-    // Schedule the triggered sync for 'open'
-    if (!wp_next_scheduled('idemailwiz_hourly_triggered_sync_open')) {
-        wp_schedule_single_event(time() + 5 * MINUTE_IN_SECONDS, 'idemailwiz_hourly_triggered_sync_open');
-    }
+        // Schedule the triggered sync for 'send'
+        if (!wp_next_scheduled('idemailwiz_hourly_triggered_sync_send')) {
+            //wp_schedule_single_event(time() + 3 * MINUTE_IN_SECONDS, 'idemailwiz_hourly_triggered_sync_send');
+        }
 
-    // Schedule the triggered sync for 'click'
-    if (!wp_next_scheduled('idemailwiz_hourly_triggered_sync_click')) {
-        wp_schedule_single_event(time() + 10 * MINUTE_IN_SECONDS, 'idemailwiz_hourly_triggered_sync_click');
+        // Schedule the triggered sync for 'open'
+        if (!wp_next_scheduled('idemailwiz_hourly_triggered_sync_open')) {
+            //wp_schedule_single_event(time() + 5 * MINUTE_IN_SECONDS, 'idemailwiz_hourly_triggered_sync_open');
+        }
+
+        // Schedule the triggered sync for 'click'
+        if (!wp_next_scheduled('idemailwiz_hourly_triggered_sync_click')) {
+            //wp_schedule_single_event(time() + 10 * MINUTE_IN_SECONDS, 'idemailwiz_hourly_triggered_sync_click');
+        }
+    } else {
+        error_log('Cron sync was initiated but sync is disabled');
     }
 }
 

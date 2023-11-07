@@ -67,6 +67,7 @@ $gaRevenue = [];
 
 // Fetch campaigns
 $campaigns = get_idwiz_campaigns(['startAt_start' => $startDate, 'startAt_end' => $endDate, 'type' => 'Blast']);
+
 $triggeredCampaigns = get_idwiz_campaigns(['startAt_start' => $startDate, 'startAt_end' => $endDate, 'type' => 'Triggered']);
 
 $blastCampaignIds = array_column($campaigns, 'id');
@@ -74,10 +75,11 @@ $triggeredCampaignIds = array_column($triggeredCampaigns, 'id');
 
 
 
-$purchaseArgs = ['startAt_start' => $startDate, 'startAt_end' => $endDate, 'shoppingCartItems_utmMedium' => "Email"];
+$allPurchaseArgs = ['startAt_start' => $startDate, 'startAt_end' => $endDate, 'shoppingCartItems_utmMedium' => "email"];
 $blastPurchases = [];
 $triggeredPurchases = [];
-$allPurchases = get_idwiz_purchases($purchaseArgs);
+$allPurchases = get_idwiz_purchases($allPurchaseArgs);
+
 
 foreach ($allPurchases as $purchase) {
     $purchaseCampaign = get_idwiz_campaign($purchase['campaignId']);

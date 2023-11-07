@@ -401,18 +401,9 @@ function build_idwiz_query($args, $table_name)
 
     $sql = "SELECT $fields FROM $table_name WHERE 1=1";
 
-    // Filter out zero values from 'ids' and 'campaignIds' if they are present
+
+    // Filter out zero values from 'campaignIds' if they are present
     // Prevents huge data calls in the purchases database
-    if (isset($args['id'])) {
-        if ($args['id'] == 0) {
-            $args['id'] = null;
-        }
-    }
-    if (isset($args['ids'])) {
-        $args['ids'] = array_filter($args['ids'], function ($id) {
-            return $id != 0;
-        });
-    }
     if (isset($args['campaignIds'])) {
         $args['campaignIds'] = array_filter($args['campaignIds'], function ($id) {
             return $id != 0;
@@ -427,18 +418,16 @@ function build_idwiz_query($args, $table_name)
     unset($where_args['sort']);
     unset($where_args['offset']);
     unset($where_args['not-ids']);
+    unset($where_args['not-campaigns']);
+    unset($where_args['purchaseId']);
 
-    // Setup special variable cases
-    $campaignKey = 'id';
+
+
+    // Setup special variable cases 
     $dateKey = 'startAt';
 
-    if (
-        $table_name == $wpdb->prefix . 'idemailwiz_purchases'
-        || $table_name == $wpdb->prefix . 'idemailwiz_templates'
-        || $table_name == $wpdb->prefix . 'idemailwiz_experiments'
-    ) {
-        $campaignKey = 'campaignId';
-    }
+
+
 
     if ($table_name == $wpdb->prefix . 'idemailwiz_purchases') {
         $dateKey = 'purchaseDate';
@@ -448,49 +437,62 @@ function build_idwiz_query($args, $table_name)
         $sql .= $wpdb->prepare(" AND shoppingCartItems_productCategory != %s", '17001');
     }
 
+    // CampaignIds are under "id" for campaigns and under "campaignId" for everything else
+    if ($table_name == $wpdb->prefix . 'idemailwiz_campaigns' || $table_name == $wpdb->prefix . 'idemailwiz_metrics') {
+        $campaignKey = 'id';
+    } else {
+        $campaignKey = 'campaignId';
+    }
+
     foreach ($where_args as $key => $value) {
         if ($value !== null && $value !== '') {
 
+            if ($key === 'campaignId') {
+                $sql .= $wpdb->prepare(" AND $campaignKey = %d", $value);
+            }
 
-            if (($key === 'ids' || $key === 'campaignIds')) { // Special case for array of campaign IDs
+            if ($key === 'purchaseId') {
+                $sql .= $wpdb->prepare(" AND id = %d", $value);
+            }
 
+            if ($key === 'campaignIds') { // Special case for array of campaign IDs
                 $placeholders = implode(',', array_fill(0, count($value), '%d'));
 
                 // Use call_user_func_array to dynamically pass an array of arguments to $wpdb->prepare
                 $sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND $campaignKey IN ($placeholders)"), $value));
+
+            } elseif ($key === 'purchaseIds') {
+                $placeholders = implode(',', array_fill(0, count($value), '%s'));
+                $sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND id IN ($placeholders)"), $args['purchaseIds']));
             } elseif ($key === 'startAt_start') {
-                try {
-                    $dt = new DateTime($value, new DateTimeZone('America/Los_Angeles'));
-                    $dt->setTime(0, 0, 0); // Set the time to the start of the day
-                    $dt->setTimezone(new DateTimeZone('UTC'));
-
+                //$value = sanitize_text_field($value); // Sanitize the input
+                $dt = DateTime::createFromFormat('Y-m-d', $value); // Create a DateTime object
+                if ($dt) {
                     if ($dateKey === 'purchaseDate') {
-                        $value = $dt->format('Y-m-d');
-                        $sql .= $wpdb->prepare(" AND $dateKey >= %s", $value);
+                        // If it's a purchase date, format as 'Y-m-d'
+                        $formattedValue = $dt->format('Y-m-d');
                     } else {
-                        $value = $dt->getTimestamp() * 1000;
-                        $sql .= $wpdb->prepare(" AND $dateKey >= %d", $value);
+                        // For other dates, adjust the format as needed
+                        $formattedValue = $dt->getTimestamp() * 1000; // For example, if they're stored as timestamps
                     }
-
-                } catch (Exception $e) {
-                    return ['error' => $e];
+                    $sql .= $wpdb->prepare(" AND $dateKey >= %s", $formattedValue);
+                } else {
+                    return ['error' => 'Invalid date format for startAt_start'];
                 }
             } elseif ($key === 'startAt_end') {
-                try {
-                    $dt = new DateTime($value, new DateTimeZone('America/Los_Angeles'));
-                    $dt->setTime(23, 59, 59); // Set the time to the end of the day
-                    $dt->setTimezone(new DateTimeZone('UTC'));
-
+                //$value = sanitize_text_field($value); // Sanitize the input
+                $dt = DateTime::createFromFormat('Y-m-d', $value); // Create a DateTime object
+                if ($dt) {
                     if ($dateKey === 'purchaseDate') {
-                        $value = $dt->format('Y-m-d');
-                        $sql .= $wpdb->prepare(" AND $dateKey <= %s", $value);
+                        // If it's a purchase date, format as 'Y-m-d'
+                        $formattedValue = $dt->format('Y-m-d');
                     } else {
-                        $value = $dt->getTimestamp() * 1000;
-                        $sql .= $wpdb->prepare(" AND $dateKey <= %d", $value);
+                        // For other dates, adjust the format
+                        $formattedValue = $dt->getTimestamp() * 1000; // stored as timestamps
                     }
-
-                } catch (Exception $e) {
-                    return ['error' => $e];
+                    $sql .= $wpdb->prepare(" AND $dateKey <= %s", $formattedValue);
+                } else {
+                    return ['error' => 'Invalid date format for startAt_end'];
                 }
             } elseif ($key === 'serialized' && is_array($value)) {
                 foreach ($value as $serialized_column => $serialized_value) {
@@ -514,7 +516,13 @@ function build_idwiz_query($args, $table_name)
 
     if (isset($args['not-ids']) && is_array($args['not-ids'])) {
         $placeholders = implode(',', array_fill(0, count($args['not-ids']), '%d'));
-        $sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND $campaignKey NOT IN ($placeholders)"), $args['not-ids']));
+        $sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND id NOT IN ($placeholders)"), $args['not-ids']));
+
+    }
+
+    if (isset($args['not-campaigns']) && is_array($args['not-campaigns'])) {
+        $placeholders = implode(',', array_fill(0, count($args['not-campaigns']), '%d'));
+        $sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND $campaignKey NOT IN ($placeholders)"), $args['nnot-campaigns']));
     }
 
     if (isset($args['sortBy'])) {
@@ -530,6 +538,10 @@ function build_idwiz_query($args, $table_name)
         $sql .= $wpdb->prepare(" OFFSET %d", (int) $args['offset']);
     }
 
+    if ($table_name == $wpdb->prefix . 'idemailwiz_purchases') {
+
+    }
+
     return $sql;
 
 
@@ -538,18 +550,30 @@ function build_idwiz_query($args, $table_name)
 
 
 // Does the sql query for the main get_ functions based on the passed parameters
-function execute_idwiz_query($sql)
+function execute_idwiz_query($sql, $batch_size = 1000)
 {
     global $wpdb;
-    $results = $wpdb->get_results($sql, ARRAY_A);
+    $offset = 0;
+    $results = [];
 
-    if ($wpdb->last_error) {
-        error_log($wpdb->last_error);
-        return false;
-    }
+    do {
+        $current_batch_query = $sql . " LIMIT $offset, $batch_size";
+        $current_batch = $wpdb->get_results($current_batch_query, ARRAY_A);
+
+        if ($wpdb->last_error) {
+            error_log($wpdb->last_error);
+            return false;
+        }
+
+        if ($current_batch) {
+            $results = array_merge($results, $current_batch);
+            $offset += $batch_size;
+        }
+    } while (count($current_batch) == $batch_size);
 
     return $results;
 }
+
 
 function get_idwiz_campaigns($args = [])
 {
@@ -603,7 +627,7 @@ function get_idwiz_template($templateID)
 }
 function get_idwiz_purchase($purchaseID)
 {
-    $purchases = get_idwiz_purchases(['id' => $purchaseID]);
+    $purchases = get_idwiz_purchases(['purchaseId' => $purchaseID]);
     return $purchases ? $purchases[0] : false;
 }
 function get_idwiz_metric($campaignID)
@@ -634,7 +658,8 @@ function idwiz_is_serialized($value)
 }
 
 
-function get_idemailwiz_triggered_data($database, $args = []) {
+function get_idemailwiz_triggered_data($database, $args = [])
+{
     if (!$database) {
         return false;
     }
@@ -816,12 +841,12 @@ function idwiz_populate_day_of_year_cohort()
 
 
 
-function idwiz_find_matching_purchases($options = []) {
+function idwiz_find_matching_purchases($options = [])
+{
     global $wpdb;
 
     $campaign_ids = $options['campaignIds'] ?? [];
     $campaign_types = $options['campaignTypes'] ?? ['Blast', 'Triggered'];
-    error_log(print_r($campaign_types, true));
     $start_date = $options['startDate'] ?? false;
     $end_date = $options['endDate'] ?? false;
 
@@ -830,7 +855,7 @@ function idwiz_find_matching_purchases($options = []) {
 
     if ($campaign_ids && !empty($campaign_ids)) {
         // Fetch the corresponding templates
-        $templates = get_idwiz_templates(array('ids' => $campaign_ids));
+        $templates = get_idwiz_templates(array('campaignIds' => $campaign_ids));
 
         // Create arrays for utmTerms and utmCampaigns for lookup
         $utm_terms = array_column($templates, 'utmTerm');
@@ -868,7 +893,7 @@ function idwiz_find_matching_purchases($options = []) {
 
     // Execute the query
     $all_purchases = $wpdb->get_results($sql, ARRAY_A);
-    
+
     // Filter the purchases by campaign type
     $filtered_purchases = [];
     foreach ($all_purchases as $purchase) {

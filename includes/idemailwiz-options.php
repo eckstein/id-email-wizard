@@ -35,6 +35,12 @@ function idemailwiz_register_settings() {
     add_settings_field('campaigns_page', 'Campaigns Page', 'idemailwiz_render_dropdown_pages_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'campaigns_page'));
     add_settings_field('reports_page', 'Reports Page', 'idemailwiz_render_dropdown_pages_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'reports_page'));
     add_settings_field('wizbuilder_field_group', 'WizBuilder ACF Field Group ID', 'idemailwiz_render_text_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'wizbuilder_field_group'));
+    
+    add_settings_field('iterable_sync_toggle', 'Iterable Sync On/Off', 'idemailwiz_render_radio_field', 'idemailwiz_settings', 'idemailwiz_main_section', array(
+        'option_name' => 'iterable_sync_toggle',
+        'options' => array('on' => 'On', 'off' => 'Off') 
+    ));
+
   
 }
 
@@ -78,23 +84,35 @@ function idemailwiz_render_dropdown_pages_field($args) {
 
 function idemailwiz_render_radio_field($args) {
     $options = get_option('idemailwiz_settings');
+    if (!is_array($options)) {
+        $options = array();
+    }
     $selected = isset($options[$args['option_name']]) ? $options[$args['option_name']] : '';
-    foreach ($args['options'] as $value => $label) :
-    ?>
-    <label>
-        <input type="radio" name="idemailwiz_settings[<?php echo esc_attr($args['option_name']); ?>]" value="<?php echo esc_attr($value); ?>" <?php checked($selected, $value); ?> />
-        <?php echo esc_html($label); ?>
-    </label>
-    <?php endforeach;
+
+    if (isset($args['options']) && is_array($args['options'])) { // Check if options are set and is an array
+        foreach ($args['options'] as $value => $label) :
+            ?>
+            <label>
+                <input type="radio" name="idemailwiz_settings[<?php echo esc_attr($args['option_name']); ?>]" value="<?php echo esc_attr($value); ?>" <?php checked($selected, $value); ?> />
+                <?php echo esc_html($label); ?>
+            </label><br/>
+            <?php
+        endforeach;
+    }
 }
+
 
 function idemailwiz_render_checkbox_field($args) {
     $options = get_option('idemailwiz_settings');
+    if (!is_array($options)) {
+        $options = array();
+    }
     $checked = isset($options[$args['option_name']]) ? $options[$args['option_name']] : '';
     ?>
     <input type="checkbox" name="idemailwiz_settings[<?php echo esc_attr($args['option_name']); ?>]" value="1" <?php checked($checked, 1); ?> />
     <?php
 }
+
 
 function idemailwiz_render_text_field($args) {
     $options = get_option('idemailwiz_settings', array());

@@ -226,7 +226,7 @@ function get_idwiz_initiative_daterange($initiative_post_id)
         return $return;
     }
 
-    $campaigns = get_idwiz_campaigns(array('ids' => $campaign_ids));
+    $campaigns = get_idwiz_campaigns(array('campaignIds' => $campaign_ids));
     $start_dates = array_column($campaigns, 'startAt');
     $min_start_date = min($start_dates);
     $max_start_date = max($start_dates);

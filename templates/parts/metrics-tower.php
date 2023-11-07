@@ -1,11 +1,8 @@
 <?php
 
-// Create DateTime object for the first day of the current dashboard month and year
-$currentMonthDateTime = new DateTime("first day of $wizMonthName $wizYear");
-
 // Clone DateTime object to calculate the last month and last year
-$lastMonthDateTime = clone $currentMonthDateTime;
-$lastYearDateTime = clone $currentMonthDateTime;
+$lastMonthDateTime = clone $startDateTime;
+$lastYearDateTime = clone $startDateTime;
 
 // Subtract 1 month for last month
 $lastMonthDateTime->modify('-1 month');

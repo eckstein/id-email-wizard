@@ -725,7 +725,7 @@ function generate_single_campaign_rollup_row($campaign, $fields, $startDate = nu
   ];
 
   $purchaseArgs = [
-    'ids' => [$campaign['id']],
+    'campaignIds' => [$campaign['id']],
   ];
 
   if ($campaign['type'] == 'Triggered') {
@@ -843,7 +843,7 @@ function idwiz_format_rollup_row_values($value, $format)
 function idemailwiz_calculate_aggregate_metrics($campaignIds)
 {
 
-  $metricsArray = get_idwiz_metrics(array('ids' => $campaignIds));
+  $metricsArray = get_idwiz_metrics(array('campaignIds' => $campaignIds));
 
   // Initialize aggregate metrics
   $aggregateMetrics = [
@@ -1199,7 +1199,9 @@ function get_metricsTower_rate($campaignIds, $metricType, $startDate = null, $en
   }
 
   // Fetch metrics for the given campaign IDs
-  $metrics = get_idwiz_metrics(['ids' => $campaignIds]);
+  $metrics = get_idwiz_metrics(['campaignIds' => $campaignIds]);
+
+  
 
   // If metrics couldn't be fetched or returned an empty array, return 'N/A'
   if (!$metrics || empty($metrics)) {
@@ -1263,6 +1265,7 @@ function get_metricsTower_rate($campaignIds, $metricType, $startDate = null, $en
   // Sum up the metrics
   $allDbField = array_sum(array_column($metrics, $dbField));
 
+  
 
   if ($divideBy) {
     // Calculate the total number for the divisor
@@ -1274,6 +1277,7 @@ function get_metricsTower_rate($campaignIds, $metricType, $startDate = null, $en
     }
     // Calculate and return the metric rate
     $metricRate = $allDbField / $allDivideBy;
+    
 
     if ($metricType != 'aov') {
       return $metricRate * 100;
@@ -1310,6 +1314,8 @@ function get_idwiz_revenue($startDate, $endDate, $campaignTypes = ['Triggered', 
     $purchaseArgs = ['startAt_start' => $startDate, 'startAt_end' => $endDate, 'shoppingCartItems_utmMedium' => 'email', 'fields' => 'id,campaignId,purchaseDate,total'];
     $purchases = get_idwiz_purchases($purchaseArgs);
 
+    //error_log('Start Date: '.$startDate.' End Date: '.$endDate.print_r($purchases, true));
+
     if (!$purchases) {
       return 0;
     }
@@ -1317,16 +1323,12 @@ function get_idwiz_revenue($startDate, $endDate, $campaignTypes = ['Triggered', 
     $uniqueIds = [];
 
     $revenue = 0;
-
+    //error_log(print_r($purchases, true));
 
     foreach ($purchases as $purchase) {
       if (in_array($purchase['id'], $uniqueIds)) {
         continue;
       }
-
-      //if (!in_array($purchase['campaignId'], $wizCampaignIds)) {
-        //continue;
-     // }
 
      if (!isset($purchase['campaignId'])) {
       continue;
@@ -1350,6 +1352,8 @@ function get_idwiz_revenue($startDate, $endDate, $campaignTypes = ['Triggered', 
       //   $revenue += $purchase['total'];
       //   $uniqueIds[] = $purchase['id'];
       // }
+
+      
 
       $revenue += $purchase['total'];
       $uniqueIds[] = $purchase['id'];
@@ -1405,7 +1409,6 @@ function get_idwiz_header_tabs($tabs, $currentActiveItem)
 
 function handle_experiment_winner_toggle()
 {
-  error_log('Made it to handler');
 
   global $wpdb;
   $table_name = $wpdb->prefix . 'idemailwiz_experiments';
@@ -1429,7 +1432,6 @@ function handle_experiment_winner_toggle()
   }
 
   if ($action == 'add-winner') {
-    error_log('Action is add-winner');
 
     // Clear existing winners for the same experimentId
     $result = $wpdb->update(
@@ -1458,7 +1460,6 @@ function handle_experiment_winner_toggle()
     }
 
   } elseif ($action == 'remove-winner') {
-    error_log('Action is remove-winner');
 
     // Remove winner
     $result = $wpdb->update(
@@ -1479,7 +1480,6 @@ function handle_experiment_winner_toggle()
     return;
   }
 
-  error_log('Action completed successfully');
   wp_send_json_success('Action completed successfully');
 }
 
@@ -1733,7 +1733,7 @@ function get_campaigns_with_most_returning_customers($campaigns)
 
   foreach ($campaigns as $campaign) {
     $campaignId = $campaign['id'];
-    $purchasesForCampaign = get_idwiz_purchases(['ids' => [$campaignId], 'fields' => 'campaignId,orderId,accountNumber,purchaseDate']);
+    $purchasesForCampaign = get_idwiz_purchases(['campaignIds' => [$campaignId], 'fields' => 'campaignId,orderId,accountNumber,purchaseDate']);
 
     $customerCounts = return_new_and_returning_customers($purchasesForCampaign);
 

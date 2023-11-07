@@ -9,7 +9,7 @@
         // Get the list of campaign IDs associated with the current initiative
         $associated_campaign_ids = idemailwiz_get_campaign_ids_for_initiative(get_the_ID()) ?? array();
         if (!empty($associated_campaign_ids)) {
-            $purchases = get_idwiz_purchases(array('ids' => $associated_campaign_ids));
+            $purchases = get_idwiz_purchases(array('campaignIds' => $associated_campaign_ids));
         }
 
         ?>
@@ -62,7 +62,7 @@
                 if (!empty($associated_campaign_ids)) {
                     $initCampaigns = get_idwiz_campaigns(
                         array(
-                            'ids' => $associated_campaign_ids,
+                            'campaignIds' => $associated_campaign_ids,
                             'sortBy' => 'startAt',
                             'sort' => 'DESC'
                         )

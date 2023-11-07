@@ -42,7 +42,7 @@ global $wpdb;
 
                         // Step 2: Extract the campaignId and get the blast metrics.
                         $campaignIds = array_column($campaigns, 'id');
-                        $blastMetrics = get_idwiz_metrics(['ids' => $campaignIds, 'fields' => 'uniqueEmailSends']);
+                        $blastMetrics = get_idwiz_metrics(['campaignIds' => $campaignIds, 'fields' => 'uniqueEmailSends']);
 
                         // Step 3: Count the blast sends.
                         $blastSendCount = 0;

@@ -1,8 +1,9 @@
 <?php
 
 //If start and end date are set, we re-get purchases just for between the dates
-
-
+//$fetchPurchases = idemailwiz_sync_purchases();
+//echo count($fetchPurchases);
+//print_r($fetchPurchases);
 ?>
 <div class="wizcampaign-sections-row">
 

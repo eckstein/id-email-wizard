@@ -1,6 +1,6 @@
 <?php
 
-$purchases = get_idwiz_purchases(['not-ids'=>[0], 'fields' => 'id,orderId,accountNumber,campaignId,purchaseDate,total,shoppingCartItems_name,shoppingCartItems_categories, shoppingCartItems_price']);
+$purchases = get_idwiz_purchases(['fields' => 'id,orderId,accountNumber,campaignId,purchaseDate,total,shoppingCartItems_name,shoppingCartItems_categories, shoppingCartItems_price']);
 
 ?>
 <div class="wizcampaign-sections-row">

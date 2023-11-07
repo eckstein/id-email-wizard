@@ -96,7 +96,7 @@ $campaignIds = array_column($filteredSlCampaigns, 'id');
                     <?php
                     foreach ($filteredSlCampaigns as $filteredSlCampaign) { 
                         $slMetric = get_idwiz_metric($filteredSlCampaign['id']);
-                        $slTemplate = get_idwiz_templates(['ids'=>[$filteredSlCampaign['id']]]);
+                        $slTemplate = get_idwiz_templates(['campaignIds'=>[$filteredSlCampaign['id']]]);
                         ?>
                     <tr>
                         <td><?php echo date('m/d/Y', $filteredSlCampaign['startAt'] / 1000); ?></td>

@@ -466,7 +466,7 @@ function idwiz_get_byCampaign_chartdata($chartOptions)
     $campaignArgs = [];
 
     if ($campaignIds) {
-        $campaignArgs['ids'] = $campaignIds;
+        $campaignArgs['campaignIds'] = $campaignIds;
     }
     if ($campaignTypes) {
         $campaignArgs['type'] = $campaignTypes;
@@ -838,7 +838,7 @@ function idwiz_fetch_customer_types_chart_data()
     $campaignIds = isset($_POST['campaignIds']) ? json_decode(stripslashes($_POST['campaignIds']), true) : [];
 
     if (!empty($campaignIds)) {
-        $purchaseArgs['ids'] = $campaignIds;
+        $purchaseArgs['campaignIds'] = $campaignIds;
     }
 
     $startDate = $_POST['startDate'] ?? '2021-11-01';

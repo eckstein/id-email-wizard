@@ -77,7 +77,7 @@ $activeTab = $_GET['view'] ?? 'Active';
                             $campaignCount = count($associated_campaign_ids);
                             $initCampaigns = get_idwiz_campaigns(
                                 array(
-                                    'ids' => $associated_campaign_ids,
+                                    'campaignIds' => $associated_campaign_ids,
                                     'sortBy' => 'startAt',
                                     'sort' => 'DESC'
                                 )

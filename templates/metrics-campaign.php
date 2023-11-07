@@ -20,10 +20,10 @@ $template = get_idwiz_template($campaign['templateId']);
 
 $campaignStartAt = date('m/d/Y \a\t g:ia', $campaign['startAt'] / 1000);
 
-$purchases = get_idwiz_purchases(array('campaignId' => $campaign['id']));
+$purchases = get_idwiz_purchases(array('campaignIds' => [$campaign['id']]));
 //$experimentIds = maybe_unserialize($campaign['experimentIds']) ?? array();
 // This returns one row per experiment TEMPLATE
-$experiments = get_idwiz_experiments(array('campaignId' => $campaign['id']));
+$experiments = get_idwiz_experiments(array('campaignIds' => [$campaign['id']]));
 // Returns multiple templates with the same experiment ID, so we de-dupe
 $experimentIds = array_unique(array_column($experiments, 'experimentId'));
 $linkedExperimentIds = array_map(function ($id) {
