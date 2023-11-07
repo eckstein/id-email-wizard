@@ -900,7 +900,9 @@ function idemailwiz_sync_purchases($campaignIds = null)
     $table_name = $wpdb->prefix . 'idemailwiz_purchases';
 
     // Fetch all existing purchase IDs from the database in one go
-    $existing_purchase_ids = $wpdb->get_col("SELECT id FROM $table_name");
+    //$existing_purchase_ids = $wpdb->get_col("SELECT id FROM $table_name");
+    $existing_purchases = get_idwiz_purchases(['shoppingCartItems_utmMedium'=> 'email', 'fields'=>'id']);
+    $existing_purchase_ids = array_column($existing_purchases, 'id');
 
     $records_to_insert = [];
     $records_to_update = [];
