@@ -681,7 +681,7 @@ function idemailwiz_fetch_purchases($campaignIds = null) {
     }
 
     // Define the start and end date time for the API call
-    $startDateTime = date('Y-m-d', strtotime('-21 days'));
+    $startDateTime = date('Y-m-d', strtotime('-10 days'));
     $endDateTime = date('Y-m-d', strtotime('+1 day')); // End date is always today
 
     // Add the start and end datetime to the query parameters
