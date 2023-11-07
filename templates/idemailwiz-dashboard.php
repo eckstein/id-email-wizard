@@ -32,10 +32,12 @@ if (isset($_GET['startDate']) && $_GET['startDate'] !== '' && isset($_GET['endDa
     $startDate = date("Y-m-01");
     $endDate = date("Y-m-t");
 
-    $startDateTime = new DateTime($startDate);
+    
     $wizMonth = date("m");
     $wizYear = date("Y");
 }
+
+$startDateTime = new DateTime($startDate);
 
 if (isset($_GET['view']) && $_GET['view'] === 'FY') {
     $fyProjections = get_field('fy_' . $endYear . '_projections', 'options');

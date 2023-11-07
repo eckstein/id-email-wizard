@@ -189,7 +189,7 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
             if (!empty($builderTemplates)) {
 
                 $sql = $wpdb->prepare(
-                    "UPDATE $wpdb->prefix.idemailwiz_templates SET clientTemplateId = %d WHERE templateId = %d",
+                    "UPDATE `{$wpdb->prefix}idemailwiz_templates` SET clientTemplateId = %s WHERE templateId = %d",
                     $builderTemplates[0]->ID,
                     $wizDbTemplate['templateId']
 
@@ -197,7 +197,7 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
                 $wpdb->query($sql);
             } else {
                 $sql = $wpdb->prepare(
-                    "UPDATE $wpdb->prefix.idemailwiz_templates SET clientTemplateId = NULL WHERE templateId = %d",
+                    "UPDATE `{$wpdb->prefix}idemailwiz_templates` SET clientTemplateId = NULL WHERE templateId = %d",
                     $incomingTemplateId
                 );
                 $wpdb->query($sql);
@@ -227,7 +227,8 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 
             // Using prepare to safely insert values into the query
             $sql = $wpdb->prepare(
-                "UPDATE $wpdb->prefix.idemailwiz_campaigns SET experimentIds = %s WHERE id = %d",
+                "UPDATE `{$wpdb->prefix}idemailwiz_campaigns` SET experimentIds = %s WHERE id = %d",
+                
                 $serializedExperimentIds,
                 $item['campaignId']
             );
@@ -1361,17 +1362,17 @@ function idemailwiz_hourly_sync_and_schedule_triggered()
 
         // Schedule the triggered sync for 'send'
         if (!wp_next_scheduled('idemailwiz_hourly_triggered_sync_send')) {
-            wp_schedule_single_event(time() + 3 * MINUTE_IN_SECONDS, 'idemailwiz_hourly_triggered_sync_send');
+            //wp_schedule_single_event(time() + 3 * MINUTE_IN_SECONDS, 'idemailwiz_hourly_triggered_sync_send');
         }
 
         // Schedule the triggered sync for 'open'
         if (!wp_next_scheduled('idemailwiz_hourly_triggered_sync_open')) {
-            wp_schedule_single_event(time() + 5 * MINUTE_IN_SECONDS, 'idemailwiz_hourly_triggered_sync_open');
+            //wp_schedule_single_event(time() + 5 * MINUTE_IN_SECONDS, 'idemailwiz_hourly_triggered_sync_open');
         }
 
         // Schedule the triggered sync for 'click'
         if (!wp_next_scheduled('idemailwiz_hourly_triggered_sync_click')) {
-            wp_schedule_single_event(time() + 10 * MINUTE_IN_SECONDS, 'idemailwiz_hourly_triggered_sync_click');
+            //wp_schedule_single_event(time() + 10 * MINUTE_IN_SECONDS, 'idemailwiz_hourly_triggered_sync_click');
         }
     } else {
         error_log('Cron sync was initiated but sync is disabled');
