@@ -268,6 +268,7 @@ function idemailwiz_create_databases()
     $purchase_sql = "CREATE TABLE IF NOT EXISTS $purchase_table_name (
         accountNumber VARCHAR(20),
         orderId VARCHAR(10),
+        userId VARCHAR(20),
         id VARCHAR(40),
         campaignId INT,
         createdAt VARCHAR(26),
