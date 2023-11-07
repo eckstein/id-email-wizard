@@ -326,63 +326,22 @@ function idemailwiz_fetch_campaigns($campaignIds = null)
 function idemailwiz_fetch_templates($campaignIds = null)
 {
     $allTemplates = [];
-    $templateAPIurls = [];
 
-    // Fetch campaigns based on whether IDs are provided
-    $wizCampaigns = $campaignIds ? get_idwiz_campaigns(['campaignIds' => $campaignIds]) : get_idwiz_campaigns();
+    // Perform the initial API call to fetch all templates
+    $allTemplatesResponse = idemailwiz_iterable_curl_call("https://api.iterable.com/api/templates");
 
-    if ($campaignIds) {
-        foreach ($wizCampaigns as $campaign) {
-            $medium = $campaign['messageMedium'];
-            $type = $campaign['type'];
-
-            $key = strtolower($medium) . strtolower($type);
-            $templateAPIurls[$key] = "https://api.iterable.com/api/templates?templateType=$type&messageMedium=$medium";
-        }
-    } else {
-        // Initialize all 4 API URLs for fetching all types of templates
-        $typesAndMediums = [
-            'blastEmails' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=Email',
-            'triggeredEmails' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=Email',
-            'blastSMS' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=SMS',
-            'triggeredSMS' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=SMS'
-        ];
-        $templateAPIurls = array_merge($templateAPIurls, $typesAndMediums);
+    if (!empty($allTemplatesResponse['response']['templates'])) {
+        $allTemplates = $allTemplatesResponse['response']['templates'];
     }
-
-    // Perform the initial API calls and gather basic templates
-    $getProjectTemplates = [];
-    foreach ($templateAPIurls as $APIendpoint) {
-        try {
-            $response = idemailwiz_iterable_curl_call($APIendpoint);
-            if (!empty($response['response']['templates'])) {
-                $getProjectTemplates = array_merge($getProjectTemplates, $response['response']['templates']);
-            }
-        } catch (Exception $e) {
-            wiz_log("Error during initial API call: " . $e->getMessage());
-        }
-    }
-
-    // Determine which templates actually need to be fetched in detail
-    $urlsToFetch = [];
-    foreach ($getProjectTemplates as $template) {
-        $templateId = $template['templateId'];
-        $associatedCampaign = array_filter($wizCampaigns, function ($campaign) use ($templateId) {
-            return $campaign['templateId'] == $templateId;
-        });
-        $associatedCampaign = array_shift($associatedCampaign); // Get the first matching campaign
-        if ($associatedCampaign) {
-            $mediumEndpoint = strtolower($associatedCampaign['messageMedium']);
-            $wizTemplate = get_idwiz_template($templateId);
-
-            if (!$wizTemplate || ($wizTemplate && $wizTemplate['updatedAt'] != $template['updatedAt'])) {
-                $urlsToFetch[] = "https://api.iterable.com/api/templates/$mediumEndpoint/get?templateId=$templateId";
-            }
-        }
-    }
-
 
     // Fetch the templates in batches using multi cURL
+    $urlsToFetch = [];
+    foreach ($allTemplates as $template) {
+        $templateId = $template['templateId'];
+        $mediumEndpoint = strtolower($template['messageMedium']);
+        $urlsToFetch[] = "https://api.iterable.com/api/templates/$mediumEndpoint/get?templateId=$templateId";
+    }
+
     try {
         $multiResponses = idemailwiz_iterable_curl_multi_call($urlsToFetch);
         foreach ($multiResponses as $response) {
@@ -397,6 +356,9 @@ function idemailwiz_fetch_templates($campaignIds = null)
 
     return $allTemplates;
 }
+
+
+
 
 
 
@@ -900,7 +862,7 @@ function idemailwiz_sync_purchases($campaignIds = null)
 
     // Fetch all existing purchase IDs from the database in one go
     //$existing_purchase_ids = $wpdb->get_col("SELECT id FROM $table_name");
-    $existing_purchases = get_idwiz_purchases(['shoppingCartItems_utmMedium'=> 'email', 'fields'=>'id']);
+    $existing_purchases = get_idwiz_purchases(['startAt_start'=>'2022-11-01','fields'=>'id']);
     $existing_purchase_ids = array_column($existing_purchases, 'id');
 
     $records_to_insert = [];

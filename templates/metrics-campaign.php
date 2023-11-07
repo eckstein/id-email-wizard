@@ -291,6 +291,7 @@ $linkedExperimentIds = array_map(function ($id) {
 
             if (!empty($displayTemplates)) {
 
+
                 foreach ($displayTemplates as $currentTemplate) {
                     if (!$currentTemplate) {
                         continue;
