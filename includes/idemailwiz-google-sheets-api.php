@@ -25,9 +25,8 @@ function sync_ga_campaign_revenue_data()
         return "Error fetching GA campaign revenue data.";
     }
 
-
-
-    //error_log(print_r($ga_data, true));
+    
+    
 
     if (is_string($ga_data)) {
         return $ga_data; 
@@ -44,8 +43,11 @@ function sync_ga_campaign_revenue_data()
         $date = (string) ($row['date']);
         $campaignId = (string) ($row['campaignId']);
         $division = (string) ($row['division']);
-        $revenue = (float) $row['revenue'] ?? 0;
-        $purchases = (float) $row['purchases'] ?? 0;
+
+        
+        // Remove commas from the revenue and purchases values
+        $revenue = (float) str_replace(',', '', $row['revenue']) ?? 0;
+        $purchases = (float) str_replace(',', '', $row['purchases']) ?? 0;
 
         // Check if a record with the same transactionId exists in the table
         $existing_record = $wpdb->get_row(

@@ -5,6 +5,7 @@
 ?>
 <?php get_header(); ?>
 <?php
+
 global $wpdb; // Declare the WordPress Database variable
 
 date_default_timezone_set('America/Los_Angeles');
