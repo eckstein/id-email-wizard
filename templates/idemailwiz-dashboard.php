@@ -26,10 +26,13 @@ if (isset($_GET['startDate']) && $_GET['startDate'] !== '' && isset($_GET['endDa
 
     $startDate = "{$startYear}-11-01";
     $endDate = "{$endYear}-10-31";
+    
 } else {
     // Default to current month if no parameters are provided
     $startDate = date("Y-m-01");
     $endDate = date("Y-m-t");
+
+    $startDateTime = new DateTime($startDate);
     $wizMonth = date("m");
     $wizYear = date("Y");
 }

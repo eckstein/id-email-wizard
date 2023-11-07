@@ -1361,17 +1361,17 @@ function idemailwiz_hourly_sync_and_schedule_triggered()
 
         // Schedule the triggered sync for 'send'
         if (!wp_next_scheduled('idemailwiz_hourly_triggered_sync_send')) {
-            //wp_schedule_single_event(time() + 3 * MINUTE_IN_SECONDS, 'idemailwiz_hourly_triggered_sync_send');
+            wp_schedule_single_event(time() + 3 * MINUTE_IN_SECONDS, 'idemailwiz_hourly_triggered_sync_send');
         }
 
         // Schedule the triggered sync for 'open'
         if (!wp_next_scheduled('idemailwiz_hourly_triggered_sync_open')) {
-            //wp_schedule_single_event(time() + 5 * MINUTE_IN_SECONDS, 'idemailwiz_hourly_triggered_sync_open');
+            wp_schedule_single_event(time() + 5 * MINUTE_IN_SECONDS, 'idemailwiz_hourly_triggered_sync_open');
         }
 
         // Schedule the triggered sync for 'click'
         if (!wp_next_scheduled('idemailwiz_hourly_triggered_sync_click')) {
-            //wp_schedule_single_event(time() + 10 * MINUTE_IN_SECONDS, 'idemailwiz_hourly_triggered_sync_click');
+            wp_schedule_single_event(time() + 10 * MINUTE_IN_SECONDS, 'idemailwiz_hourly_triggered_sync_click');
         }
     } else {
         error_log('Cron sync was initiated but sync is disabled');
