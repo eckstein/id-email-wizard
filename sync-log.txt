@@ -1,3 +1,98 @@
+==========[2023-11-09 07:51:51]==============================<br />
+Experiments sync results: <br />
+<br />
+Successful update of 2 records.<br />
+========================================<br />
+<br />
+==========[2023-11-09 07:50:58]==============================<br />
+Purchases sync results: <br />
+Successful insert of 6 records.1 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: 1ab11e0be5e348eaa306020edf1b5ea4). Database Error: Duplicate entry '1ab11e0be5e348eaa306020edf1b5ea4' for key 'PRIMARY'.<br />
+<br />
+========================================<br />
+<br />
+==========[2023-11-09 07:50:36]==============================<br />
+Metrics sync results: <br />
+<br />
+Successful update of 45 records.<br />
+========================================<br />
+<br />
+==========[2023-11-09 07:50:15]==============================<br />
+Templates sync results: <br />
+The templates sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-11-09 07:49:31]==============================<br />
+Campaigns sync results: <br />
+The campaigns sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-11-09 06:50:31]==============================<br />
+Experiments sync results: <br />
+<br />
+Successful update of 2 records.<br />
+========================================<br />
+<br />
+==========[2023-11-09 06:49:00]==============================<br />
+Purchases sync results: <br />
+Successful insert of 0 records.1 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: 1ab11e0be5e348eaa306020edf1b5ea4). Database Error: Duplicate entry '1ab11e0be5e348eaa306020edf1b5ea4' for key 'PRIMARY'.<br />
+<br />
+========================================<br />
+<br />
+==========[2023-11-09 06:48:37]==============================<br />
+Metrics sync results: <br />
+<br />
+Successful update of 32 records.<br />
+========================================<br />
+<br />
+==========[2023-11-09 06:48:19]==============================<br />
+Templates sync results: <br />
+The templates sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-11-09 06:47:31]==============================<br />
+Campaigns sync results: <br />
+The campaigns sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-11-09 06:24:53]==============================<br />
+GA campaign revenue data synced successfully. 2716 updates and 4 inserts performed<br />
+========================================<br />
+<br />
+==========[2023-11-09 06:24:48]==============================<br />
+Starting GA campaign revenue data sync.<br />
+========================================<br />
+<br />
+==========[2023-11-09 06:24:38]==============================<br />
+Experiments sync results: <br />
+<br />
+Successful update of 2 records.<br />
+========================================<br />
+<br />
+==========[2023-11-09 06:23:04]==============================<br />
+Purchases sync results: <br />
+Successful insert of 27 records.1 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: 1ab11e0be5e348eaa306020edf1b5ea4). Database Error: Duplicate entry '1ab11e0be5e348eaa306020edf1b5ea4' for key 'PRIMARY'.<br />
+<br />
+========================================<br />
+<br />
+==========[2023-11-09 06:22:45]==============================<br />
+Metrics sync results: <br />
+<br />
+Successful update of 75 records.<br />
+========================================<br />
+<br />
+==========[2023-11-09 06:22:26]==============================<br />
+Templates sync results: <br />
+The templates sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-11-09 06:21:32]==============================<br />
+Campaigns sync results: <br />
+The campaigns sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
 ==========[2023-11-08 19:00:09]==============================<br />
 Experiments sync results: <br />
 <br />
