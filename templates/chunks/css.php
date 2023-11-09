@@ -172,9 +172,10 @@ $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
   }
 
   .hide-desktop {
-    height: 0;
+    height: 0!important;
     overflow: hidden;
     display: none;
+    visibility: hidden;
   }
    
 
