@@ -26,16 +26,6 @@ $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
       }
     </style>
     <![endif]-->
-<!--[if mso]>
-<style type="text/css">
-  img {
-    width: 100%!important;
-    height: auto!important;
-    display: block!important;
-  }
-</style>
-<![endif]-->
-
 <!-- Our main styles, which will be inlined by Iterable upon send -->
 <!-- Style block is wrapped in CDATA, which tells the code interpretor that it should not try to interpret the data enclosed in the tags (because it's a different language)-->
 <style type="text/css">
@@ -172,10 +162,9 @@ $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
   }
 
   .hide-desktop {
-    height: 0!important;
+    height: 0;
     overflow: hidden;
     display: none;
-    visibility: hidden;
   }
    
 
