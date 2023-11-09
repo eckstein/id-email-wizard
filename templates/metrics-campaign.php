@@ -68,11 +68,7 @@ $linkedExperimentIds = array_map(function ($id) {
             <div class="wizHeader-right">
                 <div class="wizHeader-actions">
                     <button class="wiz-button green sync-campaign" data-campaignid="<?php echo $campaign['id']; ?>">Sync
-                        Campaign</button>
-                    <button class="wiz-button green sync-single-triggered"
-                        data-campaignid="<?php echo $campaign['id']; ?>">Sync
-                        Triggered Data</button>
-                    <button class="wiz-button green">View Template</button>
+                        Campaign Data</button>
                 </div>
             </div>
         </div>

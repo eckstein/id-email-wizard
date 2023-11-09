@@ -2055,9 +2055,13 @@ table.compact th {
 	padding: 30px;
 	text-align: center;
 }
+.swal2-html-container .select2-container {
+	width: 250px!important;
+}
 .swal2-html-container {
 	overflow: visible !important;
 }
+
 
 /* Initiative Archive */
 #idemailwiz_initiatives_table_wrapper {
