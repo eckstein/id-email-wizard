@@ -85,7 +85,7 @@ $linkedExperimentIds = array_map(function ($id) {
         ?>
 
         <?php echo get_single_metrics_campaign_rollup($campaign, $startDate, $endDate); ?>
-        
+
         <?php
         if ($campaign['type'] == 'Triggered') {
             ?>
@@ -365,31 +365,21 @@ $linkedExperimentIds = array_map(function ($id) {
 // Helper Functions
 function get_single_metrics_campaign_rollup($campaign, $startDate, $endDate)
 {
-    // Initial fields
-    $fields = array(
+
+    // Continue with the rest of the fields
+    $rollupFields = array(
         'uniqueEmailSends' => array(
             'label' => 'Sends',
             'format' => 'num',
         ),
-    );
-
-    // Conditionally add delivery fields for 'Blast' campaigns
-    if ($campaign['type'] == 'Blast') {
-        $deliveryFields = array(
-            'uniqueEmailsDelivered' => array(
-                'label' => 'Delivered',
-                'format' => 'num',
-            ),
-            'wizDeliveryRate' => array(
-                'label' => 'Delivery',
-                'format' => 'perc',
-            ),
-        );
-        $fields = array_merge($fields, $deliveryFields);
-    }
-
-    // Continue with the rest of the fields
-    $additionalFields = array(
+        'uniqueEmailsDelivered' => array(
+            'label' => 'Delivered',
+            'format' => 'num',
+        ),
+        'wizDeliveryRate' => array(
+            'label' => 'Delivery',
+            'format' => 'perc',
+        ),
         'uniqueEmailOpens' => array(
             'label' => 'Opens',
             'format' => 'num',
@@ -422,27 +412,20 @@ function get_single_metrics_campaign_rollup($campaign, $startDate, $endDate)
             'label' => 'GA Rev.',
             'format' => 'money',
         ),
+        'uniqueUnsubscribes' => array(
+            'label' => 'Unsubs',
+            'format' => 'num',
+        ),
+        'wizUnsubRate' => array(
+            'label' => 'Unsub. Rate',
+            'format' => 'perc',
+        ),
     );
 
-    $fields = array_merge($fields, $additionalFields);
 
-    // Conditionally add unsub fields for 'Blast' campaigns
-    if ($campaign['type'] == 'Blast') {
-        $unsubFields = array(
-            'uniqueUnsubscribes' => array(
-                'label' => 'Unsubs',
-                'format' => 'num',
-            ),
-            'wizUnsubRate' => array(
-                'label' => 'Unsub. Rate',
-                'format' => 'perc',
-            ),
-        );
-        $fields = array_merge($fields, $unsubFields);
-    }
 
     // Call the function
-    return generate_single_campaign_rollup_row($campaign, $fields, $startDate, $endDate);
+    return generate_single_campaign_rollup_row($campaign, $rollupFields, $startDate, $endDate);
 
 
 }
