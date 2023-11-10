@@ -1,3 +1,42 @@
+==========[2023-11-09 17:13:56]==============================<br />
+Experiments sync results: <br />
+<br />
+Successful update of 2 records.<br />
+========================================<br />
+<br />
+==========[2023-11-09 17:13:05]==============================<br />
+Purchases sync results: <br />
+Successful insert of 27 records.1 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: ). Database Error: Duplicate entry '' for key 'PRIMARY'.<br />
+<br />
+========================================<br />
+<br />
+==========[2023-11-09 17:12:45]==============================<br />
+Metrics sync results: <br />
+Successful insert of 1 records.<br />
+Successful update of 74 records.<br />
+========================================<br />
+<br />
+==========[2023-11-09 17:12:22]==============================<br />
+Templates sync results: <br />
+Successful insert of 3 records.<br />
+<br />
+========================================<br />
+<br />
+==========[2023-11-09 17:12:10]==============================<br />
+GA campaign revenue data synced successfully. 2718 updates and 7 inserts performed<br />
+========================================<br />
+<br />
+==========[2023-11-09 17:12:04]==============================<br />
+Starting GA campaign revenue data sync.<br />
+========================================<br />
+<br />
+==========[2023-11-09 17:11:44]==============================<br />
+Campaigns sync results: <br />
+Successful insert of 1 records.<br />
+<br />
+========================================<br />
+<br />
 ==========[2023-11-09 07:51:51]==============================<br />
 Experiments sync results: <br />
 <br />

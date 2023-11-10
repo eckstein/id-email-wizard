@@ -749,9 +749,8 @@ function generate_single_campaign_rollup_row($campaign, $fields, $startDate = nu
     $totalClicks = count($triggeredClickData);
 
     $openRate = ($totalSends > 0) ? ($totalOpens / $totalSends) * 100 : 0;
-    $ctr = ($totalSends > 0) ? ($totalClicks / $totalSends) : 0;
-    $cto = ($totalOpens > 0) ? ($totalClicks / $totalOpens) : 0;
-    $cto = ($totalOpens > 0) ? ($totalClicks / $totalOpens) : 0;
+    $ctr = ($totalSends > 0) ? ($totalClicks / $totalSends) * 100 : 0;
+    $cto = ($totalOpens > 0) ? ($totalClicks / $totalOpens) * 100 : 0;
   }
 
   // Get true revenue from purchase DB (for both triggered and blast)
