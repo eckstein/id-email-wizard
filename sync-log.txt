@@ -1,3 +1,16 @@
+==========[2023-11-14 14:21:05]==============================<br />
+Finished updating 71 triggered open records!<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:19:51]==============================<br />
+Finished updating 93 triggered send records!<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:17:32]==============================<br />
+Requested 132 triggered campaign sendSkips from Iterable. 0 errors encountered.<br />
+Retrieving data...<br />
+========================================<br />
+<br />
 ==========[2023-11-14 14:16:12]==============================<br />
 Requested 132 triggered campaign bounces from Iterable. 0 errors encountered.<br />
 Retrieving data...<br />
