@@ -61,7 +61,7 @@ if (in_array('bottom',$spacing)) {
 $btmSpacing = true;
 }
 if ($padText) {
-	$textPadding = 'padding: 20px;';
+	$textPadding = 'padding: 40px;';
 } else {
 	$textPadding = '';
 }
