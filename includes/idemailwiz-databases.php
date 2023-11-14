@@ -710,7 +710,7 @@ function idwiz_is_serialized($value)
 }
 
 
-function get_idemailwiz_triggered_data($database, $args = [], $batchSize = 50000, $offset = 0)
+function get_idemailwiz_triggered_data($database, $args = [], $batchSize = 20000, $offset = 0)
 {
 
     if (!$database) {

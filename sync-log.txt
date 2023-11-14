@@ -1,3 +1,76 @@
+==========[2023-11-14 14:16:12]==============================<br />
+Requested 132 triggered campaign bounces from Iterable. 0 errors encountered.<br />
+Retrieving data...<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:15:02]==============================<br />
+Requested 123 triggered campaign unSubscribes from Iterable. 9 errors encountered.<br />
+Retrieving data...<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:13:39]==============================<br />
+Requesting sendSkips for 132 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:13:39]==============================<br />
+Starting triggered sendSkips sync...<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:11:38]==============================<br />
+Requesting bounces for 132 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:11:38]==============================<br />
+Starting triggered bounces sync...<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:11:10]==============================<br />
+Requested 132 triggered campaign clicks from Iterable. 0 errors encountered.<br />
+Retrieving data...<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:09:37]==============================<br />
+Requesting unSubscribes for 132 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:09:37]==============================<br />
+Starting triggered unSubscribes sync...<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:07:47]==============================<br />
+Requested 123 triggered campaign opens from Iterable. 0 errors encountered.<br />
+Retrieving data...<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:07:36]==============================<br />
+Requesting clicks for 132 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:07:36]==============================<br />
+Starting triggered clicks sync...<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:06:56]==============================<br />
+Requested 132 triggered campaign sends from Iterable. 0 errors encountered.<br />
+Retrieving data...<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:04:46]==============================<br />
+Requesting opens for 132 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:04:46]==============================<br />
+Starting triggered opens sync...<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:03:41]==============================<br />
+Requesting sends for 132 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:03:41]==============================<br />
+Starting triggered sends sync...<br />
+========================================<br />
+<br />
 ==========[2023-11-14 13:59:39]==============================<br />
 GA campaign revenue data synced successfully. 2883 updates and 13 inserts performed<br />
 ========================================<br />
