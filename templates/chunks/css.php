@@ -250,7 +250,7 @@ $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
       
     }
     .responsive-text.add-padding {
-      padding: 20px;
+      padding: 20px!important;
     }
 
     .center-on-mobile {
