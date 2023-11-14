@@ -1,57 +1,25 @@
 <?php
 
-// Clone DateTime object to calculate the last month and last year
-$lastMonthDateTime = clone $startDateTime;
-$lastYearDateTime = clone $startDateTime;
 
-// Subtract 1 month for last month
-$lastMonthDateTime->modify('-1 month');
+$lastMonthDifference = parse_idwiz_metric_rate($metricValues['thisMonth']) - parse_idwiz_metric_rate($metricValues['lastMonth']);
+$lastYearDifference = parse_idwiz_metric_rate($metricValues['thisMonth']) - parse_idwiz_metric_rate($metricValues['lastYear']);
 
-// Subtract 1 year for last year
-$lastYearDateTime->modify('-1 year');
-
-// Generate the start and end dates for last month
-$lastMonthStart = $lastMonthDateTime->format('Y-m-d');
-$lastMonthDateTime->modify('last day of this month');
-$lastMonthEnd = $lastMonthDateTime->format('Y-m-d');
-
-// Generate the start and end dates for last year
-$lastYearMonthStart = $lastYearDateTime->format('Y-m-d');
-$lastYearDateTime->modify('last day of this month');
-$lastYearMonthEnd = $lastYearDateTime->format('Y-m-d');
-
-$campaignTypes = $campaignTypes ?? ['Blast', 'Triggered'];
-
-if (in_array('Triggered', $campaignTypes)) {
-    $thisMonthCampaigns = array_merge($campaigns, $triggeredCampaigns);
-} else {
-    $thisMonthCampaigns = $campaigns;
-}
-
-$thisMonthMetricRate = get_metricsTower_rate(array_column($thisMonthCampaigns, 'id'), $metricType, $startDate, $endDate, $campaignTypes);
-
-$lastMonthCampaigns = get_idwiz_campaigns(['startAt_start'=>$lastMonthStart, 'startAt_end'=>$lastMonthEnd, 'type'=>'Blast']);
-$lastMonthMetricRate = get_metricsTower_rate(array_column($lastMonthCampaigns, 'id'), $metricType, $lastMonthStart, $lastMonthEnd, $campaignTypes);
-$lastMonthDifference = parse_idwiz_metric_rate($thisMonthMetricRate) - parse_idwiz_metric_rate($lastMonthMetricRate);
-
-$lastYearMonthCampaigns = get_idwiz_campaigns(['startAt_start'=>$lastYearMonthStart, 'startAt_end'=>$lastYearMonthEnd, 'type'=>'Blast']);
-$lastYearMonthMetricRate = get_metricsTower_rate(array_column($lastYearMonthCampaigns, 'id'), $metricType, $lastYearMonthStart, $lastYearMonthEnd, $campaignTypes);
-$lastYearDifference = parse_idwiz_metric_rate($thisMonthMetricRate) - parse_idwiz_metric_rate($lastYearMonthMetricRate);
 
 // Determine if a dollar sign should be prepended
 $dollarSign = ($metricType === 'revenue' || $metricType === 'gaRevenue' || $metricType === 'aov') ? '$' : '';
 
-$thisMonthMetricRateFormatted = formatTowerMetric($thisMonthMetricRate, $metricFormat, false);
-$lastMonthMetricRateFormatted = formatTowerMetric($lastMonthMetricRate, $metricFormat, false);
-$lastYearMonthMetricRateFormatted = formatTowerMetric($lastYearMonthMetricRate, $metricFormat, false);
-$monthDifferenceFormatted = formatTowerMetric($lastMonthDifference, $metricFormat, true);
-$yearDifferenceFormatted = formatTowerMetric($lastYearDifference, $metricFormat, true);
+$thisMonthMetricRateFormatted = formatRollupMetric($metricValues['thisMonth'], $metricFormat, false);
+$lastMonthMetricRateFormatted = formatRollupMetric($metricValues['lastMonth'], $metricFormat, false);
+$lastYearMonthMetricRateFormatted = formatRollupMetric($metricValues['lastYear'], $metricFormat, false);
+
+$monthDifferenceFormatted = formatRollupMetric($lastMonthDifference, $metricFormat, true);
+$yearDifferenceFormatted = formatRollupMetric($lastYearDifference, $metricFormat, true);
 
 $monthDifferenceClass = ($lastMonthDifference >= 0) ? 'positive' : 'negative';
 $yearDifferenceClass = ($lastYearDifference >= 0) ? 'positive' : 'negative';
 
 // Reverse color coding for 'unsubs'
-if ($metricType == 'unsubs') {
+if ($metricType == 'wizUnsubRate') {
     $monthDifferenceClass = ($lastMonthDifference >= 0) ? 'negative' : 'positive';
     $yearDifferenceClass = ($lastYearDifference >= 0) ? 'negative' : 'positive';
 }

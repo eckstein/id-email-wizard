@@ -149,9 +149,98 @@ jQuery(document).ready(function ($) {
 	$(document).on("click", ".select2-dropdown", function (e) {
 		e.stopPropagation();
 	});
+
+
+	// jQuery click handler for the settings button
+	$('.module-settings').on('click', function(event) {
+	  // Prevent the click on the button from propagating to the document
+	  event.stopPropagation();
+
+	  // Toggle the display of the dropdown menu
+	  $("#module-settings-dropdown").toggle().css({
+		'position': 'absolute',
+		'right': 0,
+		'top': $(this).outerHeight() + 5
+	  });
+	});
+
+	// Close the dropdown menu if the user clicks outside of it
+	$(document).on('click', function() {
+	  $("#module-settings-dropdown").hide();
+	});
+
+	// Stop propagation for clicks within the dropdown to prevent it from closing
+	$('#module-settings-dropdown').on('click', function(event) {
+	  event.stopPropagation();
+	});
+
+
+	//Attribution form change
+	$('.purchase-attribution').on('change', function() {
+		var value = $(this).val();
+		idemailwiz_do_ajax(
+			"idemailwiz_update_user_attribution_setting",
+			idAjax_id_general.nonce,
+			{
+				value: value
+			},
+			function (data) {
+				location.reload();
+			},
+			function (error) {
+				console.error("Failed to update attribution settings", error);
+				failure();
+			}
+		);
+	});
+
+
+	enableDragScrolling('.idwiz-dragScroll');;
+
+	function enableDragScrolling(selector) {
+	  var $element = $(selector);
+  
+	  // Check if the element exists
+	  if ($element.length) {
+		var isDown = false;
+		var startX;
+		var scrollLeft;
+
+		$element.on('mousedown', function(e) {
+		  isDown = true;
+		  $element.addClass('active');
+		  startX = e.pageX - $element.offset().left;
+		  scrollLeft = $element.scrollLeft();
+		});
+
+		$(document).on('mouseup', function() {
+		  isDown = false;
+		  $element.removeClass('active');
+		});
+
+		$(document).on('mouseleave', function() {
+		  if (isDown) {
+			isDown = false;
+			$element.removeClass('active');
+		  }
+		});
+
+		$element.on('mousemove', function(e) {
+		  if (!isDown) return;
+		  e.preventDefault();
+		  var x = e.pageX - $element.offset().left;
+		  var walk = (x - startX) * 1; // Adjust the multiplier for sensitivity
+		  $element.scrollLeft(scrollLeft - walk);
+		});
+	  }
+	}
+
+
 });
 
 //Global scope functions
+
+
 
 function initialize_select2_for_template_search() {
 	jQuery("#live-template-search")

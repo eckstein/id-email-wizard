@@ -199,6 +199,54 @@ function idemailwiz_create_template_post_types()
     register_post_type('idwiz_initiative', $initiativeArgs);
 
 
+    register_post_type( 'journey', array(
+        'labels' => array(
+            'name' => 'Journeys',
+            'singular_name' => 'Journey',
+            'menu_name' => 'Journeys',
+            'all_items' => 'All Journeys',
+            'edit_item' => 'Edit Journey',
+            'view_item' => 'View Journey',
+            'view_items' => 'View Journeys',
+            'add_new_item' => 'Add New Journey',
+            'new_item' => 'New Journey',
+            'parent_item_colon' => 'Parent Journey:',
+            'search_items' => 'Search Journeys',
+            'not_found' => 'No journeys found',
+            'not_found_in_trash' => 'No journeys found in Trash',
+            'archives' => 'Journey Archives',
+            'attributes' => 'Journey Attributes',
+            'insert_into_item' => 'Insert into journey',
+            'uploaded_to_this_item' => 'Uploaded to this journey',
+            'filter_items_list' => 'Filter journeys list',
+            'filter_by_date' => 'Filter journeys by date',
+            'items_list_navigation' => 'Journeys list navigation',
+            'items_list' => 'Journeys list',
+            'item_published' => 'Journey published.',
+            'item_published_privately' => 'Journey published privately.',
+            'item_reverted_to_draft' => 'Journey reverted to draft.',
+            'item_scheduled' => 'Journey scheduled.',
+            'item_updated' => 'Journey updated.',
+            'item_link' => 'Journey Link',
+            'item_link_description' => 'A link to a journey.',
+        ),
+        'public' => true,
+        'show_in_rest' => true,
+        'menu_icon' => 'dashicons-schedule',
+        'supports' => array(
+            0 => 'title',
+            1 => 'editor',
+            2 => 'thumbnail',
+            3 => 'custom-fields',
+        ),
+        'has_archive' => 'journeys',
+        'rewrite' => array(
+            'feeds' => false,
+        ),
+        'delete_with_user' => false,
+    ) );
+
+
 
 }
 
@@ -288,8 +336,16 @@ function idemailwiz_template_chooser($template)
         return dirname(__FILE__) . '/templates/single-initiative.php';
     }
 
+    if (get_post_type() == 'journey' && is_single()) {
+        return dirname(__FILE__) . '/templates/single-journey.php';
+    }
+
     if (strpos($_SERVER['REQUEST_URI'], '/metrics/campaign') !== false) {
         return dirname(__FILE__) . '/templates/metrics-campaign.php';
+    }
+
+    if (strpos($_SERVER['REQUEST_URI'], '/journeys') !== false) {
+        return dirname(__FILE__) . '/templates/journeys.php';
     }
 
     // If user-profile endpoint is accessed

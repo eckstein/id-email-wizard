@@ -1,489 +1,345 @@
-==========[2023-11-09 17:13:56]==============================<br />
-Experiments sync results: <br />
-<br />
-Successful update of 2 records.<br />
+==========[2023-11-14 13:59:39]==============================<br />
+GA campaign revenue data synced successfully. 2883 updates and 13 inserts performed<br />
 ========================================<br />
 <br />
-==========[2023-11-09 17:13:05]==============================<br />
-Purchases sync results: <br />
-Successful insert of 27 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: ). Database Error: Duplicate entry '' for key 'PRIMARY'.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-09 17:12:45]==============================<br />
-Metrics sync results: <br />
-Successful insert of 1 records.<br />
-Successful update of 74 records.<br />
-========================================<br />
-<br />
-==========[2023-11-09 17:12:22]==============================<br />
-Templates sync results: <br />
-Successful insert of 3 records.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-09 17:12:10]==============================<br />
-GA campaign revenue data synced successfully. 2718 updates and 7 inserts performed<br />
-========================================<br />
-<br />
-==========[2023-11-09 17:12:04]==============================<br />
+==========[2023-11-14 13:59:34]==============================<br />
 Starting GA campaign revenue data sync.<br />
 ========================================<br />
 <br />
-==========[2023-11-09 17:11:44]==============================<br />
-Campaigns sync results: <br />
-Successful insert of 1 records.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-09 07:51:51]==============================<br />
+==========[2023-11-14 13:59:34]==============================<br />
 Experiments sync results: <br />
 <br />
-Successful update of 2 records.<br />
+Successful update of 4 records.<br />
 ========================================<br />
 <br />
-==========[2023-11-09 07:50:58]==============================<br />
+==========[2023-11-14 13:56:38]==============================<br />
 Purchases sync results: <br />
-Successful insert of 6 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: 1ab11e0be5e348eaa306020edf1b5ea4). Database Error: Duplicate entry '1ab11e0be5e348eaa306020edf1b5ea4' for key 'PRIMARY'.<br />
+Successful insert of 5 records.<br />
 <br />
 ========================================<br />
 <br />
-==========[2023-11-09 07:50:36]==============================<br />
+==========[2023-11-14 13:56:28]==============================<br />
+Metrics sync results: <br />
+Successful insert of 2 records.<br />
+Successful update of 50 records.<br />
+========================================<br />
+<br />
+==========[2023-11-14 13:56:09]==============================<br />
+Templates sync results: <br />
+The templates sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-11-14 13:55:01]==============================<br />
+Campaigns sync results: <br />
+Successful insert of 2 records.<br />
+Successful update of 16 records.<br />
+========================================<br />
+<br />
+==========[2023-11-14 13:24:51]==============================<br />
+Finished updating 0 triggered complaint records!<br />
+========================================<br />
+<br />
+==========[2023-11-14 13:22:39]==============================<br />
+Finished updating 0 triggered sendSkip records!<br />
+========================================<br />
+<br />
+==========[2023-11-14 13:19:14]==============================<br />
+Finished updating 0 triggered unSubscribe records!<br />
+========================================<br />
+<br />
+==========[2023-11-14 13:18:19]==============================<br />
+Finished updating 4 triggered bounce records!<br />
+========================================<br />
+<br />
+==========[2023-11-14 13:06:09]==============================<br />
+Requested 123 triggered campaign complaints from Iterable. 9 errors encountered.<br />
+Retrieving data...<br />
+========================================<br />
+<br />
+==========[2023-11-14 13:03:17]==============================<br />
+Requested 132 triggered campaign sendSkips from Iterable. 0 errors encountered.<br />
+Retrieving data...<br />
+========================================<br />
+<br />
+==========[2023-11-14 13:01:03]==============================<br />
+Requesting complaints for 132 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-11-14 13:01:03]==============================<br />
+Starting triggered complaints sync...<br />
+========================================<br />
+<br />
+==========[2023-11-14 13:00:51]==============================<br />
+Requested 122 triggered campaign unSubscribes from Iterable. 10 errors encountered.<br />
+Retrieving data...<br />
+========================================<br />
+<br />
+==========[2023-11-14 13:00:19]==============================<br />
+Requested 132 triggered campaign bounces from Iterable. 0 errors encountered.<br />
+Retrieving data...<br />
+========================================<br />
+<br />
+==========[2023-11-14 13:00:09]==============================<br />
+Finished updating 0 triggered click records!<br />
+========================================<br />
+<br />
+==========[2023-11-14 13:00:03]==============================<br />
+Requesting sendSkips for 132 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-11-14 13:00:03]==============================<br />
+Starting triggered sendSkips sync...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:57:50]==============================<br />
+Finished updating 37 triggered open records!<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:57:07]==============================<br />
+Requesting bounces for 132 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:57:07]==============================<br />
+Starting triggered bounces sync...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:56:15]==============================<br />
+Finished updating 74 triggered send records!<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:55:49]==============================<br />
+Requesting unSubscribes for 132 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:55:49]==============================<br />
+Starting triggered unSubscribes sync...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:55:46]==============================<br />
+Requested 132 triggered campaign clicks from Iterable. 0 errors encountered.<br />
+Retrieving data...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:53:37]==============================<br />
+Requested 123 triggered campaign opens from Iterable. 0 errors encountered.<br />
+Retrieving data...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:52:33]==============================<br />
+Requesting clicks for 132 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:52:33]==============================<br />
+Starting triggered clicks sync...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:51:46]==============================<br />
+Requested 132 triggered campaign sends from Iterable. 0 errors encountered.<br />
+Retrieving data...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:50:37]==============================<br />
+Requesting opens for 132 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:50:37]==============================<br />
+Starting triggered opens sync...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:48:33]==============================<br />
+Requesting sends for 132 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:48:33]==============================<br />
+Starting triggered sends sync...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:48:17]==============================<br />
+Experiments sync results: <br />
+<br />
+Successful update of 4 records.<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:46:18]==============================<br />
+Purchases sync results: <br />
+Successful insert of 6 records.<br />
+<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:46:09]==============================<br />
+Metrics sync results: <br />
+<br />
+Successful update of 48 records.<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:45:51]==============================<br />
+Templates sync results: <br />
+The templates sync is up to date! No inserts or updates are needed.<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:45:32]==============================<br />
+Finished updating 0 triggered complaint records!<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:44:44]==============================<br />
+Campaigns sync results: <br />
+<br />
+Successful update of 15 records.<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:41:19]==============================<br />
+Requested 123 triggered campaign complaints from Iterable. 9 errors encountered.<br />
+Retrieving data...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:36:15]==============================<br />
+Requesting complaints for 132 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:36:15]==============================<br />
+Starting triggered complaints sync...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:36:15]==============================<br />
+Finished updating 0 triggered sendSkip records!<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:35:27]==============================<br />
+Finished updating 9 triggered bounce records!<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:35:05]==============================<br />
+Finished updating 0 triggered unSubscribe records!<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:31:54]==============================<br />
+Requested 132 triggered campaign sendSkips from Iterable. 0 errors encountered.<br />
+Retrieving data...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:31:04]==============================<br />
+Requested 132 triggered campaign bounces from Iterable. 0 errors encountered.<br />
+Retrieving data...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:31:03]==============================<br />
+Requested 123 triggered campaign unSubscribes from Iterable. 9 errors encountered.<br />
+Retrieving data...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:29:28]==============================<br />
+Finished updating 7 triggered click records!<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:28:21]==============================<br />
+Requesting sendSkips for 132 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:28:21]==============================<br />
+Starting triggered sendSkips sync...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:27:10]==============================<br />
+Requesting bounces for 132 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:27:10]==============================<br />
+Starting triggered bounces sync...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:26:35]==============================<br />
+Finished updating 77 triggered open records!<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:25:59]==============================<br />
+Requesting unSubscribes for 132 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:25:59]==============================<br />
+Starting triggered unSubscribes sync...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:25:05]==============================<br />
+Requested 132 triggered campaign clicks from Iterable. 0 errors encountered.<br />
+Retrieving data...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:22:19]==============================<br />
+Requested 123 triggered campaign opens from Iterable. 0 errors encountered.<br />
+Retrieving data...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:21:52]==============================<br />
+Requesting clicks for 132 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:21:52]==============================<br />
+Starting triggered clicks sync...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:19:19]==============================<br />
+Requesting opens for 132 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-11-14 12:19:19]==============================<br />
+Starting triggered opens sync...<br />
+========================================<br />
+<br />
+==========[2023-11-14 11:56:41]==============================<br />
+Finished updating 101 triggered send records!<br />
+========================================<br />
+<br />
+==========[2023-11-14 11:52:10]==============================<br />
+Requested 132 triggered campaign sends from Iterable. 0 errors encountered.<br />
+Retrieving data...<br />
+========================================<br />
+<br />
+==========[2023-11-14 11:48:57]==============================<br />
+Requesting sends for 132 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-11-14 11:48:57]==============================<br />
+Starting triggered sends sync...<br />
+========================================<br />
+<br />
+==========[2023-11-14 11:47:54]==============================<br />
+Experiments sync results: <br />
+<br />
+Successful update of 4 records.<br />
+========================================<br />
+<br />
+==========[2023-11-14 11:46:21]==============================<br />
+Purchases sync results: <br />
+Successful insert of 2 records.<br />
+<br />
+========================================<br />
+<br />
+==========[2023-11-14 11:46:11]==============================<br />
 Metrics sync results: <br />
 <br />
 Successful update of 45 records.<br />
 ========================================<br />
 <br />
-==========[2023-11-09 07:50:15]==============================<br />
+==========[2023-11-14 11:45:50]==============================<br />
 Templates sync results: <br />
 The templates sync is up to date! No inserts or updates are needed.<br />
 ========================================<br />
 <br />
-==========[2023-11-09 07:49:31]==============================<br />
+==========[2023-11-14 11:44:42]==============================<br />
 Campaigns sync results: <br />
-The campaigns sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-09 06:50:31]==============================<br />
-Experiments sync results: <br />
-<br />
-Successful update of 2 records.<br />
-========================================<br />
-<br />
-==========[2023-11-09 06:49:00]==============================<br />
-Purchases sync results: <br />
-Successful insert of 0 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: 1ab11e0be5e348eaa306020edf1b5ea4). Database Error: Duplicate entry '1ab11e0be5e348eaa306020edf1b5ea4' for key 'PRIMARY'.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-09 06:48:37]==============================<br />
-Metrics sync results: <br />
-<br />
-Successful update of 32 records.<br />
-========================================<br />
-<br />
-==========[2023-11-09 06:48:19]==============================<br />
-Templates sync results: <br />
-The templates sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-09 06:47:31]==============================<br />
-Campaigns sync results: <br />
-The campaigns sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-09 06:24:53]==============================<br />
-GA campaign revenue data synced successfully. 2716 updates and 4 inserts performed<br />
-========================================<br />
-<br />
-==========[2023-11-09 06:24:48]==============================<br />
-Starting GA campaign revenue data sync.<br />
-========================================<br />
-<br />
-==========[2023-11-09 06:24:38]==============================<br />
-Experiments sync results: <br />
-<br />
-Successful update of 2 records.<br />
-========================================<br />
-<br />
-==========[2023-11-09 06:23:04]==============================<br />
-Purchases sync results: <br />
-Successful insert of 27 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: 1ab11e0be5e348eaa306020edf1b5ea4). Database Error: Duplicate entry '1ab11e0be5e348eaa306020edf1b5ea4' for key 'PRIMARY'.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-09 06:22:45]==============================<br />
-Metrics sync results: <br />
-<br />
-Successful update of 75 records.<br />
-========================================<br />
-<br />
-==========[2023-11-09 06:22:26]==============================<br />
-Templates sync results: <br />
-The templates sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-09 06:21:32]==============================<br />
-Campaigns sync results: <br />
-The campaigns sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-08 19:00:09]==============================<br />
-Experiments sync results: <br />
-<br />
-Successful update of 2 records.<br />
-========================================<br />
-<br />
-==========[2023-11-08 18:58:35]==============================<br />
-Purchases sync results: <br />
-Successful insert of 10 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: 1ab11e0be5e348eaa306020edf1b5ea4). Database Error: Duplicate entry '1ab11e0be5e348eaa306020edf1b5ea4' for key 'PRIMARY'.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-08 18:58:08]==============================<br />
-Metrics sync results: <br />
-<br />
-Successful update of 73 records.<br />
-========================================<br />
-<br />
-==========[2023-11-08 18:57:49]==============================<br />
-Templates sync results: <br />
-Successful insert of 2 records.<br />
-Successful update of 1 records.<br />
-========================================<br />
-<br />
-==========[2023-11-08 18:56:39]==============================<br />
-Campaigns sync results: <br />
-The campaigns sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-08 18:55:52]==============================<br />
-GA campaign revenue data synced successfully. 2712 updates and 6 inserts performed<br />
-========================================<br />
-<br />
-==========[2023-11-08 18:55:46]==============================<br />
-Starting GA campaign revenue data sync.<br />
-========================================<br />
-<br />
-==========[2023-11-08 12:56:59]==============================<br />
-Experiments sync results: <br />
-<br />
-Successful update of 2 records.<br />
-========================================<br />
-<br />
-==========[2023-11-08 12:55:47]==============================<br />
-Purchases sync results: <br />
-Successful insert of 6 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: 1ab11e0be5e348eaa306020edf1b5ea4). Database Error: Duplicate entry '1ab11e0be5e348eaa306020edf1b5ea4' for key 'PRIMARY'.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-08 12:55:28]==============================<br />
-Metrics sync results: <br />
-<br />
-Successful update of 66 records.<br />
-========================================<br />
-<br />
-==========[2023-11-08 12:55:03]==============================<br />
-Templates sync results: <br />
-The templates sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-08 12:53:46]==============================<br />
-Campaigns sync results: <br />
-The campaigns sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-08 07:33:34]==============================<br />
-GA campaign revenue data synced successfully. 2708 updates and 6 inserts performed<br />
-========================================<br />
-<br />
-==========[2023-11-08 07:33:28]==============================<br />
-Starting GA campaign revenue data sync.<br />
-========================================<br />
-<br />
-==========[2023-11-08 07:32:23]==============================<br />
-Experiments sync results: <br />
-<br />
-Successful update of 2 records.<br />
-========================================<br />
-<br />
-==========[2023-11-08 07:30:52]==============================<br />
-Purchases sync results: <br />
-Successful insert of 39 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: 1ab11e0be5e348eaa306020edf1b5ea4). Database Error: Duplicate entry '1ab11e0be5e348eaa306020edf1b5ea4' for key 'PRIMARY'.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-08 07:30:32]==============================<br />
-Metrics sync results: <br />
-<br />
-Successful update of 74 records.<br />
-========================================<br />
-<br />
-==========[2023-11-08 07:30:07]==============================<br />
-Templates sync results: <br />
-The templates sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-08 07:29:44]==============================<br />
-Campaigns sync results: <br />
-The campaigns sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-07 20:48:35]==============================<br />
-Experiments sync results: <br />
-<br />
-Successful update of 2 records.<br />
-========================================<br />
-<br />
-==========[2023-11-07 20:47:04]==============================<br />
-Purchases sync results: <br />
-Successful insert of 2 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: 1ab11e0be5e348eaa306020edf1b5ea4). Database Error: Duplicate entry '1ab11e0be5e348eaa306020edf1b5ea4' for key 'PRIMARY'.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-07 20:46:45]==============================<br />
-Metrics sync results: <br />
-<br />
-Successful update of 36 records.<br />
-========================================<br />
-<br />
-==========[2023-11-07 20:46:28]==============================<br />
-Templates sync results: <br />
-The templates sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-07 20:45:56]==============================<br />
-Campaigns sync results: <br />
-The campaigns sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-07 19:50:39]==============================<br />
-Experiments sync results: <br />
-<br />
-Successful update of 2 records.<br />
-========================================<br />
-<br />
-==========[2023-11-07 19:49:08]==============================<br />
-Purchases sync results: <br />
-Successful insert of 3 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: 1ab11e0be5e348eaa306020edf1b5ea4). Database Error: Duplicate entry '1ab11e0be5e348eaa306020edf1b5ea4' for key 'PRIMARY'.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-07 19:48:49]==============================<br />
-Metrics sync results: <br />
-<br />
-Successful update of 46 records.<br />
-========================================<br />
-<br />
-==========[2023-11-07 19:48:31]==============================<br />
-Templates sync results: <br />
-The templates sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-07 19:47:27]==============================<br />
-Campaigns sync results: <br />
-The campaigns sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-07 19:02:37]==============================<br />
-Experiments sync results: <br />
-<br />
-Successful update of 2 records.<br />
-========================================<br />
-<br />
-==========[2023-11-07 19:01:24]==============================<br />
-Purchases sync results: <br />
-Successful insert of 0 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: 1ab11e0be5e348eaa306020edf1b5ea4). Database Error: Duplicate entry '1ab11e0be5e348eaa306020edf1b5ea4' for key 'PRIMARY'.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-07 19:01:03]==============================<br />
-Metrics sync results: <br />
-<br />
-Successful update of 35 records.<br />
-========================================<br />
-<br />
-==========[2023-11-07 19:00:19]==============================<br />
-Templates sync results: <br />
-The templates sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-07 18:59:25]==============================<br />
-Error during initial API call: HTTP Error: 502<br />
-========================================<br />
-<br />
-==========[2023-11-07 18:59:24]==============================<br />
-Campaigns sync results: <br />
-The campaigns sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-07 18:39:56]==============================<br />
-Experiments sync results: <br />
-<br />
-Successful update of 2 records.<br />
-========================================<br />
-<br />
-==========[2023-11-07 18:38:45]==============================<br />
-Purchases sync results: <br />
-Successful insert of 15 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: 1ab11e0be5e348eaa306020edf1b5ea4). Database Error: Duplicate entry '1ab11e0be5e348eaa306020edf1b5ea4' for key 'PRIMARY'.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-07 18:38:27]==============================<br />
-Metrics sync results: <br />
-<br />
-Successful update of 59 records.<br />
-========================================<br />
-<br />
-==========[2023-11-07 18:38:09]==============================<br />
-Templates sync results: <br />
-The templates sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-07 18:37:34]==============================<br />
-Campaigns sync results: <br />
-The campaigns sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-07 14:29:28]==============================<br />
-Experiments sync results: <br />
-<br />
-Successful update of 2 records.<br />
-========================================<br />
-<br />
-==========[2023-11-07 14:27:57]==============================<br />
-Purchases sync results: <br />
-Successful insert of 6 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: 1ab11e0be5e348eaa306020edf1b5ea4). Database Error: Duplicate entry '1ab11e0be5e348eaa306020edf1b5ea4' for key 'PRIMARY'.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-07 14:27:44]==============================<br />
-GA campaign revenue data synced successfully. 2701 updates and 9 inserts performed<br />
-========================================<br />
-<br />
-==========[2023-11-07 14:27:39]==============================<br />
-Starting GA campaign revenue data sync.<br />
-========================================<br />
-<br />
-==========[2023-11-07 14:27:36]==============================<br />
-Metrics sync results: <br />
-Successful insert of 1 records.<br />
-Successful update of 58 records.<br />
-========================================<br />
-<br />
-==========[2023-11-07 14:27:17]==============================<br />
-Templates sync results: <br />
-Successful insert of 1 records.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-07 14:26:46]==============================<br />
-Campaigns sync results: <br />
-Successful insert of 1 records.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-07 10:53:40]==============================<br />
-Experiments sync results: <br />
-<br />
-Successful update of 2 records.<br />
-========================================<br />
-<br />
-==========[2023-11-07 10:52:08]==============================<br />
-Purchases sync results: <br />
-Successful insert of 1 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: 1ab11e0be5e348eaa306020edf1b5ea4). Database Error: Duplicate entry '1ab11e0be5e348eaa306020edf1b5ea4' for key 'PRIMARY'.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-07 10:51:46]==============================<br />
-Metrics sync results: <br />
-<br />
-Successful update of 50 records.<br />
-========================================<br />
-<br />
-==========[2023-11-07 10:51:27]==============================<br />
-Templates sync results: <br />
-The templates sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-07 10:50:08]==============================<br />
-Campaigns sync results: <br />
-The campaigns sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-07 09:50:31]==============================<br />
-Experiments sync results: <br />
-<br />
-Successful update of 2 records.<br />
-========================================<br />
-<br />
-==========[2023-11-07 09:48:57]==============================<br />
-Purchases sync results: <br />
-Successful insert of 0 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: 1ab11e0be5e348eaa306020edf1b5ea4). Database Error: Duplicate entry '1ab11e0be5e348eaa306020edf1b5ea4' for key 'PRIMARY'.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-07 09:48:30]==============================<br />
-Metrics sync results: <br />
-<br />
-Successful update of 31 records.<br />
-========================================<br />
-<br />
-==========[2023-11-07 09:48:06]==============================<br />
-Templates sync results: <br />
-The templates sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-07 09:47:19]==============================<br />
-Campaigns sync results: <br />
-The campaigns sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-07 09:27:21]==============================<br />
-Experiments sync results: <br />
-<br />
-Successful update of 2 records.<br />
-========================================<br />
-<br />
-==========[2023-11-07 09:26:28]==============================<br />
-Purchases sync results: <br />
-Successful insert of 0 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: 1ab11e0be5e348eaa306020edf1b5ea4). Database Error: Duplicate entry '1ab11e0be5e348eaa306020edf1b5ea4' for key 'PRIMARY'.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-07 09:26:06]==============================<br />
-Metrics sync results: <br />
 <br />
-Successful update of 18 records.<br />
+Successful update of 16 records.<br />
 ========================================<br />
 <br />
-==========[2023-11-07 09:25:45]==============================<br />
-Templates sync results: <br />
-Successful insert of 229 records.<br />
-Successful update of 5 records.<br />
+==========[2023-11-14 11:19:59]==============================<br />
+Finished updating 0 triggered complaint records!<br />
 ========================================<br />
 <br />
-==========[2023-11-07 09:24:49]==============================<br />
-Campaigns sync results: <br />
-The campaigns sync is up to date! No inserts or updates are needed.<br />
+==========[2023-11-14 11:18:04]==============================<br />
+Finished updating 0 triggered sendSkip records!<br />
 ========================================<br />
 <br />
-==========[2023-11-07 09:24:04]==============================<br />
-Initializing database sync. Please wait a few moments...<br />
+==========[2023-11-14 11:15:36]==============================<br />
+Finished updating 9 triggered bounce records!<br />
 ========================================<br />
 <br />

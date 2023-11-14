@@ -1,8 +1,3 @@
-<?php
-/**
- * Template Name: Metrics Campaign Template
- */
-?>
 <?php get_header(); ?>
 <?php
 
@@ -21,7 +16,8 @@ $template = get_idwiz_template($campaign['templateId']);
 
 $campaignStartAt = date('m/d/Y \a\t g:ia', $campaign['startAt'] / 1000);
 
-$purchases = get_idwiz_purchases(array('campaignIds' => [$campaign['id']]));
+$purchases = get_idwiz_purchases(array('campaignIds' => [$campaign['id'], 'shoppingCartItems_utmMedium' => 'email']));
+;
 //$experimentIds = maybe_unserialize($campaign['experimentIds']) ?? array();
 // This returns one row per experiment TEMPLATE
 $experiments = get_idwiz_experiments(array('campaignIds' => [$campaign['id']]));
@@ -41,34 +37,50 @@ $linkedExperimentIds = array_map(function ($id) {
 
     <header class="wizHeader">
         <div class="wizHeaderInnerWrap">
+
             <div class="wizHeader-left">
                 <h1 class="wizEntry-title single-wizcampaign-title" itemprop="name">
                     <?php echo $campaign['name']; ?>
                 </h1>
                 <div class="wizEntry-meta">
-                    <strong>Campaign <a
+                    <strong><?php echo $campaign['type']; ?> Campaign <a
                             href="https://app.iterable.com/campaigns/<?php echo $campaign['id']; ?>?view=summary">
                             <?php echo $campaign['id']; ?>
                         </a>
                         <?php if ($experimentIds) {
-                            echo '&nbsp;&nbsp;&#x2022;&nbsp;&nbsp; with Experiment ' . implode(', ', $linkedExperimentIds) . '</a>';
+                            echo '&nbsp;with Experiment ' . implode(', ', $linkedExperimentIds) . '</a>';
                         } ?>
                     </strong>
                     &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
                     <?php echo $campaign['messageMedium']; ?>
-                    &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
-                    <?php echo '<a href="' . get_bloginfo('url') . '/campaigns/?view=' . $campaign['type'] . '">' . $campaign['type'] . '</a>'; ?>
-                    &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Sent on
+                    
+                    &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;<?php if ($campaign['type'] == 'Triggered') {echo 'Last ';} ?>Sent on
                     <?php echo $campaignStartAt; ?>
+
+                    <?php
+                    $journeyPosts = get_posts(['post_type'=>'journey', 'posts_per_page' => -1]);
+                    foreach ($journeyPosts as $journeyPost) {
+                        if (get_field('workflow_id', $journeyPost->ID) == $campaign['workflowId']) { ?>
+                            
+                            (<i class="fa-regular fa-calendar"></i> <a href="<?php echo get_bloginfo('url'); ?>?p=<?php echo $journeyPost->ID; ?>&highlight=<?php echo $campaign['id']; ?>">view timeline</a>)
+                            <?php
+                        }
+                    }
+                    ?>
+
+                    <?php 
+                    if (isset($template['clientTemplateId'])) { ?>
                     &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
                     <?php echo 'Wiz Template: <a href="' . get_bloginfo('url') . '?p=' . $template['clientTemplateId'] . '">' . $template['clientTemplateId'] . '</a>'; ?>
+                    <?php } ?>
                 </div>
                 <?php echo generate_initiative_flags($campaign['id']); ?>
             </div>
             <div class="wizHeader-right">
                 <div class="wizHeader-actions">
                     <button class="wiz-button green sync-campaign" data-campaignid="<?php echo $campaign['id']; ?>">Sync
-                        Campaign Data</button>
+                        Metrics</button>
+                    <?php include plugin_dir_path(__FILE__) . 'parts/module-user-settings-form.php'; ?>
                 </div>
             </div>
         </div>
@@ -80,11 +92,17 @@ $linkedExperimentIds = array_map(function ($id) {
     <div class="entry-content" itemprop="mainContentOfPage">
 
         <?php if ($campaign['type'] == 'Triggered') {
+            //include plugin_dir_path(__FILE__) . 'parts/dashboard-date-buttons.php'; 
             include plugin_dir_path(__FILE__) . 'parts/dashboard-date-pickers.php';
+           
         }
         ?>
 
-        <?php echo get_single_metrics_campaign_rollup($campaign, $startDate, $endDate); ?>
+        <?php
+        $metricRates = get_idwiz_metric_rates([$campaign['id']], $startDate, $endDate);
+
+        echo get_idwiz_rollup_row($metricRates);
+        ?>
 
         <?php
         if ($campaign['type'] == 'Triggered') {
@@ -259,7 +277,7 @@ $linkedExperimentIds = array_map(function ($id) {
                     <div class="wizcampaign-experiment-notes"
                         data-experimentid="<?php echo $experiments[0]['experimentId']; ?>">
                         <h3>Experiment Notes</h3>
-                        <?php $experimentNotes = $experiments[0]['experimentNotes'] ?? ''; ?>
+                        <?php $experimentNotes = stripslashes($experiments[0]['experimentNotes']) ?? ''; ?>
                         <textarea id="experimentNotes"
                             placeholder="Enter some notes about this experiment..."><?php echo $experimentNotes; ?></textarea>
                     </div>
@@ -360,72 +378,3 @@ $linkedExperimentIds = array_map(function ($id) {
 </article>
 <?php get_footer(); ?>
 
-
-<?php
-// Helper Functions
-function get_single_metrics_campaign_rollup($campaign, $startDate, $endDate)
-{
-
-    // Continue with the rest of the fields
-    $rollupFields = array(
-        'uniqueEmailSends' => array(
-            'label' => 'Sends',
-            'format' => 'num',
-        ),
-        'uniqueEmailsDelivered' => array(
-            'label' => 'Delivered',
-            'format' => 'num',
-        ),
-        'wizDeliveryRate' => array(
-            'label' => 'Delivery',
-            'format' => 'perc',
-        ),
-        'uniqueEmailOpens' => array(
-            'label' => 'Opens',
-            'format' => 'num',
-        ),
-        'wizOpenRate' => array(
-            'label' => 'Open Rate',
-            'format' => 'perc',
-        ),
-        'uniqueEmailClicks' => array(
-            'label' => 'Clicks',
-            'format' => 'num',
-        ),
-        'wizCtr' => array(
-            'label' => 'CTR',
-            'format' => 'perc',
-        ),
-        'wizCto' => array(
-            'label' => 'CTO',
-            'format' => 'perc',
-        ),
-        'uniquePurchases' => array(
-            'label' => 'Purchases',
-            'format' => 'num',
-        ),
-        'revenue' => array(
-            'label' => 'Dir. Rev.',
-            'format' => 'money',
-        ),
-        'gaRevenue' => array(
-            'label' => 'GA Rev.',
-            'format' => 'money',
-        ),
-        'uniqueUnsubscribes' => array(
-            'label' => 'Unsubs',
-            'format' => 'num',
-        ),
-        'wizUnsubRate' => array(
-            'label' => 'Unsub. Rate',
-            'format' => 'perc',
-        ),
-    );
-
-
-
-    // Call the function
-    return generate_single_campaign_rollup_row($campaign, $rollupFields, $startDate, $endDate);
-
-
-}

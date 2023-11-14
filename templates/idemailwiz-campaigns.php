@@ -63,6 +63,7 @@ if (isset($_GET['startDate']) && $_GET['startDate'] !== '' && isset($_GET['endDa
                     Databases</button>
                 <button class="wiz-button green new-initiative"><i class="fa-regular fa-plus"></i>&nbsp;Add
                     Initiative</button>
+                <?php include plugin_dir_path(__FILE__) . 'parts/module-user-settings-form.php'; ?>
             </div>
         </div>
     </div>
@@ -72,6 +73,7 @@ if (isset($_GET['startDate']) && $_GET['startDate'] !== '' && isset($_GET['endDa
         sync log&nbsp;<i class="fa-solid fa-chevron-down"></i></span></div>
 <div id="wiztable_status_sync_details">Sync log will show here...</div>
 <div class="entry-content idemailwiz_table_wrapper" itemprop="mainContentOfPage">
+    <?php if (isset($_GET['view']) && $_GET['view'] == 'Blast' || !isset($_GET['view'])) { ?>
     <div class="dashboard-nav-area">
         <div class="dashboard-nav-area-left">
 
@@ -84,6 +86,7 @@ if (isset($_GET['startDate']) && $_GET['startDate'] !== '' && isset($_GET['endDa
         </div>
     </div>
     <div class="wiztable_view_metrics_div" id="campaigns-table-rollup">Loading rollup summary...</div>
+    <?php } ?>
 
     <div class="idemailwiz_table_container">
 

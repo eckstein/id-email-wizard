@@ -34,24 +34,7 @@ $reports_home_link = get_permalink($reports_page);
                     Reports
                 </h1>
 
-                <div id="header-tabs">
-
-                    <?php
-                    if ($current_page_id == $reports_page) {
-                        $homeActive = 'active';
-                    } else {
-                        $homeActive = '';
-                    }
-                    echo "<a href=\"{$reports_home_link}\" class=\"campaign-tab {$homeActive}\">Reports</a>";
-                    // Display child pages as tabs
-                    foreach ($child_pages as $page) {
-                        $page_title = $page->post_title;
-                        $page_link = get_permalink($page->ID);
-                        $isActive = ($current_page_id == $page->ID) ? 'active' : '';
-                        echo "<a href=\"{$page_link}\" class=\"campaign-tab {$isActive}\">{$page_title}</a>";
-                    }
-                    ?>
-                </div>
+                
 
             </div>
             <div class="wizHeader-right">
@@ -63,76 +46,8 @@ $reports_home_link = get_permalink($reports_page);
     </header>
 
     <div class="entry-content" itemprop="mainContentOfPage">
-        <div class="wizcampaign-sections-row">
-            <div class="wizcampaign-section span1" id="reportSidebar">
-                <div class="reports-sidebar-nav">
-                    <ul>
-                        <?php
-                        if ($current_page_id == $reports_page) {
-                            $homeActive = 'active';
-                        } else {
-                            $homeActive = '';
-                        }
-                        echo "<li><a href=\"{$reports_home_link}\" class=\"campaign-tab {$homeActive}\">Reports Home</a></li>";
-                        // Display child pages as tabs
-                        foreach ($child_pages as $page) {
-                            $page_title = $page->post_title;
-                            $page_link = get_permalink($page->ID);
-                            $isActive = ($current_page_id == $page->ID) ? 'active' : '';
-                            echo "<li><a href=\"{$page_link}\" class=\"campaign-tab {$isActive}\">{$page_title}</a></li>";
-                        }
-                        ?>
-                    </ul>
-                </div>
-            </div>
-            <div class="wizcampaign-section span4 inset">
-                <div class="wizcampaign-section">
-                    <div class="wizcampaign-section-content">
-                        <?php include('parts/reports-filter-form.php'); ?>
-                        <div class="wizChartWrapper">
-                            <h5 class="wizChart-title">Open Rate</h5>
-                            <canvas class="wiz-canvas" 
-                                    data-chartid="opensReport"
-                                    data-charttype="line"
-                                    data-startdate="<?php echo esc_attr($sendAtStart); ?>" 
-                                    data-enddate="<?php echo esc_attr($sendAtEnd); ?>"
-                                    data-minsends="<?php echo esc_attr($minSends); ?>"
-                                    data-maxsends="<?php echo esc_attr($maxSends); ?>"
-                                    data-minmetric="<?php echo esc_attr($minMetric); ?>"
-                                    data-maxmetric="<?php echo esc_attr($maxMetric); ?>">
-                            </canvas>
-                        </div>
-                        <div class="wizChartWrapper">
-                            <h5 class="wizChart-title">CTR</h5>
-                            <canvas class="wiz-canvas" 
-                                    data-chartid="ctrReport"
-                                    data-charttype="line"
-                                    data-startdate="<?php echo esc_attr($sendAtStart); ?>" 
-                                    data-enddate="<?php echo esc_attr($sendAtEnd); ?>"
-                                    data-minsends="<?php echo esc_attr($minSends); ?>"
-                                    data-maxsends="<?php echo esc_attr($maxSends); ?>"
-                                    data-minmetric="<?php echo esc_attr($minMetric); ?>"
-                                    data-maxmetric="<?php echo esc_attr($maxMetric); ?>">
-                            </canvas>
-                        </div>
-                        <div class="wizChartWrapper">
-                            <h5 class="wizChart-title">CTO</h5>
-                            <canvas class="wiz-canvas" 
-                                    data-chartid="ctoReport"
-                                    data-charttype="line"
-                                    data-startdate="<?php echo esc_attr($sendAtStart); ?>" 
-                                    data-enddate="<?php echo esc_attr($sendAtEnd); ?>"
-                                    data-minsends="<?php echo esc_attr($minSends); ?>"
-                                    data-maxsends="<?php echo esc_attr($maxSends); ?>"
-                                    data-minmetric="<?php echo esc_attr($minMetric); ?>"
-                                    data-maxmetric="<?php echo esc_attr($maxMetric); ?>">
-                            </canvas>
-                        </div>
-                    </div>
-                    
-                </div>
-            </div>
-        </div>
+         <?php 
+         include plugin_dir_path( __FILE__  ) . 'parts/reports-home.php'; ?>
     </div>
 
 

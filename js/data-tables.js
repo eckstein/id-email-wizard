@@ -231,59 +231,21 @@ jQuery(document).ready(function ($) {
 		// Fetch and fill the rollup summary
 		function fetchRollUpSummaryData(api) {
 			var campaignIds = [];
+			
 			api.rows({ search: "applied" }).every(function (rowIdx, tableLoop, rowLoop) {
 				var data = this.data();
 				campaignIds.push(data.campaign_id);
 			});
-			var fields = {
-				campaignCount: {
-					label: "Campaigns",
-					format: "num",
-				},
-				uniqueEmailSends: {
-					label: "Sends",
-					format: "num",
-				},
-				uniqueEmailOpens: {
-					label: "Opens",
-					format: "num",
-				},
-				wizOpenRate: {
-					label: "Open Rate",
-					format: "perc",
-				},
-				uniqueEmailClicks: {
-					label: "Clicks",
-					format: "num",
-				},
-				wizCtr: {
-					label: "CTR",
-					format: "perc",
-				},
-				wizCto: {
-					label: "CTO",
-					format: "perc",
-				},
-				uniquePurchases: {
-					label: "Purchases",
-					format: "num",
-				},
-				revenue: {
-					label: "Dir. Rev.",
-					format: "money",
-				},
-				gaRevenue: {
-					label: "GA Rev.",
-					format: "money",
-				},
+			
+			var startDate = $("#wizStartDate").val();
+			var endDate = $("#wizEndDate").val();
+			
+			const rollupData = {
+				campaignIds: campaignIds,	
+				startDate: startDate,	
+				endDate: endDate,	
 			};
-
-			const additionalData = {
-				campaignIds: campaignIds,
-				fields: fields,
-			};
-
-			idemailwiz_do_ajax("idwiz_generate_dynamic_rollup", idAjax_data_tables.nonce, additionalData, getRollupSuccess, getRollupError, "html");
+			idemailwiz_do_ajax("idwiz_generate_dynamic_rollup", idAjax_data_tables.nonce, rollupData, getRollupSuccess, getRollupError, "html");
 
 			function getRollupSuccess(response) {
 				if (response != 0) {
@@ -340,12 +302,16 @@ jQuery(document).ready(function ($) {
 						});
 					},
 					type: "date",
+					
 				},
 				{
 					data: "campaign_type",
 					name: "campaign_type",
 					title: "Type",
 					className: "idwiz_searchBuilder_enabled",
+					searchBuilder: {
+						defaultCondition: '='
+					},
 					searchBuilderType: "string",
 				},
 				{
@@ -354,6 +320,9 @@ jQuery(document).ready(function ($) {
 					title: "Medium",
 					className: "idwiz_searchBuilder_enabled",
 					searchBuilderType: "string",
+					searchBuilder: {
+						defaultCondition: '='
+					},
 				},
 				{
 					data: "campaign_name",
@@ -366,6 +335,9 @@ jQuery(document).ready(function ($) {
 					},
 					className: "idwiz_searchBuilder_enabled campaignName",
 					searchBuilderType: "string",
+					searchBuilder: {
+						defaultCondition: 'contains'
+					},
 					width: "300px",
 				},
 				{
@@ -418,7 +390,7 @@ jQuery(document).ready(function ($) {
 							return data ? '<i class="fa fa-flask"></i>' : "";
 						}
 						if (type === "filter") {
-							return !data ? "True" : "False";
+							return !data ? "False" : "True";
 						}
 						return data;
 					},
@@ -427,6 +399,7 @@ jQuery(document).ready(function ($) {
 							search: "filter",
 							display: "filter",
 						},
+						defaultCondition: '='
 					},
 					colvisName: "Has Experiment",
 				},
@@ -571,6 +544,9 @@ jQuery(document).ready(function ($) {
 					render: $.fn.dataTable.render.ellipsis(40, true),
 					className: "idwiz_searchBuilder_enabled",
 					searchBuilderType: "string",
+					searchBuilder: {
+						defaultCondition: 'contains'
+					},
 				},
 				{
 					data: "template_preheader",
@@ -579,6 +555,9 @@ jQuery(document).ready(function ($) {
 					render: $.fn.dataTable.render.ellipsis(40, true),
 					className: "idwiz_searchBuilder_enabled",
 					searchBuilderType: "string",
+					searchBuilder: {
+						defaultCondition: 'contains'
+					},
 				},
 
 				{
@@ -587,7 +566,9 @@ jQuery(document).ready(function ($) {
 					title: "ID",
 					className: "idwiz_searchBuilder_enabled",
 					searchBuilderType: "num",
-					"searchBuilder.defaultConditions": "==",
+					searchBuilder: {
+						defaultCondition: '='
+					},
 				},
 			];
 		}

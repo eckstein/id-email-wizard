@@ -28,6 +28,10 @@ a.wiz-button:hover {
 	background-color: #343434;
 	color: #fff;
 }
+.wiz-button.gray:hover {
+	background-color: #222222;
+}
+
 .wiz-button.green {
 	background-color: #94c52a;
 	color: #fff !important;
@@ -1357,6 +1361,7 @@ pre#generatedCode {
 	flex-direction: column;
 }
 .wizHeader .wizHeader-actions {
+	position: relative;
 	display: flex;
 	gap: 10px;
 	align-items: center;
@@ -1422,6 +1427,48 @@ pre#generatedCode {
 
 h2.wizArticle-title {
 	margin: 40px 0 30px 0;
+}
+
+/* Module settings dropdown */
+#module-settings-dropdown {
+	display: none;
+	position: absolute; /* Positioned relative to its trigger element */
+	right: 0; /* Align to the right of the button */
+	background-color: #f9f9f9; /* Light grey background */
+	min-width: 240px; /* Set a minimum width for the menu */
+	box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2); /* Shadow for a 3D effect */
+	z-index: 1; /* Ensures the dropdown stacks on top of other content */
+	padding: 10px;
+}
+
+#module-settings-dropdown .input-group {
+	border: 1px solid #cdcdcd;
+	border-radius: 5px;
+	margin-bottom: 5px;
+	font-size: 12px;
+
+}
+#module-settings-dropdown .input-group-description {
+	font-size: 10px;
+}
+#module-settings-dropdown label {
+	display: block;
+	
+	padding: 5px;
+	cursor: pointer;
+	font-weight: 500;
+}
+#module-settings-dropdown label:hover {
+	background-color: #cdcdcd;
+}
+#module-settings-dropdown label input {
+	margin: 0;
+}
+
+#module-settings-dropdown .input-group .radio-item {
+	display: flex;
+	align-items: center;
+	gap: 5px;
 }
 
 /* wizcampaign-section styles */
@@ -1589,9 +1636,7 @@ h2.wizArticle-title {
 	width: 160px;
 }
 
-.wiz_dashboard .dashboard-date-buttons {
-	margin-bottom: 20px;
-}
+
 .dashboard-date-buttons {
 	display: flex;
 	justify-content: center;
@@ -2056,14 +2101,126 @@ table.compact th {
 	text-align: center;
 }
 .swal2-html-container .select2-container {
-	width: 250px!important;
+	width: 250px !important;
 }
 .swal2-html-container {
 	overflow: visible !important;
 }
 
-
 /* Initiative Archive */
 #idemailwiz_initiatives_table_wrapper {
 	margin-bottom: 40px;
+}
+
+
+/* Single Journey */
+.highlight-indicator {
+	text-align: center;
+	background-color: #75c0f2;
+	padding: 5px;
+}
+.highlight-indicator h2 {
+	display: inline-block;
+	margin-bottom: 0;
+}
+.highlight-indicator a {
+	font-size: 20px;
+	margin-left: 20px;
+	color: #fff!important;
+	text-decoration: none;
+}
+
+.journey-timeline {
+	width: 100%;
+	max-width: 100%;
+	overflow-x: auto;
+	border:1px solid #eee;
+	padding-bottom: 6px;
+}
+
+.dragScroll-indicator {
+	float: right;
+	margin-bottom: 5px;
+	font-style: italic;
+}
+
+.journey-timeline .timeline-campaign-row {
+	display: flex;
+	align-items: center;
+}
+.journey-timeline .timeline-campaign-row.highlight .timeline-cell {
+	background-color: #75c0f2;
+}
+.journey-timeline .timeline-campaign-title {
+	font-size: 12px;
+	padding: 10px;
+	flex: 0 0 200px;
+	width: 200px;
+	background-color: #fff;
+	overflow: hidden;
+	white-space: nowrap;
+	position: absolute;
+	border-right: 1px solid #eee;
+	z-index: 990;
+}
+.journey-timeline .timeline-campaign-row .timeline-campaign-cell-wrap {
+	display: flex;
+	padding-left: 200px;
+}
+.journey-timeline .timeline-campaign-row .timeline-cell.send-date {
+	font-weight: bold;
+}
+.journey-timeline .timeline-campaign-row .timeline-cell .timeline-cell-popup {
+	display: none;
+	position: absolute;
+	top: 100%;
+	right: 100%;
+	min-width: 140px;
+	background-color: #fff;
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+	z-index: 995;
+	text-align: left;
+}
+.journey-timeline .timeline-campaign-row .timeline-cell .timeline-cell-popup-title {
+	font-weight: bold;
+	background-color: #eee;
+	padding: 12px;
+}
+.journey-timeline .timeline-campaign-row .timeline-cell .timeline-cell-popup-content {
+	padding: 5px 12px 12px 12px;
+}
+
+.journey-timeline .timeline-campaign-row .timeline-cell:hover .timeline-cell-popup {
+	display: block;
+}
+.journey-timeline .timeline-campaign-row .timeline-cell {
+	flex: 1;
+	padding: 5px;
+	min-width: 50px;
+	min-height: 30px;
+	border: 1px solid #eee;
+	text-align: center;
+	font-size: 10px;
+	position: relative;
+}
+.journey-timeline .timeline-campaign-row .timeline-cell .timeline-cell-link {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+}
+
+.journey-timeline .timeline-campaign-row .timeline-cell.active {
+	background-color: #eee;
+}
+.journey-timeline .timeline-campaign-row .timeline-cell.active:hover {
+	background-color: #94c52a
+}
+
+
+.idwiz-dragScroll {
+	cursor: grab;
 }

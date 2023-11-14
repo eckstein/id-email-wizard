@@ -1,21 +1,27 @@
 <div class="dashboard-date-pickers">
-    <?php include plugin_dir_path(__FILE__) . 'dashboard-date-buttons.php'; ?>
-    <form method="get" action="<?php echo esc_url(remove_query_arg(['startDate', 'endDate'])); ?>">
+    <?php
+    include plugin_dir_path(__FILE__) . 'dashboard-date-buttons.php';
 
-        <!-- Add other $_GET parameters as hidden fields (except startDate and endDate) -->
+    // Retrieve startDate and endDate from GET parameters or set to default values
+    $startDate = $startDate ?? '2021-11-01';
+    $endDate = $endDate ?? date('Y-m-d');
+
+    // Exclude startDate and endDate from the parameters to retain
+    $parametersToRetain = array_diff_key($_GET, array_flip(['startDate', 'endDate']));
+    ?>
+
+    <form method="get" action="">
         <?php
-        foreach ($_GET as $key => $value) {
-            if ($key !== 'startDate' && $key !== 'endDate') {
-                echo '<input type="hidden" name="' . esc_attr($key) . '" value="' . esc_attr($value) . '">';
-            }
+        // Create hidden fields for each parameter to retain
+        foreach ($parametersToRetain as $key => $value) {
+            echo '<input type="hidden" name="' . esc_attr($key) . '" value="' . esc_attr($value) . '">';
         }
         ?>
-
-        <input type="date" name="startDate" id="wizStartDate" value="<?php echo $startDate; ?>">
+        <input type="date" name="startDate" id="wizStartDate" value="<?php echo esc_attr($startDate); ?>">
         &nbsp;thru&nbsp;
-        <input type="date" name="endDate" id="wizEndDate" value="<?php echo $endDate; ?>">
+        <input type="date" name="endDate" id="wizEndDate" value="<?php echo esc_attr($endDate); ?>">
         <?php if (!is_page('campaigns')) { ?>
-        &nbsp;<input type="submit" class="wiz-button green" value="Apply">
+            &nbsp;<input type="submit" class="wiz-button green" value="Apply">
         <?php } ?>
     </form>
 </div>

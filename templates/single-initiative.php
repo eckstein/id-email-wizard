@@ -9,7 +9,7 @@
         // Get the list of campaign IDs associated with the current initiative
         $associated_campaign_ids = idemailwiz_get_campaign_ids_for_initiative(get_the_ID()) ?? array();
         if (!empty($associated_campaign_ids)) {
-            $purchases = get_idwiz_purchases(array('campaignIds' => $associated_campaign_ids));
+            $purchases = get_idwiz_purchases(['campaignIds' => $associated_campaign_ids]);
         }
 
         ?>
@@ -42,7 +42,7 @@
                             &nbsp;&nbsp;|&nbsp;&nbsp;
                             <button class="wiz-button green new-initiative"><i class="fa-regular fa-plus"></i>&nbsp;New
                                 Initiative</button>
-
+                            <?php include plugin_dir_path(__FILE__) . 'parts/module-user-settings-form.php'; ?>
 
                         </div>
                     </div>
@@ -71,53 +71,9 @@
                 ?>
 
                 <?php
-                if (!empty($associated_campaign_ids)) {
-                    echo generate_campaigns_table_rollup_row(
-                        $associated_campaign_ids,
-                        array(
-                            'campaignCount' => array(
-                                'label' => 'Campaigns',
-                                'format' => 'num',
-                            ),
-                            'uniqueEmailSends' => array(
-                                'label' => 'Sends',
-                                'format' => 'num',
-                            ),
-                            'uniqueEmailOpens' => array(
-                                'label' => 'Opens',
-                                'format' => 'num',
-                            ),
-                            'wizOpenRate' => array(
-                                'label' => 'Open Rate',
-                                'format' => 'perc',
-                            ),
-                            'uniqueEmailClicks' => array(
-                                'label' => 'Clicks',
-                                'format' => 'num',
-                            ),
-                            'wizCtr' => array(
-                                'label' => 'CTR',
-                                'format' => 'perc',
-                            ),
-                            'wizCto' => array(
-                                'label' => 'CTO',
-                                'format' => 'perc',
-                            ),
-                            'uniquePurchases' => array(
-                                'label' => 'Purchases',
-                                'format' => 'num',
-                            ),
-                            'revenue' => array(
-                                'label' => 'Dir. Rev.',
-                                'format' => 'money',
-                            ),
-                            'gaRevenue' => array(
-                                'label' => 'GA Rev.',
-                                'format' => 'money',
-                            ),
-                        )
-                    );
-                }
+                $metricRates = get_idwiz_metric_rates($associated_campaign_ids);
+
+                get_idwiz_rollup_row($metricRates);
                 ?>
                 <div class="wizcampaign-sections-row">
                     <div id="initiative-campaigns-table" class="wizcampaign-section inset span4">

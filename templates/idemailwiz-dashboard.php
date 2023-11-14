@@ -26,13 +26,13 @@ if (isset($_GET['startDate']) && $_GET['startDate'] !== '' && isset($_GET['endDa
 
     $startDate = "{$startYear}-11-01";
     $endDate = "{$endYear}-10-31";
-    
+
 } else {
     // Default to current month if no parameters are provided
     $startDate = date("Y-m-01");
     $endDate = date("Y-m-t");
 
-    
+
     $wizMonth = date("m");
     $wizYear = date("Y");
 }
@@ -80,7 +80,7 @@ $triggeredCampaignIds = array_column($triggeredCampaigns, 'id');
 
 
 
-$allPurchaseArgs = ['startAt_start' => $startDate, 'startAt_end' => $endDate, 'shoppingCartItems_utmMedium' => "email"];
+$allPurchaseArgs = ['startAt_start' => $startDate, 'startAt_end' => $endDate];
 $blastPurchases = [];
 $triggeredPurchases = [];
 $allPurchases = get_idwiz_purchases($allPurchaseArgs);
@@ -127,6 +127,7 @@ foreach ($allPurchases as $purchase) {
                     <button class="wiz-button green sync-db sync-everything"><i
                             class="fa-solid fa-rotate"></i>&nbsp;Sync
                         Databases</button>
+                    <?php include plugin_dir_path(__FILE__) . 'parts/module-user-settings-form.php'; ?>
                 </div>
             </div>
         </div>
@@ -140,8 +141,9 @@ foreach ($allPurchases as $purchase) {
 
             </div>
             <div class="dashboard-nav-area-main">
-                <?php include plugin_dir_path(__FILE__) . 'parts/dashboard-month-nav.php'; ?>
-                <?php include plugin_dir_path(__FILE__) . 'parts/dashboard-date-buttons.php'; ?>
+                <?php //include plugin_dir_path(__FILE__) . 'parts/dashboard-month-nav.php'; ?>
+                <?php include plugin_dir_path(__FILE__) . 'parts/dashboard-date-pickers.php'; ?>
+                <?php //include plugin_dir_path(__FILE__) . 'parts/dashboard-date-buttons.php'; ?>
             </div>
             <div class="dashboard-nav-area-right">
                 <div class="wizToggle-container">

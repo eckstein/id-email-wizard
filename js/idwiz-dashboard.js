@@ -409,10 +409,19 @@
 			var selectedMonth = $("#wizMonthDropdown").val();
 			var selectedYear = $("#wizYearDropdown").val();
 
-			// Construct the URL with the selected month and year
-			var newUrl = "?wizMonth=" + selectedMonth + "&wizYear=" + selectedYear;
+			// Construct the start date (first day of the month)
+			var startDate = new Date(selectedYear, selectedMonth - 1, 1);
+			var formattedStartDate = startDate.toISOString().split('T')[0]; // Format as 'yyyy-mm-dd'
+
+			// Construct the end date (last day of the month)
+			var endDate = new Date(selectedYear, selectedMonth, 0); // Using day 0 gets the last day of the previous month
+			var formattedEndDate = endDate.toISOString().split('T')[0]; // Format as 'yyyy-mm-dd'
+
+			// Construct the URL with the startDate and endDate
+			var newUrl = "?startDate=" + formattedStartDate + "&endDate=" + formattedEndDate;
 			window.location.href = newUrl;
 		});
+
 
 		// Handler for left navigation arrow
 		$(".wizDateNav-left a").click(function (e) {

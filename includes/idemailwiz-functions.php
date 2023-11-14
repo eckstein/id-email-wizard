@@ -667,248 +667,7 @@ function idwiz_extract_campaigns_images($campaignIds = [])
   return $allCampaignImageData;
 }
 
-function idwiz_generate_dynamic_rollup()
-{
 
-
-  $fields = $_POST['fields'] ?? array();
-  if (isset($_POST['campaignIds'])) {
-    echo generate_campaigns_table_rollup_row($_POST['campaignIds'], $fields);
-  }
-  wp_die();
-}
-
-add_action('wp_ajax_idwiz_generate_dynamic_rollup', 'idwiz_generate_dynamic_rollup');
-
-function generate_campaigns_table_rollup_row($campaignIds, $fields)
-{
-  // Use the aggregate function to get the processed metrics
-  $aggregatedMetrics = idemailwiz_calculate_aggregate_metrics($campaignIds);
-
-  $displayMetrics = [];
-
-  // Initialize $displayMetrics based on the order of $fields
-  foreach ($fields as $column => $info) {
-    if (array_key_exists($column, $aggregatedMetrics)) {
-      $value = $aggregatedMetrics[$column];
-      // Skip the formatting function if the value is 0 or null
-      $formattedValue = ($value !== 0 && $value !== null) ? idwiz_format_rollup_row_values($value, $info['format']) : '-';
-      $displayMetrics[] = [
-        'label' => $info['label'],
-        'value' => $formattedValue,
-        'format' => $info['format'] // valid values are num, perc, and money
-      ];
-    }
-  }
-
-  $html = '<div class="wiztable_view_metrics_div" id="campaigns-table-rollup">';
-  foreach ($displayMetrics as $metric) {
-    $html .= '<div class="metric-item">';
-    $html .= "<span class='metric-label'>{$metric['label']}</span>";
-    $html .= "<span class='metric-value'>{$metric['value']}</span>";
-    $html .= '</div>'; // End of metric-item
-  }
-  $html .= '</div>'; // End of wiztable_view_metrics_div
-
-  return $html;
-}
-
-
-
-
-function generate_single_campaign_rollup_row($campaign, $fields, $startDate = null, $endDate = null)
-{
-  $campaignMetrics = get_idwiz_metric($campaign['id']);
-
-  $triggeredArgs = [
-    'campaignIds' => [$campaign['id']],
-  ];
-
-  $purchaseArgs = [
-    'campaignIds' => [$campaign['id']],
-  ];
-
-  if ($campaign['type'] == 'Triggered') {
-    if ($startDate || $endDate) {
-      if ($startDate) {
-        $purchaseArgs['startAt_start'] = $startDate;
-        $triggeredArgs['startAt_start'] = $startDate;
-      }
-      if ($endDate) {
-        $purchaseArgs['startAt_end'] = $endDate;
-        $triggeredArgs['startAt_end'] = $endDate;
-      }
-    }
-
-    $triggeredSendData = get_idemailwiz_triggered_data('idemailwiz_triggered_sends', $triggeredArgs);
-    $triggeredOpenData = get_idemailwiz_triggered_data('idemailwiz_triggered_opens', $triggeredArgs);
-    $triggeredClickData = get_idemailwiz_triggered_data('idemailwiz_triggered_clicks', $triggeredArgs);
-
-    $totalSends = count($triggeredSendData);
-    $totalOpens = count($triggeredOpenData);
-    $totalClicks = count($triggeredClickData);
-
-    $openRate = ($totalSends > 0) ? ($totalOpens / $totalSends) * 100 : 0;
-    $ctr = ($totalSends > 0) ? ($totalClicks / $totalSends) * 100 : 0;
-    $cto = ($totalOpens > 0) ? ($totalClicks / $totalOpens) * 100 : 0;
-  }
-
-  // Get true revenue from purchase DB (for both triggered and blast)
-  $campaignPurchases = get_idwiz_purchases($purchaseArgs);
-
-  $campaignRevenue = 0;
-  foreach ($campaignPurchases as $purchase) {
-    $campaignRevenue += $purchase['total']; // Corrected the revenue calculation
-  }
-
-  $displayMetrics = [];
-
-  foreach ($fields as $column => $info) {
-    if (array_key_exists($column, $campaignMetrics) || isset($fields[$column])) {
-      $value = array_key_exists($column, $campaignMetrics) ? $campaignMetrics[$column] : 0;
-
-      // Set custom values for 'Triggered' campaigns
-      if ($campaign['type'] == 'Triggered') {
-        if ($column == 'uniqueEmailSends')
-          $value = $totalSends;
-        if ($column == 'uniqueEmailsDelivered')
-          $value = 0;
-        if ($column == 'wizDeliveryRate')
-          $value = 0;
-        if ($column == 'uniqueEmailOpens')
-          $value = $totalOpens;
-        if ($column == 'uniqueEmailClicks')
-          $value = $totalClicks;
-        if ($column == 'wizOpenRate')
-          $value = $openRate;
-        if ($column == 'wizCtr')
-          $value = $ctr;
-        if ($column == 'wizCto')
-          $value = $cto;
-        if ($column == 'uniqueUnsubscribes')
-          $value = 0;
-        if ($column == 'wizUnsubRate')
-          $value = 0;
-        if ($column == 'uniquePurchases')
-          $value = count($campaignPurchases);
-      }
-
-      if ($column == 'revenue') {
-        $value = $campaignRevenue;
-      }
-
-      $displayMetrics[] = [
-        'label' => $info['label'],
-        'value' => $value,
-        'format' => $info['format'] // valid values are num, perc, and money
-      ];
-    }
-  }
-
-  $html = '';
-  $html .= '<div class="wiztable_view_metrics_div" id="campaigns-table-rollup">';
-  foreach ($displayMetrics as $metric) {
-    $formattedValue = idwiz_format_rollup_row_values($metric['value'], $metric['format']);
-    $html .= '<div class="metric-item">';
-    $html .= "<span class='metric-label'>{$metric['label']}</span>";
-    $html .= "<span class='metric-value'>{$formattedValue}</span>";
-    $html .= '</div>'; // End of metric-item
-  }
-  $html .= '</div>'; // End of wiztable_view_metrics_div
-
-  return $html;
-}
-
-
-
-
-// Function to format the value based on its format type
-function idwiz_format_rollup_row_values($value, $format)
-{
-  switch ($format) {
-    case 'num':
-      return number_format($value, 0, '.', ',');
-    case 'perc':
-      return number_format($value, 2) . '%';
-    case 'money':
-      return '$' . number_format($value, 2, '.', ',');
-    default:
-      return $value;
-  }
-}
-
-
-// Calculate aggregate percentage metrics for multiple campaigns
-function idemailwiz_calculate_aggregate_metrics($campaignIds)
-{
-
-  $metricsArray = get_idwiz_metrics(array('campaignIds' => $campaignIds));
-
-  // Initialize aggregate metrics
-  $aggregateMetrics = [
-    'uniqueEmailSends' => 0,
-    'uniqueEmailsDelivered' => 0,
-    'uniqueEmailOpens' => 0,
-    'uniqueEmailClicks' => 0,
-    'uniqueUnsubscribes' => 0,
-    'totalComplaints' => 0,
-    'uniquePurchases' => 0,
-    'revenue' => 0,
-    'gaRevenue' => 0
-  ];
-
-  // Sum up the metrics across all campaigns
-  foreach ($metricsArray as $metrics) {
-    foreach ($aggregateMetrics as $key => $value) {
-      if (isset($metrics[$key])) {
-        $aggregateMetrics[$key] += $metrics[$key];
-      }
-    }
-  }
-
-  // Perform calculations
-  $sendValue = (float) $aggregateMetrics['uniqueEmailSends'];
-  $deliveredValue = (float) $aggregateMetrics['uniqueEmailsDelivered'];
-  $clicksValue = (float) $aggregateMetrics['uniqueEmailClicks'];
-  $unsubscribesValue = (float) $aggregateMetrics['uniqueUnsubscribes'];
-  $complaintsValue = (float) $aggregateMetrics['totalComplaints'];
-  $purchasesValue = (float) $aggregateMetrics['uniquePurchases'];
-  $revenueValue = (float) $aggregateMetrics['revenue'];
-
-  if ($sendValue > 0) {
-    $aggregateMetrics['wizDeliveryRate'] = ($deliveredValue / $sendValue) * 100;
-    $aggregateMetrics['wizCtr'] = ($clicksValue / $sendValue) * 100;
-    $aggregateMetrics['wizUnsubRate'] = ($unsubscribesValue / $sendValue) * 100;
-    $aggregateMetrics['wizCompRate'] = ($complaintsValue / $sendValue) * 100;
-    $aggregateMetrics['wizCvr'] = ($purchasesValue / $sendValue) * 100;
-  } else {
-    $aggregateMetrics['wizCtr'] = 0;
-    $aggregateMetrics['wizUnsubRate'] = 0;
-    $aggregateMetrics['wizCompRate'] = 0;
-    $aggregateMetrics['wizCvr'] = 0;
-  }
-
-  if ($purchasesValue > 0) {
-    $aggregateMetrics['wizAov'] = ($revenueValue / $purchasesValue);
-  } else {
-    $aggregateMetrics['wizAov'] = 0;
-  }
-
-  // Open metrics
-  $opensValue = (float) $aggregateMetrics['uniqueEmailOpens'];
-  if ($opensValue > 0) {
-    $aggregateMetrics['wizOpenRate'] = ($opensValue / $sendValue) * 100;
-    $aggregateMetrics['wizCto'] = ($clicksValue / $opensValue) * 100;
-  } else {
-    $aggregateMetrics['wizOpenRate'] = 0;
-    $aggregateMetrics['wizCto'] = 0;
-  }
-
-  // Count total campaigns in this group
-  $aggregateMetrics['campaignCount'] = count($campaignIds);
-
-  return $aggregateMetrics;
-}
 
 
 add_action('wp_ajax_idwiz_fetch_base_templates', 'idwiz_fetch_base_templates');
@@ -1185,122 +944,30 @@ function prepare_promo_code_summary_data($purchases)
   ];
 }
 
-
-
-
-
-
-function get_metricsTower_rate($campaignIds, $metricType, $startDate = null, $endDate = null, $campaignTypes = ['Blast', 'Triggered'])
-{
-  // Check if $campaignIds is a valid array
-  if (!is_array($campaignIds) || empty($campaignIds)) {
-    return 'N/A';
-  }
-
-  // Fetch metrics for the given campaign IDs
-  $metrics = get_idwiz_metrics(['campaignIds' => $campaignIds]);
-
-  
-
-  // If metrics couldn't be fetched or returned an empty array, return 'N/A'
-  if (!$metrics || empty($metrics)) {
-    return 'N/A';
-  }
-
-  // Map metric types to corresponding DB fields and divisor fields
-  $metricConfig = [
-    'sends' => ['field' => 'uniqueEmailSends', 'divisor' => null],
-    'delRate' => ['field' => 'uniqueEmailsDelivered', 'divisor' => 'uniqueEmailSends'],
-    'opens' => ['field' => 'uniqueEmailOpens', 'divisor' => null],
-    'openRate' => ['field' => 'uniqueEmailOpens', 'divisor' => 'totalEmailSends'],
-    'clicks' => ['field' => 'uniqueEmailClicks', 'divisor' => null],
-    'ctr' => ['field' => 'uniqueEmailClicks', 'divisor' => 'totalEmailSends'],
-    'cto' => ['field' => 'uniqueEmailClicks', 'divisor' => 'uniqueEmailOpens'],
-    'unsubs' => ['field' => 'uniqueUnsubscribes', 'divisor' => 'totalEmailSends'],
-    'revenue' => ['field' => 'revenue', 'divisor' => null],
-    'gaRevenue' => ['field' => 'gaRevenue', 'divisor' => null],
-    'purchases' => ['field' => 'uniquePurchases', 'divisor' => null],
-    'cvr' => ['field' => 'uniquePurchases', 'divisor' => 'totalEmailSends'],
-    'aov' => ['field' => 'revenue', 'divisor' => 'uniquePurchases']
-  ];
-
-  // Retrieve the DB field and divisor field based on metric type
-  if (!array_key_exists($metricType, $metricConfig)) {
-    return 'Invalid Metric Type';
-  }
-
-
-  if ($metricType == 'revenue') {
-    if ($startDate && $endDate) {
-      return get_idwiz_revenue($startDate, $endDate, $campaignTypes, false);
-    } else {
-      return 'Start date and end date required for revenue metrics';
+function idwiz_get_orders_from_purchases($purchases) {
+    $orders = [];
+    foreach ($purchases as $purchase) {
+        if (isset($orders[$purchase['orderId']])) {
+            $orders[$purchase['orderId']][] = $purchase;
+        } else {
+            $orders[$purchase['orderId']] = [$purchase];
+        }
     }
-  }
 
-  if ($metricType == 'gaRevenue') {
-    if ($startDate && $endDate) {
-      return get_idwiz_revenue($startDate, $endDate, $campaignTypes, true);
-    } else {
-      return 'Start date and end date required for revenue metrics';
-    }
-  }
-
-  if ($metricType == 'purchases') {
-    // If 'Triggered' campaign type is included, count them as well
-    $purchasesOptions = [
-      'startDate' => $startDate,
-      'endDate' => $endDate,
-      'campaignTypes' => $campaignTypes
-    ];
-    $allPurchases = idwiz_find_matching_purchases($purchasesOptions);
-
-    return number_format(count($allPurchases), 0);
-  }
-
-  $dbField = $metricConfig[$metricType]['field'];
-  $divideBy = $metricConfig[$metricType]['divisor'];
-
-  // Sum up the metrics
-  $allDbField = array_sum(array_column($metrics, $dbField));
-
-  
-
-  if ($divideBy) {
-    // Calculate the total number for the divisor
-    $allDivideBy = array_sum(array_column($metrics, $divideBy));
-
-    // Check for division by zero
-    if ($allDivideBy == 0) {
-      return 'N/A';
-    }
-    // Calculate and return the metric rate
-    $metricRate = $allDbField / $allDivideBy;
-    
-
-    if ($metricType != 'aov') {
-      return $metricRate * 100;
-    } else {
-      return $metricRate;
-    }
-  }
-
-  return $allDbField;
+    return $orders;
 }
 
-function parse_idwiz_metric_rate($rate)
+function get_idwiz_revenue($startDate, $endDate, $campaignTypes = ['Triggered', 'Blast'], $wizCampaignIds = null, $useGa = false)
 {
-  return floatval(str_replace(['%', ',', '$'], '', $rate));
-}
 
 
-function get_idwiz_revenue($startDate, $endDate, $campaignTypes = ['Triggered', 'Blast'], $useGa = false)
-{
+  if (!is_array($wizCampaignIds) || empty($wizCampaignIds)) {
+    $checkCampaignArgs = ['type' => $campaignTypes, 'fields' => 'id'];
+    $wizCampaigns = get_idwiz_campaigns($checkCampaignArgs);
+    $wizCampaignIds = array_column($wizCampaigns, 'id');
+  }
+
   $totalRevenue = 0;
-  $checkCampaignArgs = ['type' => $campaignTypes, 'fields' => 'id'];
-
-  $wizCampaigns = get_idwiz_campaigns($checkCampaignArgs);
-  $wizCampaignIds = array_column($wizCampaigns, 'id');
 
   if ($useGa) {
     $allChannelPurchases = get_idwiz_ga_data(['startDate' => $startDate, 'endDate' => $endDate]);
@@ -1310,10 +977,8 @@ function get_idwiz_revenue($startDate, $endDate, $campaignTypes = ['Triggered', 
     }
     $revenue = array_sum(array_column($purchases, 'revenue'));
   } else {
-    $purchaseArgs = ['startAt_start' => $startDate, 'startAt_end' => $endDate, 'shoppingCartItems_utmMedium' => 'email', 'fields' => 'id,campaignId,purchaseDate,total'];
+    $purchaseArgs = ['startAt_start' => $startDate, 'startAt_end' => $endDate, 'campaignIds' => $wizCampaignIds, 'fields' => 'id,campaignId,purchaseDate,total'];
     $purchases = get_idwiz_purchases($purchaseArgs);
-
-    //error_log('Start Date: '.$startDate.' End Date: '.$endDate.print_r($purchases, true));
 
     if (!$purchases) {
       return 0;
@@ -1329,9 +994,9 @@ function get_idwiz_revenue($startDate, $endDate, $campaignTypes = ['Triggered', 
         continue;
       }
 
-     if (!isset($purchase['campaignId'])) {
-      continue;
-     }
+      if (!isset($purchase['campaignId'])) {
+        continue;
+      }
 
       $wizCampaign = get_idwiz_campaign($purchase['campaignId']);
 
@@ -1339,20 +1004,9 @@ function get_idwiz_revenue($startDate, $endDate, $campaignTypes = ['Triggered', 
         continue;
       }
 
-      if (!in_array($wizCampaign['type'], $campaignTypes)) {
+      if (isset($campaignTypes) && !in_array($wizCampaign['type'], $campaignTypes)) {
         continue;
       }
-
-      // $wizAttributionLength = get_field('attribution_length', 'options');
-      // $attributeUntil = strtotime(date('Y-m-d', strtotime(date('Y-m-d', $wizCampaign['startAt'] / 1000) . ' +' . $wizAttributionLength . 'days')));
-      // $purchaseDate = strtotime(date('Y-m-d', strtotime($purchase['purchaseDate'])));
-
-      // if ($purchaseDate <= $attributeUntil) {
-      //   $revenue += $purchase['total'];
-      //   $uniqueIds[] = $purchase['id'];
-      // }
-
-      
 
       $revenue += $purchase['total'];
       $uniqueIds[] = $purchase['id'];
@@ -1366,28 +1020,6 @@ function get_idwiz_revenue($startDate, $endDate, $campaignTypes = ['Triggered', 
 
 
 
-
-function formatTowerMetric($value, $format, $includeSign = false)
-{
-  $formattedValue = '';
-  $sign = ($value >= 0) ? '+' : '-';
-
-  switch ($format) {
-    case 'money':
-      $formattedValue = ($includeSign ? $sign : '') . '$' . number_format(abs($value), 0);
-      break;
-    case 'perc':
-      $formattedValue = ($includeSign ? $sign : '') . number_format(abs($value), 2) . '%';
-      break;
-    case 'num':
-      $formattedValue = ($includeSign ? $sign : '') . number_format(abs($value), 0);
-      break;
-    default:
-      $formattedValue = $value;
-  }
-
-  return $formattedValue;
-}
 
 
 function get_idwiz_header_tabs($tabs, $currentActiveItem)
@@ -1535,54 +1167,6 @@ function save_experiment_notes()
 }
 
 
-function get_second_purchases_within_week($purchaseMonth, $purchaseMonthDay, $purchaseWindowDays, $divisions)
-{
-  $all_orders = get_orders_grouped_by_customers();
-  $second_purchases = [];
-
-  $specified_date = new DateTime();
-  $specified_date->setDate($specified_date->format("Y"), $purchaseMonth, $purchaseMonthDay);
-  $week_start = (clone $specified_date)->modify('this week');
-  $purchase_window_end = (clone $week_start)->modify("+$purchaseWindowDays days");
-
-  foreach ($all_orders as $accountNumber => $orders) {
-    $qualifying_purchase_date = null;
-
-    foreach ($orders as $order) {
-      $purchase_date = new DateTime($order['purchaseDate']);
-
-      if (
-        !$qualifying_purchase_date &&
-        $purchase_date->format('z') >= $specified_date->format('z') &&
-        $purchase_date->format('z') <= $purchase_window_end->format('z') &&
-        in_array($order['division'], $divisions)
-      ) {
-        $qualifying_purchase_date = $purchase_date;
-        continue;
-      }
-
-      if ($qualifying_purchase_date) {
-        $end_of_qualifying_year = (clone $qualifying_purchase_date)->setDate($qualifying_purchase_date->format("Y"), 12, 31);
-        $days_until_end_of_year = $qualifying_purchase_date->diff($end_of_qualifying_year)->days;
-        $days_from_start_of_next_year = (new DateTime($order['purchaseDate']))->format('z');
-        $days_since_qualifying_order = $days_until_end_of_year + $days_from_start_of_next_year;
-
-        $is_leap_year = ($qualifying_purchase_date->format('L') == 1 && $qualifying_purchase_date->format('m') <= 2) ? true : false;
-        $days_limit = $is_leap_year ? 366 : 365;
-        $days_limit = $days_limit - (int) $purchaseWindowDays;
-
-        if ($days_since_qualifying_order <= $days_limit) {
-          $order['day_of_year'] = $days_since_qualifying_order;
-          $second_purchases[] = $order;
-        }
-      }
-    }
-  }
-
-  return $second_purchases;
-}
-
-
 
 
 
@@ -1623,6 +1207,361 @@ function transfigure_purchases_by_product($purchases)
 
   return $data;
 }
+
+
+
+
+function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate = null, $campaignTypes = ['Blast', 'Triggered'])
+{
+
+  $startDate = $startDate ? $startDate : '2021-11-01';
+  $endDate = $endDate ? $endDate : date('Y-m-d');
+
+  // Determine campaign IDs for Blast and Triggered campaigns
+  if (empty($campaignIds)) {
+    $blastCampaigns = get_idwiz_campaigns(['type' => 'Blast', 'fields' => 'id', 'startAt_start' => $startDate, 'startAt_end' => $endDate]);
+    $blastCampaignIds = array_column($blastCampaigns, 'id');
+
+    $triggeredCampaigns = get_idwiz_campaigns(['type' => 'Triggered', 'fields' => 'id']);
+    $triggeredCampaignIds = array_column($triggeredCampaigns, 'id');
+
+    $allIncludedIds = array_merge($blastCampaignIds, $triggeredCampaignIds);
+  } else {
+    $blastCampaignIds = $triggeredCampaignIds = $allIncludedIds = [];
+    foreach ($campaignIds as $campaignId) {
+      $campaign = get_idwiz_campaign($campaignId);
+      if ($campaign['type'] == 'Blast') {
+        $blastCampaignIds[] = $campaignId;
+      } else {
+        $triggeredCampaignIds[] = $campaignId;
+      }
+      $allIncludedIds[] = $campaignId;
+    }
+  }
+  // Retrieve metrics for Blast and (optional) Triggered campaigns
+  $blastMetrics = in_array('Blast', $campaignTypes) && !empty($blastCampaignIds) ? get_idwiz_metrics(['campaignIds' => $blastCampaignIds]) : [];
+  $triggeredMetrics = in_array('Triggered', $campaignTypes) && !empty($triggeredCampaignIds) ? get_triggered_campaign_metrics($triggeredCampaignIds, $startDate, $endDate) : [];
+
+  // Retrieve purchases so we can calculate AOV
+  $purchaseArgs = [
+    'startAt_start' => $startDate,
+    'startAt_end' => $endDate,
+  ];
+
+  if (in_array('Triggered', $campaignTypes)) {
+    $purchaseArgs['campaignIds'] = $allIncludedIds;
+  } else {
+    $purchaseArgs['campaignIds'] = $blastCampaignIds;
+  }
+
+  $purchases = get_idwiz_purchases($purchaseArgs);
+
+  // Initialize variables for summable metrics
+  $totalSends = $totalOpens = $totalClicks = $totalUnsubscribes = $totalDeliveries = $totalPurchases = $totalRevenue = 0;
+
+  $totalPurchases = is_array($purchases) ? count($purchases) : 0;
+
+  $totalRevenue = get_idwiz_revenue($startDate, $endDate, $campaignTypes, $allIncludedIds);
+  $gaRevenue = get_idwiz_revenue($startDate, $endDate, $campaignTypes, $allIncludedIds, true);
+
+
+  // Process Blast metrics
+  foreach ($blastMetrics as $blastMetricSet) {
+    $totalSends += $blastMetricSet['uniqueEmailSends'] ?? 0;
+    $totalOpens += $blastMetricSet['uniqueEmailOpens'] ?? 0;
+    $totalClicks += $blastMetricSet['uniqueEmailClicks'] ?? 0;
+    $totalUnsubscribes += $blastMetricSet['uniqueUnsubscribes'] ?? 0;
+    $totalDeliveries += $blastMetricSet['uniqueEmailsDelivered'] ?? 0;
+    //$totalPurchases += $blastMetricSet['uniquePurchases'] ?? 0;
+  }
+
+  // Add Triggered campaign metrics, if applicable
+  if (!empty($triggeredMetrics)) {
+    $totalSends += $triggeredMetrics['uniqueEmailSends'] ?? 0;
+    $totalOpens += $triggeredMetrics['uniqueEmailOpens'] ?? 0;
+    $totalClicks += $triggeredMetrics['uniqueEmailClicks'] ?? 0;
+    $totalUnsubscribes += $triggeredMetrics['uniqueUnsubscribes'] ?? 0;
+    $totalDeliveries += $triggeredMetrics['uniqueEmailsDelivered'] ?? 0;
+    //$totalPurchases += $triggeredMetrics['uniquePurchases'] ?? 0;
+  }
+
+  // Calculate and return all metrics
+  return [
+    'uniqueEmailSends' => $totalSends,
+    'uniqueEmailOpens' => $totalOpens,
+    'uniqueEmailClicks' => $totalClicks,
+    'uniqueUnsubscribes' => $totalUnsubscribes,
+    'uniqueEmailsDelivered' => $totalDeliveries,
+    'uniquePurchases' => $totalPurchases,
+    'wizDeliveryRate' => ($totalSends > 0) ? ($totalDeliveries / $totalSends) * 100 : 0,
+    'wizOpenRate' => ($totalOpens > 0) ? ($totalOpens / $totalSends) * 100 : 0,
+    'wizCtr' => ($totalClicks > 0) ? ($totalClicks / $totalSends) * 100 : 0,
+    'wizCto' => ($totalOpens > 0) ? ($totalClicks / $totalOpens) * 100 : 0,
+    'wizCvr' => ($totalPurchases > 0 && $totalDeliveries > 0) ? ($totalPurchases / $totalDeliveries) * 100 : 0,
+    'wizAov' => ($totalPurchases > 0 && $totalRevenue > 0) ? ($totalRevenue / $totalPurchases) : 0,
+    'wizUnsubRate' => ($totalSends > 0) ? ($totalUnsubscribes / $totalSends) * 100 : 0,
+    'revenue' => $totalRevenue,
+    'gaRevenue' => $gaRevenue
+  ];
+}
+
+function get_triggered_campaign_metrics($campaignIds = [], $startDate = null, $endDate = null)
+{
+  if (!$startDate) {
+    $startDate = '2021-11-01';
+  }
+  if (!$endDate) {
+    $endDate = date('Y-m-d');
+  }
+
+  $purchasesOptions = [
+    'startAt_start' => $startDate,
+    'startAt_end' => $endDate,
+  ];
+
+  if (!empty($campaignIds)) {
+    $purchasesOptions['campaignIds'] = $campaignIds;
+  }
+  $allPurchases = get_idwiz_purchases($purchasesOptions);
+
+  // Prepare arguments for database queries
+  $campaignDataArgs = [
+    'campaignIds' => $campaignIds,
+    'startAt_start' => $startDate,
+    'startAt_end' => $endDate,
+    'fields' => 'campaignId' //just getting one field since all we're doing is counting values
+  ];
+
+  // Fetch base data for each metric and map it to the same structure as the Blast campaigns
+  $metrics = [];
+  $databases = [
+    'uniqueEmailSends' => 'idemailwiz_triggered_sends',
+    'uniqueEmailOpens' => 'idemailwiz_triggered_opens',
+    'uniqueEmailClicks' => 'idemailwiz_triggered_clicks',
+    'uniqueUnsubscribes' => 'idemailwiz_triggered_unsubscribes',
+    'emailSendSkips' => 'idemailwiz_triggered_sendskips',
+    'emailBounces' => 'idemailwiz_triggered_bounces'
+  ];
+
+  foreach ($databases as $metricKey => $database) {
+    $transient_key = 'count_of_' . $database . md5(json_encode($campaignDataArgs));
+
+    // Try to get the metric count from transient
+    $metric_count = get_transient($transient_key);
+
+    if ($metric_count === false) {
+      // Transient expired or not set, fetch the data
+      $metric_data = get_idemailwiz_triggered_data($database, $campaignDataArgs);
+      $metric_count = count($metric_data);
+
+      // Set the transient with a staggered expiration time
+      set_transient($transient_key, $metric_count, HOUR_IN_SECONDS + rand(0, 1800)); // Staggered expiry between 1 to 1.5 hours
+    }
+
+    $metrics[$metricKey] = $metric_count;
+  }
+
+  $metrics['uniqueEmailsDelivered'] = $metrics['uniqueEmailSends'] - $metrics['emailSendSkips'] - $metrics['emailBounces'];
+
+  // Calculate rate metrics
+  $metrics['wizDeliveryRate'] = $metrics['uniqueEmailsDelivered'] > 0 ? ($metrics['uniqueEmailsDelivered'] / $metrics['uniqueEmailSends']) * 100 : 'N/A';
+  $metrics['wizOpenRate'] = $metrics['uniqueEmailOpens'] > 0 ? ($metrics['uniqueEmailOpens'] / $metrics['uniqueEmailSends']) * 100 : 'N/A';
+  $metrics['wizCtr'] = $metrics['uniqueEmailClicks'] > 0 ? ($metrics['uniqueEmailClicks'] / $metrics['uniqueEmailSends']) * 100 : 'N/A';
+  $metrics['wizCto'] = $metrics['uniqueEmailClicks'] > 0 && $metrics['uniqueEmailOpens'] > 0 ? ($metrics['uniqueEmailClicks'] / $metrics['uniqueEmailOpens']) * 100 : 'N/A';
+  $metrics['wizUnsubRate'] = $metrics['uniqueUnsubscribes'] > 0 && $metrics['uniqueEmailSends'] > 0 ? ($metrics['uniqueUnsubscribes'] / $metrics['uniqueEmailSends']) * 100 : 'N/A';
+
+  $metrics['uniquePurchases'] = count($allPurchases);
+  $metrics['revenue'] = array_sum(array_column($allPurchases, 'total'));
+
+  $metrics['gaRevenue'] = get_idwiz_revenue($startDate, $endDate, ['Triggered'], null, true);
+
+  $metrics['wizCvr'] = $metrics['uniquePurchases'] > 0 && $metrics['uniqueEmailsDelivered'] > 0 ? $metrics['uniquePurchases'] / $metrics['uniqueEmailsDelivered'] * 100 : 0;
+  $metrics['wizAov'] = $metrics['revenue'] > 0 && $metrics['uniquePurchases'] > 0 ? $metrics['revenue'] / $metrics['uniquePurchases'] : 0;
+
+  return $metrics;
+}
+
+
+function parse_idwiz_metric_rate($rate)
+{
+  return floatval(str_replace(['%', ',', '$'], '', $rate));
+}
+
+function formatRollupMetric($value, $format, $includeDifSign = false)
+{
+  $formattedValue = '';
+  $sign = ($value >= 0) ? '+' : '-';
+
+  switch ($format) {
+    case 'money':
+      $formattedValue = ($includeDifSign ? $sign : '') . '$' . number_format(abs($value), 0);
+      break;
+    case 'perc':
+      $formattedValue = ($includeDifSign ? $sign : '') . number_format(abs($value), 2) . '%';
+      break;
+    case 'num':
+      $formattedValue = ($includeDifSign ? $sign : '') . number_format(abs($value), 0);
+      break;
+    default:
+      $formattedValue = $value;
+  }
+
+  return $formattedValue;
+}
+
+function idwiz_generate_dynamic_rollup()
+{
+
+  if (isset($_POST['campaignIds'])) {
+    $startDate = isset($_POST['startdate']) ? $_POST['startDate'] : '2021-11-01';
+    $endDate = isset($_POST['endDate']) ? $_POST['endDate'] : date('Y-m-d');
+    $metricRates = get_idwiz_metric_rates($_POST['campaignIds'], $startDate, $endDate);
+
+    echo get_idwiz_rollup_row($metricRates); //include/exclude metrics here if needed with 2nd and 3rd argument
+  }
+  wp_die();
+}
+
+add_action('wp_ajax_idwiz_generate_dynamic_rollup', 'idwiz_generate_dynamic_rollup');
+
+
+function idemailwiz_update_user_attribution_setting()
+{
+
+  if (!check_ajax_referer('id-general', 'security', false)) {
+    error_log('Nonce check failed');
+    wp_send_json_error('Nonce check failed');
+    return;
+  }
+
+  $newValue = $_POST['value'];
+  $currentUser = wp_get_current_user();
+  $currentUserId = $currentUser->ID;
+  if ($newValue) {
+    $updateAttribution = update_user_meta($currentUserId, 'purchase_attribution_mode', $newValue);
+  }
+
+  wp_send_json_success($updateAttribution);
+  wp_die();
+}
+
+add_action('wp_ajax_idemailwiz_update_user_attribution_setting', 'idemailwiz_update_user_attribution_setting');
+
+
+
+
+function get_idwiz_rollup_row($metricRates, $include = [], $exclude = [])
+{
+  $defaultRollupFields = array(
+    'uniqueEmailSends' => array(
+      'label' => 'Sends',
+      'format' => 'num',
+      'value' => $metricRates['uniqueEmailSends']
+    ),
+    'uniqueEmailsDelivered' => array(
+      'label' => 'Delivered',
+      'format' => 'num',
+      'value' => $metricRates['uniqueEmailsDelivered']
+    ),
+    'wizDeliveryRate' => array(
+      'label' => 'Delivery',
+      'format' => 'perc',
+      'value' => $metricRates['wizDeliveryRate']
+    ),
+    'uniqueEmailOpens' => array(
+      'label' => 'Opens',
+      'format' => 'num',
+      'value' => $metricRates['uniqueEmailOpens']
+    ),
+    'wizOpenRate' => array(
+      'label' => 'Open Rate',
+      'format' => 'perc',
+      'value' => $metricRates['wizOpenRate']
+    ),
+    'uniqueEmailClicks' => array(
+      'label' => 'Clicks',
+      'format' => 'num',
+      'value' => $metricRates['uniqueEmailClicks']
+    ),
+    'wizCtr' => array(
+      'label' => 'CTR',
+      'format' => 'perc',
+      'value' => $metricRates['wizCtr']
+    ),
+    'wizCto' => array(
+      'label' => 'CTO',
+      'format' => 'perc',
+      'value' => $metricRates['wizCto']
+    ),
+    'uniquePurchases' => array(
+      'label' => 'Purchases',
+      'format' => 'num',
+      'value' => $metricRates['uniquePurchases']
+    ),
+    'revenue' => array(
+      'label' => 'Dir. Rev.',
+      'format' => 'money',
+      'value' => $metricRates['revenue']
+    ),
+    'gaRevenue' => array(
+      'label' => 'GA Rev.',
+      'format' => 'money',
+      'value' => $metricRates['gaRevenue']
+    ),
+    'wizAov' => array(
+      'label' => 'AOV',
+      'format' => 'money',
+      'value' => $metricRates['wizAov']
+    ),
+    'uniqueUnsubscribes' => array(
+      'label' => 'Unsubs',
+      'format' => 'num',
+      'value' => $metricRates['uniqueUnsubscribes']
+    ),
+    'wizUnsubRate' => array(
+      'label' => 'Unsub. Rate',
+      'format' => 'perc',
+      'value' => $metricRates['wizUnsubRate']
+    ),
+  );
+
+  $rollupFields = $defaultRollupFields;
+
+  if (!empty($include)) {
+    //include and exclude shouldn't be used together, so we let include take precedence
+    foreach ($defaultRollupFields as $rollupField) {
+      if (isset($rollupFields[$include])) {
+        $rollupFields[] = $rollupField;
+      }
+    }
+  } else if (!empty($exclude)) {
+    foreach ($defaultRollupFields as $rollupField) {
+      if (!isset($exclude[$rollupField])) {
+        $rollupFields[] = $rollupField;
+      }
+    }
+  }
+
+  $html = '';
+  $html .= '<div class="wiztable_view_metrics_div">';
+  foreach ($rollupFields as $metric) {
+    $formattedValue = formatRollupMetric($metric['value'], $metric['format']);
+    $html .= '<div class="metric-item">';
+    $html .= "<span class='metric-label'>{$metric['label']}</span>";
+    $html .= "<span class='metric-value'>{$formattedValue}</span>";
+    $html .= '</div>'; // End of metric-item
+  }
+  $html .= '</div>';
+
+  return $html;
+}
+
+
+
+
+
+
+
 
 
 
@@ -1825,10 +1764,205 @@ function get_campaigns_by_cto($campaigns)
 
 function wiz_truncate_string($string, $length)
 {
-    if (strlen($string) > $length) {
-        return substr($string, 0, $length - 3) . '...';
-    }
-    return $string;
+  if (strlen($string) > $length) {
+    return substr($string, 0, $length - 3) . '...';
+  }
+  return $string;
 }
+
+
+
+function get_second_purchases_within_week($purchaseMonth, $purchaseMonthDay, $purchaseWindowDays, $divisions)
+{
+  $all_orders = get_orders_grouped_by_customers();
+  $second_purchases = [];
+
+  $specified_date = new DateTime();
+  $specified_date->setDate($specified_date->format("Y"), $purchaseMonth, $purchaseMonthDay);
+  $week_start = (clone $specified_date)->modify('this week');
+  $purchase_window_end = (clone $week_start)->modify("+$purchaseWindowDays days");
+
+  foreach ($all_orders as $accountNumber => $orders) {
+    $qualifying_purchase_date = null;
+
+    foreach ($orders as $order) {
+      $purchase_date = new DateTime($order['purchaseDate']);
+
+      if (
+        !$qualifying_purchase_date &&
+        $purchase_date->format('z') >= $specified_date->format('z') &&
+        $purchase_date->format('z') <= $purchase_window_end->format('z') &&
+        in_array($order['division'], $divisions)
+      ) {
+        $qualifying_purchase_date = $purchase_date;
+        continue;
+      }
+
+      if ($qualifying_purchase_date) {
+        $end_of_qualifying_year = (clone $qualifying_purchase_date)->setDate($qualifying_purchase_date->format("Y"), 12, 31);
+        $days_until_end_of_year = $qualifying_purchase_date->diff($end_of_qualifying_year)->days;
+        $days_from_start_of_next_year = (new DateTime($order['purchaseDate']))->format('z');
+        $days_since_qualifying_order = $days_until_end_of_year + $days_from_start_of_next_year;
+
+        $is_leap_year = ($qualifying_purchase_date->format('L') == 1 && $qualifying_purchase_date->format('m') <= 2) ? true : false;
+        $days_limit = $is_leap_year ? 366 : 365;
+        $days_limit = $days_limit - (int) $purchaseWindowDays;
+
+        if ($days_since_qualifying_order <= $days_limit) {
+          $order['day_of_year'] = $days_since_qualifying_order;
+          $second_purchases[] = $order;
+        }
+      }
+    }
+  }
+
+  return $second_purchases;
+}
+//update_null_user_ids();
+function update_null_user_ids() {
+    global $wpdb;
+    $table_name = $wpdb->prefix.'idemailwiz_purchases'; // Use your actual table name
+
+    // Begin transaction
+    $wpdb->query('START TRANSACTION');
+
+    try {
+        // Update userId for rows with NULL userId using a self-join
+        $result = $wpdb->query("
+            UPDATE {$table_name} p1
+            INNER JOIN (
+                SELECT MIN(id) as id, accountNumber, userId
+                FROM {$table_name}
+                WHERE userId IS NOT NULL
+                GROUP BY accountNumber
+            ) p2 ON p1.accountNumber = p2.accountNumber
+            SET p1.userId = p2.userId
+            WHERE p1.userId IS NULL
+        ");
+
+        // Check for the result to determine if rows were affected
+        if ($result !== false) {
+            // Log how many rows were affected
+            error_log("User IDs updated for {$result} records with null userIds.");
+        } else {
+            // Log the error
+            error_log("Failed to update null userIds: no matching userIds found or an error occurred.");
+        }
+
+        // Commit transaction
+        $wpdb->query('COMMIT');
+    } catch (Exception $e) {
+        // Rollback the transaction on error
+        $wpdb->query('ROLLBACK');
+        // Log the error
+        error_log("Failed to update null userIds: " . $e->getMessage());
+        return false;
+    }
+
+    return true;
+}
+
+
+//update_missing_purchase_dates();
+function update_missing_purchase_dates() {
+    global $wpdb;
+    $table_name = $wpdb->prefix.'idemailwiz_purchases'; // Use your actual table name
+
+    // Begin transaction
+    $wpdb->query('START TRANSACTION');
+
+    try {
+        // Update purchaseDate based on createdAt for all records with a missing purchaseDate
+        $result = $wpdb->query("
+            UPDATE {$table_name}
+            SET purchaseDate = DATE(createdAt)
+            WHERE purchaseDate IS NULL OR purchaseDate = ''
+        ");
+
+        // Check for the result to determine if rows were affected
+        if ($result === false) {
+            // Log the error
+            error_log("Failed to update purchase dates: an error occurred.");
+        } else {
+            // Log how many rows were affected
+            error_log("Purchase dates updated for {$result} records with missing purchaseDate.");
+        }
+
+        // Commit transaction
+        $wpdb->query('COMMIT');
+    } catch (Exception $e) {
+        // Rollback the transaction on error
+        $wpdb->query('ROLLBACK');
+        // Log the error
+        error_log("Failed to update purchase dates: " . $e->getMessage());
+        return false;
+    }
+
+    return true;
+}
+//remove_zero_campaign_ids();
+function remove_zero_campaign_ids() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_purchases'; // Use your actual table name
+
+    // Attempt to update records with campaignId = 0
+    $result = $wpdb->query($wpdb->prepare("
+        UPDATE {$table_name}
+        SET campaignId = NULL
+        WHERE TRIM(campaignId) = %d
+    ", 0));
+
+    if ($result === false) {
+        // Log the error
+        error_log("Failed to update campaignIds: an error occurred.");
+        return false;
+    } else {
+        // Log how many rows were affected
+        error_log("CampaignIds set to NULL for {$result} records with campaignId = 0.");
+        return true;
+    }
+}
+
+
+
+
+//remove_apostrophes_from_column('idemailwiz_purchases', 'accountNumber');
+function remove_apostrophes_from_column($table_suffix, $column_name) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . $table_suffix; // Construct table name with WP prefix
+
+    // Begin transaction
+    $wpdb->query('START TRANSACTION');
+
+    try {
+        // Update the specified column by removing any single apostrophes
+        $result = $wpdb->query($wpdb->prepare("
+            UPDATE `{$table_name}`
+            SET `{$column_name}` = REPLACE(`{$column_name}`, '''', '')
+            WHERE `{$column_name}` LIKE '%%\'%%'
+        "));
+
+        // Check for the result to determine if rows were affected
+        if ($result === false) {
+            // Log the error
+            error_log("Failed to remove apostrophes from {$column_name} in {$table_name}: " . $wpdb->last_error);
+            $wpdb->query('ROLLBACK'); // Rollback the transaction on error
+            return false;
+        } else {
+            // Log how many rows were affected
+            error_log("Apostrophes removed from {$column_name} in {$result} rows of {$table_name}.");
+            $wpdb->query('COMMIT'); // Commit the transaction
+            return true;
+        }
+    } catch (Exception $e) {
+        // Rollback the transaction on error
+        $wpdb->query('ROLLBACK');
+        // Log the error
+        error_log("Exception occurred: " . $e->getMessage());
+        return false;
+    }
+}
+
+
 
 ?>
