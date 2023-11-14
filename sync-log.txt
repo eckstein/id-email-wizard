@@ -1,3 +1,32 @@
+==========[2023-11-14 14:53:29]==============================<br />
+Finished updating 0 triggered complaint records!<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:44:31]==============================<br />
+Requested 123 triggered campaign complaints from Iterable. 9 errors encountered.<br />
+Retrieving data...<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:39:22]==============================<br />
+Requesting complaints for 132 triggered campaigns (max 1 per second)...<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:39:22]==============================<br />
+Starting triggered complaints sync...<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:39:22]==============================<br />
+Finished updating 0 triggered sendSkip records!<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:35:58]==============================<br />
+Finished updating 4 triggered bounce records!<br />
+========================================<br />
+<br />
+==========[2023-11-14 14:33:22]==============================<br />
+Finished updating 0 triggered unSubscribe records!<br />
+========================================<br />
+<br />
 ==========[2023-11-14 14:21:05]==============================<br />
 Finished updating 71 triggered open records!<br />
 ========================================<br />

@@ -79,9 +79,6 @@ jQuery(document).ready(function ($) {
 				if (response.success) {
 					let options = response.data.options;
 
-					// Dynamically get the yAxisID from the datasets
-					let yAxisIDs = response.data.data.datasets.map(dataset => dataset.yAxisID);
-
 					// Determine the format function for each yAxisID
 					let formatFunctions = {};
 
