@@ -194,9 +194,9 @@ $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
         <?php echo $dtHeight; ?>
         !important;
     }
-    .responsive-text.add-padding {
-      padding-left: 40px!important;
-      padding-right: 40px!important;
+    .responsive-text {
+      padding-left: 40px;
+      padding-right: 40px;
     }
 
     .id-button {
