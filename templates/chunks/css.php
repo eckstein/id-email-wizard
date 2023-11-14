@@ -250,8 +250,7 @@ $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
       
     }
     .responsive-text.add-padding {
-      padding-left: 0!important;
-      padding-right: 0!important;
+      padding: 20px!important;
     }
 
     .center-on-mobile {
@@ -292,6 +291,10 @@ $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
       width: 100% !important;
       padding-left: 15px !important;
       padding-right: 15px !important;
+    }
+    .responsive-text.add-padding td.container-padding {
+      padding-left: 0 !important;
+      padding-right: 0 !important;
     }
 
     td.menu-container {
