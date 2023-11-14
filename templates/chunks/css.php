@@ -195,7 +195,8 @@ $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
         !important;
     }
     .responsive-text.add-padding {
-      padding: 40px;
+      padding-left: 40px!important;
+      padding-right: 40px!important;
     }
 
     .id-button {
