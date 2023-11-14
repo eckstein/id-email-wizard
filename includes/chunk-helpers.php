@@ -61,7 +61,7 @@ if (in_array('bottom',$spacing)) {
 $btmSpacing = true;
 }
 if ($padText) {
-	$textPadding = 'padding: 40px;';
+	$textPadding = 'add-padding';
 } else {
 	$textPadding = '';
 }
@@ -82,7 +82,7 @@ $colText .= '
 <!-- Text Start -->
 <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" align="center" style="width:100%;max-width:100%;">
 <tr>
-    <td class="text responsive-text '.$align.'-text '.$centerMobile.'" valign="middle" align="'.$align.'" style="'.$textPadding.' font-family:Poppins, sans-serif;color:'.$fontColor.' !important;text-decoration:none;">
+    <td class="text responsive-text '.$textPadding.' '.$align.'-text '.$centerMobile.'" valign="middle" align="'.$align.'" style="'.$textPadding.' font-family:Poppins, sans-serif;color:'.$fontColor.' !important;text-decoration:none;">
     '.idwiz_pReplace(wpautop($textContent)).'
     </td>
 </tr>

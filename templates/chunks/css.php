@@ -194,6 +194,9 @@ $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
         <?php echo $dtHeight; ?>
         !important;
     }
+    .responsive-text.add-padding {
+      padding: 40px;
+    }
 
     .id-button {
       padding: 14px 22px;
@@ -244,8 +247,10 @@ $templateBgColor = $templateStyles['template_bg_color'] ?? '#F4F4F4';
       line-height:
         <?php echo $mobHeight; ?>
         !important;
-      padding-left: 10px;
-      padding-right: 10px;
+      
+    }
+    .responsive-text.add-padding {
+      padding: 20px;
     }
 
     .center-on-mobile {
