@@ -38,7 +38,7 @@ $hideDesktop = 'hide-desktop';
             <table role="presentation" border="0" width="800" align="center" cellpadding="0" cellspacing="0" class="row" style="width: 800px; max-width: 800px;">
               <tr>
                 <td class="bg-color" align="center" valign="top" bgcolor="<?php echo $bgColor; ?>">
-                  <table role="presentation" width="800" border="0" cellpadding="0" cellspacing="0" align="center" class="row" style="padding-left: 40px; padding-right: 20px; width: 800px; max-width: 800px;">
+                  <table role="presentation" width="800" border="0" cellpadding="0" cellspacing="0" align="center" class="row" style="width: 800px; max-width: 800px;">
                     <tr>
                       <td align="center" valign="top" class="container-padding">
                         <table role="presentation" border="0" width="100%" cellpadding="0" cellspacing="0" align="center" style="width: 100%; max-width: 100%;">
