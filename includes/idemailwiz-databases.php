@@ -618,13 +618,16 @@ function execute_idwiz_query($sql, $batch_size = 1000)
         }
 
         if ($current_batch) {
-            $results = array_merge($results, $current_batch);
+            foreach ($current_batch as $row) {
+                $results[] = $row; // Push each row onto the results array
+            }
             $offset += $batch_size;
         }
     } while (count($current_batch) == $batch_size);
 
     return $results;
 }
+
 
 
 function get_idwiz_campaigns($args = [])
