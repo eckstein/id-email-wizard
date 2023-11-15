@@ -169,7 +169,7 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 
     // If this is a purchase sync, we do some database cleanup
     if ($table_name == $wpdb->prefix . 'idemailwiz_purchases') {
-       $items = idwiz_cleanup_purchase_records($items);
+        $items = idwiz_cleanup_purchase_records($items);
     }
 
     foreach ($items as $key => $item) {
@@ -179,7 +179,7 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
             $metricName = $metricCampaign['name'];
         }
 
-        
+
 
         // If this is a template record, we check if there's a wiz builder template with this template ID set as the sync-to
         if ($table_name == $wpdb->prefix . 'idemailwiz_templates') {
@@ -194,7 +194,7 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 
             $builderTemplates = get_posts($args);
 
-            if (!empty($builderTemplates)) {
+            if ($wizDbTemplate && !empty($builderTemplates)) {
 
                 $sql = $wpdb->prepare(
                     "UPDATE `{$wpdb->prefix}idemailwiz_templates` SET clientTemplateId = %s WHERE templateId = %d",
@@ -307,7 +307,8 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 }
 
 
-function idwiz_cleanup_purchase_records($items) {
+function idwiz_cleanup_purchase_records($items)
+{
     global $wpdb;
     $table_name = $wpdb->prefix . 'idemailwiz_purchases';
 
@@ -409,6 +410,8 @@ function idemailwiz_fetch_templates($campaignIds = null)
                     $allTemplates[] = $template;
                 }
             }
+
+            usleep(10000);
         } catch (Exception $e) {
             wiz_log("Error during initial API call: " . $e->getMessage());
         }
@@ -440,6 +443,8 @@ function idemailwiz_fetch_templates($campaignIds = null)
 
         // Replace the original templates with the fetched ones
         $allTemplates = $fetchedTemplates;
+
+        usleep(10000);
     } catch (Exception $e) {
         wiz_log("Error during multi cURL request: " . $e->getMessage());
     }
@@ -732,7 +737,7 @@ function idemailwiz_fetch_purchases($campaignIds = null)
     }
 
     // Define the start and end date time for the API call
-    $startDateTime = date('Y-m-d', strtotime('-10 days'));
+    $startDateTime = date('Y-m-d', strtotime('-3 days'));
     $endDateTime = date('Y-m-d', strtotime('+1 day')); // End date is always today
 
     // Add the start and end datetime to the query parameters
@@ -1165,6 +1170,9 @@ function log_wiz_api_results($results, $type)
 // Also creates and logs readable sync responses from response arrays
 function idemailwiz_sync_non_triggered_metrics($campaignIds = null)
 {
+    // Set transient to indicate the sync is running
+    set_transient('idemailwiz_sync_non_triggered_running', true, 10 * MINUTE_IN_SECONDS);
+
     $syncArgs = [];
     $response = [];
 
@@ -1188,6 +1196,9 @@ function idemailwiz_sync_non_triggered_metrics($campaignIds = null)
         }
         $response[$db] = $result;
     }
+
+    // Delete transient to indicate the sync is done
+    delete_transient('idemailwiz_sync_non_triggered_running');
 
     return $response;
 }
@@ -1394,96 +1405,59 @@ function idemailwiz_calculate_metrics($metrics)
     return $metrics;
 }
 
-
-// Schedule the non-triggered sync
-if (!wp_next_scheduled('idemailwiz_hourly_sync')) {
-    wp_schedule_event(time(), 'hourly', 'idemailwiz_hourly_sync');
-}
-
-// Schedule the twice daily sync
+// Schedule the twice daily sync of GA data
 if (!wp_next_scheduled('idemailwiz_twice_daily_sync')) {
     wp_schedule_event(time(), 'twicedaily', 'idemailwiz_twice_daily_sync');
 }
+add_action('idemailwiz_twice_daily_sync', 'sync_ga_campaign_revenue_data');
 
-// Hooks
-add_action('idemailwiz_hourly_sync', 'idemailwiz_hourly_sync_and_schedule_triggered');
 
-function idemailwiz_hourly_sync_and_schedule_triggered()
+// Define the queue of sync tasks
+$sync_queue = ['send', 'open', 'click', 'unsubscribe', 'bounce', 'sendSkip', 'complaint'];
+
+// Schedule the initial sync event if not already scheduled
+if (!wp_next_scheduled('idemailwiz_sync_sequence')) {
+    wp_schedule_event(time(), 'hourly', 'idemailwiz_sync_sequence');
+}
+
+// The single action that manages the sync sequence
+add_action('idemailwiz_sync_sequence', 'idemailwiz_process_sync_sequence');
+
+function idemailwiz_process_sync_sequence()
 {
+    global $sync_queue;
     $wizSettings = get_option('idemailwiz_settings');
-    $syncToggle = $wizSettings['iterable_sync_toggle'];
 
-    if ($syncToggle == 'on') {
+    if (isset($wizSettings['iterable_sync_toggle']) && $wizSettings['iterable_sync_toggle'] === 'on') {
         // Perform the non-triggered sync
         idemailwiz_sync_non_triggered_metrics();
 
-        // Schedule the triggered sync for 'send'
-        if (!wp_next_scheduled('idemailwiz_hourly_triggered_sync_send')) {
-            wp_schedule_single_event(time(), 'idemailwiz_hourly_triggered_sync_send');
-        }
+        foreach ($sync_queue as $sync_action) {
+            idemailwiz_sync_triggered_metrics($sync_action);
 
-        // Schedule the triggered sync for 'open'
-        if (!wp_next_scheduled('idemailwiz_hourly_triggered_sync_open')) {
-           wp_schedule_single_event(time() + 120, 'idemailwiz_hourly_triggered_sync_open');
-        }
-
-        // Schedule the triggered sync for 'click'
-        if (!wp_next_scheduled('idemailwiz_hourly_triggered_sync_click')) {
-           wp_schedule_single_event(time() + 240, 'idemailwiz_hourly_triggered_sync_click');
-        }
-
-        // Schedule the triggered sync for 'unSubscribe'
-        if (!wp_next_scheduled('idemailwiz_hourly_triggered_sync_unSubscribe')) {
-            wp_schedule_single_event(time() + 360, 'idemailwiz_hourly_triggered_sync_unSubscribe');
-        }
-
-        // Schedule the triggered sync for 'bounce'
-        if (!wp_next_scheduled('idemailwiz_hourly_triggered_sync_bounce')) {
-            wp_schedule_single_event(time() + 480, 'idemailwiz_hourly_triggered_sync_bounce');
-        }
-
-        // Schedule the triggered sync for 'skip'
-        if (!wp_next_scheduled('idemailwiz_hourly_triggered_sync_sendSkip')) {
-            wp_schedule_single_event(time() + 600, 'idemailwiz_hourly_triggered_sync_sendSkip');
-        }
-
-        // Schedule the triggered sync for 'complaint'
-        if (!wp_next_scheduled('idemailwiz_hourly_triggered_sync_complaint')) {
-            wp_schedule_single_event(time() + 720, 'idemailwiz_hourly_triggered_sync_complaint');
+            // Assume each sync function sets a transient when it starts and deletes it when done
+            while (get_transient("idemailwiz_sync_{$sync_action}_running")) {
+                sleep(10); // Wait before checking again
+            }
         }
     } else {
         error_log('Cron sync was initiated but sync is disabled');
     }
 }
 
-add_action('idemailwiz_hourly_triggered_sync_send', function () {
-    idemailwiz_sync_triggered_metrics('send');
-});
-add_action('idemailwiz_hourly_triggered_sync_open', function () {
-    idemailwiz_sync_triggered_metrics('open');
-});
-add_action('idemailwiz_hourly_triggered_sync_click', function () {
-    idemailwiz_sync_triggered_metrics('click');
-});
-add_action('idemailwiz_hourly_triggered_sync_unSubscribe', function () {
-    idemailwiz_sync_triggered_metrics('unSubscribe');
-});
-add_action('idemailwiz_hourly_triggered_sync_bounce', function () {
-    idemailwiz_sync_triggered_metrics('bounce');
-});
-add_action('idemailwiz_hourly_triggered_sync_sendSkip', function () {
-    idemailwiz_sync_triggered_metrics('sendSkip');
-});
-add_action('idemailwiz_hourly_triggered_sync_complaint', function () {
-    idemailwiz_sync_triggered_metrics('complaint');
-});
-
-add_action('idemailwiz_twice_daily_sync', 'sync_ga_campaign_revenue_data');
-
 
 
 function idemailwiz_sync_triggered_metrics($metricType)
 {
+    // Check if a sync is already running, and if so, exit the function
+    if (get_transient("idemailwiz_sync_{$metricType}_running")) {
+        //wiz_log("Sync for {$metricType} is already running. Exiting...");
+        return;
+    }
+    
+    // Set transient to indicate the sync is running
+    set_transient("idemailwiz_sync_{$metricType}_running", true, 20 * MINUTE_IN_SECONDS);
+
     wiz_log("Starting triggered {$metricType}s sync...");
     global $wpdb;
 
@@ -1512,7 +1486,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
         }
 
         //$exportFetchStart = new DateTimeImmutable('November 1, 2021');
-        $exportFetchStart = new DateTimeImmutable('-7 days');
+        $exportFetchStart = new DateTimeImmutable('-3 days');
         //$exportFetchEnd = new DateTimeImmutable('May 31, 2022');
         $exportStartData = [
             "outputFormat" => "application/x-json-stream",
@@ -1554,7 +1528,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
             if (in_array($apiResponse['response']['jobState'], ['completed', 'failed'])) {
                 break;
             }
-            
+
         }
         if ($apiResponse['response']['jobState'] == "completed") {
             // Loop through each file URL
@@ -1603,6 +1577,10 @@ function idemailwiz_sync_triggered_metrics($metricType)
     }
 
     wiz_log("Finished updating $cntRecords triggered $metricType records!");
+
+    // Delete transient to indicate the sync is done
+    delete_transient("idemailwiz_sync_{$metricType}_running");
+
     return true;
 
 }
