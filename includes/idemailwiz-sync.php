@@ -788,21 +788,22 @@ function idemailwiz_fetch_purchases($campaignIds = null)
 
         // Iterate over each line of the file
         while (($values = fgetcsv($handle)) !== FALSE) {
-            if (count($processedHeaders) == count($values)) {
-                $purchaseData = array_combine($processedHeaders, $values);
+            // Use an associative array initialized to the processed headers
+            $purchaseData = array_fill_keys($processedHeaders, null);
 
-                // Filter and clean up values
-                $filteredPurchaseData = [];
-                foreach ($purchaseData as $key => $value) {
-                    if (!in_array($key, $processedOmitFields)) {
-                        $cleanValue = str_replace(['[', ']', '"'], '', $value);
-                        $filteredPurchaseData[$key] = $cleanValue;
-                    }
+            // Iterate over the values using index
+            foreach ($values as $index => $value) {
+                $header = $processedHeaders[$index];
+                if (!in_array($header, $processedOmitFields)) {
+                    $cleanValue = str_replace(['[', ']', '"'], '', $value);
+                    $purchaseData[$header] = $cleanValue;
                 }
-
-                // Add the filtered data to the purchases array
-                $allPurchases[] = $filteredPurchaseData;
             }
+
+            // Add the filtered data to the purchases array, omitting null values
+            $allPurchases[] = array_filter($purchaseData, function ($value) {
+                return $value !== null;
+            });
         }
 
         // Close the file handle

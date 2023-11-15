@@ -1,5 +1,0 @@
-==========[2023-11-15 13:54:39]==============================<br />
-Campaigns sync results: <br />
-The campaigns sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
