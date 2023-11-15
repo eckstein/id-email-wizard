@@ -761,60 +761,53 @@ function idemailwiz_fetch_purchases($campaignIds = null)
     }
 
 
-    // Split the CSV data into lines
-    $lines = explode("\n", trim($response['response']));
-
-    // Parse the header line into headers
-    $headers = str_getcsv(array_shift($lines));
-
-    // Prepare the headers by replacing periods with underscores and making them lowercase
-    // Also, handle the '_id' field specially to convert it to 'id'
-    $processedHeaders = array_map(function ($header) {
-        // Remove existing underscores (to handle the 'id' field)
-        $headerWithoutUnderscores = str_replace('_', '', $header);
-        // Replace periods with new underscores and make lowercase
-        return strtolower(str_replace('.', '_', $headerWithoutUnderscores));
-    }, $headers);
-
     // Prepare the omit fields to match the processed headers format
-    $omitFields[] = 'shoppingCartItems';
+    $omitFields[] = 'shoppingCartItems'; //Add the main shoppingCartItems column to be omitted.
     $processedOmitFields = array_map(function ($field) {
+        $fieldWithoutPeriods = str_replace('.', '_', $field);
         // Special handling for '_id' field to be 'id'
-        if ($field === '_id') {
-            return 'id';
-        }
-        return strtolower(str_replace('.', '_', $field));
+        return strtolower($fieldWithoutPeriods === '_id' ? 'id' : $fieldWithoutPeriods);
     }, $omitFields);
 
     $allPurchases = []; // Initialize $allPurchases as an array
 
-    // Iterate over the lines of data
-    foreach ($lines as $line) {
-        if (empty($line))
-            continue; // Skip empty lines
+    // Open a memory-based stream for reading and writing
+    if (($handle = fopen("php://temp", "r+")) !== FALSE) {
+        // Write the CSV content to the stream and rewind the pointer
+        fwrite($handle, $response['response']);
+        rewind($handle);
 
-        // Parse the line into values
-        $values = str_getcsv($line);
+        // Parse the header line into headers
+        $headers = fgetcsv($handle);
 
-        // Combine headers and values into an associative array
-        if (count($processedHeaders) == count($values)) {
-            $purchaseData = array_combine($processedHeaders, $values);
-        }
+        // Prepare the headers
+        $processedHeaders = array_map(function ($header) {
+            $headerWithoutUnderscores = str_replace('_', '', $header);
+            return strtolower(str_replace('.', '_', $headerWithoutUnderscores));
+        }, $headers);
 
-        // Filter out the values with omitted headers and clean up values
-        $filteredPurchaseData = [];
-        foreach ($purchaseData as $key => $value) {
-            if (!in_array($key, $processedOmitFields)) {
-                // Remove square brackets and quotes
-                $cleanValue = str_replace(['[', ']', '"',], '', $value);
-                $filteredPurchaseData[$key] = $cleanValue;
+        // Iterate over each line of the file
+        while (($values = fgetcsv($handle)) !== FALSE) {
+            if (count($processedHeaders) == count($values)) {
+                $purchaseData = array_combine($processedHeaders, $values);
+
+                // Filter and clean up values
+                $filteredPurchaseData = [];
+                foreach ($purchaseData as $key => $value) {
+                    if (!in_array($key, $processedOmitFields)) {
+                        $cleanValue = str_replace(['[', ']', '"'], '', $value);
+                        $filteredPurchaseData[$key] = $cleanValue;
+                    }
+                }
+
+                // Add the filtered data to the purchases array
+                $allPurchases[] = $filteredPurchaseData;
             }
         }
 
-        // Add the filtered data to the purchases array
-        $allPurchases[] = $filteredPurchaseData;
+        // Close the file handle
+        fclose($handle);
     }
-
 
     // Return the data array
     return $allPurchases;
@@ -1431,6 +1424,10 @@ function idemailwiz_process_sync_sequence()
     if (isset($wizSettings['iterable_sync_toggle']) && $wizSettings['iterable_sync_toggle'] === 'on') {
         // Perform the non-triggered sync
         idemailwiz_sync_non_triggered_metrics();
+    } else {
+        error_log('Blast sync cron was initiated but sync toggle is disabled');
+    }
+    if (isset($wizSettings['iterable_triggered_sync_toggle']) && $wizSettings['iterable_triggered_sync_toggle'] === 'on') {
 
         foreach ($sync_queue as $sync_action) {
             idemailwiz_sync_triggered_metrics($sync_action);
@@ -1441,7 +1438,7 @@ function idemailwiz_process_sync_sequence()
             }
         }
     } else {
-        error_log('Cron sync was initiated but sync is disabled');
+        error_log('Triggered sync cron was initiated but sync toggle is disabled');
     }
 }
 
@@ -1454,7 +1451,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
         //wiz_log("Sync for {$metricType} is already running. Exiting...");
         return;
     }
-    
+
     // Set transient to indicate the sync is running
     set_transient("idemailwiz_sync_{$metricType}_running", true, 20 * MINUTE_IN_SECONDS);
 

@@ -36,8 +36,13 @@ function idemailwiz_register_settings() {
     add_settings_field('reports_page', 'Reports Page', 'idemailwiz_render_dropdown_pages_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'reports_page'));
     add_settings_field('wizbuilder_field_group', 'WizBuilder ACF Field Group ID', 'idemailwiz_render_text_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'wizbuilder_field_group'));
     
-    add_settings_field('iterable_sync_toggle', 'Iterable Sync On/Off', 'idemailwiz_render_radio_field', 'idemailwiz_settings', 'idemailwiz_main_section', array(
+    add_settings_field('iterable_sync_toggle', 'Blast Sync On/Off', 'idemailwiz_render_radio_field', 'idemailwiz_settings', 'idemailwiz_main_section', array(
         'option_name' => 'iterable_sync_toggle',
+        'options' => array('on' => 'On', 'off' => 'Off') 
+    ));
+
+    add_settings_field('iterable_triggered_sync_toggle', 'Triggered Sync On/Off', 'idemailwiz_render_radio_field', 'idemailwiz_settings', 'idemailwiz_main_section', array(
+        'option_name' => 'iterable_triggered_sync_toggle',
         'options' => array('on' => 'On', 'off' => 'Off') 
     ));
 

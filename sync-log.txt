@@ -1,18 +1,5 @@
-==========[2023-11-15 11:31:59]==============================<br />
+==========[2023-11-15 13:54:39]==============================<br />
 Campaigns sync results: <br />
-Successful insert of 3 records.<br />
-Successful update of 13 records.<br />
-========================================<br />
-<br />
-==========[2023-11-15 11:31:07]==============================<br />
-Initializing database sync. Please wait a few moments...<br />
-========================================<br />
-<br />
-==========[2023-11-15 06:31:35]==============================<br />
-GA campaign revenue data synced successfully. 2894 updates and 9 inserts performed<br />
-========================================<br />
-<br />
-==========[2023-11-15 06:31:29]==============================<br />
-Starting GA campaign revenue data sync.<br />
+The campaigns sync is up to date! No inserts or updates are needed.<br />
 ========================================<br />
 <br />
