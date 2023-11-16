@@ -63,7 +63,7 @@ jQuery(document).ready(function ($) {
 		var existingTemplateMessage = 'Enter an existing template ID or leave blank to create a new base template.';
     
 		if (existingTemplateId) {
-			if (data.alreadySent == true) {
+			if (data.alreadySent === true) {
 				existingTemplateMessage = `The campaign attached to template <a target="_blank" href="https://app.iterable.com/templates/editor?templateId=${existingTemplateId}">${existingTemplateId}</a> has already been sent! Click OK below to create a new template in Iterable.`;
 				existingTemplateId = '';
 			} else {
