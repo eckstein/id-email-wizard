@@ -58,20 +58,23 @@ function idemailwiz_get_template_data_for_iterable()
 		// Iterable template ID
 		$templateId = $_POST['template_id'] ?? false;
 
-		// Get wiz campaign based on templateId
-		$wizTemplate = get_idwiz_template($templateId);
-		$wizCampaign = get_idwiz_campaign($wizTemplate['campaignId']);
+		if ($templateId) {
+			// Get wiz campaign based on templateId
+			$wizTemplate = get_idwiz_template($templateId);
+			$wizCampaign = get_idwiz_campaign($wizTemplate['campaignId']);
 
-		error_log(print_r($wizCampaign, true));
+			error_log(print_r($wizCampaign, true));
 
-		if ($wizCampaign && $wizCampaign['campaignState'] === 'Finished') {
-			$response['alreadySent'] = true;
+			if ($wizCampaign && $wizCampaign['campaignState'] === 'Finished') {
+				$response['alreadySent'] = true;
+			}
 		}
 
 	} else {
 		$response = array(
 			'status' => 'error',
 			'message' => 'Required fields are missing: ' . implode(',', $missing),
+			'alreadySent' => false
 		);
 	}
 
