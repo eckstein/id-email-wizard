@@ -46,12 +46,13 @@ function idemailwiz_get_template_data_for_iterable()
 
 		}
 	}
+
+	$response = ['alreadySent' => false];
 	if (empty($missing)) {
 		$templateFields = array_merge($reqTemplateFields, $templateFields);
 		$response = array(
 			'status' => 'success',
 			'fields' => $templateFields,
-			'alreadySent' => false,
 		);
 
 		// Iterable template ID
