@@ -1,3 +1,34 @@
+==========[2023-11-16 11:25:23]==============================<br />
+Experiments sync results: <br />
+<br />
+Successful update of 4 records.<br />
+========================================<br />
+<br />
+==========[2023-11-16 11:23:40]==============================<br />
+Purchases sync results: <br />
+Successful insert of 8 records.1 errors occurred:<br />
+Error (insert): Failed to perform insert on '' (ID: 8835283728d041f683715d02bc8e0364). Database Error: Duplicate entry '8835283728d041f683715d02bc8e0364' for key 'PRIMARY'.<br />
+<br />
+========================================<br />
+<br />
+==========[2023-11-16 11:23:27]==============================<br />
+Metrics sync results: <br />
+Successful insert of 1 records.<br />
+Successful update of 68 records.<br />
+========================================<br />
+<br />
+==========[2023-11-16 11:22:59]==============================<br />
+Templates sync results: <br />
+<br />
+Successful update of 1 records.<br />
+========================================<br />
+<br />
+==========[2023-11-16 11:22:28]==============================<br />
+Campaigns sync results: <br />
+Successful insert of 1 records.<br />
+<br />
+========================================<br />
+<br />
 ==========[2023-11-16 08:18:46]==============================<br />
 Experiments sync results: <br />
 <br />

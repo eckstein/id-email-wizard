@@ -24,13 +24,16 @@ $itTemplateId = get_post_meta(get_the_ID(), 'itTemplateId', true) ?? '';
 				<strong>WizTemplate</strong>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
 				<span class="iDbreadcrumb">Located in:
 					<?php echo display_template_folder_hierarchy(get_the_ID()); ?>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
-					<?php if ($itTemplateId) {
+
+					<?php 
+					$campaignSent = '';
+					if ($itTemplateId) {
 						$lastIterableSync = get_post_meta(get_the_ID(), 'lastIterableSync', true) ?? '<em>an unknown date and time.</em>';
 						echo 'Last synced to Iterable template <a target="_blank" href="https://app.iterable.com/templates/editor?templateId=' . $itTemplateId . '">' . $itTemplateId . '</a> on ' . $lastIterableSync;
 						// check for wiz template to see if the campaign has been sent
 						$wizTemplate = get_idwiz_template((int) $itTemplateId);
 						//print_r($wizTemplate);
-						$campaignSent = false;
+						
 						if ($wizTemplate) {
 							$wizCampaign = get_idwiz_campaigns(array('templateId' => $itTemplateId));
 							if ($wizCampaign && $wizCampaign['campaignState'] == 'Finished') {
