@@ -54,14 +54,14 @@ function idemailwiz_get_template_data_for_iterable() {
 		// Iterable template ID
 		$templateId = $_POST['template_id'] ?? false;
 
-		
-
 		// Get wiz campaign based on templateId
 		$wizTemplate = get_idwiz_template(array('templateId'=>$templateId));
-		// There will only be a matching campaign if the campaign has been sent
-		if ($wizTemplate) {
-			$response['alreadySent'] = true;
-		}
+
+		$wizCampaign = get_idwiz_campaign($wizTemplate['campaignId']);
+			if ($wizCampaign && $wizCampaign['campaignState'] == 'Finished') {
+				$response['alreadySent'] = true;
+		} 
+
 	} else {	
 		$response = array(
 			'status' => 'error',

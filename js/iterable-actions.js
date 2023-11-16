@@ -50,6 +50,7 @@ jQuery(document).ready(function ($) {
 	// Success handling function for getting template data
 	function handleTemplateDataSuccess(data) {
 		var existingTemplateId = $('#templateUI').data('iterableid');
+		
 		const fieldsToList = Object.entries(data.fields)
 			.filter(([key]) => key !== "postId")
 			.map(([key, value]) => {

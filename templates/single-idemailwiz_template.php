@@ -30,9 +30,11 @@ $itTemplateId = get_post_meta(get_the_ID(), 'itTemplateId', true) ?? '';
 						// check for wiz template to see if the campaign has been sent
 						$wizTemplate = get_idwiz_template((int) $itTemplateId);
 						//print_r($wizTemplate);
+						$campaignSent = false;
 						if ($wizTemplate) {
 							$wizCampaign = get_idwiz_campaigns(array('templateId' => $itTemplateId));
 							if ($wizCampaign && $wizCampaign['campaignState'] == 'Finished') {
+								$campaignSent = true;
 							echo '<br/><br/><strong><em>The <a href="'.get_bloginfo('url').'/metrics/campaign/?id=' . $wizCampaign[0]['id'] . '">campaign</a> for this template was sent on ' . date('m/d/Y', $wizCampaign[0]['startAt'] / 1000) . '.</em></strong>';
 							echo '<br/><em>Templates for sent campaigns can no longer be synced. You can either duplicate this template or sync it to another, unsent template in Iterable.</em>';
 							}
@@ -57,7 +59,7 @@ $itTemplateId = get_post_meta(get_the_ID(), 'itTemplateId', true) ?? '';
 </header>
 
 <div id="templateUI" class="entry-content two-col-wrap" data-postid="<?php echo get_the_ID(); ?>"
-	data-iterableid="<?php echo $itTemplateId; ?>" itemprop="mainContentOfPage">
+	data-iterableid="<?php echo $itTemplateId; ?>" data-campaignsent="<?php echo $campaignSent; ?>" itemprop="mainContentOfPage">
 	<div class="left" id="builder">
 
 
