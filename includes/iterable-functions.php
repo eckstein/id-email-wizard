@@ -62,6 +62,8 @@ function idemailwiz_get_template_data_for_iterable()
 		$wizTemplate = get_idwiz_template($templateId);
 		$wizCampaign = get_idwiz_campaign($wizTemplate['campaignId']);
 
+		error_log(print_r($wizCampaign, true));
+
 		if ($wizCampaign && $wizCampaign['campaignState'] === 'Finished') {
 			$response['alreadySent'] = true;
 		}
