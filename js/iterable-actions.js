@@ -136,7 +136,7 @@ jQuery(document).ready(function ($) {
 		
 		return new Promise((resolve, reject) => {
 			// Check early if we're trying to update an already sent template and bail if so
-			if (existingTemplateId && alreadySent) {
+			if (existingTemplateId && alreadySent === true) {
 				reject("You cannot update an Iterable template attached to an already sent campaign!");
 				return;
 			}
