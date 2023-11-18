@@ -107,6 +107,8 @@ require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-shortcodes.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-databases.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-initiatives.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-sync.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/idwiz-wiz-log.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/idwiz-curl.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-data-tables.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-charts.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-wysiwyg.php');

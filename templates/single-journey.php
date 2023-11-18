@@ -13,7 +13,7 @@
         $startDateDT = new DateTime($startDate);
         $endDateDT = new DateTime($endDate);
 
-        $journeySends = get_idemailwiz_triggered_data('idemailwiz_triggered_sends', ['campaignIds' => array_column($journeyCampaigns, 'id')], 100000);
+        $journeySends = get_idemailwiz_triggered_data('idemailwiz_triggered_sends', ['campaignIds' => array_column($journeyCampaigns, 'id')], 50000);
         $journeySendAts = array_column($journeySends, 'startAt');
 
         $defFirstJourneySend = min($journeySendAts);

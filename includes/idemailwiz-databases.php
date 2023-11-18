@@ -58,6 +58,7 @@ function idemailwiz_create_databases()
     $triggered_sends_table_name = $wpdb->prefix . 'idemailwiz_triggered_sends';
     $triggered_sends_sql = "CREATE TABLE IF NOT EXISTS $triggered_sends_table_name (
         messageId VARCHAR(32),
+        userId VARCHAR(255),
         campaignId INT,
         templateId INT,
         startAt BIGINT,
@@ -70,6 +71,7 @@ function idemailwiz_create_databases()
     $triggered_opens_table_name = $wpdb->prefix . 'idemailwiz_triggered_opens';
     $triggered_opens_sql = "CREATE TABLE IF NOT EXISTS $triggered_opens_table_name (
         messageId VARCHAR(32),
+        userId VARCHAR(255),
         campaignId INT,
         templateId INT,
         startAt BIGINT,
@@ -81,6 +83,7 @@ function idemailwiz_create_databases()
     $triggered_clicks_table_name = $wpdb->prefix . 'idemailwiz_triggered_clicks';
     $triggered_clicks_sql = "CREATE TABLE IF NOT EXISTS $triggered_clicks_table_name (
         messageId VARCHAR(32),
+        userId VARCHAR(255),
         campaignId INT,
         templateId INT,
         startAt BIGINT,
@@ -92,6 +95,7 @@ function idemailwiz_create_databases()
     $triggered_unsubs_table_name = $wpdb->prefix . 'idemailwiz_triggered_unsubscribes';
     $triggered_unsubs_sql = "CREATE TABLE IF NOT EXISTS $triggered_unsubs_table_name (
         messageId VARCHAR(32),
+        userId VARCHAR(255),
         campaignId INT,
         templateId INT,
         startAt BIGINT,
@@ -103,6 +107,7 @@ function idemailwiz_create_databases()
     $triggered_complaints_table_name = $wpdb->prefix . 'idemailwiz_triggered_complaints';
     $triggered_complaints_sql = "CREATE TABLE IF NOT EXISTS $triggered_complaints_table_name (
         messageId VARCHAR(32),
+        userId VARCHAR(255),
         campaignId INT,
         templateId INT,
         startAt BIGINT,
@@ -114,6 +119,7 @@ function idemailwiz_create_databases()
     $triggered_bounces_table_name = $wpdb->prefix . 'idemailwiz_triggered_bounces';
     $triggered_bounces_sql = "CREATE TABLE IF NOT EXISTS $triggered_bounces_table_name (
         messageId VARCHAR(32),
+        userId VARCHAR(255),
         campaignId INT,
         templateId INT,
         startAt BIGINT,
@@ -125,6 +131,7 @@ function idemailwiz_create_databases()
     $triggered_skips_table_name = $wpdb->prefix . 'idemailwiz_triggered_sendskips';
     $triggered_skips_sql = "CREATE TABLE IF NOT EXISTS $triggered_skips_table_name (
         messageId VARCHAR(32),
+        userId VARCHAR(255),
         campaignId INT,
         templateId INT,
         startAt BIGINT,
@@ -713,7 +720,7 @@ function idwiz_is_serialized($value)
 }
 
 
-function get_idemailwiz_triggered_data($database, $args = [], $batchSize = 20000, $offset = 0)
+function get_idemailwiz_triggered_data($database, $args = [], $batchSize = 15000, $offset = 0)
 {
 
     if (!$database) {

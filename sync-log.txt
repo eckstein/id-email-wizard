@@ -1,250 +1,117 @@
-==========[2023-11-16 11:25:23]==============================<br />
-Experiments sync results: <br />
-<br />
-Successful update of 4 records.<br />
+==========[2023-11-17 18:32:26]==============================<br />
+GA campaign revenue data synced successfully. 2918 updates and 20 inserts performed<br />
 ========================================<br />
 <br />
-==========[2023-11-16 11:23:40]==============================<br />
-Purchases sync results: <br />
-Successful insert of 8 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: 8835283728d041f683715d02bc8e0364). Database Error: Duplicate entry '8835283728d041f683715d02bc8e0364' for key 'PRIMARY'.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-16 11:23:27]==============================<br />
-Metrics sync results: <br />
-Successful insert of 1 records.<br />
-Successful update of 68 records.<br />
-========================================<br />
-<br />
-==========[2023-11-16 11:22:59]==============================<br />
-Templates sync results: <br />
-<br />
-Successful update of 1 records.<br />
-========================================<br />
-<br />
-==========[2023-11-16 11:22:28]==============================<br />
-Campaigns sync results: <br />
-Successful insert of 1 records.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-16 08:18:46]==============================<br />
-Experiments sync results: <br />
-<br />
-Successful update of 4 records.<br />
-========================================<br />
-<br />
-==========[2023-11-16 08:17:26]==============================<br />
-Purchases sync results: <br />
-Successful insert of 0 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: 8835283728d041f683715d02bc8e0364). Database Error: Duplicate entry '8835283728d041f683715d02bc8e0364' for key 'PRIMARY'.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-16 08:17:20]==============================<br />
-Metrics sync results: <br />
-<br />
-Successful update of 43 records.<br />
-========================================<br />
-<br />
-==========[2023-11-16 08:17:00]==============================<br />
-Templates sync results: <br />
-The templates sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-16 08:16:22]==============================<br />
-Campaigns sync results: <br />
-The campaigns sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-16 07:22:15]==============================<br />
-Experiments sync results: <br />
-<br />
-Successful update of 4 records.<br />
-========================================<br />
-<br />
-==========[2023-11-16 07:20:31]==============================<br />
-Purchases sync results: <br />
-Successful insert of 1 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: 8835283728d041f683715d02bc8e0364). Database Error: Duplicate entry '8835283728d041f683715d02bc8e0364' for key 'PRIMARY'.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-16 07:20:23]==============================<br />
-Metrics sync results: <br />
-<br />
-Successful update of 46 records.<br />
-========================================<br />
-<br />
-==========[2023-11-16 07:19:58]==============================<br />
-Templates sync results: <br />
-The templates sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-16 07:19:27]==============================<br />
-Campaigns sync results: <br />
-The campaigns sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-16 06:32:18]==============================<br />
-GA campaign revenue data synced successfully. 2916 updates and 4 inserts performed<br />
-========================================<br />
-<br />
-==========[2023-11-16 06:32:13]==============================<br />
+==========[2023-11-17 18:32:21]==============================<br />
 Starting GA campaign revenue data sync.<br />
 ========================================<br />
 <br />
-==========[2023-11-16 06:25:47]==============================<br />
-Experiments sync results: <br />
+==========[2023-11-17 17:53:28]==============================<br />
+Finished updating 0 triggered complaint records!<br />
+========================================<br />
 <br />
+==========[2023-11-17 17:53:21]==============================<br />
+Export job started with Job ID: 578049<br />
+========================================<br />
+<br />
+==========[2023-11-17 17:53:21]==============================<br />
+Starting triggered complaints sync...<br />
+========================================<br />
+<br />
+==========[2023-11-17 17:53:21]==============================<br />
+Finished updating 0 triggered sendSkip records!<br />
+========================================<br />
+<br />
+==========[2023-11-17 17:53:14]==============================<br />
+Export job started with Job ID: 578048<br />
+========================================<br />
+<br />
+==========[2023-11-17 17:53:14]==============================<br />
+Starting triggered sendSkips sync...<br />
+========================================<br />
+<br />
+==========[2023-11-17 17:53:14]==============================<br />
+Finished updating 10 triggered bounce records!<br />
+========================================<br />
+<br />
+==========[2023-11-17 17:52:10]==============================<br />
+Export job started with Job ID: 578046<br />
+========================================<br />
+<br />
+==========[2023-11-17 17:52:09]==============================<br />
+Starting triggered bounces sync...<br />
+========================================<br />
+<br />
+==========[2023-11-17 17:52:09]==============================<br />
+Finished updating 5 triggered unsubscribe records!<br />
+========================================<br />
+<br />
+==========[2023-11-17 17:52:02]==============================<br />
+Export job started with Job ID: 578045<br />
+========================================<br />
+<br />
+==========[2023-11-17 17:52:01]==============================<br />
+Starting triggered unsubscribes sync...<br />
+========================================<br />
+<br />
+==========[2023-11-17 17:52:01]==============================<br />
+Finished updating 12 triggered click records!<br />
+========================================<br />
+<br />
+==========[2023-11-17 17:51:49]==============================<br />
+Export job started with Job ID: 578044<br />
+========================================<br />
+<br />
+==========[2023-11-17 17:51:49]==============================<br />
+Starting triggered clicks sync...<br />
+========================================<br />
+<br />
+==========[2023-11-17 17:51:49]==============================<br />
+Finished updating 76 triggered open records!<br />
+========================================<br />
+<br />
+==========[2023-11-17 17:45:42]==============================<br />
+Export job started with Job ID: 578040<br />
+========================================<br />
+<br />
+==========[2023-11-17 17:45:41]==============================<br />
+Starting triggered opens sync...<br />
+========================================<br />
+<br />
+==========[2023-11-17 17:45:41]==============================<br />
+Finished updating 145 triggered send records!<br />
+========================================<br />
+<br />
+==========[2023-11-17 17:41:47]==============================<br />
+Export job started with Job ID: 578037<br />
+========================================<br />
+<br />
+==========[2023-11-17 17:41:46]==============================<br />
+Starting triggered sends sync...<br />
+========================================<br />
+<br />
+==========[2023-11-17 17:41:46]==============================<br />
+Experiments sync results: <br />
 Successful update of 4 records.<br />
 ========================================<br />
 <br />
-==========[2023-11-16 06:23:18]==============================<br />
+==========[2023-11-17 17:38:28]==============================<br />
 Purchases sync results: <br />
-Successful insert of 17 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: 8835283728d041f683715d02bc8e0364). Database Error: Duplicate entry '8835283728d041f683715d02bc8e0364' for key 'PRIMARY'.<br />
-<br />
+The purchases sync is up to date! No inserts or updates are needed.<br />
 ========================================<br />
 <br />
-==========[2023-11-16 06:23:08]==============================<br />
+==========[2023-11-17 17:38:26]==============================<br />
 Metrics sync results: <br />
-<br />
-Successful update of 71 records.<br />
+Successful update of 45 records.<br />
 ========================================<br />
 <br />
-==========[2023-11-16 06:22:43]==============================<br />
+==========[2023-11-17 17:37:15]==============================<br />
 Templates sync results: <br />
-The templates sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-16 06:21:34]==============================<br />
-Campaigns sync results: <br />
-The campaigns sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-15 23:31:30]==============================<br />
-Experiments sync results: <br />
-<br />
+Successful insert of 1 records.<br />
 Successful update of 4 records.<br />
 ========================================<br />
 <br />
-==========[2023-11-15 23:19:15]==============================<br />
-Purchases sync results: <br />
-Successful insert of 1 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: 8835283728d041f683715d02bc8e0364). Database Error: Duplicate entry '8835283728d041f683715d02bc8e0364' for key 'PRIMARY'.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-15 23:19:12]==============================<br />
-Metrics sync results: <br />
-<br />
-Successful update of 34 records.<br />
-========================================<br />
-<br />
-==========[2023-11-15 23:18:49]==============================<br />
-Templates sync results: <br />
-The templates sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-15 23:17:37]==============================<br />
-Campaigns sync results: <br />
-The campaigns sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-15 22:53:23]==============================<br />
-Experiments sync results: <br />
-<br />
-Successful update of 3 records.<br />
-========================================<br />
-<br />
-==========[2023-11-15 22:51:07]==============================<br />
-Purchases sync results: <br />
-Successful insert of 0 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: 8835283728d041f683715d02bc8e0364). Database Error: Duplicate entry '8835283728d041f683715d02bc8e0364' for key 'PRIMARY'.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-15 22:51:03]==============================<br />
-Metrics sync results: <br />
-<br />
-Successful update of 15 records.<br />
-========================================<br />
-<br />
-==========[2023-11-15 22:50:49]==============================<br />
-Experiments sync results: <br />
-<br />
-Successful update of 4 records.<br />
-========================================<br />
-<br />
-==========[2023-11-15 22:50:04]==============================<br />
-Templates sync results: <br />
-The templates sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-15 22:48:51]==============================<br />
-Purchases sync results: <br />
-Successful insert of 39 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: 8835283728d041f683715d02bc8e0364). Database Error: Duplicate entry '8835283728d041f683715d02bc8e0364' for key 'PRIMARY'.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-15 22:48:42]==============================<br />
-Metrics sync results: <br />
-<br />
-Successful update of 78 records.<br />
-========================================<br />
-<br />
-==========[2023-11-15 22:48:15]==============================<br />
-Templates sync results: <br />
-Successful insert of 2 records.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-15 22:48:05]==============================<br />
-Campaigns sync results: <br />
-The campaigns sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-15 22:46:50]==============================<br />
-GA campaign revenue data synced successfully. 2901 updates and 17 inserts performed<br />
-========================================<br />
-<br />
-==========[2023-11-15 22:46:42]==============================<br />
-Starting GA campaign revenue data sync.<br />
-========================================<br />
-<br />
-==========[2023-11-15 22:46:42]==============================<br />
-Campaigns sync results: <br />
-The campaigns sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-15 15:34:55]==============================<br />
-Experiments sync results: <br />
-<br />
-Successful update of 4 records.<br />
-========================================<br />
-<br />
-==========[2023-11-15 15:32:37]==============================<br />
-Purchases sync results: <br />
-Successful insert of 4 records.1 errors occurred:<br />
-Error (insert): Failed to perform insert on '' (ID: 8835283728d041f683715d02bc8e0364). Database Error: Duplicate entry '8835283728d041f683715d02bc8e0364' for key 'PRIMARY'.<br />
-<br />
-========================================<br />
-<br />
-==========[2023-11-15 15:32:32]==============================<br />
-Metrics sync results: <br />
-<br />
-Successful update of 47 records.<br />
-========================================<br />
-<br />
-==========[2023-11-15 15:31:58]==============================<br />
-Templates sync results: <br />
-The templates sync is up to date! No inserts or updates are needed.<br />
-========================================<br />
-<br />
-==========[2023-11-15 15:28:56]==============================<br />
+==========[2023-11-17 17:36:44]==============================<br />
 Campaigns sync results: <br />
 The campaigns sync is up to date! No inserts or updates are needed.<br />
 ========================================<br />

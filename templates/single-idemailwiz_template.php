@@ -35,10 +35,10 @@ $itTemplateId = get_post_meta(get_the_ID(), 'itTemplateId', true) ?? '';
 						//print_r($wizTemplate);
 						
 						if ($wizTemplate) {
-							$wizCampaign = get_idwiz_campaigns(array('templateId' => $itTemplateId));
+							$wizCampaign = get_idwiz_campaign($wizTemplate['campaignId']);
 							if ($wizCampaign && $wizCampaign['campaignState'] == 'Finished') {
 								$campaignSent = true;
-							echo '<br/><br/><strong><em>The <a href="'.get_bloginfo('url').'/metrics/campaign/?id=' . $wizCampaign[0]['id'] . '">campaign</a> for this template was sent on ' . date('m/d/Y', $wizCampaign[0]['startAt'] / 1000) . '.</em></strong>';
+							echo '<br/><br/><strong><em>The <a href="'.get_bloginfo('url').'/metrics/campaign/?id=' . $wizCampaign['id'] . '">campaign</a> for this template was sent on ' . date('m/d/Y', $wizCampaign['startAt'] / 1000) . '.</em></strong>';
 							echo '<br/><em>Templates for sent campaigns can no longer be synced. You can either duplicate this template or sync it to another, unsent template in Iterable.</em>';
 							}
 						}
