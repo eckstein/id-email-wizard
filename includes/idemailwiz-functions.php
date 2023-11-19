@@ -1450,6 +1450,7 @@ add_action('wp_ajax_idemailwiz_update_user_attribution_setting', 'idemailwiz_upd
 
 
 
+
 function get_idwiz_rollup_row($metricRates, $include = [], $exclude = [])
 {
   $defaultRollupFields = array(

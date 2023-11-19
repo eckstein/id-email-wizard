@@ -26,7 +26,7 @@ jQuery(document).ready(function ($) {
 	setupCategoriesView();
 
 	// Show the template selection modal when needed
-	$('body').on('click', '.show-new-template-ui', function () {
+	$("body").on("click", ".show-new-template-ui", function () {
 		showTemplateSelectionModal();
 	});
 
@@ -40,7 +40,7 @@ jQuery(document).ready(function ($) {
 	// Function to handle the success response
 	function handleNewTemplateHtmlSuccess(response) {
 		if (response.success) {
-			const mockupHtml = response.data.html;  // HTML is now directly from the server
+			const mockupHtml = response.data.html; // HTML is now directly from the server
 			showTemplateModal(mockupHtml);
 
 			// Add click event listener to the mockup elements
@@ -52,11 +52,11 @@ jQuery(document).ready(function ($) {
 			// Initialize the tab interface
 			$(".templateTabs ul li a").click(function (e) {
 				e.preventDefault();
-				const tabId = $(this).attr("href").substring(1);  // Get the ID without the '#'
+				const tabId = $(this).attr("href").substring(1); // Get the ID without the '#'
 				$(".templateTabs ul li a").removeClass("active");
 				$(this).addClass("active");
-				$(".templateTabs > div").hide()  // Hide all tabs
-				$("#" + tabId).css("display", "grid");  // Show the clicked tab
+				$(".templateTabs > div").hide(); // Hide all tabs
+				$("#" + tabId).css("display", "grid"); // Show the clicked tab
 			});
 
 			// Show the first tab by default
@@ -65,8 +65,6 @@ jQuery(document).ready(function ($) {
 			Swal.fire("Error", "Could not load templates", "error");
 		}
 	}
-
-
 
 	// Function to show the template modal
 	function showTemplateModal(mockupHtml) {
@@ -150,39 +148,39 @@ jQuery(document).ready(function ($) {
 		e.stopPropagation();
 	});
 
-
 	// jQuery click handler for the settings button
-	$('.module-settings').on('click', function(event) {
-	  // Prevent the click on the button from propagating to the document
-	  event.stopPropagation();
+	$(".module-settings").on("click", function (event) {
+		// Prevent the click on the button from propagating to the document
+		event.stopPropagation();
 
-	  // Toggle the display of the dropdown menu
-	  $("#module-settings-dropdown").toggle().css({
-		'position': 'absolute',
-		'right': 0,
-		'top': $(this).outerHeight() + 5
-	  });
+		// Toggle the display of the dropdown menu
+		$("#module-settings-dropdown")
+			.toggle()
+			.css({
+				position: "absolute",
+				right: 0,
+				top: $(this).outerHeight() + 5,
+			});
 	});
 
 	// Close the dropdown menu if the user clicks outside of it
-	$(document).on('click', function() {
-	  $("#module-settings-dropdown").hide();
+	$(document).on("click", function () {
+		$("#module-settings-dropdown").hide();
 	});
 
 	// Stop propagation for clicks within the dropdown to prevent it from closing
-	$('#module-settings-dropdown').on('click', function(event) {
-	  event.stopPropagation();
+	$("#module-settings-dropdown").on("click", function (event) {
+		event.stopPropagation();
 	});
 
-
 	//Attribution form change
-	$('.purchase-attribution').on('change', function() {
+	$(".purchase-attribution").on("change", function () {
 		var value = $(this).val();
 		idemailwiz_do_ajax(
 			"idemailwiz_update_user_attribution_setting",
 			idAjax_id_general.nonce,
 			{
-				value: value
+				value: value,
 			},
 			function (data) {
 				location.reload();
@@ -194,53 +192,48 @@ jQuery(document).ready(function ($) {
 		);
 	});
 
-
-	enableDragScrolling('.idwiz-dragScroll');;
+	enableDragScrolling(".idwiz-dragScroll");
 
 	function enableDragScrolling(selector) {
-	  var $element = $(selector);
-  
-	  // Check if the element exists
-	  if ($element.length) {
-		var isDown = false;
-		var startX;
-		var scrollLeft;
+		var $element = $(selector);
 
-		$element.on('mousedown', function(e) {
-		  isDown = true;
-		  $element.addClass('active');
-		  startX = e.pageX - $element.offset().left;
-		  scrollLeft = $element.scrollLeft();
-		});
+		// Check if the element exists
+		if ($element.length) {
+			var isDown = false;
+			var startX;
+			var scrollLeft;
 
-		$(document).on('mouseup', function() {
-		  isDown = false;
-		  $element.removeClass('active');
-		});
+			$element.on("mousedown", function (e) {
+				isDown = true;
+				$element.addClass("active");
+				startX = e.pageX - $element.offset().left;
+				scrollLeft = $element.scrollLeft();
+			});
 
-		$(document).on('mouseleave', function() {
-		  if (isDown) {
-			isDown = false;
-			$element.removeClass('active');
-		  }
-		});
+			$(document).on("mouseup", function () {
+				isDown = false;
+				$element.removeClass("active");
+			});
 
-		$element.on('mousemove', function(e) {
-		  if (!isDown) return;
-		  e.preventDefault();
-		  var x = e.pageX - $element.offset().left;
-		  var walk = (x - startX) * 1; // Adjust the multiplier for sensitivity
-		  $element.scrollLeft(scrollLeft - walk);
-		});
-	  }
+			$(document).on("mouseleave", function () {
+				if (isDown) {
+					isDown = false;
+					$element.removeClass("active");
+				}
+			});
+
+			$element.on("mousemove", function (e) {
+				if (!isDown) return;
+				e.preventDefault();
+				var x = e.pageX - $element.offset().left;
+				var walk = (x - startX) * 1; // Adjust the multiplier for sensitivity
+				$element.scrollLeft(scrollLeft - walk);
+			});
+		}
 	}
-
-
 });
 
 //Global scope functions
-
-
 
 function initialize_select2_for_template_search() {
 	jQuery("#live-template-search")
@@ -362,18 +355,18 @@ function wizReloadThing(selector) {
 	}
 }
 
-jQuery(document).on('click', '.sync-single-triggered', function() {
+jQuery(document).on("click", ".sync-single-triggered", function () {
 	var campaignId = jQuery(this).attr("data-campaignid");
 	idemailwiz_do_ajax(
 		"sync_single_triggered_campaign",
 		idAjax_id_general.nonce,
 		{
-			campaignId: campaignId
+			campaignId: campaignId,
 		},
 		function (result) {
 			//success
-			console.log('Success: '+result);
-			alert('Triggered sync success!');
+			console.log("Success: " + result);
+			alert("Triggered sync success!");
 		},
 		function (error) {
 			console.log(error);
@@ -381,7 +374,7 @@ jQuery(document).on('click', '.sync-single-triggered', function() {
 	);
 });
 
-jQuery(document).on('click', '.sync-everything', function() {
+jQuery(document).on("click", ".sync-everything", function () {
 	handle_idwiz_sync_buttons("idemailwiz_ajax_sync", idAjax_id_general.nonce, null);
 });
 
@@ -554,3 +547,46 @@ window.manageCampaignsInInitiative = function (action, campaignIds, onSuccess = 
 
 	window.Swal.fire(swalConfig);
 };
+
+if (jQuery("#syncLogContent code").length) {
+	// Auto-refresh a log element
+	let refreshWizLog = setInterval(() => {
+		jQuery("#syncLogContent code").load(idAjax.plugin_url + "/wiz-log.log", function () {
+			hljs.highlightElement(document.querySelector("#syncLogContent code"));
+		});
+	}, 3000);
+}
+
+jQuery("#syncStationForm").on("submit", function (e) {
+	e.preventDefault();
+	var formFields = jQuery(this).serialize();
+	jQuery(".syncForm-overlay").addClass("active");
+	idemailwiz_do_ajax(
+		"idemailwiz_handle_manual_sync",
+		idAjax_id_general.nonce,
+		{ formFields },
+		function (data) {
+			// After sync, we do stuff
+			jQuery(".syncForm-overlay").removeClass("active");
+			Swal.fire("Sync Successful", "The manual sync has completed. See sync log for details.", "success");
+		},
+		function (error) {
+			console.log(error);
+			Swal.fire("Error", "An error occurred. Check the sync log or browser console for details.", "error");
+			// wiz log error
+			idemailwiz_do_ajax(
+				"ajax_to_wiz_log",
+				idAjax_id_general.nonce,
+				{
+					log_data: "There was an error attempting to sync: " + JSON.stringify(error),
+				},
+				function (result) {
+					jQuery("#syncLogContent code").load(idAjax.plugin_url + "/wiz-log.log");
+				},
+				function (error) {
+					console.log(error);
+				}
+			);
+		}
+	);
+});

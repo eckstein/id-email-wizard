@@ -3,7 +3,7 @@
 function wiz_log($something, $timestamp = true) {
     // Get the current date and time in PST
     $date = new DateTime('now', new DateTimeZone('America/Los_Angeles'));
-    $formattedTimestamp = $date->format('Y-m-d H:i:s');
+    $formattedTimestamp = $date->format('Y-m-d g:i:sa');
 
     // Build the log entry
     $logEntry = $timestamp ? "[$formattedTimestamp] $something\n" : "$something\n";
@@ -41,9 +41,9 @@ function ajax_to_wiz_log()
     }
 
     $logData = $_POST['log_data'] ?? '';
-    $timestamp = $_POST['timestamp'] ?? false;
+    $includeTimestamp = $_POST['timestamp'] ?? false;
 
-    $writeToLog = wiz_log($logData, $timestamp);
+    $writeToLog = wiz_log($logData, $includeTimestamp);
 
     wp_send_json_success($writeToLog);
 }

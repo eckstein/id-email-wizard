@@ -1176,8 +1176,7 @@ if (!wp_next_scheduled('idemailwiz_twice_daily_sync')) {
 add_action('idemailwiz_twice_daily_sync', 'sync_ga_campaign_revenue_data');
 
 
-// Define the queue of sync tasks
-$sync_queue = ['send', 'open', 'click', 'unsubscribe', 'bounce', 'sendSkip', 'complaint'];
+
 
 $wizSettings = get_option('idemailwiz_settings');
 $cronSyncActive = $wizSettings['sync_method'] ?? 'wp_cron';
@@ -1199,36 +1198,71 @@ if ($cronSyncActive === 'wp_cron') {
     }
 }
 
+add_action('wp_ajax_idemailwiz_handle_manual_sync', 'idemailwiz_handle_manual_sync');
+
+function idemailwiz_handle_manual_sync() {
+    check_ajax_referer('id-general', 'security');
+
+    // Extract the form fields from the POST data
+    parse_str($_POST['formFields'], $formFields);
+
+    // Check for sync types
+    if (empty($formFields['syncTypes'])) {
+        wp_send_json_error('No sync types were received.');
+        return;
+    }
+
+    // Extract campaign IDs, if provided
+    $campaignIds = !empty($formFields['campaignIds']) ? explode(',', $formFields['campaignIds']) : false;
+
+    // Initiate the sync sequence
+    $syncResult = idemailwiz_process_sync_sequence($formFields['syncTypes'], $campaignIds, true);
+
+    if ($syncResult === false) {
+        wp_send_json_error('Sync sequence aborted: Another sync is still in progress or there was an error.');
+    } else {
+        wp_send_json_success('Sync sequence successfully initiated.');
+    }
+}
 
 
-function idemailwiz_process_sync_sequence() {
-    global $sync_queue;
+function idemailwiz_process_sync_sequence($syncTypes = [], $campaignIds = false, $manualSync = false) {
+    // Default sync queue for triggered sync types
+    $default_sync_queue = ['send', 'open', 'click', 'unSubscribe', 'bounce', 'sendSkip', 'complaint'];
+
+    // If specific sync types are set, use that list; otherwise, use the default
+    $sync_queue = !empty($syncTypes) ? $syncTypes : $default_sync_queue;
+
     $wizSettings = get_option('idemailwiz_settings');
 
     // Check if a sync is already in progress
     if (get_transient('idemailwiz_sync_in_progress')) {
-        error_log('Attempted to start a new sync sequence while another is still in progress.');
         wiz_log('Sync sequence aborted: Another sync is still in progress.');
         return false; // Abort the sync sequence
     }
 
+    wiz_log('Sync sequence initiated, please wait...');
+
     // Mark the start of a sync sequence
     set_transient('idemailwiz_sync_in_progress', true, 60 * 120); // 2 hour expiration
 
-    if (isset($wizSettings['iterable_sync_toggle']) && $wizSettings['iterable_sync_toggle'] === 'on') {
-        // Perform the non-triggered sync
-        idemailwiz_sync_non_triggered_metrics();
+    if ((isset($wizSettings['iterable_sync_toggle']) && $wizSettings['iterable_sync_toggle'] === 'on') || $manualSync) {
+        if (in_array('blast', $sync_queue)) {
+            // Perform the non-triggered (blast) sync
+            idemailwiz_sync_non_triggered_metrics($campaignIds);
+        }
     } else {
-        error_log('Blast sync cron was initiated but sync toggle is disabled');
         wiz_log('Blast sync cron initiated but sync toggle is disabled.');
     }
 
-    if (isset($wizSettings['iterable_triggered_sync_toggle']) && $wizSettings['iterable_triggered_sync_toggle'] === 'on') {
+    if ((isset($wizSettings['iterable_triggered_sync_toggle']) && $wizSettings['iterable_triggered_sync_toggle'] === 'on') || $manualSync) {
         foreach ($sync_queue as $sync_action) {
-            idemailwiz_sync_triggered_metrics($sync_action);
+            if ($sync_action != 'blast') {
+                // Handle the triggered sync types
+                idemailwiz_sync_triggered_metrics($sync_action);
+            }
         }
     } else {
-        error_log('Triggered sync cron was initiated but sync toggle is disabled');
         wiz_log('Triggered sync cron initiated but sync toggle is disabled.');
     }
 
@@ -1237,6 +1271,7 @@ function idemailwiz_process_sync_sequence() {
 
     return true; // Indicate successful completion of the sync sequence
 }
+
 
 
 
@@ -1308,13 +1343,13 @@ function idemailwiz_sync_triggered_metrics($metricType)
                 continue;
 
             $decodedData = json_decode($line, true);
-            
+
             if (json_last_error() !== JSON_ERROR_NONE) {
                 wiz_log('json_decode error: ' . json_last_error_msg());
                 continue;
             }
             // Filter out records that don't match our triggered campaigns
-            
+
             if (isset($decodedData['campaignId']) && in_array($decodedData['campaignId'], $triggeredCampaignIds)) {
                 $messageId = $decodedData['messageId'] ?? false;
                 if (!$messageId) {
@@ -1510,3 +1545,5 @@ function idemailwiz_import_triggered_metrics_from_csv($localCsvFilePath, $metric
     error_log("Finished inserting new $metricType records for triggered campaigns from CSV.");
     return true;
 }
+
+
