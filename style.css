@@ -2224,3 +2224,28 @@ table.compact th {
 .idwiz-dragScroll {
 	cursor: grab;
 }
+
+/* Sync Station */
+#syncStationForm #syncTypes {
+	display: flex;
+	gap: 1px;
+	margin-bottom: 10px;
+}
+
+#syncStation-syncDates {
+	display:flex;
+	gap: 10px;
+	margin-bottom: 10px;
+}
+#syncStation-syncCampaigns textarea {
+	width: 300px;
+}
+
+#syncLogContent, #errorLogContent {
+	overflow-x: auto;
+}
+
+#wiz_log_panels .wizcampaign-section {
+	max-height: 600px;
+	overflow-y: auto;
+}

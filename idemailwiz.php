@@ -317,6 +317,7 @@ function idemailwiz_custom_rewrite_rule()
     add_rewrite_endpoint('build-template', EP_ROOT);
     add_rewrite_endpoint('user-profile', EP_ROOT);
     add_rewrite_endpoint('settings', EP_ROOT);
+    add_rewrite_endpoint('sync-station', EP_ROOT);
     add_rewrite_endpoint('external-cron', EP_ROOT); // New endpoint for external cron
 }
 
@@ -377,6 +378,16 @@ function idemailwiz_template_chooser($template)
         // Use the custom template if it exists
         if (!empty($wizSettingsTemplate)) {
             return $wizSettingsTemplate;
+        }
+    }
+
+    // If settings page endpoint is accessed
+    if (isset($wp_query->query_vars['sync-station'])) {
+        $syncStationTemplate = plugin_dir_path(__FILE__) . 'templates/idemailwiz-sync-station.php';
+
+        // Use the custom template if it exists
+        if (!empty($syncStationTemplate)) {
+            return $syncStationTemplate;
         }
     }
 
