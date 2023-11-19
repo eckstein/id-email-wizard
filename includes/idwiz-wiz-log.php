@@ -1,32 +1,15 @@
 <?php
 
-function wiz_log($something, $timestamp = true)
-{
-
+function wiz_log($something, $timestamp = true) {
     // Get the current date and time in PST
     $date = new DateTime('now', new DateTimeZone('America/Los_Angeles'));
-    $timestamp = $date->format('Y-m-d H:i:s');
+    $formattedTimestamp = $date->format('Y-m-d H:i:s');
 
-
-    // Build the breaker bar with the timestamp
-    $breakerBar = str_repeat('=', 40); // 40 is the length of the bar
-    if ($timestamp) {
-        $timestampPosition = (strlen($breakerBar) - strlen($timestamp)) / 2;
-        $breakerBarWithTimestamp = substr_replace($breakerBar, "[$timestamp]", $timestampPosition, 0);
-
-        // Build the log entry
-        $logEntry = "{$breakerBarWithTimestamp}\n$something\n$breakerBar\n\n";
-    } else {
-        // Build the log entry
-        $logEntry = "{$breakerBar}\n$something\n$breakerBar\n\n";
-    }
-
-
-    // Replace line breaks with <br/> tags
-    $logEntry = nl2br($logEntry);
+    // Build the log entry
+    $logEntry = $timestamp ? "[$formattedTimestamp] $something\n" : "$something\n";
 
     // Get the path to the log file
-    $logFile = dirname(plugin_dir_path(__FILE__)) . '/sync-log.txt';
+    $logFile = dirname(plugin_dir_path(__FILE__)) . '/wiz-log.log';
 
     // Read the existing content of the file
     $existingContent = file_exists($logFile) ? file_get_contents($logFile) : '';
@@ -39,6 +22,7 @@ function wiz_log($something, $timestamp = true)
 
     return $writeToLog; // returns number of bytes logged or false on failure
 }
+
 
 function ajax_to_wiz_log()
 {

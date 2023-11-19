@@ -399,7 +399,7 @@ function handle_idwiz_sync_buttons(action, passedNonce, data = {}) {
 			timestamp: true,
 		},
 		function (result) {
-			jQuery("#wiztable_status_sync_details").load(idAjax.plugin_url + "/sync-log.txt");
+			jQuery("#wiztable_status_sync_details").load(idAjax.plugin_url + "/wiz-log.log");
 		},
 		function (error) {
 			console.log(error);
@@ -408,7 +408,7 @@ function handle_idwiz_sync_buttons(action, passedNonce, data = {}) {
 
 	// Start refreshing the log
 	let refreshInterval = setInterval(() => {
-		jQuery("#wiztable_status_sync_details").load(idAjax.plugin_url + "/sync-log.txt");
+		jQuery("#wiztable_status_sync_details").load(idAjax.plugin_url + "/wiz-log.log");
 	}, 3000);
 
 	// Perform the AJAX call
@@ -420,13 +420,13 @@ function handle_idwiz_sync_buttons(action, passedNonce, data = {}) {
 			// success callback
 			clearInterval(refreshInterval);
 			jQuery("#wiztable_status_updates .wiztable_update").text("Sync completed! Refresh the table for new data");
-			jQuery("#wiztable_status_sync_details").load(idAjax.plugin_url + "/sync-log.txt");
+			jQuery("#wiztable_status_sync_details").load(idAjax.plugin_url + "/wiz-log.log");
 		},
 		function (error) {
 			// error callback
 			clearInterval(refreshInterval);
 			jQuery("#wiztable_status_updates .wiztable_update").text("ERROR: Sync process failed with message: " + JSON.stringify(error));
-			jQuery("#wiztable_status_sync_details").load(idAjax.plugin_url + "/sync-log.txt");
+			jQuery("#wiztable_status_sync_details").load(idAjax.plugin_url + "/wiz-log.log");
 		}
 	);
 }

@@ -1189,6 +1189,8 @@ if ($cronSyncActive === 'wp_cron') {
         //Schedule the initial sync event, 1 hour from when the wp_cron sync is turned on (to avoid immediate execution when turned on)
         wp_schedule_event(time() + HOUR_IN_SECONDS, 'hourly', 'idemailwiz_sync_sequence');
     }
+    // The action that manages the sync sequence
+    add_action('idemailwiz_sync_sequence', 'idemailwiz_process_sync_sequence');
 } else {
     // If wp_cron is not the sync method, clear any scheduled events
     $timestamp = wp_next_scheduled('idemailwiz_sync_sequence');
@@ -1197,33 +1199,45 @@ if ($cronSyncActive === 'wp_cron') {
     }
 }
 
-// The action that manages the sync sequence
-add_action('idemailwiz_sync_sequence', 'idemailwiz_process_sync_sequence');
+
 
 function idemailwiz_process_sync_sequence() {
     global $sync_queue;
     $wizSettings = get_option('idemailwiz_settings');
+
+    // Check if a sync is already in progress
+    if (get_transient('idemailwiz_sync_in_progress')) {
+        error_log('Attempted to start a new sync sequence while another is still in progress.');
+        wiz_log('Sync sequence aborted: Another sync is still in progress.');
+        return false; // Abort the sync sequence
+    }
+
+    // Mark the start of a sync sequence
+    set_transient('idemailwiz_sync_in_progress', true, 60 * 120); // 2 hour expiration
 
     if (isset($wizSettings['iterable_sync_toggle']) && $wizSettings['iterable_sync_toggle'] === 'on') {
         // Perform the non-triggered sync
         idemailwiz_sync_non_triggered_metrics();
     } else {
         error_log('Blast sync cron was initiated but sync toggle is disabled');
+        wiz_log('Blast sync cron initiated but sync toggle is disabled.');
     }
 
     if (isset($wizSettings['iterable_triggered_sync_toggle']) && $wizSettings['iterable_triggered_sync_toggle'] === 'on') {
         foreach ($sync_queue as $sync_action) {
             idemailwiz_sync_triggered_metrics($sync_action);
-
-            // Assume each sync function sets a transient when it starts and deletes it when done
-            while (get_transient("idemailwiz_sync_{$sync_action}_running")) {
-                sleep(10); // Wait before checking again
-            }
         }
     } else {
         error_log('Triggered sync cron was initiated but sync toggle is disabled');
+        wiz_log('Triggered sync cron initiated but sync toggle is disabled.');
     }
+
+    // Mark the end of the sync sequence
+    delete_transient('idemailwiz_sync_in_progress');
+
+    return true; // Indicate successful completion of the sync sequence
 }
+
 
 
 

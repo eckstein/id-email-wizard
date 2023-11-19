@@ -55,7 +55,7 @@ global $wpdb;
             <div class="wizcampaign-section inset">
                 <h2>Sync Log</h2>
                 <pre id="syncLogContent"><code>
-                    <?php echo file_get_contents(plugin_dir_path(__FILE__) . '../sync-log.txt'); ?>
+                    <?php echo file_get_contents(plugin_dir_path(__FILE__) . '../wiz-log.log'); ?>
                 </code></pre>
             </div>
 
