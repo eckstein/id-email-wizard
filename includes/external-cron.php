@@ -12,7 +12,7 @@ function idemailwiz_parse_external_cron_request($wp) {
     if (isset($wp->query_vars['external-cron'])) {
         // Check if the API key matches
         //$incomingApiKey = $_GET['Api-Key'] ?? ''; 
-        $incomingApiKey = $_SERVER['WIZ_API_KEY'] ?? ''; 
+        $incomingApiKey = $_SERVER['HTTP_WIZ_API_KEY'] ?? ''; 
 
         if ($incomingApiKey == $cronApi) {
             if ($cronSyncType == 'ext_cron') {
@@ -21,6 +21,7 @@ function idemailwiz_parse_external_cron_request($wp) {
                wiz_log('External cron sync is turned off in the settings. Sync should be occuring via wp_cron instead');
             }
         } else {
+            return 'Recieved Key: '.$incomingApiKey.' '.'Cron API Key: '.$cronApi;
             error_log('Invalid API key for external cron sync.');
             status_header(403); 
             exit;
