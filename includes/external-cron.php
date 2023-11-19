@@ -11,7 +11,8 @@ function idemailwiz_parse_external_cron_request($wp) {
     // Check if the external-cron endpoint is being accessed
     if (isset($wp->query_vars['external-cron'])) {
         // Check if the API key matches
-        $incomingApiKey = $_GET['Api-Key'] ?? ''; 
+        //$incomingApiKey = $_GET['Api-Key'] ?? ''; 
+        $incomingApiKey = $_SERVER['WIZ_API_KEY'] ?? ''; 
 
         if ($incomingApiKey === $cronApi) {
             if ($cronSyncType === 'ext_cron') {
