@@ -1179,16 +1179,28 @@ add_action('idemailwiz_twice_daily_sync', 'sync_ga_campaign_revenue_data');
 // Define the queue of sync tasks
 $sync_queue = ['send', 'open', 'click', 'unsubscribe', 'bounce', 'sendSkip', 'complaint'];
 
-// Schedule the initial sync event if not already scheduled
-if (!wp_next_scheduled('idemailwiz_sync_sequence')) {
-    wp_schedule_event(time(), 'hourly', 'idemailwiz_sync_sequence');
+$wizSettings = get_option('idemailwiz_settings');
+$cronSyncActive = $wizSettings['sync_method'] ?? 'wp_cron';
+
+// Check if wp_cron sync method is active
+if ($cronSyncActive === 'wp_cron') {
+    // Schedule the initial sync event if not already scheduled
+    if (!wp_next_scheduled('idemailwiz_sync_sequence')) {
+        //Schedule the initial sync event, 1 hour from when the wp_cron sync is turned on (to avoid immediate execution when turned on)
+        wp_schedule_event(time() + HOUR_IN_SECONDS, 'hourly', 'idemailwiz_sync_sequence');
+    }
+} else {
+    // If wp_cron is not the sync method, clear any scheduled events
+    $timestamp = wp_next_scheduled('idemailwiz_sync_sequence');
+    if ($timestamp) {
+        wp_unschedule_event($timestamp, 'idemailwiz_sync_sequence');
+    }
 }
 
-// The single action that manages the sync sequence
+// The action that manages the sync sequence
 add_action('idemailwiz_sync_sequence', 'idemailwiz_process_sync_sequence');
 
-function idemailwiz_process_sync_sequence()
-{
+function idemailwiz_process_sync_sequence() {
     global $sync_queue;
     $wizSettings = get_option('idemailwiz_settings');
 
@@ -1198,8 +1210,8 @@ function idemailwiz_process_sync_sequence()
     } else {
         error_log('Blast sync cron was initiated but sync toggle is disabled');
     }
-    if (isset($wizSettings['iterable_triggered_sync_toggle']) && $wizSettings['iterable_triggered_sync_toggle'] === 'on') {
 
+    if (isset($wizSettings['iterable_triggered_sync_toggle']) && $wizSettings['iterable_triggered_sync_toggle'] === 'on') {
         foreach ($sync_queue as $sync_action) {
             idemailwiz_sync_triggered_metrics($sync_action);
 

@@ -119,6 +119,7 @@ require_once(plugin_dir_path(__FILE__) . 'includes/folder-template-actions.php')
 require_once(plugin_dir_path(__FILE__) . 'includes/archive-query.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/iterable-functions.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-google-sheets-api.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/external-cron.php');
 
 
 
@@ -201,7 +202,7 @@ function idemailwiz_create_template_post_types()
     register_post_type('idwiz_initiative', $initiativeArgs);
 
 
-    register_post_type( 'journey', array(
+    register_post_type('journey', array(
         'labels' => array(
             'name' => 'Journeys',
             'singular_name' => 'Journey',
@@ -246,7 +247,7 @@ function idemailwiz_create_template_post_types()
             'feeds' => false,
         ),
         'delete_with_user' => false,
-    ) );
+    ));
 
 
 
@@ -302,16 +303,25 @@ function idemailwiz_create_taxonomies()
 
 }
 
-// Custom rewrite rule
+
+
+
+// Custom rewrite rules and endpoints
 function idemailwiz_custom_rewrite_rule()
 {
-    // Template editor re-write
+    // Template editor rewrite
     add_rewrite_rule('^template/([0-9]+)/([^/]+)/?', 'index.php?post_type=idemailwiz_template&p=$matches[1]', 'top');
 
-    // Campaign metrics rewrite
+    // Add custom endpoints
     add_rewrite_endpoint('metrics/campaign', EP_ROOT);
+    add_rewrite_endpoint('build-template', EP_ROOT);
+    add_rewrite_endpoint('user-profile', EP_ROOT);
+    add_rewrite_endpoint('settings', EP_ROOT);
+    add_rewrite_endpoint('external-cron', EP_ROOT); // New endpoint for external cron
 }
+
 add_action('init', 'idemailwiz_custom_rewrite_rule', 10);
+
 
 
 
@@ -456,13 +466,7 @@ function idemailwiz_handle_template_request()
     }
 }
 
-add_action('init', 'idemailwiz_custom_endpoints');
-function idemailwiz_custom_endpoints()
-{
-    add_rewrite_endpoint('build-template', EP_ROOT);
-    add_rewrite_endpoint('user-profile', EP_ROOT);
-    add_rewrite_endpoint('settings', EP_ROOT);
-}
+
 
 
 
@@ -476,7 +480,7 @@ function idemailwiz_enqueue_assets()
 
     wp_enqueue_script('sweetalert2', 'https://cdn.jsdelivr.net/npm/sweetalert2@11', array(), '11.0', true);
     wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array(), '4.1.0', true);
-    
+
     // Enqueue Luxon
     wp_enqueue_script('luxon', 'https://cdn.jsdelivr.net/npm/luxon@2.x/build/global/luxon.min.js', array('jquery'), null, true);
 

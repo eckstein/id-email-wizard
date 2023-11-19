@@ -36,6 +36,13 @@ function idemailwiz_register_settings() {
     add_settings_field('reports_page', 'Reports Page', 'idemailwiz_render_dropdown_pages_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'reports_page'));
     add_settings_field('wizbuilder_field_group', 'WizBuilder ACF Field Group ID', 'idemailwiz_render_text_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'wizbuilder_field_group'));
     
+    
+    add_settings_field('sync_method', 'Sync Method', 'idemailwiz_render_radio_field', 'idemailwiz_settings', 'idemailwiz_main_section', array(
+        'option_name' => 'sync_method',
+        'options' => array('wp_cron' => 'WP Cron', 'ext_cron' => 'External Cron') 
+    ));
+    add_settings_field('external_cron_api', 'API key for external cron auth', 'idemailwiz_render_text_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'external_cron_api'));
+    
     add_settings_field('iterable_sync_toggle', 'Blast Sync On/Off', 'idemailwiz_render_radio_field', 'idemailwiz_settings', 'idemailwiz_main_section', array(
         'option_name' => 'iterable_sync_toggle',
         'options' => array('on' => 'On', 'off' => 'Off') 
