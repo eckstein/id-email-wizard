@@ -1404,7 +1404,8 @@ function idemailwiz_sync_triggered_metrics($metricType)
 function idemailwiz_process_completed_sync_job($fileUrl, $metricType) {
     global $wpdb;
     $cntRecords = 0;
-    //$tableName = $wpdb->prefix . 'idemailwiz_triggered_' . $metricType . 's';
+
+    wiz_log("Starting processing for $fileUrl. Initial Memory Usage: " . memory_get_usage() / 1024 . " KB");
 
     $jsonResponse = file_get_contents($fileUrl);
     $lines = explode("\n", $jsonResponse);
@@ -1421,12 +1422,17 @@ function idemailwiz_process_completed_sync_job($fileUrl, $metricType) {
         if (idemailwiz_insert_triggered_metric_record($decodedData, $metricType)) {
             $cntRecords++;
         }
-        usleep(10000); // Sleep for 10ms 
+
+        // Log memory usage after each record processing
+        if ($cntRecords % 100 == 0) { // Adjust the modulus value as needed for logging frequency
+            wiz_log("Processed $cntRecords records. Current Memory Usage: " . memory_get_usage() / 1024 . " KB");
+        }
     }
 
-    wiz_log("Finished updating $cntRecords triggered $metricType records from file: $fileUrl");
+    wiz_log("Finished updating $cntRecords triggered $metricType records from file: $fileUrl. Final Memory Usage: " . memory_get_usage() / 1024 . " KB");
     return true;
 }
+
 
 
 
