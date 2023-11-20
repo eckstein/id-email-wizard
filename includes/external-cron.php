@@ -43,7 +43,7 @@ function do_idwiz_external_cron_actions($args)
         // Initiate database sync, if external cron sync is on
         $startSync = idemailwiz_process_sync_sequence();
         if ($startSync) {
-            wiz_log('External cron sync initiated, starting sync sequence...');
+            wiz_log('External cron sync initiated, checking sync settings...');
             // Send a success response
             status_header(200);
             exit;

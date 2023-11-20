@@ -1251,10 +1251,10 @@ function idemailwiz_handle_manual_sync()
 }
 
 
-function idemailwiz_process_sync_sequence($syncTypes = [], $campaignIds = false, $manualSync = false)
+function idemailwiz_process_sync_sequence($syncTypes = [], $campaignIds = null, $manualSync = false)
 {
-    // Default sync queue for triggered sync types
-    $default_sync_queue = ['send', 'open', 'click', 'unSubscribe', 'bounce', 'sendSkip', 'complaint'];
+    // Default sync queue
+    $default_sync_queue = ['blast','send', 'open', 'click', 'unSubscribe', 'bounce', 'sendSkip', 'complaint'];
 
     // If specific sync types are set, use that list; otherwise, use the default
     $sync_queue = !empty($syncTypes) ? $syncTypes : $default_sync_queue;
@@ -1369,12 +1369,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
         delete_transient("idemailwiz_sync_{$metricType}_running");
         return false;
     } else if ($jobState == 'completed') {
-        $processJob = idemailwiz_process_completed_sync_job($apiResponse, $metricType);
-        if ($processJob) {
-            return true;
-        } else {
-            return false;
-        }
+        return idemailwiz_process_completed_sync_job($apiResponse, $metricType); //true/false return
     } else {
         wiz_log("Job ID $jobId for Triggered {$metricType}s is not yet ready for export, skipping...");
         delete_transient("idemailwiz_sync_{$metricType}_running");
@@ -1388,6 +1383,11 @@ function idemailwiz_process_completed_sync_job($apiResponse, $metricType)
     global $wpdb;
 
     $cntRecords = 0;
+    $metricType = strtolower($metricType);
+    // double check that the metrictype name is valid for our databases
+    if (!in_array($metricType, ['open', 'send', 'click', 'unsubscribe', 'bounce', 'sendskip', 'complaint'])) {
+        return false;
+    }
     $tableName = $wpdb->prefix . 'idemailwiz_triggered_' . $metricType . 's';
     // Process the completed job
     foreach ($apiResponse['response']['files'] as $file) {
