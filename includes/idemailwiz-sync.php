@@ -1182,9 +1182,17 @@ if (!wp_next_scheduled('idemailwiz_start_export_jobs')) {
 }
 add_action('idemailwiz_start_export_jobs', 'idemailwiz_start_export_jobs');
 
-function idemailwiz_start_export_jobs() {
+function idemailwiz_start_export_jobs()
+{
     $metricTypes = ['send', 'open', 'click', 'bounce', 'sendSkip', 'unSubscribe', 'complaint'];
     wiz_log('Iterable export jobs started via external cron...');
+
+    if (get_transient('idemailwiz_export_jobs_running')) {
+        wiz_log('Export jobs are already running, skipping...');
+        return;
+    }
+    set_transient('idemailwiz_export_jobs_running', true, 60 * 20);
+
 
     foreach ($metricTypes as $metricType) {
         $startTime = microtime(true);
@@ -1193,6 +1201,7 @@ function idemailwiz_start_export_jobs() {
         $transientLastUpdated = $jobTransient['lastUpdated'] ?? false;
 
         if (!$jobTransient || ($transientLastUpdated && (time() - $transientLastUpdated) > (60 * 60))) {
+             wiz_log("Starting triggered {$metricType}s export jobs...");
             idemailwiz_start_triggered_data_job($metricType);
         }
 
@@ -1204,6 +1213,7 @@ function idemailwiz_start_export_jobs() {
             usleep((1 - $elapsedTime) * 1000000);
         }
     }
+    delete_transient('idemailwiz_export_jobs_running');
 }
 
 
@@ -1315,17 +1325,17 @@ function idemailwiz_start_triggered_data_job($metricType)
     $exportFetchStart = new DateTimeImmutable('-36 hours');
     $transientData['jobIds'] = [];
     foreach ($triggeredCampaigns as $campaign) {
-        
+
         if (!isset($campaign['id'])) {
             continue;
         }
         $exportStartData = [
             "outputFormat" => "application/x-json-stream",
-            "dataTypeName" => 'email' . ucfirst($metricType), 
+            "dataTypeName" => 'email' . ucfirst($metricType),
             "delimiter" => ",",
             "onlyFields" => "createdAt,userId,campaignId,templateId,messageId",
             "startDateTime" => $exportFetchStart->format('Y-m-d'),
-            "campaignId" => (int)$campaign['id']
+            "campaignId" => (int) $campaign['id']
         ];
         try {
             $startTime = microtime(true);
@@ -1396,7 +1406,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
 
         if ($jobState === 'failed') {
             wiz_log("Export job failed for Job ID: $jobId");
-            
+
             continue;
         } else if ($jobState == 'completed') {
             $startAfter = '';

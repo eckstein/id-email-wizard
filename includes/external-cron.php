@@ -53,10 +53,15 @@ function do_idwiz_external_cron_actions($args)
             exit;
         }
     } else if ($args['action'] == 'startJobs') {
+        // Set HTTP response code to 200 OK
+        http_response_code(200);
+
+        // Optionally, you can also send a message in the response body
+        echo "Triggered export function called";
+        flush();
+
         // Load up our transients with job Ids for the next triggered sync
         idemailwiz_start_export_jobs();
-        status_header(200);
-        exit;
     }
 
 }
