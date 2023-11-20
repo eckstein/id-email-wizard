@@ -1380,10 +1380,10 @@ function idemailwiz_sync_triggered_metrics($metricType)
 
 
     if (!$jobIds) {
-        wiz_log("No Job IDs found for Triggered {$metricType}s, starting new export jobs, which will sync next time...");
+        wiz_log("No Export Job IDs found for Triggered {$metricType}s. Will check again in an hour.");
 
         // Start a new export job so it fills our missing transient
-        idemailwiz_start_triggered_data_job($metricType);
+        //idemailwiz_start_triggered_data_job($metricType);
         delete_transient("idemailwiz_sync_{$metricType}_running");
         return false;
     }
