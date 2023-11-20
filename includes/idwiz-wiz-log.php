@@ -3,7 +3,7 @@
 function wiz_log($something, $timestamp = true) {
     // Get the current date and time in PST
     $date = new DateTime('now', new DateTimeZone('America/Los_Angeles'));
-    $formattedTimestamp = $date->format('Y-m-d g:i:sa');
+    $formattedTimestamp = $date->format('m/d/Y g:ia');
 
     // Build the log entry
     $logEntry = $timestamp ? "[$formattedTimestamp] $something\n" : "$something\n";
