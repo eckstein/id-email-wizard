@@ -609,7 +609,7 @@ function build_idwiz_query($args, $table_name)
 
 
 // Does the sql query for the main get_ functions based on the passed parameters
-function execute_idwiz_query($sql, $batch_size = 1000)
+function execute_idwiz_query($sql, $batch_size = 10000)
 {
     global $wpdb;
     $offset = 0;

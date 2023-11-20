@@ -1401,111 +1401,78 @@ function idemailwiz_sync_triggered_metrics($metricType)
     }
 }
 
-function idemailwiz_process_completed_sync_job($fileUrl, $metricType)
-{
+function idemailwiz_process_completed_sync_job($fileUrl, $metricType) {
     global $wpdb;
     $cntRecords = 0;
-    $tableName = $wpdb->prefix . 'idemailwiz_triggered_' . $metricType . 's';
+    //$tableName = $wpdb->prefix . 'idemailwiz_triggered_' . $metricType . 's';
 
     $jsonResponse = file_get_contents($fileUrl);
     $lines = explode("\n", $jsonResponse);
 
-    $result = false; //default
-
     foreach ($lines as $line) {
-        if (trim($line) === '')
-            continue;
+        if (trim($line) === '') continue;
 
         $decodedData = json_decode($line, true);
-
         if (json_last_error() !== JSON_ERROR_NONE) {
             wiz_log('json_decode error: ' . json_last_error_msg());
             continue;
         }
-        // Filter out records that don't match our triggered campaigns
-        // Get all triggered campaign IDs with 'Running' state
-        $triggeredCampaigns = get_idwiz_campaigns(['type' => 'Triggered', 'campaignState' => 'Running']);
-        $triggeredCampaignIds = array_column($triggeredCampaigns, 'id');
 
-        if (isset($decodedData['campaignId']) && in_array($decodedData['campaignId'], $triggeredCampaignIds)) {
-            $messageId = $decodedData['messageId'] ?? false;
-            if (!$messageId) {
-                continue;
-            }
-            $exists = $wpdb->get_var($wpdb->prepare("SELECT messageId FROM $tableName WHERE messageId = %s", $messageId));
-
-            // If the record doesn't exist, insert it
-            if (!$exists) {
-                $record = [
-                    'messageId' => $messageId,
-                    'userId' => $decodedData['userId'] ?? null,
-                    'campaignId' => $decodedData['campaignId'],
-                    'templateId' => $decodedData['templateId'],
-                    'startAt' => strtotime($decodedData['createdAt']) * 1000,
-                ];
-                $result = idemailwiz_insert_triggered_metric_record($record, $metricType);
-                $cntRecords++;
-            }
+        if (idemailwiz_insert_triggered_metric_record($decodedData, $metricType)) {
+            $cntRecords++;
         }
     }
 
     wiz_log("Finished updating $cntRecords triggered $metricType records from file: $fileUrl");
-    return $result;
+    return true;
 }
 
 
 
 
-function idemailwiz_insert_triggered_metric_record($record, $metricType)
-{
+
+function idemailwiz_insert_triggered_metric_record($record, $metricType) {
     global $wpdb;
     $tableName = $wpdb->prefix . 'idemailwiz_triggered_' . $metricType . 's';
 
     if (!is_array($record) || empty($record) || !isset($record['messageId'])) {
-        //wiz_log("No new $metricType records found for campaign " . $record['campaignId'] . ".");
         return false;
     }
 
-    // Check if a record with the same messageId already exists in the database
-    $existingRecord = $wpdb->get_row(
-        $wpdb->prepare(
-            "SELECT * FROM $tableName WHERE messageId = %s",
-            $record['messageId']
-        ),
-        ARRAY_A
-    );
+    // Prepare data for insertion or update
+    $data = [
+        'messageId' => $record['messageId'],
+        'userId' => $record['userId'] ?? null,
+        'campaignId' => $record['campaignId'] ?? null,
+        'templateId' => $record['templateId'] ?? null,
+        'startAt' => strtotime($record['createdAt']) ?? null,
+    ];
 
-    // If an existing record is found and the current record has an earlier startAt date, update the record
-    if ($existingRecord && $record['startAt'] < $existingRecord['startAt']) {
-        $data = [
-            'startAt' => $record['startAt'],
-        ];
+    // Check if the record exists
+    $exists = $wpdb->get_var($wpdb->prepare("SELECT messageId FROM $tableName WHERE messageId = %s", $record['messageId']));
+    
+    
+    if ($exists) {
+        // Update existing record
         $where = ['messageId' => $record['messageId']];
         $result = $wpdb->update($tableName, $data, $where);
-    } elseif (!$existingRecord) {
-        // If no existing record is found, insert the new record
-        $data = [
-            'messageId' => $record['messageId'],
-            'campaignId' => $record['campaignId'],
-            'templateId' => $record['templateId'],
-            'startAt' => $record['startAt'],
-        ];
+
+        if ($result === false && $wpdb->rows_affected == 0) {
+            // The update was successful, but no rows were affected (no changes)
+            $result = true; // Treat this as a successful operation
+        }
+    } else {
+        // Insert new record
         $result = $wpdb->insert($tableName, $data);
-    } else {
-        // The current record is older or the same as the existing record, so no action is needed
-        $result = true;
     }
 
-    // Log the outcome of the insert/update
-    if ($result) {
-        // Log success if a new record was inserted or an existing record was updated
-        //wiz_log("Successfully inserted/updated record for messageId: " . $record['messageId']);
-    } else {
-        wiz_log("Failed to insert/update $metricType record for messageId: " . $record['messageId'] . ' on campaign ' . $record['campaignId']);
+    if (!$result) {
+        //wiz_log("Failed to upsert $metricType record for messageId: " . $record['messageId'] . ". Error: " . $wpdb->last_error);
     }
 
-    return $result;
+    return (bool)$result;
 }
+
 
 
 
