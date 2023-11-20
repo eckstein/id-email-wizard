@@ -1180,24 +1180,32 @@ add_action('idemailwiz_twice_daily_sync', 'sync_ga_campaign_revenue_data');
 if (!wp_next_scheduled('idemailwiz_start_export_jobs')) {
     wp_schedule_event(time(), 'hourly', 'idemailwiz_start_export_jobs');
 }
-add_action('idemailwiz_start_export_jobs', 'sync_ga_campaign_revenue_data');
+add_action('idemailwiz_start_export_jobs', 'idemailwiz_start_export_jobs');
 
-function idemailwiz_start_export_jobs()
-{
-
+function idemailwiz_start_export_jobs() {
     $metricTypes = ['send', 'open', 'click', 'bounce', 'sendSkip', 'unSubscribe', 'complaint'];
     wiz_log('Iterable export jobs started via external cron...');
+
     foreach ($metricTypes as $metricType) {
+        $startTime = microtime(true);
+
         $jobTransient = get_transient("idemailwiz_sync_{$metricType}_jobId") ?? false;
         $transientLastUpdated = $jobTransient['lastUpdated'] ?? false;
 
         if (!$jobTransient || ($transientLastUpdated && (time() - $transientLastUpdated) > (60 * 60))) {
-            // If the transient hasn't been updated in more than an hour, we'll update
             idemailwiz_start_triggered_data_job($metricType);
         }
-        sleep(1); // 1 request per second limit
+
+        $endTime = microtime(true);
+        $elapsedTime = $endTime - $startTime;
+
+        // If the request took less than 1 second, sleep the remaining time
+        if ($elapsedTime < 1) {
+            usleep((1 - $elapsedTime) * 1000000);
+        }
     }
 }
+
 
 
 
@@ -1302,32 +1310,50 @@ function idemailwiz_process_sync_sequence($syncTypes = [], $campaignIds = null, 
 
 function idemailwiz_start_triggered_data_job($metricType)
 {
-
+    $triggeredCampaigns = get_idwiz_campaigns(['type' => 'Triggered', 'campaignState' => 'Running', 'fields' => 'id']);
     // Prepare the API call to fetch data
     $exportFetchStart = new DateTimeImmutable('-36 hours');
-    $exportStartData = [
-        "outputFormat" => "application/x-json-stream",
-        "dataTypeName" => 'email' . ucfirst($metricType), // Assuming 'email' is prefixed for email metrics
-        "delimiter" => ",",
-        "onlyFields" => "createdAt,userId,campaignId,templateId,messageId",
-        "startDateTime" => $exportFetchStart->format('Y-m-d')
-    ];
-
-    try {
-        // Start the export job for all data
-        $response = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/start', $exportStartData);
-        if (isset($response['response']['jobId'])) {
-            $jobId = $response['response']['jobId'];
-            $transientData = ['lastUpdated' => time(), 'jobId' => $jobId];
-            set_transient("idemailwiz_sync_{$metricType}_jobId", $transientData, (60 * 60 * 24) * 7); // 7 days expiration (Iterable holds exports for 7 days)
-            wiz_log("Triggered {$metricType}s export started with Job ID: $jobId");
-        } else {
-            throw new Exception('Failed to start export job');
+    $transientData['jobIds'] = [];
+    foreach ($triggeredCampaigns as $campaign) {
+        
+        if (!isset($campaign['id'])) {
+            continue;
         }
-    } catch (Exception $e) {
-        wiz_log("Error starting export job: " . $e->getMessage());
-        delete_transient("idemailwiz_sync_{$metricType}_running");
-        return false;
+        $exportStartData = [
+            "outputFormat" => "application/x-json-stream",
+            "dataTypeName" => 'email' . ucfirst($metricType), 
+            "delimiter" => ",",
+            "onlyFields" => "createdAt,userId,campaignId,templateId,messageId",
+            "startDateTime" => $exportFetchStart->format('Y-m-d'),
+            "campaignId" => (int)$campaign['id']
+        ];
+        try {
+            $startTime = microtime(true);
+            // Start the export job for all data
+            $response = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/start', $exportStartData);
+            if (isset($response['response']['jobId'])) {
+                $jobId = $response['response']['jobId'];
+                $transientData['lastUpdated'] = time();
+                if (!in_array($jobId, $transientData['jobIds'])) {
+                    $transientData['jobIds'][] = $jobId;
+                }
+                set_transient("idemailwiz_sync_{$metricType}_jobId", $transientData, (60 * 60 * 24) * 7); // 7 days expiration (Iterable holds exports for 7 days)
+                //wiz_log("Triggered {$metricType}s export started for campaign {$campaign['id']} with Job ID: $jobId");
+            } else {
+                throw new Exception('Failed to start export job');
+            }
+        } catch (Exception $e) {
+            wiz_log("Error starting export job: " . $e->getMessage());
+            delete_transient("idemailwiz_sync_{$metricType}_running");
+            return false;
+        }
+        $endTime = microtime(true);
+        $elapsedTime = $endTime - $startTime;
+
+        // If the request took less than 1 second, sleep the remaining time
+        if ($elapsedTime < 1) {
+            usleep((1 - $elapsedTime) * 1000000);
+        }
     }
 
     return true;
@@ -1337,7 +1363,7 @@ function idemailwiz_start_triggered_data_job($metricType)
 function idemailwiz_sync_triggered_metrics($metricType)
 {
     $jobTransient = get_transient("idemailwiz_sync_{$metricType}_jobId") ?? false;
-    $jobId = $jobTransient['jobId'] ?? false;
+    $jobIds = $jobTransient['jobIds'] ?? false;
 
     // Check if a sync is already running, and if so, exit the function
     if (get_transient("idemailwiz_sync_{$metricType}_running")) {
@@ -1353,7 +1379,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
 
 
 
-    if (!$jobId) {
+    if (!$jobIds) {
         wiz_log("No Job ID found for Triggered {$metricType}s, starting a new export job, which will sync next time...");
 
         // Start a new export job so it fills our missing transient
@@ -1361,58 +1387,61 @@ function idemailwiz_sync_triggered_metrics($metricType)
         delete_transient("idemailwiz_sync_{$metricType}_running");
         return false;
     }
+    foreach ($jobIds as $jobId) {
+        $apiResponse = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/' . $jobId . '/files');
+        if (!$apiResponse or empty($apiResponse)) {
+            return false;
+        }
+        $jobState = $apiResponse['response']['jobState'];
 
-    $apiResponse = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/' . $jobId . '/files');
-    if (!$apiResponse or empty($apiResponse)) {
-        return false;
-    }
-    $jobState = $apiResponse['response']['jobState'];
+        if ($jobState === 'failed') {
+            wiz_log("Export job failed for Job ID: $jobId");
+            
+            continue;
+        } else if ($jobState == 'completed') {
+            $startAfter = '';
+            do {
+                // Fetch file list with pagination
+                $fileApiResponse = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/' . $jobId . '/files?startAfter=' . $startAfter);
+                foreach ($fileApiResponse['response']['files'] as $file) {
+                    // Process each file
+                    $processResult = idemailwiz_process_completed_sync_job($file['url'], $metricType);
+                    if ($processResult != true) {
+                        wiz_log('job could not be processed, skipping...');
+                        continue;
+                    }
 
-    if ($jobState === 'failed') {
-        wiz_log("Export job failed for Job ID: $jobId");
-        delete_transient("idemailwiz_sync_{$metricType}_running");
-        return false;
-    } else if ($jobState == 'completed') {
-        $startAfter = '';
-        do {
-            // Fetch file list with pagination
-            $fileApiResponse = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/' . $jobId . '/files?startAfter='.$startAfter);
-            foreach ($fileApiResponse['response']['files'] as $file) {
-                // Process each file
-                $processResult = idemailwiz_process_completed_sync_job($file['url'], $metricType);
-                if ($processResult != true) {
-                    return false;
+                    // Update startAfter for pagination
+                    $startAfter = basename($file['url']);
                 }
 
-                // Update startAfter for pagination
-                $startAfter = basename($file['url']);
-            }
+                // Check if more files are available
+                $moreFilesAvailable = count($fileApiResponse['response']['files']) > 0;
+            } while ($moreFilesAvailable);
 
-            // Check if more files are available
-            $moreFilesAvailable = count($fileApiResponse['response']['files']) > 0;
-        } while ($moreFilesAvailable);
-
-        delete_transient("idemailwiz_sync_{$metricType}_running");
-        return true;
-    } else {
-        wiz_log("Job ID $jobId for Triggered {$metricType}s is not yet ready for export, skipping...");
-        delete_transient("idemailwiz_sync_{$metricType}_running");
-        return false;
+        } else {
+            wiz_log("Job ID $jobId for Triggered {$metricType}s is not yet ready for export, skipping...");
+            continue;
+        }
+        sleep(1); // max a per second max
     }
+    delete_transient("idemailwiz_sync_{$metricType}_running");
 }
 
-function idemailwiz_process_completed_sync_job($fileUrl, $metricType) {
+function idemailwiz_process_completed_sync_job($fileUrl, $metricType)
+{
     set_time_limit(360);
     global $wpdb;
     $cntRecords = 0;
 
-    wiz_log("Initial Memory Usage: " . memory_get_usage() / 1024 . " KB");
+    //wiz_log("Initial Memory Usage: " . memory_get_usage() / 1024 . " KB");
 
     $jsonResponse = file_get_contents($fileUrl);
     $lines = explode("\n", $jsonResponse);
 
     foreach ($lines as $line) {
-        if (trim($line) === '') continue;
+        if (trim($line) === '')
+            continue;
 
         $decodedData = json_decode($line, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
@@ -1423,20 +1452,21 @@ function idemailwiz_process_completed_sync_job($fileUrl, $metricType) {
         $cntRecords++;
 
         if (idemailwiz_insert_triggered_metric_record($decodedData, $metricType)) {
-            
+
         }
 
         // Log memory usage after each record processing
         if ($cntRecords % 500 == 0) { // Adjust the modulus value as needed for logging frequency
-            wiz_log("Processed $cntRecords records. Current Memory Usage: " . memory_get_usage() / 1024 . " KB .");
+            //wiz_log("Processed $cntRecords records. Current Memory Usage: " . memory_get_usage() / 1024 . " KB .");
         }
         // Manually invoke garbage collection
         unset($decodedData);
         gc_collect_cycles();
-        
+
     }
 
-    wiz_log("Finished updating $cntRecords triggered $metricType records from file: $fileUrl. Final Memory Usage: " . memory_get_usage() / 1024 . " KB");
+    //wiz_log("Finished updating $cntRecords triggered $metricType records from file: $fileUrl");
+    //wiz_log("Final Memory Usage: " . memory_get_usage() / 1024 . " KB");
     return true;
 }
 
@@ -1445,7 +1475,8 @@ function idemailwiz_process_completed_sync_job($fileUrl, $metricType) {
 
 
 
-function idemailwiz_insert_triggered_metric_record($record, $metricType) {
+function idemailwiz_insert_triggered_metric_record($record, $metricType)
+{
     global $wpdb;
     $dbMetric = strtolower($metricType);
     $tableName = $wpdb->prefix . 'idemailwiz_triggered_' . $dbMetric . 's';
@@ -1465,8 +1496,8 @@ function idemailwiz_insert_triggered_metric_record($record, $metricType) {
 
     // Check if the record exists
     $exists = $wpdb->get_var($wpdb->prepare("SELECT messageId FROM $tableName WHERE messageId = %s", $record['messageId']));
-    
-    
+
+
     if ($exists) {
         // Update existing record
         $where = ['messageId' => $record['messageId']];
@@ -1485,7 +1516,7 @@ function idemailwiz_insert_triggered_metric_record($record, $metricType) {
         //wiz_log("Failed to upsert $metricType record for messageId: " . $record['messageId'] . ". Error: " . $wpdb->last_error);
     }
 
-    return (bool)$result;
+    return (bool) $result;
 }
 
 

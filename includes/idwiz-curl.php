@@ -37,7 +37,6 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
 
         // Execute the request
         $response = curl_exec($ch);
-        $info = curl_getinfo($ch);
         if ($response === false) {
             $error = curl_error($ch);
             error_log("cURL Error: $error");
