@@ -1427,6 +1427,8 @@ function idemailwiz_process_completed_sync_job($fileUrl, $metricType) {
         if ($cntRecords % 100 == 0) { // Adjust the modulus value as needed for logging frequency
             wiz_log("Processed $cntRecords records. Current Memory Usage: " . memory_get_usage() / 1024 . " KB");
         }
+        // Manually invoke garbage collection
+        gc_collect_cycles();
     }
 
     wiz_log("Finished updating $cntRecords triggered $metricType records from file: $fileUrl. Final Memory Usage: " . memory_get_usage() / 1024 . " KB");
