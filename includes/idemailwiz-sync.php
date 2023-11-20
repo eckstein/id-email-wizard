@@ -1445,7 +1445,8 @@ function idemailwiz_process_completed_sync_job($fileUrl, $metricType) {
 
 function idemailwiz_insert_triggered_metric_record($record, $metricType) {
     global $wpdb;
-    $tableName = $wpdb->prefix . 'idemailwiz_triggered_' . $metricType . 's';
+    $dbMetric = strtolower($metricType);
+    $tableName = $wpdb->prefix . 'idemailwiz_triggered_' . $dbMetric . 's';
 
     if (!is_array($record) || empty($record) || !isset($record['messageId'])) {
         return false;
