@@ -548,14 +548,14 @@ window.manageCampaignsInInitiative = function (action, campaignIds, onSuccess = 
 	window.Swal.fire(swalConfig);
 };
 
-// if (jQuery("#syncLogContent code").length) {
-// 	// Auto-refresh a log element
-// 	let refreshWizLog = setInterval(() => {
-// 		jQuery("#syncLogContent code").load(idAjax.plugin_url + "/wiz-log.log", function () {
-// 			hljs.highlightElement(document.querySelector("#syncLogContent code"));
-// 		});
-// 	}, 3000);
-// }
+if (jQuery("#syncLogContent code").length) {
+	// Auto-refresh a log element
+	let refreshWizLog = setInterval(() => {
+		jQuery("#syncLogContent code").load(idAjax.plugin_url + "/wiz-log.log", function () {
+			hljs.highlightElement(document.querySelector("#syncLogContent code"));
+		});
+	}, 3000);
+}
 
 jQuery("#syncStationForm").on("submit", function (e) {
 	e.preventDefault();

@@ -1324,6 +1324,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
     $tableName = $wpdb->prefix . 'idemailwiz_triggered_' . $metricType . 's';
     $jobState = 'starting';
     while ($jobState !== 'completed') {
+        wiz_log('checking job state for job ID '. $jobId.' Job State: '. $jobState);
         sleep(1);
         $apiResponse = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/' . $jobId . '/files');
         $jobState = $apiResponse['response']['jobState'];
@@ -1333,6 +1334,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
             return;
         }
     }
+    wiz_log('Job state for job ID '. $jobId.': '. $jobState);
     // Process the completed job
     foreach ($apiResponse['response']['files'] as $file) {
         $jsonResponse = file_get_contents($file['url']);
