@@ -1323,17 +1323,35 @@ function idemailwiz_sync_triggered_metrics($metricType)
     $cntRecords = 0;
     $tableName = $wpdb->prefix . 'idemailwiz_triggered_' . $metricType . 's';
     $jobState = 'starting';
+    $syncStartTime = time(); // Record the start time
+
+    // Counter for logging updates
+    $updateInterval = 10; // Log an update every 10 iterations
+    $iterationCount = 0;
+
     while ($jobState !== 'completed') {
-        wiz_log('checking job state for job ID '. $jobId.' Job State: '. $jobState);
-        sleep(1);
+        if (time() - $syncStartTime > 240) { // 4 minutes limit
+            wiz_log("Approaching execution time limit for job ID $jobId. Skipping for this sync session.");
+            break; 
+        }
+        sleep(1); // Wait before each iteration
+        $iterationCount++;
+
+        // Periodic logging
+        if ($iterationCount % $updateInterval == 0) {
+            wiz_log("Status check: Job ID $jobId current state: $jobState.");
+        }
+
         $apiResponse = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/' . $jobId . '/files');
         $jobState = $apiResponse['response']['jobState'];
+
         if ($jobState === 'failed') {
             wiz_log("Export job failed for Job ID: $jobId");
             delete_transient("idemailwiz_sync_{$metricType}_running");
             return;
         }
     }
+
     wiz_log('Job state for job ID '. $jobId.': '. $jobState);
     // Process the completed job
     foreach ($apiResponse['response']['files'] as $file) {
