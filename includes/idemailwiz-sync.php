@@ -1241,10 +1241,10 @@ function idemailwiz_process_sync_sequence($syncTypes = [], $campaignIds = false,
         return false; // Abort the sync sequence
     }
 
-    wiz_log('Sync sequence initiated, please wait...');
+    wiz_log('Sync sequence for '.implode(', ',$sync_queue).' initiated, please wait...');
 
     // Mark the start of a sync sequence
-    set_transient('idemailwiz_sync_in_progress', true, 60 * 120); // 2 hour expiration
+    set_transient('idemailwiz_sync_in_progress', true, 60 * 61); // 61 minute expiration
 
     if ((isset($wizSettings['iterable_sync_toggle']) && $wizSettings['iterable_sync_toggle'] === 'on') || $manualSync) {
         if (in_array('blast', $sync_queue)) {
