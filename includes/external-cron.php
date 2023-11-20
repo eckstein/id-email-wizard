@@ -40,24 +40,19 @@ function do_idwiz_external_cron_actions($args)
 {
     // Determine action
     if ($args['action'] == 'sync') {
+         // Set HTTP response code to 200 OK
+        http_response_code(200);
+
+        echo "Sync sequence triggered by external cron...";
+        flush();
         // Initiate database sync, if external cron sync is on
         $startSync = idemailwiz_process_sync_sequence();
-        if ($startSync) {
-            wiz_log('External cron sync initiated, checking sync settings...');
-            // Send a success response
-            status_header(200);
-            exit;
-        } else {
-            wiz_log('External cron sync initiated but a previous sync is already in progress. Skipping sync sequence...');
-            status_header(503); // Service Unavailable
-            exit;
-        }
+        
     } else if ($args['action'] == 'startJobs') {
         // Set HTTP response code to 200 OK
         http_response_code(200);
 
-        // Optionally, you can also send a message in the response body
-        echo "Triggered export function called";
+        echo "Triggered export s triggered by external cron...";
         flush();
 
         // Load up our transients with job Ids for the next triggered sync
