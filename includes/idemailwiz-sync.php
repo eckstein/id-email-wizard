@@ -1421,6 +1421,7 @@ function idemailwiz_process_completed_sync_job($fileUrl, $metricType) {
         if (idemailwiz_insert_triggered_metric_record($decodedData, $metricType)) {
             $cntRecords++;
         }
+        usleep(10000); // Sleep for 10ms 
     }
 
     wiz_log("Finished updating $cntRecords triggered $metricType records from file: $fileUrl");
