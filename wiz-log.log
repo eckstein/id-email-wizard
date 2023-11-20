@@ -1,0 +1,18 @@
+[2023-11-19 8:10:32pm] Experiments sync results: 
+Successful update of 4 records.
+[2023-11-19 8:08:48pm] Purchases sync results: 
+Successful insert of 46 records.
+[2023-11-19 8:08:43pm] Metrics sync results: 
+Successful insert of 1 records.
+Successful update of 77 records.
+[2023-11-19 8:08:08pm] Templates sync results: 
+The templates sync is up to date! No inserts or updates are needed.
+[2023-11-19 8:07:41pm] Campaigns sync results: 
+Successful insert of 1 records.
+Successful update of 57 records.
+[2023-11-19 8:06:48pm] Sync sequence for blast initiated, please wait...
+[2023-11-19 7:59:19pm] GA campaign revenue data synced successfully. 2941 updates and 9 inserts performed
+[2023-11-19 7:59:13pm] Starting GA campaign revenue data sync.
+[2023-11-19 7:59:13pm] Triggered sync cron initiated but sync toggle is disabled.
+[2023-11-19 7:59:13pm] Blast sync cron initiated but sync toggle is disabled.
+[2023-11-19 7:59:13pm] Sync sequence for send, open, click, unSubscribe, bounce, sendSkip, complaint initiated, please wait...

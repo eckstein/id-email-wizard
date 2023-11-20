@@ -38,16 +38,24 @@ add_action('parse_request', 'idemailwiz_parse_external_cron_request', 0);
 
 function do_idwiz_external_cron_actions($args)
 {
-    // Initiate database sync, if external cron sync is on
-    $startSync = idemailwiz_process_sync_sequence();
-    if ($startSync) {
-        wiz_log('External cron sync initiated, starting sync sequence...');
-        // Send a success response
+    // Determine action
+    if ($args['action'] == 'sync') {
+        // Initiate database sync, if external cron sync is on
+        $startSync = idemailwiz_process_sync_sequence();
+        if ($startSync) {
+            wiz_log('External cron sync initiated, starting sync sequence...');
+            // Send a success response
+            status_header(200);
+            exit;
+        } else {
+            wiz_log('External cron sync initiated but a previous sync is already in progress. Skipping sync sequence...');
+            status_header(503); // Service Unavailable
+            exit;
+        }
+    } else if ($args['action'] == 'startJobs') {
+        // Load up our transients with job Ids for the next triggered sync
+        idemailwiz_start_export_jobs();
         status_header(200);
-        exit;
-    } else {
-        wiz_log('External cron sync initiated but a previous sync is already in progress. Skipping sync sequence...');
-        status_header(503); // Service Unavailable
         exit;
     }
 

@@ -1176,6 +1176,30 @@ if (!wp_next_scheduled('idemailwiz_twice_daily_sync')) {
 add_action('idemailwiz_twice_daily_sync', 'sync_ga_campaign_revenue_data');
 
 
+// Schedule the hourly job exports for triggered data
+if (!wp_next_scheduled('idemailwiz_start_export_jobs')) {
+    wp_schedule_event(time(), 'hourly', 'idemailwiz_start_export_jobs');
+}
+add_action('idemailwiz_start_export_jobs', 'sync_ga_campaign_revenue_data');
+
+function idemailwiz_start_export_jobs()
+{
+
+    $metricTypes = ['send', 'open', 'click', 'bounce', 'sendSkip', 'unSubscribe', 'complaint'];
+    wiz_log('Iterable export jobs started via external cron...');
+    foreach ($metricTypes as $metricType) {
+        $jobTransient = get_transient("idemailwiz_sync_{$metricType}_jobId") ?? false;
+        $transientLastUpdated = $jobTransient['lastUpdated'] ?? false;
+
+        if (!$jobTransient || ($transientLastUpdated && (time() - $transientLastUpdated) > (60 * 60))) {
+            // If the transient hasn't been updated in more than an hour, we'll update
+            idemailwiz_start_triggered_data_job($metricType);
+        }
+        sleep(1); // 1 request per second limit
+    }
+}
+
+
 
 
 $wizSettings = get_option('idemailwiz_settings');
@@ -1200,7 +1224,8 @@ if ($cronSyncActive === 'wp_cron') {
 
 add_action('wp_ajax_idemailwiz_handle_manual_sync', 'idemailwiz_handle_manual_sync');
 
-function idemailwiz_handle_manual_sync() {
+function idemailwiz_handle_manual_sync()
+{
     check_ajax_referer('id-general', 'security');
 
     // Extract the form fields from the POST data
@@ -1226,7 +1251,8 @@ function idemailwiz_handle_manual_sync() {
 }
 
 
-function idemailwiz_process_sync_sequence($syncTypes = [], $campaignIds = false, $manualSync = false) {
+function idemailwiz_process_sync_sequence($syncTypes = [], $campaignIds = false, $manualSync = false)
+{
     // Default sync queue for triggered sync types
     $default_sync_queue = ['send', 'open', 'click', 'unSubscribe', 'bounce', 'sendSkip', 'complaint'];
 
@@ -1241,7 +1267,7 @@ function idemailwiz_process_sync_sequence($syncTypes = [], $campaignIds = false,
         return false; // Abort the sync sequence
     }
 
-    wiz_log('Sync sequence for '.implode(', ',$sync_queue).' initiated, please wait...');
+    wiz_log('Sync sequence for ' . implode(', ', $sync_queue) . ' initiated, please wait...');
 
     // Mark the start of a sync sequence
     set_transient('idemailwiz_sync_in_progress', true, 60 * 61); // 61 minute expiration
@@ -1274,25 +1300,8 @@ function idemailwiz_process_sync_sequence($syncTypes = [], $campaignIds = false,
 
 
 
-
-
-function idemailwiz_sync_triggered_metrics($metricType)
+function idemailwiz_start_triggered_data_job($metricType)
 {
-    // Check if a sync is already running, and if so, exit the function
-    if (get_transient("idemailwiz_sync_{$metricType}_running")) {
-        //wiz_log("Sync for {$metricType} is already running. Exiting...");
-        return;
-    }
-
-    // Set transient to indicate the sync is running
-    set_transient("idemailwiz_sync_{$metricType}_running", true, 20 * MINUTE_IN_SECONDS);
-
-    wiz_log("Starting triggered {$metricType}s sync...");
-    global $wpdb;
-
-    // Get all triggered campaign IDs with 'Running' state
-    $triggeredCampaigns = get_idwiz_campaigns(['type' => 'Triggered', 'campaignState' => 'Running']);
-    $triggeredCampaignIds = array_column($triggeredCampaigns, 'id');
 
     // Prepare the API call to fetch data
     $exportFetchStart = new DateTimeImmutable('-36 hours');
@@ -1309,50 +1318,77 @@ function idemailwiz_sync_triggered_metrics($metricType)
         $response = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/start', $exportStartData);
         if (isset($response['response']['jobId'])) {
             $jobId = $response['response']['jobId'];
-            wiz_log("Export job started with Job ID: $jobId");
+            $transientData = ['lastUpdated' => time(), 'jobId' => $jobId];
+            set_transient("idemailwiz_sync_{$metricType}_jobId", $transientData, (60 * 60 * 24) * 7); // 7 days expiration (Iterable holds exports for 7 days)
+            wiz_log("Triggered {$metricType}s export started with Job ID: $jobId");
         } else {
             throw new Exception('Failed to start export job');
         }
     } catch (Exception $e) {
         wiz_log("Error starting export job: " . $e->getMessage());
         delete_transient("idemailwiz_sync_{$metricType}_running");
+        return false;
+    }
+
+    return true;
+}
+
+function idemailwiz_sync_triggered_metrics($metricType)
+{
+    $jobTransient = get_transient("idemailwiz_sync_{$metricType}_jobId") ?? false;
+    $jobId = $jobTransient['jobId'] ?? false;
+
+    // Check if a sync is already running, and if so, exit the function
+    if (get_transient("idemailwiz_sync_{$metricType}_running")) {
+        wiz_log("Sync for {$metricType} is already running. Exiting...");
         return;
     }
 
-    // Wait and fetch the data from the Iterable export job
-    $cntRecords = 0;
-    $tableName = $wpdb->prefix . 'idemailwiz_triggered_' . $metricType . 's';
-    $jobState = 'starting';
-    $syncStartTime = time(); // Record the start time
+    // Set transient to indicate the sync is running
+    set_transient("idemailwiz_sync_{$metricType}_running", true, 20 * MINUTE_IN_SECONDS);
 
-    // Counter for logging updates
-    $updateInterval = 10; // Log an update every 10 iterations
-    $iterationCount = 0;
+    wiz_log("Starting triggered {$metricType}s sync...");
+    global $wpdb;
 
-    while ($jobState !== 'completed') {
-        if (time() - $syncStartTime > 240) { // 4 minutes limit
-            wiz_log("Approaching execution time limit for job ID $jobId. Skipping for this sync session.");
-            break; 
-        }
-        sleep(1); // Wait before each iteration
-        $iterationCount++;
 
-        // Periodic logging
-        if ($iterationCount % $updateInterval == 0) {
-            wiz_log("Status check: Job ID $jobId current state: $jobState.");
-        }
 
-        $apiResponse = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/' . $jobId . '/files');
-        $jobState = $apiResponse['response']['jobState'];
+    if (!$jobId) {
+        wiz_log("No Job ID found for Triggered {$metricType}s, starting a new export job, which will sync next time...");
 
-        if ($jobState === 'failed') {
-            wiz_log("Export job failed for Job ID: $jobId");
-            delete_transient("idemailwiz_sync_{$metricType}_running");
-            return;
-        }
+        // Start a new export job so it fills our missing transient
+        idemailwiz_start_triggered_data_job($metricType);
+        delete_transient("idemailwiz_sync_{$metricType}_running");
+        return false;
     }
 
-    wiz_log('Job state for job ID '. $jobId.': '. $jobState);
+    $apiResponse = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/' . $jobId . '/files');
+    $jobState = $apiResponse['response']['jobState'];
+
+    if ($jobState === 'failed') {
+        wiz_log("Export job failed for Job ID: $jobId");
+        delete_transient("idemailwiz_sync_{$metricType}_running");
+        return false;
+    } else if ($jobState == 'completed') {
+        $processJob = idemailwiz_process_completed_sync_job($apiResponse, $metricType);
+        if ($processJob) {
+            return true;
+        } else {
+            return false;
+        }
+    } else {
+        wiz_log("Job ID $jobId for Triggered {$metricType}s is not yet ready for export, skipping...");
+        delete_transient("idemailwiz_sync_{$metricType}_running");
+        return false;
+    }
+}
+
+function idemailwiz_process_completed_sync_job($apiResponse, $metricType)
+{
+
+    global $wpdb;
+
+    $cntRecords = 0;
+    $tableName = $wpdb->prefix . 'idemailwiz_triggered_' . $metricType . 's';
     // Process the completed job
     foreach ($apiResponse['response']['files'] as $file) {
         $jsonResponse = file_get_contents($file['url']);
@@ -1369,6 +1405,9 @@ function idemailwiz_sync_triggered_metrics($metricType)
                 continue;
             }
             // Filter out records that don't match our triggered campaigns
+            // Get all triggered campaign IDs with 'Running' state
+            $triggeredCampaigns = get_idwiz_campaigns(['type' => 'Triggered', 'campaignState' => 'Running']);
+            $triggeredCampaignIds = array_column($triggeredCampaigns, 'id');
 
             if (isset($decodedData['campaignId']) && in_array($decodedData['campaignId'], $triggeredCampaignIds)) {
                 $messageId = $decodedData['messageId'] ?? false;
