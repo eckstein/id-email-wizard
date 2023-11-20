@@ -1402,6 +1402,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
 }
 
 function idemailwiz_process_completed_sync_job($fileUrl, $metricType) {
+    set_time_limit(360);
     global $wpdb;
     $cntRecords = 0;
 
