@@ -1185,8 +1185,8 @@ add_action('idemailwiz_start_export_jobs', 'idemailwiz_start_export_jobs');
 function idemailwiz_start_export_jobs()
 {
     $metricTypes = ['send', 'open', 'click', 'bounce', 'sendSkip', 'unSubscribe', 'complaint'];
-    wiz_log('Iterable export jobs started via external cron...');
-    
+    wiz_log('Iterable export jobs started via cron...');
+
     foreach ($metricTypes as $metricType) {
         $startTime = microtime(true);
 
@@ -1281,9 +1281,10 @@ function idemailwiz_process_sync_sequence($syncTypes = [], $campaignIds = null, 
     }
 
     wiz_log('Sync sequence for ' . implode(', ', $sync_queue) . ' initiated, please wait...');
+
     $blastSync = $wizSettings['iterable_sync_toggle'] ?? 'off';
     $triggeredSync = $wizSettings['iterable_triggered_sync_toggle'] ?? 'off';
-    if (($blastSync != 'on' && $triggeredSync != 'on') && !$manualSync) {
+    if (($blastSync !== 'on' && $triggeredSync != 'on') && !$manualSync) {
         wiz_log('Blast and Triggered sync are turned off in the sync settings.');
         return false;
     }
@@ -1301,16 +1302,19 @@ function idemailwiz_process_sync_sequence($syncTypes = [], $campaignIds = null, 
             wiz_log('Blast sync cron initiated but sync toggle is disabled.');
             //return false;
         }
+        //remove 'blast' from sync array
+        $sync_queue = array_diff($sync_queue, ['blast']);
     }
 
 
     // If there's more than 1 item in the sync queue, we know there's at least one triggered type
-    if (count($sync_queue) > 1) {
+    if (count($sync_queue) > 0) {
 
         if ($triggeredSync == 'on' || $manualSync) {
-            foreach ($sync_queue as $sync_action) {
+            foreach ($sync_queue as $metricType) {
                 // Handle the triggered sync types
-                idemailwiz_sync_triggered_metrics($sync_action);
+                wiz_log('Syncing triggered '. $metricType);
+                idemailwiz_sync_triggered_metrics($metricType);
             }
         } else {
             wiz_log('Triggered sync cron initiated but sync toggle is disabled.');
@@ -1433,14 +1437,16 @@ function idemailwiz_sync_triggered_metrics($metricType)
                     // Process each file
                     $processResult = idemailwiz_process_completed_sync_job($file['url'], $metricType);
                     if ($processResult > 0) {
-                        wiz_log('job could not be processed, skipping...');
+                        wiz_log("Job $jobId could not be processed, skipping...");
+                        // Update startAfter for pagination so we don't get stuck in a loop
+                        $startAfter = basename($file['url']);
                         continue;
                     }
 
                     $cntRecords += $processResult;
-
                     // Update startAfter for pagination
                     $startAfter = basename($file['url']);
+                    
                 }
 
                 // Check if more files are available
