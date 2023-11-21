@@ -1414,6 +1414,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
 
             continue;
         } else if ($jobState == 'completed') {
+            wiz_log('Fetched completed job with Job ID: '. $jobId);
             $startAfter = '';
             do {
                 // Fetch file list with pagination
