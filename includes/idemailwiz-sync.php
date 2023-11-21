@@ -1290,7 +1290,7 @@ function idemailwiz_process_sync_sequence($syncTypes = [], $campaignIds = null, 
     wiz_log('Sync sequence for ' . implode(', ', $sync_queue) . ' initiated, please wait...');
     $blastSync = $wizSettings['iterable_sync_toggle'] ?? 'off';
     $triggeredSync = $wizSettings['iterable_triggered_sync_toggle'] ?? 'off';
-    if (($blastSync != 'on' && $triggeredSync != 'on') || $manualSync) {
+    if (($blastSync != 'on' && $triggeredSync != 'on') && !$manualSync) {
         wiz_log('Blast and Triggered sync are turned off in the sync settings.');
         return false;
     }
