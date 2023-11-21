@@ -1328,6 +1328,7 @@ function idemailwiz_start_triggered_data_job($metricType)
     // Prepare the API call to fetch data
     $exportFetchStart = new DateTimeImmutable('-36 hours');
     $transientData['jobIds'] = [];
+    $countRetrieved = 0;
     foreach ($triggeredCampaigns as $campaign) {
 
         if (!isset($campaign['id'])) {
@@ -1352,6 +1353,8 @@ function idemailwiz_start_triggered_data_job($metricType)
                     $transientData['jobIds'][] = $jobId;
                 }
                 set_transient("idemailwiz_sync_{$metricType}_jobId", $transientData, (60 * 60 * 24) * 7); // 7 days expiration (Iterable holds exports for 7 days)
+
+                $countRetrieved++;
                 //wiz_log("Triggered {$metricType}s export started for campaign {$campaign['id']} with Job ID: $jobId");
             } else {
                 throw new Exception('Failed to start export job');
@@ -1369,7 +1372,7 @@ function idemailwiz_start_triggered_data_job($metricType)
             usleep((1 - $elapsedTime) * 1000000);
         }
     }
-
+    wiz_log("Triggered {$metricType}s exports started and Job IDs stored for $countRetrieved campaigns");
     return true;
 }
 
@@ -1402,6 +1405,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
         return false;
     }
     wiz_log('Retrieving jobs from Iterable');
+     $cntRecords = 0;
     foreach ($jobIds as $jobId) {
         $apiResponse = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/' . $jobId . '/files');
         if (!$apiResponse or empty($apiResponse)) {
@@ -1422,10 +1426,12 @@ function idemailwiz_sync_triggered_metrics($metricType)
                 foreach ($fileApiResponse['response']['files'] as $file) {
                     // Process each file
                     $processResult = idemailwiz_process_completed_sync_job($file['url'], $metricType);
-                    if ($processResult != true) {
+                    if ($processResult == false) {
                         wiz_log('job could not be processed, skipping...');
                         continue;
                     }
+                    
+                    $cntRecords += $processResult;
 
                     // Update startAfter for pagination
                     $startAfter = basename($file['url']);
@@ -1451,8 +1457,6 @@ function idemailwiz_process_completed_sync_job($fileUrl, $metricType)
     global $wpdb;
     $cntRecords = 0;
 
-    //wiz_log("Initial Memory Usage: " . memory_get_usage() / 1024 . " KB");
-
     $jsonResponse = file_get_contents($fileUrl);
     $lines = explode("\n", $jsonResponse);
 
@@ -1466,25 +1470,18 @@ function idemailwiz_process_completed_sync_job($fileUrl, $metricType)
             continue;
         }
 
-        $cntRecords++;
-
         if (idemailwiz_insert_triggered_metric_record($decodedData, $metricType)) {
-
+            $cntRecords++;
         }
 
-        // Log memory usage after each record processing
-        if ($cntRecords % 500 == 0) { // Adjust the modulus value as needed for logging frequency
-            //wiz_log("Processed $cntRecords records. Current Memory Usage: " . memory_get_usage() / 1024 . " KB .");
-        }
         // Manually invoke garbage collection
         unset($decodedData);
         gc_collect_cycles();
 
     }
 
-    //wiz_log("Finished updating $cntRecords triggered $metricType records from file: $fileUrl");
-    //wiz_log("Final Memory Usage: " . memory_get_usage() / 1024 . " KB");
-    return true;
+    wiz_log("Finished updating $cntRecords triggered $metricType records.");
+    return $cntRecords;
 }
 
 
