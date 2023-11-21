@@ -1187,11 +1187,7 @@ function idemailwiz_start_export_jobs()
     $metricTypes = ['send', 'open', 'click', 'bounce', 'sendSkip', 'unSubscribe', 'complaint'];
     wiz_log('Iterable export jobs started via external cron...');
 
-    if (get_transient('idemailwiz_export_jobs_running')) {
-        wiz_log('Export jobs are already running, skipping...');
-        return;
-    }
-    set_transient('idemailwiz_export_jobs_running', true, 60 * 20);
+    
 
 
     foreach ($metricTypes as $metricType) {
@@ -1201,7 +1197,12 @@ function idemailwiz_start_export_jobs()
         $transientLastUpdated = $jobTransient['lastUpdated'] ?? false;
 
         if (!$jobTransient || ($transientLastUpdated && (time() - $transientLastUpdated) > (60 * 60))) {
-             wiz_log("Starting triggered {$metricType}s export jobs...");
+            if (get_transient('idemailwiz_export_'.$metricType.'_jobs_running')) {
+                wiz_log("Export jobs for $metricType are already running, skipping...");
+                return;
+            }
+            set_transient('idemailwiz_export_'.$metricType.'_jobs_running', true, 60 * 20);
+            wiz_log("Starting triggered {$metricType}s export jobs...");
             idemailwiz_start_triggered_data_job($metricType);
         }
 
@@ -1212,8 +1213,9 @@ function idemailwiz_start_export_jobs()
         if ($elapsedTime < 1) {
             usleep((1 - $elapsedTime) * 1000000);
         }
+        delete_transient('idemailwiz_export_'.$metricType.'_jobs_running');
     }
-    delete_transient('idemailwiz_export_jobs_running');
+    
 }
 
 
@@ -1297,6 +1299,7 @@ function idemailwiz_process_sync_sequence($syncTypes = [], $campaignIds = null, 
         }
     } else {
         wiz_log('Blast sync cron initiated but sync toggle is disabled.');
+        return false;
     }
 
     if ((isset($wizSettings['iterable_triggered_sync_toggle']) && $wizSettings['iterable_triggered_sync_toggle'] === 'on') || $manualSync) {
@@ -1308,6 +1311,7 @@ function idemailwiz_process_sync_sequence($syncTypes = [], $campaignIds = null, 
         }
     } else {
         wiz_log('Triggered sync cron initiated but sync toggle is disabled.');
+        return false;
     }
 
     // Mark the end of the sync sequence
@@ -1389,7 +1393,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
 
 
 
-    if (!$jobIds) {
+    if (!$jobIds || empty($jobIds)) {
         wiz_log("No Export Job IDs found for Triggered {$metricType}s. Will check again in an hour.");
 
         // Start a new export job so it fills our missing transient
@@ -1397,6 +1401,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
         delete_transient("idemailwiz_sync_{$metricType}_running");
         return false;
     }
+    wiz_log('Retrieving jobs from Iterable');
     foreach ($jobIds as $jobId) {
         $apiResponse = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/' . $jobId . '/files');
         if (!$apiResponse or empty($apiResponse)) {
