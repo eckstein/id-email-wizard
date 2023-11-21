@@ -1460,6 +1460,8 @@ function idemailwiz_process_completed_sync_job($fileUrl, $metricType)
     $jsonResponse = file_get_contents($fileUrl);
     $lines = explode("\n", $jsonResponse);
 
+    wiz_log('Looping through lines of file...');
+
     foreach ($lines as $line) {
         if (trim($line) === '')
             continue;
@@ -1468,6 +1470,7 @@ function idemailwiz_process_completed_sync_job($fileUrl, $metricType)
         if (json_last_error() !== JSON_ERROR_NONE) {
             wiz_log('json_decode error: ' . json_last_error_msg());
             continue;
+            wiz_log('json error, skipping');
         }
 
         if (idemailwiz_insert_triggered_metric_record($decodedData, $metricType)) {
@@ -1475,7 +1478,7 @@ function idemailwiz_process_completed_sync_job($fileUrl, $metricType)
         }
 
         // Manually invoke garbage collection
-        unset($decodedData);
+        //unset($decodedData);
         gc_collect_cycles();
 
     }
