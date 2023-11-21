@@ -43,16 +43,17 @@ function do_idwiz_external_cron_actions($args)
          // Set HTTP response code to 200 OK
         http_response_code(200);
 
-        echo "Sync sequence triggered by external cron...";
+        echo "Sync sequence started by external cron...";
         flush();
+
         // Initiate database sync, if external cron sync is on
-        $startSync = idemailwiz_process_sync_sequence();
+        idemailwiz_process_sync_sequence();
         
     } else if ($args['action'] == 'startJobs') {
         // Set HTTP response code to 200 OK
         http_response_code(200);
 
-        echo "Triggered export s triggered by external cron...";
+        echo "Triggered export started by external cron...";
         flush();
 
         // Load up our transients with job Ids for the next triggered sync
