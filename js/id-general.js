@@ -550,12 +550,12 @@ window.manageCampaignsInInitiative = function (action, campaignIds, onSuccess = 
 
 if (jQuery("#syncLogContent code").length) {
 	// Auto-refresh a log element
-	let refreshWizLog = setInterval(() => {
-		let timestamp = new Date().getTime();
-		jQuery("#syncLogContent code").load(idAjax.plugin_url + "/wiz-log.log?" + timestamp, function () {
-			hljs.highlightAll();
-		});
-	}, 3000);
+	// let refreshWizLog = setInterval(() => {
+	// 	let timestamp = new Date().getTime();
+	// 	jQuery("#syncLogContent code").load(idAjax.plugin_url + "/wiz-log.log?" + timestamp, function () {
+	// 		hljs.highlightAll();
+	// 	});
+	// }, 3000);
 
 }
 
