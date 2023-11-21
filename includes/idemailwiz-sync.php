@@ -1441,6 +1441,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
         }
         sleep(1); // max a per second max
     }
+    wiz_log('Finished triggered sync for '. $metricType);
     delete_transient("idemailwiz_sync_{$metricType}_running");
 }
 
