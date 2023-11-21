@@ -1288,7 +1288,7 @@ function idemailwiz_process_sync_sequence($syncTypes = [], $campaignIds = null, 
     }
 
     wiz_log('Sync sequence for ' . implode(', ', $sync_queue) . ' initiated, please wait...');
-    $blastSync = $wizSettings['iterable_triggered_sync_toggle'] ?? 'off';
+    $blastSync = $wizSettings['iterable_sync_toggle'] ?? 'off';
     $triggeredSync = $wizSettings['iterable_triggered_sync_toggle'] ?? 'off';
     if (($blastSync != 'on' && $triggeredSync != 'on') || $manualSync) {
         wiz_log('Blast and Triggered sync are turned off in the sync settings.');
@@ -1466,6 +1466,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
 
 function idemailwiz_process_completed_sync_job($fileUrl, $metricType)
 {
+    
     set_time_limit(360);
     global $wpdb;
     $cntRecords = 0;
@@ -1473,6 +1474,7 @@ function idemailwiz_process_completed_sync_job($fileUrl, $metricType)
     $jsonResponse = file_get_contents($fileUrl);
     $lines = explode("\n", $jsonResponse);
 
+    wiz_log("Processing $metricType with file: $fileUrl");
     wiz_log('Looping through lines of file...');
 
     foreach ($lines as $line) {
