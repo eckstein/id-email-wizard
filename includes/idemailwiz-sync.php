@@ -1439,7 +1439,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
                 foreach ($fileApiResponse['response']['files'] as $file) {
                     // Process each file
                     $processResult = idemailwiz_process_completed_sync_job($file['url'], $metricType);
-                    if ($processResult == false) {
+                    if ($processResult > 0) {
                         wiz_log('job could not be processed, skipping...');
                         continue;
                     }
@@ -1466,8 +1466,8 @@ function idemailwiz_sync_triggered_metrics($metricType)
 
 function idemailwiz_process_completed_sync_job($fileUrl, $metricType)
 {
-    
-    set_time_limit(360);
+
+    //set_time_limit(360);
     global $wpdb;
     $cntRecords = 0;
 
@@ -1475,30 +1475,34 @@ function idemailwiz_process_completed_sync_job($fileUrl, $metricType)
     $lines = explode("\n", $jsonResponse);
 
     wiz_log("Processing $metricType with file: $fileUrl");
-    wiz_log('Looping through lines of file...');
+    wiz_log('Looping through lines of file (if any)...');
 
-    foreach ($lines as $line) {
-        if (trim($line) === '')
-            continue;
+    if (!empty($lines)) {
+        foreach ($lines as $line) {
+            if (trim($line) === '')
+                continue;
 
-        $decodedData = json_decode($line, true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            wiz_log('json_decode error: ' . json_last_error_msg());
-            continue;
-            wiz_log('json error, skipping');
+            $decodedData = json_decode($line, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                wiz_log('json_decode error: ' . json_last_error_msg());
+                continue;
+                wiz_log('json error, skipping');
+            }
+
+            if (idemailwiz_insert_triggered_metric_record($decodedData, $metricType)) {
+                $cntRecords++;
+            }
+
+            // Manually invoke garbage collection
+            //unset($decodedData);
+            //gc_collect_cycles();
+
         }
-
-        if (idemailwiz_insert_triggered_metric_record($decodedData, $metricType)) {
-            $cntRecords++;
-        }
-
-        // Manually invoke garbage collection
-        //unset($decodedData);
-        gc_collect_cycles();
-
+        wiz_log("Finished updating $cntRecords triggered $metricType records.");
+    } else {
+        wiz_log("No $metricType records found within exported files to update.");
     }
-
-    wiz_log("Finished updating $cntRecords triggered $metricType records.");
+    
     return $cntRecords;
 }
 
