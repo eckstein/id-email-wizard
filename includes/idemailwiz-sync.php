@@ -1190,7 +1190,7 @@ function idemailwiz_start_export_jobs()
     foreach ($metricTypes as $metricType) {
         $startTime = microtime(true);
 
-        $jobTransient = get_transient("idemailwiz_sync_{$metricType}_jobId") ?? false;
+        $jobTransient = get_transient("idemailwiz_sync_{$metricType}_jobs") ?? false;
         $transientLastUpdated = $jobTransient['lastUpdated'] ?? false;
 
         if (!$jobTransient || ($transientLastUpdated && (time() - $transientLastUpdated) > (60 * 60))) {
@@ -1285,7 +1285,7 @@ function idemailwiz_process_sync_sequence($syncTypes = [], $campaignIds = null, 
     $blastSync = $wizSettings['iterable_sync_toggle'] ?? 'off';
     $triggeredSync = $wizSettings['iterable_triggered_sync_toggle'] ?? 'off';
     if (($blastSync !== 'on' && $triggeredSync != 'on') && !$manualSync) {
-        wiz_log('Blast and Triggered sync are turned off in the sync settings.');
+        wiz_log('Blast and Triggered sync are turned off in the sync settings, aborting sync sequence.');
         return false;
     }
 
@@ -1313,7 +1313,7 @@ function idemailwiz_process_sync_sequence($syncTypes = [], $campaignIds = null, 
         if ($triggeredSync == 'on' || $manualSync) {
             foreach ($sync_queue as $metricType) {
                 // Handle the triggered sync types
-                wiz_log('Syncing triggered '. $metricType);
+                wiz_log('Syncing triggered ' . $metricType);
                 idemailwiz_sync_triggered_metrics($metricType);
             }
         } else {
@@ -1362,7 +1362,7 @@ function idemailwiz_start_triggered_data_job($metricType)
                 if (!in_array($jobId, $transientData['jobIds'])) {
                     $transientData['jobIds'][] = $jobId;
                 }
-                set_transient("idemailwiz_sync_{$metricType}_jobId", $transientData, (60 * 60 * 24) * 7); // 7 days expiration (Iterable holds exports for 7 days)
+                set_transient("idemailwiz_sync_{$metricType}_jobs", $transientData, (60 * 60 * 24) * 7); // 7 days expiration (Iterable holds exports for 7 days)
 
                 $countRetrieved++;
                 //wiz_log("Triggered {$metricType}s export started for campaign {$campaign['id']} with Job ID: $jobId");
@@ -1389,7 +1389,7 @@ function idemailwiz_start_triggered_data_job($metricType)
 
 function idemailwiz_sync_triggered_metrics($metricType)
 {
-    $jobTransient = get_transient("idemailwiz_sync_{$metricType}_jobId") ?? false;
+    $jobTransient = get_transient("idemailwiz_sync_{$metricType}_jobs") ?? false;
     $jobIds = $jobTransient['jobIds'] ?? false;
 
     // Check if a sync is already running, and if so, exit the function
@@ -1436,8 +1436,8 @@ function idemailwiz_sync_triggered_metrics($metricType)
                 foreach ($fileApiResponse['response']['files'] as $file) {
                     // Process each file
                     $processResult = idemailwiz_process_completed_sync_job($file['url'], $metricType);
-                    if ($processResult > 0) {
-                        wiz_log("Job $jobId could not be processed, skipping...");
+                    if ($processResult < 1) {
+                        //wiz_log("Job $jobId could not be processed, skipping...");
                         // Update startAfter for pagination so we don't get stuck in a loop
                         $startAfter = basename($file['url']);
                         continue;
@@ -1446,7 +1446,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
                     $cntRecords += $processResult;
                     // Update startAfter for pagination
                     $startAfter = basename($file['url']);
-                    
+
                 }
 
                 // Check if more files are available
@@ -1459,7 +1459,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
         }
         sleep(1); // max a per second max
     }
-    wiz_log('Finished triggered sync for ' . $metricType);
+    wiz_log('Finished sync for Triggered ' . ucfirst($metricType) . ' records on ' . $cntRecords . ' campaigns');
     delete_transient("idemailwiz_sync_{$metricType}_running");
 }
 
@@ -1473,10 +1473,9 @@ function idemailwiz_process_completed_sync_job($fileUrl, $metricType)
     $jsonResponse = file_get_contents($fileUrl);
     $lines = explode("\n", $jsonResponse);
 
-    wiz_log("Processing $metricType with file: $fileUrl");
-    wiz_log('Looping through lines of file (if any)...');
+    wiz_log("Processing $metricType records from exported file...");
 
-    if (!empty($lines)) {
+    if (!empty($lines) && (count(array_filter($lines)) > 0)) {
         foreach ($lines as $line) {
             if (trim($line) === '')
                 continue;
@@ -1497,11 +1496,15 @@ function idemailwiz_process_completed_sync_job($fileUrl, $metricType)
             //gc_collect_cycles();
 
         }
-        wiz_log("Finished updating $cntRecords triggered $metricType records.");
+        if ($cntRecords > 0) {
+            wiz_log("Finished updating $cntRecords triggered $metricType records.");
+        } else {
+            wiz_log("No $metricType records found within exported file to update.");
+        }
     } else {
-        wiz_log("No $metricType records found within exported files to update.");
+        wiz_log("No $metricType records found within exported file to update.");
     }
-    
+
     return $cntRecords;
 }
 

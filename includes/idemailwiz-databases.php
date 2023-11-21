@@ -363,6 +363,14 @@ function idemailwiz_create_databases()
         INDEX accountNumber (accountNumber)
     ) $charset_collate;";
 
+    $wiz_log_table_name = $wpdb->prefix . 'idemailwiz_wiz_log';
+    $wiz_log_sql = "CREATE TABLE IF NOT EXISTS $wiz_log_table_name (
+        id INT(11) NOT NULL AUTO_INCREMENT,
+        timestamp BIGINT(20),
+        message VARCHAR(255),
+        PRIMARY KEY  (id)
+    ) $charset_collate;";
+
 
 
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
@@ -381,6 +389,7 @@ function idemailwiz_create_databases()
     dbDelta($metrics_sql);
     dbDelta($experiments_sql);
     dbDelta($purchase_sql);
+    dbDelta($wiz_log_sql);
 
 
     //Create our custom view for the datatable

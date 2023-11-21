@@ -62,11 +62,11 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
         }
 
         // If a 400 error occurs, log the response and attempt details
-        if ($httpCode === 400) {
+        if ($httpCode === 400 || $httpCode >= 400) {
             $consecutive400Errors++;
             sleep(3); // Wait for 3 seconds before retrying
             if ($consecutive400Errors > $maxConsecutive400Errors) {
-                throw new Exception("Consecutive HTTP 400 Errors exceeded limit. Stopping execution.");
+                throw new Exception("Consecutive HTTP Errors exceeded limit. Stopping execution. HTTP Error: $httpCode");
             }
         } else {
             $consecutive400Errors = 0; // Reset consecutive 400 errors count if other status code received
@@ -80,11 +80,6 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
         }
 
     } while ($httpCode === 400 || $httpCode === 429);
-
-    // Check for other HTTP errors
-    if ($httpCode >= 400) {
-        throw new Exception("HTTP Error: $httpCode");
-    }
 
     $decodedResponse = json_decode($response, true);
     if (is_array($decodedResponse)) {

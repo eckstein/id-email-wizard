@@ -71,7 +71,7 @@ global $wpdb;
             <!-- Sync Log Section -->
             <div class="wizcampaign-section inset" id="sync-log-panel">
                 <h2>Sync Log</h2>
-                <pre id="syncLogContent"><code><?php echo file_get_contents(plugin_dir_path(__FILE__) . '../wiz-log.log'); ?></code></pre>
+                <pre id="syncLogContent"><code><?php echo get_wiz_log(); ?></code></pre>
             </div>
         </div>
 

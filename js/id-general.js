@@ -548,17 +548,27 @@ window.manageCampaignsInInitiative = function (action, campaignIds, onSuccess = 
 	window.Swal.fire(swalConfig);
 };
 
-if (jQuery("#syncLogContent code").length) {
-	// Auto-refresh a log element
-	// let refreshWizLog = setInterval(() => {
-	// 	let timestamp = new Date().getTime();
-	// 	jQuery("#syncLogContent code").load(idAjax.plugin_url + "/wiz-log.log?" + timestamp, function () {
-	// 		hljs.highlightAll();
-	// 	});
-	// }, 3000);
 
+// Auto-refresh sync log
+if (jQuery("#syncLogContent code").length) {
+	setInterval(function() {
+		idemailwiz_do_ajax(
+			'refresh_wiz_log', 
+			idAjax_id_general.nonce, 
+			{}, 
+			function(response) {
+				if (response.success) {
+					jQuery("#syncLogContent code").text(response.data);
+				}
+			},
+			function(error) { // Error
+				console.log('Error refreshing log:', error);
+			}
+		);
+	}, 3000);
 }
 
+// Manual sync form submission
 jQuery("#syncStationForm").on("submit", function (e) {
 	e.preventDefault();
 	var formFields = jQuery(this).serialize();
