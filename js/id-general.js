@@ -572,23 +572,28 @@ jQuery("#syncStationForm").on("submit", function (e) {
 			jQuery(".syncForm-overlay").removeClass("active");
 			Swal.fire("Sync Successful", "The manual sync has completed. See sync log for details.", "success");
 		},
-		function (error) {
-			console.log(error);
-			Swal.fire("Error", "An error occurred. Check the sync log or browser console for details.", "error");
-			// wiz log error
-			idemailwiz_do_ajax(
-				"ajax_to_wiz_log",
-				idAjax_id_general.nonce,
-				{
-					log_data: "There was an error attempting to sync: " + JSON.stringify(error),
-				},
-				function (result) {
-					jQuery("#syncLogContent code").load(idAjax.plugin_url + "/wiz-log.log");
-				},
-				function (error) {
-					console.log(error);
-				}
-			);
+	function (error) {
+		console.log(error);
+		Swal.fire("Error", "An error occurred. Check the sync log or browser console for details.", "error");
+
+		// Prepare a detailed error message
+		var errorMessage = "Ajax error: " + error.status + " " + error.statusText;
+		if (error.responseJSON && error.responseJSON.data) {
+			errorMessage += " - " + error.responseJSON.data;
 		}
+
+		// Log the detailed error message
+		idemailwiz_do_ajax(
+			"ajax_to_wiz_log",
+			idAjax_id_general.nonce,
+			{ log_data: errorMessage },
+			function (result) {
+				jQuery("#syncLogContent code").load(idAjax.plugin_url + "/wiz-log.log");
+			},
+			function (error) {
+				console.log("Error logging to wiz_log: ", error);
+			}
+		);
+	}
 	);
 });
