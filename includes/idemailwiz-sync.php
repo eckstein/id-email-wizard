@@ -1186,10 +1186,7 @@ function idemailwiz_start_export_jobs()
 {
     $metricTypes = ['send', 'open', 'click', 'bounce', 'sendSkip', 'unSubscribe', 'complaint'];
     wiz_log('Iterable export jobs started via external cron...');
-
-
-
-
+    
     foreach ($metricTypes as $metricType) {
         $startTime = microtime(true);
 
@@ -1217,10 +1214,6 @@ function idemailwiz_start_export_jobs()
     }
 
 }
-
-
-
-
 
 $wizSettings = get_option('idemailwiz_settings');
 $cronSyncActive = $wizSettings['sync_method'] ?? 'wp_cron';
@@ -1559,7 +1552,7 @@ function idemailwiz_insert_triggered_metric_record($record, $metricType)
 
 
 
-// The below functions are mostly used during the import process, no the regular sync
+// The below functions are mostly used during the import process, not the regular sync
 
 
 function sync_single_triggered_campaign()
