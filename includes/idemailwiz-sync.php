@@ -939,7 +939,7 @@ function idemailwiz_process_and_log_sync($table_name, $records_to_insert = null,
     $logChunk = "";
     $return = array();
 
-    $logChunk .= ucfirst($type) . " sync results: \n";
+    $logChunk .= ucfirst($type) . " sync results: ";
 
     if ($records_to_insert) {
         //$logChunk .= count($records_to_insert) . " $type" . " to insert.\n";
@@ -1465,15 +1465,13 @@ function idemailwiz_sync_triggered_metrics($metricType)
 
 function idemailwiz_process_completed_sync_job($fileUrl, $metricType)
 {
-
     //set_time_limit(360);
+    wiz_log("Processing $metricType records from exported file...");
     global $wpdb;
     $cntRecords = 0;
 
     $jsonResponse = file_get_contents($fileUrl);
     $lines = explode("\n", $jsonResponse);
-
-    wiz_log("Processing $metricType records from exported file...");
 
     if (!empty($lines) && (count(array_filter($lines)) > 0)) {
         foreach ($lines as $line) {
@@ -1497,12 +1495,12 @@ function idemailwiz_process_completed_sync_job($fileUrl, $metricType)
 
         }
         if ($cntRecords > 0) {
-            wiz_log("Finished updating $cntRecords triggered $metricType records.");
+            wiz_log("Updated $cntRecords triggered $metricType records.");
         } else {
-            wiz_log("No $metricType records found within exported file to update.");
+            wiz_log("No $metricType records found within exported file.");
         }
     } else {
-        wiz_log("No $metricType records found within exported file to update.");
+        wiz_log("No $metricType records found within exported file.");
     }
 
     return $cntRecords;
