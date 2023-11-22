@@ -1291,7 +1291,6 @@ function idemailwiz_process_sync_sequence($syncTypes = [], $campaignIds = null, 
 
     // Mark the start of a sync sequence
     set_transient('idemailwiz_sync_in_progress', true, 60 * 61); // 61 minute expiration
-
     if (in_array('blast', $sync_queue)) {
 
         if ($blastSync == 'on' || $manualSync) {
@@ -1339,8 +1338,9 @@ function idemailwiz_start_triggered_data_job($metricType)
     $exportFetchStart = new DateTimeImmutable('-36 hours');
     $transientData['jobIds'] = [];
     $countRetrieved = 0;
+    set_time_limit(360);
     foreach ($triggeredCampaigns as $campaign) {
-
+        
         if (!isset($campaign['id'])) {
             continue;
         }
@@ -1415,6 +1415,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
         return false;
     }
     wiz_log('Retrieving jobs from Iterable');
+     set_time_limit(360);
     $cntRecords = 0;
     foreach ($jobIds as $jobId) {
         $apiResponse = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/' . $jobId . '/files');
@@ -1465,7 +1466,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
 
 function idemailwiz_process_completed_sync_job($fileUrl, $metricType)
 {
-    //set_time_limit(360);
+    set_time_limit(360);
     wiz_log("Processing $metricType records from exported file...");
     global $wpdb;
     $cntRecords = 0;

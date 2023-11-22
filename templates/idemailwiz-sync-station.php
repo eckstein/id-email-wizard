@@ -17,6 +17,7 @@ global $wpdb;
     </header>
 
     <div class="entry-content" itemprop="mainContentOfPage">
+        <?php echo ini_get('max_execution_time');?>
         <div class="wizcampaign-sections-row">
             <!-- Sync Form -->
             <div class="wizcampaign-section inset">
