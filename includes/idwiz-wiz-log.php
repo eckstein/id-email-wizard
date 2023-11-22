@@ -83,6 +83,8 @@ function get_wiz_log($limit = 1000, $startTimestamp = null, $endTimestamp = null
         $output = "Log is empty!";
     }
 
+    return $output;
+
 }
 
 add_action('wp_ajax_refresh_wiz_log', 'refresh_wiz_log_callback');
