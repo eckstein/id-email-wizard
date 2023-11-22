@@ -142,9 +142,9 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
         if ($table_name == $wpdb->prefix . 'idemailwiz_metrics') {
             $item_name = $metricName;
         }
-        $item_id = $item[$id_field]; // Item ID
+        $item_id = $item[$id_field] ?? false; // Item ID
 
-        if ($query_result !== false) {
+        if ($item_id && $query_result !== false) {
             if ($query_result > 0) {
                 // Success details
                 $result['success'][] = "Successfully performed {$operation} on '{$item_name}' (ID: {$item_id}).";
@@ -703,6 +703,10 @@ function idemailwiz_sync_campaigns($passedCampaigns = null)
         // Otherwise, we do our logic for update vs insert from the Iterable API
     } else {
         foreach ($campaigns as $campaign) {
+             if (!isset($campaign['id'])) {
+                wiz_log('No ID found in the fetched campaign record!');
+                continue;
+            }
             if ($campaign['campaignState'] == 'Finished' || $campaign['campaignState'] == 'Running') {
                 // Check for an existing campaign in the database
                 $wizCampaign = get_idwiz_campaign($campaign['id']);
@@ -793,6 +797,10 @@ function idemailwiz_sync_templates($passedCampaigns = null)
     $records_to_insert = [];
 
     foreach ($templates as $template) {
+        if (!isset($template['templateId'])) {
+            wiz_log('No templateId found in the fetched template record!');
+            continue;
+        }
         // See if the template exists in our database yet
         $wizTemplate = get_idwiz_template($template['templateId']);
 
@@ -824,7 +832,10 @@ function idemailwiz_sync_purchases($campaignIds = null)
     $records_to_update = [];
 
     foreach ($purchases as $purchase) {
-
+        if (!isset($purchase['id'])) {
+            wiz_log('No ID found in the fetched purchase record!');
+            continue;
+        }
         //$wizPurchase = get_idwiz_purchase($purchase['id']);
         $wizPurchase = $wpdb->get_var($wpdb->prepare("SELECT id FROM $table_name WHERE id = %s", $purchase['id']));
 
@@ -856,6 +867,10 @@ function idemailwiz_sync_experiments($passedCampaigns = null)
         $records_to_update = $experiments;
     } else {
         foreach ($experiments as $experiment) {
+            if (!isset($experiment['templateId'])) {
+                wiz_log('No templateId found in the fetched experiment record!');
+                continue;
+            }
             $wizExperiment = get_idwiz_experiment($experiment['templateId']);
 
             // Check for experiment in database
@@ -896,7 +911,10 @@ function idemailwiz_sync_metrics($passedCampaigns = null)
         $records_to_update = $metrics;
     } else {
         foreach ($metrics as $metric) {
-
+            if (!isset($metric['id'])) {
+                wiz_log('No ID found in the fetched metric record!');
+                continue;
+            }
             // Handle SMS campaign header mapping
             $wizCampaign = get_idwiz_campaign($metric['id']);
             if ($wizCampaign && $wizCampaign['messageMedium'] == 'SMS') {
@@ -1416,6 +1434,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
     }
     wiz_log('Retrieving jobs from Iterable');
      set_time_limit(360);
+     
     $cntRecords = 0;
     foreach ($jobIds as $jobId) {
         $apiResponse = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/' . $jobId . '/files');
