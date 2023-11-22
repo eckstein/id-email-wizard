@@ -1109,6 +1109,10 @@ function idemailwiz_calculate_metrics($metrics)
     }
 
     // Get the campaign using the campaignId from the passed metrics
+    if (!isset($metrics[$campaignIdKey])) {
+        wiz_log("Can't calculate metrics, no ID found in data!");
+        return false;
+    }
     $wiz_campaign = get_idwiz_campaign($metrics[$campaignIdKey]);
 
     // Campaign must already be in database for metrics to be added/updated
