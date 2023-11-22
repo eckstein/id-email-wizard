@@ -30,7 +30,7 @@ function wiz_log($message) {
 
     // Prepare data for insertion
     $data = array(
-        'timestamp' => time(),
+        'timestamp' => microtime(true), // Unix timestamp with microseconds
         'message'   => $message
     );
 
@@ -38,6 +38,7 @@ function wiz_log($message) {
     $insertLog = $wpdb->insert($table_name, $data);
     return $insertLog;
 }
+
 
 function get_wiz_log($limit = 1000, $startTimestamp = null, $endTimestamp = null) {
     global $wpdb;
@@ -67,15 +68,21 @@ function get_wiz_log($limit = 1000, $startTimestamp = null, $endTimestamp = null
     // Format the output
     $output = '';
     if (!empty($logs)) {
-        date_default_timezone_set('America/Los_Angeles');
         foreach ($logs as $log) {
-            $output .= date("m-d-Y g:ia", $log['timestamp']) . " - " . $log['message'] . "\n";
+            // Split the timestamp into seconds and microseconds
+            list($secs, $microsecs) = explode('.', $log['timestamp']);
+            $date = new DateTime("@$secs"); // @ symbol tells DateTime it's a Unix timestamp
+            $date->setTimeZone(new DateTimeZone('America/Los_Angeles')); // Adjust timezone as needed
+
+            // Format the date and append microseconds
+            $formattedDate = $date->format('m-d-Y g:ia') . sprintf('.%06d', $microsecs);
+
+            $output .= $formattedDate . " - " . $log['message'] . "\n";
         }
     } else {
         $output = "Log is empty!";
     }
 
-    return $output;
 }
 
 add_action('wp_ajax_refresh_wiz_log', 'refresh_wiz_log_callback');

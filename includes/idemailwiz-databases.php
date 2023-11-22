@@ -366,7 +366,7 @@ function idemailwiz_create_databases()
     $wiz_log_table_name = $wpdb->prefix . 'idemailwiz_wiz_log';
     $wiz_log_sql = "CREATE TABLE IF NOT EXISTS $wiz_log_table_name (
         id INT(11) NOT NULL AUTO_INCREMENT,
-        timestamp BIGINT(20),
+        timestamp DECIMAL(18, 6),
         message VARCHAR(255),
         PRIMARY KEY  (id)
     ) $charset_collate;";
