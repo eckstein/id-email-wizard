@@ -3,8 +3,6 @@
 global $wpdb;
 
 
-
-
 function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 {
     global $wpdb;
@@ -228,7 +226,7 @@ function idwiz_cleanup_purchase_records($items)
 function idemailwiz_fetch_campaigns($campaignIds = null)
 {
     // $campaignIds is a dummy variable to prevent errors
-    // Iterable doesn't allow API calls per campaign as of September 2023
+    // Iterable doesn't allow API calls per campaign as of November 2023
     $url = 'https://api.iterable.com/api/campaigns';
     try {
         $response = idemailwiz_iterable_curl_call($url);
@@ -378,8 +376,6 @@ function idemailwiz_simplify_templates_array($template)
 }
 
 
-
-
 function idemailwiz_fetch_experiments($campaignIds = null)
 {
     $today = new DateTime();
@@ -397,19 +393,35 @@ function idemailwiz_fetch_experiments($campaignIds = null)
 
     $allCampaigns = get_idwiz_campaigns($fetchCampArgs);
 
+    $experimentIds = [];
+    foreach ($allCampaigns as $campaign) {
+
+        if (!empty($campaign['experimentIds'])) {
+            $experimentIds = array_merge($experimentIds, unserialize($campaign['experimentIds']));
+
+        }
+    }
+
+    $experimentIds = array_unique($experimentIds); // Remove duplicate IDs
+
     $data = [];
     $allExpMetrics = [];
-    foreach ($allCampaigns as $campaign) {
-        $url = 'https://api.iterable.com/api/experiments/metrics?campaignId=' . $campaign['id'];
+
+    if (!empty($experimentIds)) {
+        $url = 'https://api.iterable.com/api/experiments/metrics?';
+        foreach ($experimentIds as $index => $id) {
+            $url .= ($index === 0 ? '' : '&') . 'experimentId=' . $id;
+        }
+
         try {
             $response = idemailwiz_iterable_curl_call($url);
         } catch (Exception $e) {
             if ($e->getMessage() === "CONSECUTIVE_400_ERRORS") {
-                // Stop execution if more than 5 consecutive 400 errors
                 wiz_log("More than 5 consecutive HTTP 400 errors. Stopping execution.");
                 return;
             }
         }
+
         if ($response['response']) {
 
             // Split the CSV data into lines
@@ -456,6 +468,9 @@ function idemailwiz_fetch_experiments($campaignIds = null)
     // Return the array of metrics
     return $allExpMetrics;
 }
+
+
+
 function idemailwiz_fetch_metrics($campaignIds = null)
 {
 
@@ -1028,8 +1043,6 @@ function return_insert_update_logging($insert_results, $update_results, $table_n
 // Also creates and logs readable sync responses from response arrays
 function idemailwiz_sync_non_triggered_metrics($campaignIds = null)
 {
-    // Set transient to indicate the sync is running
-    set_transient('idemailwiz_sync_non_triggered_running', true, 10 * MINUTE_IN_SECONDS);
 
     $syncArgs = [];
     $response = [];
@@ -1053,10 +1066,9 @@ function idemailwiz_sync_non_triggered_metrics($campaignIds = null)
             return ['error' => 'Sync failed for ' . $db];
         }
         $response[$db] = $result;
-    }
 
-    // Delete transient to indicate the sync is done
-    delete_transient('idemailwiz_sync_non_triggered_running');
+
+    }
 
     return $response;
 }
@@ -1191,69 +1203,241 @@ function idemailwiz_calculate_metrics($metrics)
     return $metrics;
 }
 
-// Schedule the twice daily sync of GA data
-if (!wp_next_scheduled('idemailwiz_twice_daily_sync')) {
-    wp_schedule_event(time(), 'twicedaily', 'idemailwiz_twice_daily_sync');
-}
-add_action('idemailwiz_twice_daily_sync', 'sync_ga_campaign_revenue_data');
 
-idwiz_maybe_start_wpcron_jobs_exports();
-function idwiz_maybe_start_wpcron_jobs_exports()
+// Cron Sync Functions
+
+// On each page load, check if the sync should start
+add_action('wp_loaded', 'idemailwiz_check_for_cron_sequence_start');
+
+function idemailwiz_check_for_cron_sequence_start()
 {
-    // Schedule the hourly job exports for triggered data
-    $wizSettings = get_option('idemailwiz_settings');
-    $cronSyncMethod = $wizSettings['sync_method'] ?? 'wp_cron';
+    // Clear expired transients manually before checking anything
+    delete_expired_transients();
 
-    // Check if wp_cron sync method is active
-    if ($cronSyncMethod === 'wp_cron') {
-        if (!wp_next_scheduled('idemailwiz_start_export_jobs')) {
-            wp_schedule_event(time(), 'hourly', 'idemailwiz_start_export_jobs');
-        }
-        add_action('idemailwiz_start_export_jobs', 'idemailwiz_start_export_jobs');
-    }
-}
+    // Check if a sync is in progress
+    $blastSyncInProgress = get_transient('idemailwiz_blast_sync_in_progress');
 
-function idemailwiz_start_export_jobs()
-{
-    $metricTypes = ['send', 'open', 'click', 'bounce', 'sendSkip', 'unSubscribe', 'complaint'];
-    wiz_log('Iterable export jobs started via cron...');
+    $metricTypes = ['send', 'open', 'click', 'unSubscribe', 'bounce', 'sendSkip', 'complaint'];
+    $triggeredSyncInProgress = false;
+    $exportSyncInProgress = false;
 
     foreach ($metricTypes as $metricType) {
-        $startTime = microtime(true);
+        if (get_transient("idemailwiz_{$metricType}_sync_in_progress")) {
+            $triggeredSyncInProgress = true;
+            break; // No need to check further if one is already in progress
+        }
+        if (get_transient("idemailwiz_export_{$metricType}_jobs_running")) {
+            $exportSyncInProgress = true;
+            break; // No need to check further if one is already in progress
+        }
+    }
 
-        $jobTransient = get_transient("idemailwiz_sync_{$metricType}_jobs") ?? false;
-        $transientLastUpdated = $jobTransient['lastUpdated'] ?? false;
+    // Check if we're waiting to start the next sync
+    $blastSyncWaiting = get_transient('blast_sync_waiting');
+    $triggeredSyncWaiting = get_transient('triggered_sync_waiting');
+    $exportSyncWaiting = get_transient('export_sync_waiting');
 
-        if (!$jobTransient || ($transientLastUpdated && (time() - $transientLastUpdated) > (60 * 60))) {
-            if (get_transient('idemailwiz_export_' . $metricType . '_jobs_running')) {
-                wiz_log("Triggered $metricType export jobs were updating in the last hour, skipping...");
-                continue;
-            }
-            set_transient('idemailwiz_export_' . $metricType . '_jobs_running', true, 60 * 30);
-            wiz_log("Starting triggered {$metricType}s export jobs...");
-            idemailwiz_start_triggered_data_job($metricType);
+    // Start blast sync sequence if not in progress or waiting
+    if (!$blastSyncInProgress && !$blastSyncWaiting) {
+        set_transient('idemailwiz_blast_sync_in_progress', true, (10 * MINUTE_IN_SECONDS));
+        set_transient('blast_sync_waiting', true, (60 * MINUTE_IN_SECONDS));
+        idwiz_maybe_start_wpcron_sync_sequence(['blast']);
+    }
+
+    // Start triggered sync sequence if not in progress or waiting, and no other sync is in progress
+    if (!$triggeredSyncInProgress && !$exportSyncInProgress && !$triggeredSyncWaiting) {
+        $addTime = 0;
+        foreach ($metricTypes as $metricType) {
+            set_transient("idemailwiz_{$metricType}_sync_in_progress", true, (20 * MINUTE_IN_SECONDS) + $addTime);
+            $addTime += (4 * MINUTE_IN_SECONDS);
+        }
+        set_transient('triggered_sync_waiting', true, (120 * MINUTE_IN_SECONDS));
+        idwiz_maybe_start_wpcron_sync_sequence($metricTypes);
+    }
+
+    // Start export sync sequence if not in progress or waiting, and no other sync is in progress
+    if (!$exportSyncInProgress && !$triggeredSyncInProgress && !$exportSyncWaiting) {
+        $addTime = 0;
+        foreach ($metricTypes as $metricType) {
+            set_transient("idemailwiz_export_{$metricType}_jobs_running", true, (20 * MINUTE_IN_SECONDS) + $addTime);
+            $addTime += (4 * MINUTE_IN_SECONDS);
         }
 
-        $endTime = microtime(true);
-        $elapsedTime = $endTime - $startTime;
+        set_transient('export_sync_waiting', true, (90 * MINUTE_IN_SECONDS));
+        $delay = ($blastSyncInProgress) ? (5 * MINUTE_IN_SECONDS) : 0;
+        idwiz_maybe_start_wpcron_jobs_exports($delay);
+    }
+}
 
-        // If the request took less than 1 second, sleep the remaining time
-        if ($elapsedTime < 1) {
-            usleep((1 - $elapsedTime) * 1000000);
+
+
+// Add our Sync Sequence custom actions for each sync type (important: must be outside any other function)
+$metricTypes = ['blast', 'send', 'open', 'click', 'unSubscribe', 'bounce', 'sendSkip', 'complaint'];
+// Register actions outside of the function
+foreach ($metricTypes as $metricType) {
+    add_action("idemailwiz_process_{$metricType}_sync", 'idemailwiz_process_sync_sequence', 10, 1);
+}
+
+
+// Add our Export Job Fetching custom action for each sync type (important: must be outside any other function)
+$syncJobMetricTypes = ['send', 'open', 'click', 'bounce', 'sendSkip', 'unSubscribe', 'complaint'];
+// Register actions outside of the function
+foreach ($syncJobMetricTypes as $syncJobMetricType) {
+    add_action("idemailwiz_start_{$syncJobMetricType}_export_jobs", 'idemailwiz_start_export_jobs', 10, 1);
+}
+
+
+// If we're syncing, we kick off the sync sequence cron schedules
+function idwiz_maybe_start_wpcron_sync_sequence($metricTypes = ['blast', 'send', 'open', 'click', 'unSubscribe', 'bounce', 'sendSkip', 'complaint'])
+{
+
+    $nextStart = time();
+    foreach ($metricTypes as $metricType) {
+        // Check for existing scheduled event, and if not present, scheduled it
+        if (!wp_next_scheduled("idemailwiz_process_{$metricType}_sync")) {
+            wp_schedule_single_event($nextStart, "idemailwiz_process_{$metricType}_sync", array($metricType));
         }
-        delete_transient('idemailwiz_export_' . $metricType . '_jobs_running');
+        // Schedule the next metric type for 4 minutes later to avoid overlapping
+        $nextStart += 240;
     }
 
 }
 
-function idemailwiz_start_triggered_data_job($metricType)
+// If we're starting export jobs, we kick off the export cron schedules with an option delay (in seconds) passed in
+function idwiz_maybe_start_wpcron_jobs_exports($delay = 0)
+{
+    $metricTypes = ['send', 'open', 'click', 'bounce', 'sendSkip', 'unSubscribe', 'complaint'];
+
+    wiz_log("Triggered export jobs started via auto schedule...");
+    $nextStart = time() + $delay;
+    foreach ($metricTypes as $metricType) {
+        // Check for existing scheduled event, and if not present, scheduled it
+        if (!wp_next_scheduled("idemailwiz_start_{$metricType}_export_jobs")) {
+            wp_schedule_single_event($nextStart, "idemailwiz_start_{$metricType}_export_jobs", array($metricType));
+        }
+        // Schedule the next metric type for 4 minutes later to avoid overlapping
+        $nextStart += 240;
+    }
+
+}
+
+// Runs the Blast and Triggered metric sync sequences
+// Checks if sync is already in progress, based on transients
+function idemailwiz_process_sync_sequence($metricType, $campaignIds = null, $manualSync = false)
+{
+
+    $allowedMetricTypes = ['blast', 'send', 'open', 'click', 'unSubscribe', 'bounce', 'sendSkip', 'complaint'];
+
+    if (!in_array($metricType, $allowedMetricTypes)) {
+        wiz_log('Invalid metric type passed to sync queue processor.');
+        return false;
+    }
+
+    $wizSettings = get_option('idemailwiz_settings');
+
+    // Check if a sync is already in progress
+    // if (get_transient("idemailwiz_{$metricType}_sync_in_progress")) {
+    //     wiz_log("Sync sequence aborted: Another Triggered $metricType sync is still in progress.");
+    //     return false; // Abort the sync sequence
+    // }
+
+    wiz_log('Sync sequence for ' . $metricType . 's initiated, please wait...');
+
+    $blastSync = $wizSettings['iterable_sync_toggle'] ?? 'off';
+    $triggeredSync = $wizSettings['iterable_triggered_sync_toggle'] ?? 'off';
+    if (($blastSync !== 'on' && $triggeredSync != 'on') && !$manualSync) {
+        wiz_log('Blast and Triggered sync are turned off in the sync settings, aborting sync sequence.');
+        delete_transient("idemailwiz_blast_sync_in_progress");
+        delete_transient("idemailwiz_{$metricType}_sync_in_progress");
+        return false;
+    }
+
+    if ($metricType == 'blast') {
+
+        if ($blastSync == 'on' || $manualSync) {
+
+            // Perform the non-triggered (blast) sync
+            idemailwiz_sync_non_triggered_metrics($campaignIds);
+        } else {
+            wiz_log('Blast sync cron initiated but sync toggle is disabled.');
+            delete_transient("idemailwiz_blast_sync_in_progress");
+
+            //return false;
+        }
+
+    } else {
+        if ($triggeredSync == 'on' || $manualSync) {
+            // Handle the triggered sync types
+            //wiz_log('Syncing triggered ' . $metricType . 's');
+            if (!get_transient("idemailwiz_{$metricType}_sync_in_progress")) {
+                set_transient("idemailwiz_{$metricType}_sync_in_progress", true, 30 * 60);
+            } else {
+                wiz_log("Sync for {$metricType} is already running. Exiting...");
+                return false;
+            }
+            idemailwiz_sync_triggered_metrics($metricType);
+        } else {
+            wiz_log("Triggered $metricType sync cron initiated but sync toggle is disabled.");
+            delete_transient("idemailwiz_{$metricType}_sync_in_progress");
+
+            //return false;
+        }
+    }
+
+
+
+    return true; // Indicate successful completion of the sync sequence
+}
+
+// Starts the triggered data exports jobs after checking the transient for last updated
+function idemailwiz_start_export_jobs($metricType)
+{
+    $metricTypes = ['send', 'open', 'click', 'bounce', 'sendSkip', 'unSubscribe', 'complaint'];
+    if (!in_array($metricType, $metricTypes)) {
+        wiz_log("Invalid metric type recieved for job exports");
+        return false;
+    }
+
+
+    $startTime = microtime(true);
+
+    $jobTransient = get_transient("idemailwiz_sync_{$metricType}_jobs") ?? false;
+    $transientLastUpdated = $jobTransient['lastUpdated'] ?? false;
+
+    if (!$jobTransient || ($transientLastUpdated && (time() - $transientLastUpdated) > (60 * 60))) {
+        if (get_transient('idemailwiz_export_' . $metricType . '_jobs_running')) {
+            wiz_log("Triggered $metricType export jobs do not need updated, skipping...");
+            return false;
+        }
+        set_transient('idemailwiz_export_' . $metricType . '_jobs_running', true, 60 * 30);
+        //wiz_log("Starting triggered {$metricType}s export jobs...");
+
+        idemailwiz_fetch_triggered_data_jobs($metricType);
+    }
+
+    $endTime = microtime(true);
+    $elapsedTime = $endTime - $startTime;
+
+    // If the request took less than 1 second, sleep the remaining time
+    if ($elapsedTime < 1) {
+        usleep((1 - $elapsedTime) * 1000000);
+    }
+    delete_transient('idemailwiz_export_' . $metricType . '_jobs_running');
+
+}
+
+// Fetches triggered data jobs from the Iterable API
+function idemailwiz_fetch_triggered_data_jobs($metricType)
 {
     $triggeredCampaigns = get_idwiz_campaigns(['type' => 'Triggered', 'campaignState' => 'Running', 'fields' => 'id']);
+    $countTriggered = count($triggeredCampaigns);
     // Prepare the API call to fetch data
     $exportFetchStart = new DateTimeImmutable('-36 hours');
     $transientData['jobIds'] = [];
     $countRetrieved = 0;
     set_time_limit(360);
+
+    wiz_log("Exporting jobs for $countTriggered Triggered {$metricType}s...");
     foreach ($triggeredCampaigns as $campaign) {
 
         if (!isset($campaign['id'])) {
@@ -1282,8 +1466,9 @@ function idemailwiz_start_triggered_data_job($metricType)
                 $countRetrieved++;
                 //wiz_log("Triggered {$metricType}s export started for campaign {$campaign['id']} with Job ID: $jobId");
             } else {
-                wiz_log('Failed to start export job, no jobId found.');
-                throw new Exception('Failed to start export job, no jobId found.');
+                // Job ID was not found, so we skip. 
+                // TODO: investigate why Job ID may not be present here
+                // wiz_log('Failed to start export job, no jobId found.');
             }
         } catch (Exception $e) {
             wiz_log("Error starting export job: " . $e->getMessage());
@@ -1298,165 +1483,37 @@ function idemailwiz_start_triggered_data_job($metricType)
             usleep((1 - $elapsedTime) * 1000000);
         }
     }
-    wiz_log("Triggered {$metricType}s exports started and Job IDs stored for $countRetrieved campaigns");
+    wiz_log("Export Job IDs stored for $countRetrieved triggered {$metricType}s.");
     return true;
 }
 
-idwiz_maybe_start_wpcron_sync_sequence();
-function idwiz_maybe_start_wpcron_sync_sequence()
-{
-    $wizSettings = get_option('idemailwiz_settings');
-    $cronSyncMethod = $wizSettings['sync_method'] ?? 'wp_cron';
-
-    // Check if wp_cron sync method is active
-    if ($cronSyncMethod === 'wp_cron') {
-        // Schedule the initial sync event if not already scheduled
-        if (!wp_next_scheduled('idemailwiz_sync_sequence')) {
-            //Schedule the initial sync event, 1 hour from when the wp_cron sync is turned on (to avoid immediate execution when turned on)
-            wp_schedule_event(time() + HOUR_IN_SECONDS, 'hourly', 'idemailwiz_sync_sequence');
-        }
-        // The action that manages the sync sequence
-        add_action('idemailwiz_sync_sequence', 'idemailwiz_process_sync_sequence');
-    } else {
-        // If wp_cron is not the sync method, clear any scheduled events
-        $timestamp = wp_next_scheduled('idemailwiz_sync_sequence');
-        if ($timestamp) {
-            wp_unschedule_event($timestamp, 'idemailwiz_sync_sequence');
-        }
-    }
-}
-
-
-add_action('wp_ajax_idemailwiz_handle_manual_sync', 'idemailwiz_handle_manual_sync');
-
-function idemailwiz_handle_manual_sync()
-{
-    check_ajax_referer('id-general', 'security');
-
-    // Extract the form fields from the POST data
-    parse_str($_POST['formFields'], $formFields);
-
-    // Check for sync types
-    if (empty($formFields['syncTypes'])) {
-        wp_send_json_error('No sync types were received.');
-        return;
-    }
-
-    // Extract campaign IDs, if provided
-    $campaignIds = !empty($formFields['campaignIds']) ? explode(',', $formFields['campaignIds']) : false;
-
-    // Initiate the sync sequence
-    $syncResult = idemailwiz_process_sync_sequence($formFields['syncTypes'], $campaignIds, true);
-
-    if ($syncResult === false) {
-        wp_send_json_error('Sync sequence aborted: Another sync is still in progress or there was an error.');
-    } else {
-        wp_send_json_success('Sync sequence successfully initiated.');
-    }
-}
-
-
-function idemailwiz_process_sync_sequence($syncTypes = [], $campaignIds = null, $manualSync = false)
-{
-    // Default sync queue
-    $default_sync_queue = ['blast', 'send', 'open', 'click', 'unSubscribe', 'bounce', 'sendSkip', 'complaint'];
-
-    // If specific sync types are set, use that list; otherwise, use the default
-    $sync_queue = !empty($syncTypes) ? $syncTypes : $default_sync_queue;
-
-    $wizSettings = get_option('idemailwiz_settings');
-
-    // Check if a sync is already in progress
-    if (get_transient('idemailwiz_sync_in_progress')) {
-        wiz_log('Sync sequence aborted: Another sync is still in progress.');
-        return false; // Abort the sync sequence
-    }
-
-    wiz_log('Sync sequence for ' . implode(', ', $sync_queue) . ' initiated, please wait...');
-
-    $blastSync = $wizSettings['iterable_sync_toggle'] ?? 'off';
-    $triggeredSync = $wizSettings['iterable_triggered_sync_toggle'] ?? 'off';
-    if (($blastSync !== 'on' && $triggeredSync != 'on') && !$manualSync) {
-        wiz_log('Blast and Triggered sync are turned off in the sync settings, aborting sync sequence.');
-        return false;
-    }
-
-    // Mark the start of a sync sequence
-    set_transient('idemailwiz_sync_in_progress', true, 60 * 61); // 61 minute expiration
-    if (in_array('blast', $sync_queue)) {
-
-        if ($blastSync == 'on' || $manualSync) {
-
-            // Perform the non-triggered (blast) sync
-            idemailwiz_sync_non_triggered_metrics($campaignIds);
-        } else {
-            wiz_log('Blast sync cron initiated but sync toggle is disabled.');
-            //return false;
-        }
-        //remove 'blast' from sync array
-        $sync_queue = array_diff($sync_queue, ['blast']);
-    }
-
-
-    // If there's more than 1 item in the sync queue, we know there's at least one triggered type
-    if (count($sync_queue) > 0) {
-
-        if ($triggeredSync == 'on' || $manualSync) {
-            foreach ($sync_queue as $metricType) {
-                // Handle the triggered sync types
-                wiz_log('Syncing triggered ' . $metricType);
-                idemailwiz_sync_triggered_metrics($metricType);
-            }
-        } else {
-            wiz_log('Triggered sync cron initiated but sync toggle is disabled.');
-            //return false;
-        }
-    }
-
-
-
-    // Mark the end of the sync sequence
-    delete_transient('idemailwiz_sync_in_progress');
-
-    return true; // Indicate successful completion of the sync sequence
-}
 
 
 
 
 
-
+// Uses stored export jobIds to pull completed triggered data jobs from iterable
+// Adds or updates records to the triggered databases
 function idemailwiz_sync_triggered_metrics($metricType)
 {
+    global $wpdb;
     $jobTransient = get_transient("idemailwiz_sync_{$metricType}_jobs") ?? false;
     $jobIds = $jobTransient['jobIds'] ?? false;
 
-    // Check if a sync is already running, and if so, exit the function
-    if (get_transient("idemailwiz_sync_{$metricType}_running")) {
-        wiz_log("Sync for {$metricType} is already running. Exiting...");
-        return;
-    }
-
-    // Set transient to indicate the sync is running
-    set_transient("idemailwiz_sync_{$metricType}_running", true, 20 * MINUTE_IN_SECONDS);
-
-    wiz_log("Starting triggered {$metricType}s sync...");
-    global $wpdb;
-
-
-
     if (!$jobIds || empty($jobIds)) {
         wiz_log("No Export Job IDs found for Triggered {$metricType}s. Will check again in an hour.");
-
-        // Start a new export job so it fills our missing transient
-        //idemailwiz_start_triggered_data_job($metricType);
-        delete_transient("idemailwiz_sync_{$metricType}_running");
+        delete_transient("idemailwiz_{$metricType}_sync_in_progress");
         return false;
     }
-    wiz_log('Retrieving jobs from Iterable');
+
+    wiz_log("Retrieving {$metricType} from Iterable... (2 -5 min)");
     set_time_limit(360);
 
-    $cntRecords = 0;
+    // Initialize counters for records
+    $totalInserted = 0;
+    $totalUpdated = 0;
+    $totalFailed = 0;
+
     foreach ($jobIds as $jobId) {
         $apiResponse = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/' . $jobId . '/files');
         if (!$apiResponse or empty($apiResponse)) {
@@ -1465,59 +1522,63 @@ function idemailwiz_sync_triggered_metrics($metricType)
         $jobState = $apiResponse['response']['jobState'];
 
         if ($jobState === 'failed') {
-            wiz_log("Export job failed for Job ID: $jobId");
-
-            continue;
-        } else if ($jobState == 'completed') {
-            wiz_log('Fetched completed job with Job ID: ' . $jobId);
+            continue; // Log this if necessary
+        } else if ($jobState === 'completed') {
             $startAfter = '';
             do {
-                // Fetch file list with pagination
                 $fileApiResponse = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/' . $jobId . '/files?startAfter=' . $startAfter);
+                if (!isset($fileApiResponse['response']['files'])) {
+                    continue;
+                }
                 foreach ($fileApiResponse['response']['files'] as $file) {
-                    // Process each file
-                    $processResult = idemailwiz_process_completed_sync_job($file['url'], $metricType);
-                    if ($processResult < 1) {
-                        //wiz_log("Job $jobId could not be processed, skipping...");
-                        // Update startAfter for pagination so we don't get stuck in a loop
-                        $startAfter = basename($file['url']);
-                        continue;
-                    }
-
-                    $cntRecords += $processResult;
-                    // Update startAfter for pagination
+                    $processResult = idemailwiz_process_completed_sync_job($file['url'], $metricType, $jobId);
+                    // Assuming $processResult is now an associative array with 'inserted' and 'updated' counts
+                    $totalInserted += $processResult['inserted'];
+                    $totalUpdated += $processResult['updated'];
                     $startAfter = basename($file['url']);
-
                 }
 
-                // Check if more files are available
                 $moreFilesAvailable = count($fileApiResponse['response']['files']) > 0;
             } while ($moreFilesAvailable);
-
         } else {
-            wiz_log("Job ID $jobId for Triggered {$metricType}s is not yet ready for export, skipping...");
             continue;
         }
-        sleep(1); // max a per second max
+        sleep(1); // Respect API rate limits
     }
-    wiz_log('Finished sync for Triggered ' . ucfirst($metricType) . ' records on ' . $cntRecords . ' campaigns');
-    delete_transient("idemailwiz_sync_{$metricType}_running");
+
+    wiz_log("Finished sync for Triggered {$metricType}: {$totalInserted} records inserted, {$totalUpdated} records updated, {$totalFailed} failures encountered.");
+    delete_transient("idemailwiz_{$metricType}_sync_in_progress");
+
+    // Return the counts for further processing, if needed
+    return [
+        'inserted' => $totalInserted,
+        'updated' => $totalUpdated,
+        'failed' => $totalFailed
+    ];
 }
 
-function idemailwiz_process_completed_sync_job($fileUrl, $metricType)
+
+// Utility function to process all sync jobs for a metric type.
+// Access the files in each job and passed them to another function to insert the records into the database
+function idemailwiz_process_completed_sync_job($fileUrl, $metricType, $jobId)
 {
     set_time_limit(360);
-    wiz_log("Processing $metricType records from exported file...");
+    //wiz_log("Processing $metricType records from exported file...");
     global $wpdb;
     $cntRecords = 0;
 
     $jsonResponse = file_get_contents($fileUrl);
     $lines = explode("\n", $jsonResponse);
 
+    $insertCount = 0;
+    $updateCount = 0;
+    $errorCount = 0;
+
     if (!empty($lines) && (count(array_filter($lines)) > 0)) {
         foreach ($lines as $line) {
-            if (trim($line) === '')
+            if (trim($line) === '') {
                 continue;
+            }
 
             $decodedData = json_decode($line, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
@@ -1526,8 +1587,13 @@ function idemailwiz_process_completed_sync_job($fileUrl, $metricType)
                 wiz_log('json error, skipping');
             }
 
-            if (idemailwiz_insert_triggered_metric_record($decodedData, $metricType)) {
-                $cntRecords++;
+            $upsertResult = idemailwiz_insert_triggered_metric_record($decodedData, $metricType);
+            if ($upsertResult === 'inserted') {
+                $insertCount++;
+            } elseif ($upsertResult === 'updated') {
+                $updateCount++;
+            } elseif ($upsertResult === false) {
+                $errorCount++;
             }
 
             // Manually invoke garbage collection
@@ -1536,22 +1602,25 @@ function idemailwiz_process_completed_sync_job($fileUrl, $metricType)
 
         }
         if ($cntRecords > 0) {
-            wiz_log("Updated $cntRecords triggered $metricType records.");
+            wiz_log("Job {$jobId}: Updated $cntRecords triggered $metricType records.");
         } else {
-            wiz_log("No $metricType records found within exported file.");
+            //wiz_log("Job {$job}: No $metricType records found within exported file.");
         }
     } else {
-        wiz_log("No $metricType records found within exported file.");
+        //wiz_log("Job {$job}: No $metricType records found within exported file.");
     }
 
-    return $cntRecords;
+    if ($insertCount > 0 || $updateCount > 0) {
+        wiz_log("Job {$jobId}: Inserted {$insertCount}, Updated {$updateCount} triggered {$metricType} records with {$errorCount} errors.");
+    } else {
+        // No changes made
+        //wiz_log("Job {$jobId}: No changes made to triggered {$metricType} records. {$errorCount} errors encountered.");
+    }
+
+    return ['inserted' => $insertCount, 'updated' => $updateCount, 'errors' => $errorCount];
 }
 
-
-
-
-
-
+// Final step in the sync process for triggered data. Inserts or updates records in the proper database
 function idemailwiz_insert_triggered_metric_record($record, $metricType)
 {
     global $wpdb;
@@ -1580,134 +1649,51 @@ function idemailwiz_insert_triggered_metric_record($record, $metricType)
         $where = ['messageId' => $record['messageId']];
         $result = $wpdb->update($tableName, $data, $where);
 
-        if ($result === false && $wpdb->rows_affected == 0) {
-            // The update was successful, but no rows were affected (no changes)
-            $result = true; // Treat this as a successful operation
+        if ($result !== false) {
+            return 'updated';
         }
     } else {
         // Insert new record
         $result = $wpdb->insert($tableName, $data);
+        if ($result) {
+            return 'inserted';
+        }
     }
 
     if (!$result) {
         //wiz_log("Failed to upsert $metricType record for messageId: " . $record['messageId'] . ". Error: " . $wpdb->last_error);
-    }
-
-    return (bool) $result;
-}
-
-
-
-
-
-// The below functions are mostly used during the import process, not the regular sync
-
-
-function sync_single_triggered_campaign()
-{
-    $campaignId = $_POST['campaignId'];
-    check_ajax_referer('id-general', 'security');
-
-    idemailwiz_import_triggered_metrics_from_api([$campaignId], 'send');
-    idemailwiz_import_triggered_metrics_from_api([$campaignId], 'open');
-    idemailwiz_import_triggered_metrics_from_api([$campaignId], 'click');
-}
-add_action('wp_ajax_sync_single_triggered_campaign', 'sync_single_triggered_campaign');
-
-
-if (isset($syncFromCsvCampaigns)) {
-    foreach ($syncFromCsvCampaigns as $campaign) {
-        idemailwiz_import_triggered_metrics_from_api([$campaign['id']], 'send');
-        idemailwiz_import_triggered_metrics_from_api([$campaign['id']], 'open');
-        idemailwiz_import_triggered_metrics_from_api([$campaign['id']], 'click');
-        sleep(15);
-
-    }
-}
-function idemailwiz_import_triggered_metrics_from_api($campaignIds, $metricType)
-{
-    foreach ($campaignIds as $campaignId) {
-        $apiEndpoint = 'https://api.iterable.com/api/export/data.csv?dataTypeName=email' . ucfirst($metricType) . '&range=All&delimiter=%2C&onlyFields=campaignId&onlyFields=createdAt&onlyFields=messageId&onlyFields=templateId&campaignId=' . $campaignId;
-        // Use cURL call function to fetch the CSV data from the API
-        $apiResponse = idemailwiz_iterable_curl_call($apiEndpoint);
-        $apiCsv = $apiResponse['response'];
-
-        if ($apiCsv && !in_array($apiResponse, [400, 401, 429])) {
-            // Save the CSV data to a temporary file
-            $tempCsvFilePath = tempnam(sys_get_temp_dir(), 'iterable_csv_');
-            file_put_contents($tempCsvFilePath, $apiCsv);
-
-            // Import the CSV data into the database 
-            idemailwiz_import_triggered_metrics_from_csv($tempCsvFilePath, $metricType);
-
-            // Delete the temporary CSV file
-            unlink($tempCsvFilePath);
-        }
-    }
-}
-
-
-
-
-function idemailwiz_import_triggered_metrics_from_csv($localCsvFilePath, $metricType)
-{
-    // Open the local CSV file
-    $tempFile = fopen($localCsvFilePath, 'r');
-
-    if (!$tempFile) {
-        error_log("Failed to open local CSV file.");
         return false;
     }
-
-    $header = fgetcsv($tempFile);
-
-    // Mapping of field to index
-    $indexMapping = array_flip($header);
-
-    // Create an array to store the records
-    $uniqueRecords = [];
-
-    while ($row = fgetcsv($tempFile)) {
-        if (
-            is_array($row) &&
-            isset($indexMapping['campaignId'], $indexMapping['createdAt'], $indexMapping['messageId'], $indexMapping['templateId']) &&
-            isset($row[$indexMapping['campaignId']], $row[$indexMapping['createdAt']], $row[$indexMapping['messageId']], $row[$indexMapping['templateId']])
-        ) {
-            $messageId = $row[$indexMapping['messageId']];
-            $createdAt = strtotime($row[$indexMapping['createdAt']]) * 1000;
-
-            // Check if the messageId already exists in $uniqueRecords
-            if (isset($uniqueRecords[$messageId])) {
-                // If the current row has an earlier createdAt date, update the record
-                if ($createdAt < $uniqueRecords[$messageId]['startAt']) {
-                    $uniqueRecords[$messageId] = [
-                        'messageId' => $messageId,
-                        'campaignId' => $row[$indexMapping['campaignId']],
-                        'templateId' => $row[$indexMapping['templateId']],
-                        'startAt' => $createdAt,
-                    ];
-                }
-            } else {
-                // If messageId doesn't exist in $uniqueRecords, add it as a new record
-                $uniqueRecords[$messageId] = [
-                    'messageId' => $messageId,
-                    'campaignId' => $row[$indexMapping['campaignId']],
-                    'templateId' => $row[$indexMapping['templateId']],
-                    'startAt' => $createdAt,
-                ];
-            }
-        }
-    }
-
-    fclose($tempFile);
-
-    // Insert unique records into the database
-    foreach ($uniqueRecords as $record) {
-        idemailwiz_insert_triggered_metric_record($record, $metricType);
-    }
-
-    error_log("Finished inserting new $metricType records for triggered campaigns from CSV.");
-    return true;
 }
 
+
+// Ajax handler for manual sync form on sync station page
+add_action('wp_ajax_idemailwiz_handle_manual_sync', 'idemailwiz_handle_manual_sync');
+function idemailwiz_handle_manual_sync()
+{
+    check_ajax_referer('id-general', 'security');
+
+    // Extract the form fields from the POST data
+    parse_str($_POST['formFields'], $formFields);
+
+    // Check for sync types
+    if (empty($formFields['syncTypes'])) {
+        wp_send_json_error('No sync types were received.');
+        return;
+    }
+
+    // Extract campaign IDs, if provided
+    $campaignIds = !empty($formFields['campaignIds']) ? explode(',', $formFields['campaignIds']) : false;
+
+    // Initiate the sync sequence
+    foreach ($formFields['syncTypes'] as $syncType) {
+        $syncResult = idemailwiz_process_sync_sequence($syncType, $campaignIds, true);
+    }
+
+    if ($syncResult === false) {
+        wp_send_json_error('Sync sequence aborted: Another sync is still in progress or there was an error.');
+    } else {
+        wp_send_json_success('Sync sequence successfully initiated.');
+    }
+}
 

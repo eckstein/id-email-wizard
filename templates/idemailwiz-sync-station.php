@@ -3,6 +3,16 @@ get_header();
 
 global $wpdb;
 
+if (isset($_GET['db-cleanup'])) {
+    $doCleanup = $_GET['db-cleanup'];
+    if ($doCleanup == 'update-null-user-ids') {
+        update_null_user_ids();
+    } else if ($doCleanup == 'update-missing-purchase-dates') {
+        update_missing_purchase_dates();
+    } else if ($doCleanup == 'clean-campaign-ids')
+        remove_zero_campaign_ids();
+}
+
 ?>
 <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
     <header class="wizHeader">
@@ -20,53 +30,81 @@ global $wpdb;
         <div class="wizcampaign-sections-row">
             <!-- Sync Form -->
             <div class="wizcampaign-section inset">
-                <h2>Manual Sync Controls</h2>
-                <form id="syncStationForm" method="post">
-                    <fieldset class="syncTypes blast">
-                        <legend>Sync Blast Metrics:</legend>
-                        <?php echo "<label><input type='checkbox' name='syncTypes[]' value='blast'>Blast Metrics</label>"; ?>
-                    </fieldset>
-                    <fieldset class="syncTypes triggered">
-                        <legend>Sync Triggered Metrics:</legend>
+                <div class="wizcampaign-section">
+                    <h2>Manual Sync Controls</h2>
+                    <form id="syncStationForm" method="post">
+                        <fieldset class="syncTypes blast">
+                            <legend>Sync Blast Metrics:</legend>
+                            <?php echo "<label><input type='checkbox' name='syncTypes[]' value='blast'>Blast Metrics</label>"; ?>
+                        </fieldset>
+                        <fieldset class="syncTypes triggered">
+                            <legend>Sync Triggered Metrics:</legend>
+                            <?php
+                            $syncTypes = ['Sends' => 'send', 'Opens' => 'open', 'Clicks' => 'click', 'Unsubscribes' => 'unSubscribe', 'Bounces' => 'bounce', 'Complaints' => 'complaint', 'SendSkips' => 'sendSkip'];
+                            foreach ($syncTypes as $label => $type) {
+                                echo "<label><input type='checkbox' name='syncTypes[]' value='$type'> $label</label>";
+                            }
+                            ?>
+
+                        </fieldset>
+                        <fieldset id="syncStation-syncDates">
+                            <legend>Limit by start and/or end date(s) <br /><em>leave blank for all time</em></legend>
+                            <div class="wizSyncForm-startDate-group">
+                                <label for="startDate">Start Date: </label>
+                                <input type="date" id="startDate" name="startDate">
+                            </div>
+                            <div class="wizSyncForm-startDate-group">
+                                <label for="endDate">End Date: </label>
+                                <input type="date" id="endDate" name="endDate">
+                            </div>
+
+                        </fieldset>
+
+                        <fieldset id="syncStation-syncCampaigns">
+                            <legend>Sync specific campaigns <br /><em>optional and only applicable to blast
+                                    campaigns</em></legend>
+                            <label for="campaignIds">Campaign IDs (comma-separated):</label><br />
+                            <textarea id="campaignIds" name="campaignIds"></textarea>
+                        </fieldset>
+
+                        <input type="submit" class="wiz-button green" value="Initiate Sync">
                         <?php
-                        $syncTypes = ['Sends' => 'send', 'Opens' => 'open', 'Clicks' => 'click', 'Unsubscribes' => 'unSubscribe', 'Bounces' => 'bounce', 'Complaints' => 'complaint', 'SendSkips' => 'sendSkip'];
-                        foreach ($syncTypes as $label => $type) {
-                            echo "<label><input type='checkbox' name='syncTypes[]' value='$type'> $label</label>";
+                        // Check if a sync is already in progress
+                        $overlayClass = '';
+                        if (get_transient('idemailwiz_sync_in_progress')) {
+                            $overlayClass = 'active';
                         }
                         ?>
-
-                    </fieldset>
-                    <fieldset id="syncStation-syncDates">
-                        <legend>Limit by start and/or end date(s) <br /><em>leave blank for all time</em></legend>
-                        <div class="wizSyncForm-startDate-group">
-                            <label for="startDate">Start Date: </label>
-                            <input type="date" id="startDate" name="startDate">
+                        <div class="syncForm-overlay <?php echo $overlayClass; ?>">
+                            <div class="syncForm-overlayContent">Sync in progress...</div>
                         </div>
-                        <div class="wizSyncForm-startDate-group">
-                            <label for="endDate">End Date: </label>
-                            <input type="date" id="endDate" name="endDate">
+                    </form>
+                </div>
+                <div class="wizcampaign-section">
+                    <h2>Database Cleanup Operations</h2>
+                    <div class="wizcampaign-sections-row">
+
+                        <div class="wizcampaign-section">
+                            <a class="wiz-button green"
+                                href="<?php echo add_query_arg('db-cleanup', 'update-null-user-ids'); ?>"
+                                id="updateNullUserIds">Match User IDs</a>
+                            <h5>Fills null userIds by matching accountNumber to other purchases</h5>
                         </div>
-
-                    </fieldset>
-
-                    <fieldset id="syncStation-syncCampaigns">
-                        <legend>Sync specific campaigns <br /><em>optional and only applicable to blast campaigns</em></legend>
-                        <label for="campaignIds">Campaign IDs (comma-separated):</label><br />
-                        <textarea id="campaignIds" name="campaignIds"></textarea>
-                    </fieldset>
-
-                    <input type="submit" class="wiz-button green" value="Initiate Sync">
-                    <?php
-                    // Check if a sync is already in progress
-                    $overlayClass = '';
-                    if (get_transient('idemailwiz_sync_in_progress')) {
-                        $overlayClass = 'active';
-                    }
-                    ?>
-                    <div class="syncForm-overlay <?php echo $overlayClass; ?>">
-                        <div class="syncForm-overlayContent">Sync in progress...</div>
+                        <div class="wizcampaign-section">
+                            <a class="wiz-button green"
+                                href="<?php echo add_query_arg('db-cleanup', 'update-missing-purchase-dates'); ?>"
+                                id="updateMissingPurchaseDates">Update Missing Purchase
+                                Dates</a>
+                            <h5>Fill in PurchaseDate where missing using the createdAt date.</h5>
+                        </div>
+                        <div class="wizcampaign-section">
+                            <a class="wiz-button green"
+                                href="<?php echo add_query_arg('db-cleanup', 'clean-campaign-ids'); ?>"
+                                id="removeZeroCampaignIds">Clean Campaign IDs</a>
+                            <h5>Remove campaignIds with a value of "0" (updates value to null).</h5>
+                        </div>
                     </div>
-                </form>
+                </div>
             </div>
             <!-- Sync Log Section -->
             <div class="wizcampaign-section inset" id="sync-log-panel">

@@ -105,8 +105,10 @@ function idemailwiz_deactivate()
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-functions.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-shortcodes.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-databases.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-database-cleanup.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-initiatives.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-sync.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-manual-import.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idwiz-wiz-log.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idwiz-curl.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-data-tables.php');
@@ -119,7 +121,6 @@ require_once(plugin_dir_path(__FILE__) . 'includes/folder-template-actions.php')
 require_once(plugin_dir_path(__FILE__) . 'includes/archive-query.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/iterable-functions.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-google-sheets-api.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/external-cron.php');
 
 
 

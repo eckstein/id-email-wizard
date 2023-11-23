@@ -231,6 +231,9 @@ jQuery(document).ready(function ($) {
 			});
 		}
 	}
+
+
+	
 });
 
 //Global scope functions

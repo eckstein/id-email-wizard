@@ -1,6 +1,10 @@
 <?php
 
-
+// Schedule the twice daily sync of GA data
+if (!wp_next_scheduled('idemailwiz_twice_daily_sync')) {
+    wp_schedule_event(time(), 'twicedaily', 'idemailwiz_twice_daily_sync');
+}
+add_action('idemailwiz_twice_daily_sync', 'sync_ga_campaign_revenue_data');
 
 function sync_ga_campaign_revenue_data()
 {
