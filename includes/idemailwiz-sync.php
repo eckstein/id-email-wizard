@@ -1437,7 +1437,7 @@ function idemailwiz_fetch_triggered_data_jobs($metricType)
     $countRetrieved = 0;
     set_time_limit(360);
 
-    wiz_log("Exporting jobs for $countTriggered Triggered {$metricType}s...");
+    wiz_log("Exporting jobs for $countTriggered Triggered Campaign's {$metricType}s... (2-5 mins)");
     foreach ($triggeredCampaigns as $campaign) {
 
         if (!isset($campaign['id'])) {
