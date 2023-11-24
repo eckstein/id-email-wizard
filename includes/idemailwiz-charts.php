@@ -336,15 +336,18 @@ function idwiz_get_byPurchaseField_chartdata($chartOptions)
     } elseif ($chartType === 'pie' || $chartType === 'doughnut') {
         $numberOfSegments = count($groupedData);
         $colors = generatePieChartColors('#FF6384', '#36A2EB', $numberOfSegments);
-        $response['data']['datasets'] = [
-            [
-                'data' => array_column($groupedData, 'Purchases'),
-                'backgroundColor' => $colors
-            ]
+        $purchasesData = array_column($groupedData, 'Purchases');
+        $revenuesData = array_column($groupedData, 'Revenue');
+
+        $datasets = [
+            'data' => $purchasesData,
+            'backgroundColor' => $colors,
+            'metaData' => $revenuesData // Include revenue data as meta data
         ];
-        // Send the revenue data so we can use it in tooltips
-        $response['data']['revenues'] = array_column($groupedData, 'Revenue');
+
+        $response['data']['datasets'] = [$datasets]; // Chart.js expects datasets to be an array
     }
+
 
     return $response;
 }
@@ -678,6 +681,7 @@ function idwiz_group_purchases_by_topic($purchases)
             $topic = trim($topic);
 
             if (!isset($topicData[$topic])) {
+                // Start new topic array if not yet in our array
                 $topicData[$topic] = ['Purchases' => 0, 'Revenue' => 0];
             }
 

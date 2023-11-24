@@ -69,9 +69,7 @@ if (isset($_GET['startDate']) && $_GET['startDate'] !== '' && isset($_GET['endDa
     </div>
 </header>
 
-<div id="wiztable_status_updates"><span class="wiztable_update"></span><span class="wiztable_view_sync_details">View
-        sync log&nbsp;<i class="fa-solid fa-chevron-down"></i></span></div>
-<div id="wiztable_status_sync_details">Sync log will show here...</div>
+
 <div class="entry-content idemailwiz_table_wrapper" itemprop="mainContentOfPage">
     <?php if (isset($_GET['view']) && $_GET['view'] == 'Blast' || !isset($_GET['view'])) { ?>
     <div class="dashboard-nav-area">

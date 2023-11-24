@@ -30,9 +30,9 @@
                     </div>
                     <div class="wizHeader-right">
                         <div class="wizHeader-actions">
-                            <button class="wiz-button green sync-initiative"
-                                data-initids="<?php echo htmlspecialchars(json_encode($associated_campaign_ids)); ?>">Sync
-                                Campaigns</button>
+                            <button class="wiz-button green doWizSync"
+                            data-campaignIds="<?php echo esc_attr(json_encode(array($associated_campaign_ids))); ?>"
+                            data-metricTypes="<?php echo esc_attr(json_encode(array('blast'))); ?>"><i class="fa-solid fa-arrows-rotate"></i>&nbsp;&nbsp;Sync Metrics</button>
 
                             <button class="wiz-button green add-init-campaign"
                                 data-initiativeid="<?php echo get_the_ID(); ?>"><i class="fa-regular fa-plus"></i>&nbsp;Add
@@ -48,9 +48,7 @@
                     </div>
                 </div>
             </header>
-            <div id="wiztable_status_updates"><span class="wiztable_update"></span><span class="wiztable_view_sync_details">View
-                    sync log&nbsp;<i class="fa-solid fa-chevron-down"></i></span></div>
-            <div id="wiztable_status_sync_details">Sync log will show here...</div>
+            
 
             <div class="entry-content" itemprop="mainContentOfPage">
 
@@ -73,7 +71,7 @@
                 <?php
                 $metricRates = get_idwiz_metric_rates($associated_campaign_ids);
 
-                get_idwiz_rollup_row($metricRates);
+                echo get_idwiz_rollup_row($metricRates);
                 ?>
                 <div class="wizcampaign-sections-row">
                     <div id="initiative-campaigns-table" class="wizcampaign-section inset span4">

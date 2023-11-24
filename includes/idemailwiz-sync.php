@@ -1066,12 +1066,11 @@ function idemailwiz_sync_non_triggered_metrics($campaignIds = null)
             return ['error' => 'Sync failed for ' . $db];
         }
         $response[$db] = $result;
-
-
     }
 
     return $response;
 }
+
 
 function idemailwiz_ajax_sync()
 {
@@ -1087,15 +1086,13 @@ function idemailwiz_ajax_sync()
         wp_die('Invalid action or nonce');
     }
 
-    $campaignIds = null;
-    if (isset($_POST['campaignIds'])) {
-        $campaignIds = json_decode(stripslashes($_POST['campaignIds']), true) ?? false;
-        if (!is_array($campaignIds)) {
-            $campaignIds = array($campaignIds);
-        }
-    }
+    $metricTypes = isset($_POST['metricTypes']) ? json_decode(stripslashes($_POST['metricTypes']), true) : ['blast'];
+    $campaignIds = isset($_POST['campaignIds']) ? json_decode(stripslashes($_POST['campaignIds']), true) : [];
 
-    $response = idemailwiz_sync_non_triggered_metrics($campaignIds);
+    //$response = idemailwiz_sync_non_triggered_metrics($campaignIds);
+    foreach ($metricTypes as $metricType) {
+        $response = idemailwiz_process_sync_sequence($metricType, $campaignIds, true);
+    }
 
     if (isset($response['error'])) {
         wp_send_json_error($response['error']);
@@ -1329,7 +1326,7 @@ function idemailwiz_process_sync_sequence($metricType, $campaignIds = null, $man
     $allowedMetricTypes = ['blast', 'send', 'open', 'click', 'unSubscribe', 'bounce', 'sendSkip', 'complaint'];
 
     if (!in_array($metricType, $allowedMetricTypes)) {
-        wiz_log('Invalid metric type passed to sync queue processor.');
+        wiz_log("Invalid metric ( $metricType) type passed to sync queue processor.");
         return false;
     }
 

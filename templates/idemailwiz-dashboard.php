@@ -124,17 +124,14 @@ foreach ($allPurchases as $purchase) {
                         Initiative</button>
                     <button class="wiz-button green show-new-template-ui"><i class="fa fa-plus"></i>&nbsp;&nbsp;New
                         Template</button>
-                    <button class="wiz-button green sync-db sync-everything"><i
-                            class="fa-solid fa-rotate"></i>&nbsp;Sync
-                        Databases</button>
+                    <button class="wiz-button green doWizSync"
+                    data-metricTypes="<?php echo esc_attr(json_encode(array('blast'))); ?>"><i class="fa-solid fa-arrows-rotate"></i>&nbsp;&nbsp;Sync Metrics</button>
                     <?php include plugin_dir_path(__FILE__) . 'parts/module-user-settings-form.php'; ?>
                 </div>
             </div>
         </div>
     </header>
-    <div id="wiztable_status_updates"><span class="wiztable_update"></span><span class="wiztable_view_sync_details">View
-            sync log&nbsp;<i class="fa-solid fa-chevron-down"></i></span></div>
-    <div id="wiztable_status_sync_details">Sync log will show here...</div>
+    
     <div class="entry-content" itemprop="mainContentOfPage">
         <div class="dashboard-nav-area">
             <div class="dashboard-nav-area-left">

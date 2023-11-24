@@ -43,7 +43,8 @@ $linkedExperimentIds = array_map(function ($id) {
                     <?php echo $campaign['name']; ?>
                 </h1>
                 <div class="wizEntry-meta">
-                    <strong><?php echo $campaign['type']; ?> Campaign <a
+                    <strong>
+                        <?php echo $campaign['type']; ?> Campaign <a
                             href="https://app.iterable.com/campaigns/<?php echo $campaign['id']; ?>?view=summary">
                             <?php echo $campaign['id']; ?>
                         </a>
@@ -53,48 +54,52 @@ $linkedExperimentIds = array_map(function ($id) {
                     </strong>
                     &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
                     <?php echo $campaign['messageMedium']; ?>
-                    
-                    &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;<?php if ($campaign['type'] == 'Triggered') {echo 'Last ';} ?>Sent on
+
+                    &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
+                    <?php if ($campaign['type'] == 'Triggered') {
+                        echo 'Last ';
+                    } ?>Sent on
                     <?php echo $campaignStartAt; ?>
 
                     <?php
-                    $journeyPosts = get_posts(['post_type'=>'journey', 'posts_per_page' => -1]);
+                    $journeyPosts = get_posts(['post_type' => 'journey', 'posts_per_page' => -1]);
                     foreach ($journeyPosts as $journeyPost) {
                         if (get_field('workflow_id', $journeyPost->ID) == $campaign['workflowId']) { ?>
-                            
-                            (<i class="fa-regular fa-calendar"></i> <a href="<?php echo get_bloginfo('url'); ?>?p=<?php echo $journeyPost->ID; ?>&highlight=<?php echo $campaign['id']; ?>">view timeline</a>)
+
+                            (<i class="fa-regular fa-calendar"></i> <a
+                                href="<?php echo get_bloginfo('url'); ?>?p=<?php echo $journeyPost->ID; ?>&highlight=<?php echo $campaign['id']; ?>">view
+                                timeline</a>)
                             <?php
                         }
                     }
                     ?>
 
-                    <?php 
+                    <?php
                     if (isset($template['clientTemplateId'])) { ?>
-                    &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
-                    <?php echo 'Wiz Template: <a href="' . get_bloginfo('url') . '?p=' . $template['clientTemplateId'] . '">' . $template['clientTemplateId'] . '</a>'; ?>
+                        &nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
+                        <?php echo 'Wiz Template: <a href="' . get_bloginfo('url') . '?p=' . $template['clientTemplateId'] . '">' . $template['clientTemplateId'] . '</a>'; ?>
                     <?php } ?>
                 </div>
                 <?php echo generate_initiative_flags($campaign['id']); ?>
             </div>
             <div class="wizHeader-right">
                 <div class="wizHeader-actions">
-                    <button class="wiz-button green sync-campaign" data-campaignid="<?php echo $campaign['id']; ?>">Sync
-                        Metrics</button>
+                    <button class="wiz-button green doWizSync"
+                        data-campaignIds="<?php echo esc_attr(json_encode(array($campaign['id']))); ?>"
+                        data-metricTypes="<?php echo esc_attr(json_encode(array('blast'))); ?>"><i class="fa-solid fa-arrows-rotate"></i>&nbsp;&nbsp;Sync Metrics</button>
+
                     <?php include plugin_dir_path(__FILE__) . 'parts/module-user-settings-form.php'; ?>
                 </div>
             </div>
         </div>
     </header>
-    <div id="wiztable_status_updates"><span class="wiztable_update"></span><span class="wiztable_view_sync_details">View
-            sync log&nbsp;<i class="fa-solid fa-chevron-down"></i></span></div>
-    <div id="wiztable_status_sync_details">Sync log will show here...</div>
 
     <div class="entry-content" itemprop="mainContentOfPage">
 
         <?php if ($campaign['type'] == 'Triggered') {
             //include plugin_dir_path(__FILE__) . 'parts/dashboard-date-buttons.php'; 
             include plugin_dir_path(__FILE__) . 'parts/dashboard-date-pickers.php';
-           
+
         }
         ?>
 
@@ -377,4 +382,3 @@ $linkedExperimentIds = array_map(function ($id) {
     </div>
 </article>
 <?php get_footer(); ?>
-

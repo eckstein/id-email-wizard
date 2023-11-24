@@ -57,7 +57,17 @@ a.wiz-button:hover {
 .wiz-button.outline:hover {
 	background-color: #eee;
 }
-
+.wiz-button.disabled {
+	background-color: #ababab!important;
+	color: #ffffff!important;;
+	font-style: italic;
+	cursor: wait;
+}
+.wiz-button.disabled:hover {
+	background-color: #666666!important;
+	color: #ababab!important;;
+	font-style: italic;
+}
 /* Checkbox Toggles */
 /* Basic structure and hiding the checkbox */
 .wizToggle-container {
@@ -1004,26 +1014,7 @@ pre#generatedCode {
 	text-align: left;
 }
 
-.idemailwiz_table_wrapper #saved_state_title {
-	text-align: center;
-}
-#wiztable_status_updates {
-	color: #343434;
-	padding: 5px;
-	margin-bottom: 8px;
-	height: calc(16px + 1em);
-	line-height: 1em;
-	text-align: center;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-weight: bold;
-	display: none;
-}
-#wiztable_status_updates.active {
-	background-color: #e0f2ba;
-	display: flex;
-}
+
 .idemailwiz_table_container {
 	min-height: 700px;
 	resize: vertical;

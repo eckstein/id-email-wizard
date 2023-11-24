@@ -231,9 +231,6 @@ jQuery(document).ready(function ($) {
 			});
 		}
 	}
-
-
-	
 });
 
 //Global scope functions
@@ -377,61 +374,66 @@ jQuery(document).on("click", ".sync-single-triggered", function () {
 	);
 });
 
-jQuery(document).on("click", ".sync-everything", function () {
-	handle_idwiz_sync_buttons("idemailwiz_ajax_sync", idAjax_id_general.nonce, null);
+
+jQuery(document).on("click", ".doWizSync:not(.disabled)", function () {
+	var $thisButton = jQuery(this);
+	var metricTypes = $thisButton.attr('data-metricTypes');
+	var campaignIds = $thisButton.attr('data-campaignIds');
+
+	// Convert the data attributes to arrays if they are JSON strings
+	metricTypes = metricTypes ? JSON.parse(metricTypes) : ['blast'];
+	campaignIds = campaignIds ? JSON.parse(campaignIds) : [];
+
+	// Disable the button, change its text, and add the spinner class to the icon
+	$thisButton.addClass('disabled');
+	$thisButton.data('original-text', $thisButton.html());
+	$thisButton.html('<i class="fa-solid fa-arrows-rotate fa-spin"></i>&nbsp;&nbsp;Syncing...');
+
+	// Call the function to handle the sync process
+	handle_idwiz_sync_buttons(metricTypes, campaignIds, $thisButton);
 });
 
-function handle_idwiz_sync_buttons(action, passedNonce, data = {}) {
-	// Show status updates
-	jQuery("#wiztable_status_updates").addClass("active").slideDown();
-	jQuery("#wiztable_status_updates .wiztable_update").text("Syncing databases...");
-
-	// Write initialization to log
-	idemailwiz_do_ajax(
-		"ajax_to_wiz_log",
-		idAjax_id_general.nonce,
-		{
-			log_data: "Initializing database sync. Please wait a few moments...",
-			timestamp: true,
-		},
-		function (result) {
-			jQuery("#wiztable_status_sync_details").load(idAjax.plugin_url + "/wiz-log.log");
-		},
-		function (error) {
-			console.log(error);
-		}
-	);
-
-	// Start refreshing the log
-	let refreshInterval = setInterval(() => {
-		jQuery("#wiztable_status_sync_details").load(idAjax.plugin_url + "/wiz-log.log");
-	}, 3000);
-
+function handle_idwiz_sync_buttons(metricTypes, campaignIds, $button) {
 	// Perform the AJAX call
 	idemailwiz_do_ajax(
-		action,
-		passedNonce,
-		data,
-		function (result) {
-			// success callback
-			clearInterval(refreshInterval);
-			jQuery("#wiztable_status_updates .wiztable_update").text("Sync completed! Refresh the table for new data");
-			jQuery("#wiztable_status_sync_details").load(idAjax.plugin_url + "/wiz-log.log");
+		"idemailwiz_ajax_sync",
+		idAjax_id_general.nonce,
+		{
+			metricTypes: JSON.stringify(metricTypes), // Pass arrays as JSON strings
+			campaignIds: JSON.stringify(campaignIds)
 		},
-		function (error) {
-			// error callback
-			clearInterval(refreshInterval);
-			jQuery("#wiztable_status_updates .wiztable_update").text("ERROR: Sync process failed with message: " + JSON.stringify(error));
-			jQuery("#wiztable_status_sync_details").load(idAjax.plugin_url + "/wiz-log.log");
+		function (response) { // success callback
+			// Reset the button's HTML content to its original state and remove the disabled class
+			$button.html($button.data('original-text')).removeClass('disabled');
+
+			if (response.success) {
+				Swal.fire({
+					title: 'Success!',
+					text: 'The sync sequence has finished successfully.',
+					icon: 'success'
+				});
+			} else {
+				Swal.fire({
+					title: 'Error!',
+					text: response.data.error || 'Unknown error.',
+					icon: 'error'
+				});
+			}
+		},
+		function (xhr, status, error) { // error callback
+			// Reset the button's HTML content to its original state and remove the disabled class
+			$button.html($button.data('original-text')).removeClass('disabled');
+
+			Swal.fire({
+				title: 'Error!',
+				text: error || 'There was an error completing the sync sequence.',
+				icon: 'error'
+			});
 		}
 	);
 }
 
-// Sync log toggle
-jQuery(document).on("click", ".wiztable_view_sync_details", function () {
-	jQuery("#wiztable_status_sync_details").slideToggle();
-	jQuery(this).find("i").toggleClass("fa-chevron-down fa-chevron-up");
-});
+
 
 // Add or remove initiatives from one or more campaigns
 window.manageCampaignsInInitiative = function (action, campaignIds, onSuccess = null, skipInitiativeSelection = false, initiativeId = null) {
@@ -551,21 +553,21 @@ window.manageCampaignsInInitiative = function (action, campaignIds, onSuccess = 
 	window.Swal.fire(swalConfig);
 };
 
-
 // Auto-refresh sync log
 if (jQuery("#syncLogContent code").length) {
-	setInterval(function() {
+	setInterval(function () {
 		idemailwiz_do_ajax(
-			'refresh_wiz_log', 
-			idAjax_id_general.nonce, 
-			{}, 
-			function(response) {
+			"refresh_wiz_log",
+			idAjax_id_general.nonce,
+			{},
+			function (response) {
 				if (response.success) {
 					jQuery("#syncLogContent code").text(response.data);
 				}
 			},
-			function(error) { // Error
-				console.log('Error refreshing log:', error);
+			function (error) {
+				// Error
+				console.log("Error refreshing log:", error);
 			}
 		);
 	}, 3000);
@@ -585,28 +587,28 @@ jQuery("#syncStationForm").on("submit", function (e) {
 			jQuery(".syncForm-overlay").removeClass("active");
 			Swal.fire("Sync Successful", "The manual sync has completed. See sync log for details.", "success");
 		},
-	function (error) {
-		console.log(error);
-		Swal.fire("Error", "An error occurred. Check the sync log or browser console for details.", "error");
+		function (error) {
+			console.log(error);
+			Swal.fire("Error", "An error occurred. Check the sync log or browser console for details.", "error");
 
-		// Prepare a detailed error message
-		var errorMessage = "Ajax error: " + error.status + " " + error.statusText;
-		if (error.responseJSON && error.responseJSON.data) {
-			errorMessage += " - " + error.responseJSON.data;
-		}
-
-		// Log the detailed error message
-		idemailwiz_do_ajax(
-			"ajax_to_wiz_log",
-			idAjax_id_general.nonce,
-			{ log_data: errorMessage },
-			function (result) {
-				jQuery("#syncLogContent code").load(idAjax.plugin_url + "/wiz-log.log");
-			},
-			function (error) {
-				console.log("Error logging to wiz_log: ", error);
+			// Prepare a detailed error message
+			var errorMessage = "Ajax error: " + error.status + " " + error.statusText;
+			if (error.responseJSON && error.responseJSON.data) {
+				errorMessage += " - " + error.responseJSON.data;
 			}
-		);
-	}
+
+			// Log the detailed error message
+			idemailwiz_do_ajax(
+				"ajax_to_wiz_log",
+				idAjax_id_general.nonce,
+				{ log_data: errorMessage },
+				function (result) {
+					jQuery("#syncLogContent code").load(idAjax.plugin_url + "/wiz-log.log");
+				},
+				function (error) {
+					console.log("Error logging to wiz_log: ", error);
+				}
+			);
+		}
 	);
 });

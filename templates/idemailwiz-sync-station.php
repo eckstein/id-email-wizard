@@ -47,18 +47,6 @@ if (isset($_GET['db-cleanup'])) {
                             ?>
 
                         </fieldset>
-                        <fieldset id="syncStation-syncDates">
-                            <legend>Limit by start and/or end date(s) <br /><em>leave blank for all time</em></legend>
-                            <div class="wizSyncForm-startDate-group">
-                                <label for="startDate">Start Date: </label>
-                                <input type="date" id="startDate" name="startDate">
-                            </div>
-                            <div class="wizSyncForm-startDate-group">
-                                <label for="endDate">End Date: </label>
-                                <input type="date" id="endDate" name="endDate">
-                            </div>
-
-                        </fieldset>
 
                         <fieldset id="syncStation-syncCampaigns">
                             <legend>Sync specific campaigns <br /><em>optional and only applicable to blast

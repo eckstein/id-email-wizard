@@ -14,8 +14,6 @@ jQuery(document).ready(function ($) {
 		idwiz_fill_chart_canvas(canvas);
 	});
 
-
-
 	// On page load, fill canvases with their charts
 	$("canvas.wiz-canvas").each(function () {
 		if ($(this).attr("data-chartid") === "customerTypesChart") {
@@ -26,13 +24,6 @@ jQuery(document).ready(function ($) {
 	});
 
 	function idwiz_fill_chart_canvas(canvas) {
-		const metricLabelMappings = {
-			wizOpenRate: "Open Rate",
-			wizCto: "CTO",
-			wizCtr: "CTR",
-			// Add more mappings as needed
-		};
-
 		const chartType = $(canvas).attr("data-charttype");
 		const chartId = $(canvas).attr("data-chartid");
 
@@ -98,63 +89,61 @@ jQuery(document).ready(function ($) {
 						}
 					}
 
-
 					// Tooltips formatting
 					if (options && options.plugins && options.plugins.tooltip) {
 						if (!options.plugins.tooltip.callbacks) {
 							options.plugins.tooltip.callbacks = {};
 						}
 						if (response.data.options.hideTooltipTitle) {
-							options.plugins.tooltip.callbacks.title = function() {
-								return ''; // hides the default label (x-axis label) from the tooltip
+							options.plugins.tooltip.callbacks.title = function () {
+								return ""; // hides the default label (x-axis label) from the tooltip
 							};
 						} else {
-							options.plugins.tooltip.callbacks.title = function(tooltipItems) {
+							options.plugins.tooltip.callbacks.title = function (tooltipItems) {
 								return tooltipItems[0].label;
 							};
 						}
 
 						options.plugins.tooltip.callbacks.label = function (context) {
 							let labelsArray = [];
-    
-							if (response.data.type === "pie" || response.data.type === "doughnut") {
+
+							// Check if the current chart is a pie or doughnut chart
+							if (context.chart.config.type === "pie" || context.chart.config.type === "doughnut") {
 								let total = context.dataset.data.reduce((a, b) => a + b, 0);
 								let percentage = ((context.raw / total) * 100).toFixed(2);
 
-								// Access the revenue using context.dataIndex and the correct path
-								let revenue = response.data.data.revenues && response.data.data.revenues[context.dataIndex] ? response.data.data.revenues[context.dataIndex] : "N/A";
-								let formattedRevenue = formatFunctions['y-axis-rev'](revenue);
+								// Access the revenue from metaData
+								let revenue = context.dataset.metaData[context.dataIndex];
+								let formattedRevenue = idwiz_getFormatFunction("money")(revenue);
 
-								labelsArray.push(`${context.raw} (${percentage}%)`);
+								labelsArray.push(`${context.label}: ${context.raw} (${percentage}%)`);
 								labelsArray.push(`Revenue: ${formattedRevenue}`);
 							} else {
-								let formatFunc = formatFunctions[context.dataset.yAxisID];
-								if (formatFunc) {
-									labelsArray.push(formatFunc(context.parsed.y));
-								} else {
-									labelsArray.push(context.parsed.y);
-								}
+								// Get the dataType for this dataset from the chart options
+								let dataType = context.chart.options.scales[context.dataset.yAxisID].dataType;
+
+								// Get the format function based on the dataType
+								formatFunc = idwiz_getFormatFunction(dataType);
+
+								// Apply the format function
+								let formattedValue = formatFunc(context.parsed.y);
+								labelsArray.push(`${context.dataset.label}: ${formattedValue}`);
 							}
 
-							// Check if tooltipLabels is present and is not empty
-							if (response.data.data.tooltipLabels && response.data.data.tooltipLabels[context.dataIndex]) {
-								let tooltipLabels = response.data.data.tooltipLabels[context.dataIndex];
+							// Append additional labels if present
+							if (context.chart.data.tooltipLabels && context.chart.data.tooltipLabels[context.dataIndex]) {
+								let tooltipLabels = context.chart.data.tooltipLabels[context.dataIndex];
 								labelsArray = labelsArray.concat(tooltipLabels);
 							}
 
 							return labelsArray;
 						};
-
-
-
 					}
 
 					idwiz_create_chart(canvas, response.data.type, response.data.data.labels, response.data.data.datasets, options);
 				} else {
 					console.error("AJAX request successful but response indicated failure:", response);
-					
 				}
-
 			},
 			function (error) {
 				console.error("An error occurred during the AJAX request:", error);
