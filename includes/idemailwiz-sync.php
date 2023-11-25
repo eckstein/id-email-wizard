@@ -19,7 +19,12 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 
     // If this is a purchase sync, we do some database cleanup
     if ($table_name == $wpdb->prefix . 'idemailwiz_purchases') {
-        $items = idwiz_cleanup_purchase_records($items);
+        foreach ($items as $key => $item) {
+            // Exclude purchases with campaignIds that are negatives (like -12345)
+            if (isset($item['campaignId']) && $item['campaignId'] < 0) {
+                unset($items[$key]);
+            }
+        }
     }
 
     foreach ($items as $key => $item) {
@@ -161,65 +166,7 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 }
 
 
-function idwiz_cleanup_purchase_records($items)
-{
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'idemailwiz_purchases';
 
-    // Extract accountNumbers for items with a NULL userId and a non-empty accountNumber
-    $accountNumbers = array_column(array_filter($items, function ($item) {
-        return empty($item['userId']) && !empty($item['accountNumber']);
-    }), 'accountNumber');
-
-    // Unique accountNumbers to minimize the database calls
-    $uniqueAccountNumbers = array_unique($accountNumbers);
-
-    // Retrieve userIds for these accountNumbers in one call if there are any account numbers to process
-    $existingUserIds = [];
-    if (!empty($uniqueAccountNumbers)) {
-        $placeholders = implode(',', array_fill(0, count($uniqueAccountNumbers), '%s'));
-        $query = $wpdb->prepare("
-            SELECT accountNumber, userId 
-            FROM {$table_name} 
-            WHERE accountNumber IN ($placeholders)
-            AND userId IS NOT NULL
-        ", $uniqueAccountNumbers);
-        $existingUserIds = $wpdb->get_results($query, OBJECT_K);
-    } else {
-        // Skip, no userId cleanup needed
-        //error_log('No unique accountNumbers with NULL userId found.');
-    }
-
-    // Now iterate over the items and update them as necessary
-    foreach ($items as $key => $item) {
-        // Exclude campaignIds with negatives (like -12345)
-        if (isset($item['campaignId']) && $item['campaignId'] < 0) {
-            unset($items[$key]);
-            continue;
-        }
-
-        // set campaign Ids that equal 0 to null instead
-        if (isset($item['campaignId']) && $item['campaignId'] === '0') {
-            $item['campaignId'] = null;
-        }
-
-        // Update purchaseDate if needed
-        if (empty($item['purchaseDate']) && !empty($item['createdAt'])) {
-            $created_at_date = new DateTime($item['createdAt']);
-            $item['purchaseDate'] = $created_at_date->format('Y-m-d');
-        }
-
-        // Update userId if needed
-        if (empty($item['userId']) && !empty($item['accountNumber']) && isset($existingUserIds[$item['accountNumber']])) {
-            $item['userId'] = $existingUserIds[$item['accountNumber']]->userId;
-        }
-
-
-        $items[$key] = $item;
-    }
-
-    return $items;
-}
 
 
 
@@ -496,7 +443,7 @@ function idemailwiz_fetch_metrics($campaignIds = null)
     $currentBatch = array();
     foreach ($campaigns as $campaign) {
         $currentBatch[] = $campaign['id'];
-        if (++$batchCount % 100 == 0) {
+        if (++$batchCount % 200 == 0) {
             $batches[] = $currentBatch;
             $currentBatch = array();
         }
@@ -509,7 +456,7 @@ function idemailwiz_fetch_metrics($campaignIds = null)
     $allMetrics = []; // Initialize $data as an array
 
     foreach ($batches as $batch) {
-        $getString = '?campaignId=' . implode('&campaignId=', $batch);
+        $getString = '?startDateTime=2021-11-01&campaignId=' . implode('&campaignId=', $batch);
 
         $url = "https://api.iterable.com/api/campaigns/metrics" . $getString;
         try {
@@ -569,7 +516,7 @@ function idemailwiz_fetch_metrics($campaignIds = null)
 
 
 
-function idemailwiz_fetch_purchases($campaignIds = null)
+function idemailwiz_fetch_purchases($campaignIds = [])
 {
     date_default_timezone_set('UTC'); // Set timezone to UTC to match Iterable
 
@@ -601,22 +548,31 @@ function idemailwiz_fetch_purchases($campaignIds = null)
         'omitFields' => implode(',', $omitFields)
     ];
 
+    // Define the start and end date time for the API call
+    $startDateTime = date('Y-m-d', strtotime('-3 days')); // defaults to past 3 days, unless altered below
+    $endDateTime = date('Y-m-d', strtotime('+1 day')); // End date is always today
+
     // Handle the campaign IDs if provided
-    if ($campaignIds) {
+    if (!empty($campaignIds)) {
         if (count($campaignIds) === 1) {
             // If there's only one campaign ID, add it directly
             $queryParams['campaignId'] = $campaignIds[0];
+            $wizCampaign = get_idwiz_campaign($campaignIds[0]);
+            
+            $startDateTime = date('Y-m-d', $wizCampaign['startAt'] / 1000);
         } else {
             // If multiple campaign IDs, find the earliest date
-            $campaigns = get_idwiz_campaigns(['campaignIds' => $campaignIds]);
-            $earliestDate = min(array_column($campaigns, 'startAt'));
-            $startDateTime = date('Y-m-d', $earliestDate / 1000);
+            // Iterable only allows one campaign ID per call to the export API, and only max of 4 per minute, so we estimate the earliest and latest dates and use those
+            $wizCampaigns = get_idwiz_campaigns(['campaignIds' => $campaignIds]);
+            $earliestDate = min(array_column($wizCampaigns, 'startAt'));
+            $latestDate = max(array_column($wizCampaigns, 'startAt'));
+            
+            $startDateTime = date('Y-m-d', ($earliestDate / 1000) - 86400); // one day before campaign start date
+            $endDateTime = date('Y-m-d', ($latestDate / 1000) + MONTH_IN_SECONDS); // one month after last campaign start date
+            
         }
     }
-
-    // Define the start and end date time for the API call
-    $startDateTime = date('Y-m-d', strtotime('-3 days'));
-    $endDateTime = date('Y-m-d', strtotime('+1 day')); // End date is always today
+   
 
     // Add the start and end datetime to the query parameters
     $queryParams['startDateTime'] = $startDateTime;
@@ -1068,6 +1024,10 @@ function idemailwiz_sync_non_triggered_metrics($campaignIds = null)
         $response[$db] = $result;
     }
 
+    // Do our general database cleanups
+    wiz_log('Doing database cleanups...');
+    do_database_cleanups();
+
     return $response;
 }
 
@@ -1094,8 +1054,8 @@ function idemailwiz_ajax_sync()
         $response = idemailwiz_process_sync_sequence($metricType, $campaignIds, true);
     }
 
-    if (isset($response['error'])) {
-        wp_send_json_error($response['error']);
+    if ($response === false) {
+        wp_send_json_error('There was an error in the sync process!');
     } else {
         wp_send_json_success($response);
     }
@@ -1398,12 +1358,12 @@ function idemailwiz_start_export_jobs($metricType)
 
     $startTime = microtime(true);
 
-    $jobTransient = get_transient("idemailwiz_sync_{$metricType}_jobs") ?? false;
-    $transientLastUpdated = $jobTransient['lastUpdated'] ?? false;
+    $jobExports = get_transient("idemailwiz_sync_{$metricType}_jobs") ?? false;
+    $transientLastUpdated = $jobExports['lastUpdated'] ?? false;
 
-    if (!$jobTransient || ($transientLastUpdated && (time() - $transientLastUpdated) > (60 * 60))) {
+    if (!$jobExports || ($transientLastUpdated && (time() - $transientLastUpdated) > (60 * 60))) {
         if (get_transient('idemailwiz_export_' . $metricType . '_jobs_running')) {
-            wiz_log("Triggered $metricType export jobs do not need updated, skipping...");
+            //wiz_log("Triggered $metricType export jobs do not need updated, skipping...");
             return false;
         }
         set_transient('idemailwiz_export_' . $metricType . '_jobs_running', true, 60 * 30);
@@ -1693,4 +1653,6 @@ function idemailwiz_handle_manual_sync()
         wp_send_json_success('Sync sequence successfully initiated.');
     }
 }
+
+
 

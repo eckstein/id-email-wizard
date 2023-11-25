@@ -330,7 +330,7 @@ function idemailwiz_create_databases()
         shoppingCartItems_discounts TEXT,
         shoppingCartItems_divisionId INT,
         shoppingCartItems_divisionName VARCHAR(255),
-        shoppingCartItems_isSubscription BOOLEAN,
+        shoppingCartItems_isSubscription VARCHAR(255),
         shoppingCartItems_locationName VARCHAR(255),
         shoppingCartItems_numberOfLessonsPurchasedOpl INT,
         shoppingCartItems_productCategory VARCHAR(255),

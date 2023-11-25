@@ -231,6 +231,38 @@ jQuery(document).ready(function ($) {
 			});
 		}
 	}
+
+	$('.month-year-select').select2({
+		allowClear: true,
+		placeholder: "Go to Month",
+	}).on("select2:select", function (e) {
+		// Get the selected value which is in 'Y-m' format
+		var selectedMonthYear = e.params.data.id;
+    
+		// Parse year and month from the selected value
+		var [year, month] = selectedMonthYear.split('-').map(Number);
+
+		// Calculate the startDate (first day of the month)
+		var startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
+
+		// Calculate the endDate (last day of the month)
+		var endDate = new Date(year, month, 0).toISOString().split('T')[0];
+
+		// Construct the query parameters
+		var queryParams = new URLSearchParams(window.location.search);
+		queryParams.set('startDate', startDate);
+		queryParams.set('endDate', endDate);
+
+		// Construct the new URL with the updated query parameters
+		var newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?' + queryParams.toString();
+
+		// Update the browser's location to the new URL and reload the page
+		window.location.href = newUrl;
+	});
+
+
+	
+
 });
 
 //Global scope functions
@@ -395,6 +427,8 @@ jQuery(document).on("click", ".doWizSync:not(.disabled)", function () {
 
 function handle_idwiz_sync_buttons(metricTypes, campaignIds, $button) {
 	// Perform the AJAX call
+	var syncStationUrl = idAjax_id_general.site_url + "/sync-station";
+	do_wiz_notif({ message: "Sync initiated! <a href='" + syncStationUrl + "'>View sync log</a>", duration: 10000 });
 	idemailwiz_do_ajax(
 		"idemailwiz_ajax_sync",
 		idAjax_id_general.nonce,
@@ -612,3 +646,36 @@ jQuery("#syncStationForm").on("submit", function (e) {
 		}
 	);
 });
+
+
+// Generates and displays a notification
+// Example: do_wiz_notif({ message: 'You clicked a thing.', duration: 3000 });
+function do_wiz_notif(notifData) {
+	// Create the notification elements
+	var notif = jQuery('<div>', { class: 'wizNotif' });
+	var icon = jQuery('<div>', { class: 'wizNotifIcon' }).append(jQuery('<i>', { class: 'fa fa-bell' }));
+	var content = jQuery('<div>', { class: 'wizNotifContent' }).html(notifData.message);
+	var close = jQuery('<i>', { class: 'fa fa-times wizNotifClose' });
+
+	// Assemble the notification
+	notif.append(icon, content, close);
+
+	// Append to the container
+	jQuery('.wizNotifs').prepend(notif);
+
+	// Set a timeout to automatically remove the notification after a certain period
+	setTimeout(function() {
+		notif.fadeOut(function() {
+			jQuery(this).remove();
+		});
+	}, notifData.duration || 5000); // Default duration to 5 seconds if not specified
+
+	// Handle the click event on the close button
+	close.on('click', function() {
+		notif.fadeOut(function() {
+			jQuery(this).remove();
+		});
+	});
+}
+
+

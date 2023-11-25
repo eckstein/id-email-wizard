@@ -15,6 +15,9 @@ $metrics = get_idwiz_metric($campaign['id']);
 $template = get_idwiz_template($campaign['templateId']);
 
 $campaignStartAt = date('m/d/Y \a\t g:ia', $campaign['startAt'] / 1000);
+$campaignEndDateTime = date('m/d/Y \a\t g:ia', $campaign['endedAt'] / 1000);
+$campaignEndedAt = date('g:ia', $campaign['endedAt'] / 1000);
+$sendsTimezone = date('T', $campaign['endedAt'] / 1000);
 
 $purchases = get_idwiz_purchases(array('campaignIds' => [$campaign['id'], 'shoppingCartItems_utmMedium' => 'email']));
 ;
@@ -60,6 +63,13 @@ $linkedExperimentIds = array_map(function ($id) {
                         echo 'Last ';
                     } ?>Sent on
                     <?php echo $campaignStartAt; ?>
+                    <?php 
+                    if ($campaignStartAt != $campaignEndDateTime) {
+                        echo "— $campaignEndedAt";
+                    }
+                    echo '&nbsp;' . $sendsTimezone;
+                    ?>
+
 
                     <?php
                     $journeyPosts = get_posts(['post_type' => 'journey', 'posts_per_page' => -1]);
@@ -86,7 +96,8 @@ $linkedExperimentIds = array_map(function ($id) {
                 <div class="wizHeader-actions">
                     <button class="wiz-button green doWizSync"
                         data-campaignIds="<?php echo esc_attr(json_encode(array($campaign['id']))); ?>"
-                        data-metricTypes="<?php echo esc_attr(json_encode(array('blast'))); ?>"><i class="fa-solid fa-arrows-rotate"></i>&nbsp;&nbsp;Sync Metrics</button>
+                        data-metricTypes="<?php echo esc_attr(json_encode(array('blast'))); ?>"><i
+                            class="fa-solid fa-arrows-rotate"></i>&nbsp;&nbsp;Sync Metrics</button>
 
                     <?php include plugin_dir_path(__FILE__) . 'parts/module-user-settings-form.php'; ?>
                 </div>

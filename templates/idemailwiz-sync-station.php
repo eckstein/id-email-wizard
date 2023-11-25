@@ -27,6 +27,7 @@ if (isset($_GET['db-cleanup'])) {
     </header>
 
     <div class="entry-content" itemprop="mainContentOfPage">
+        <?php //print_r(idemailwiz_fetch_purchases(['8328396'])); ?>
         <div class="wizcampaign-sections-row">
             <!-- Sync Form -->
             <div class="wizcampaign-section inset">

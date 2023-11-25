@@ -1634,7 +1634,9 @@ h2.wizArticle-title {
 	align-items: center;
 	gap: 10px;
 }
-
+.month-year-select {
+	width: 150px;
+}
 .metrics-tower {
 	display: flex;
 	flex-direction: column;
@@ -2292,4 +2294,40 @@ fieldset#syncStation-syncDates {
 #sync-log-panel {
 	max-height: 600px;
 	overflow-y: auto;
+}
+
+
+/* Notifications */
+.wizNotifs {
+	position: fixed;
+	right: 40px;
+	bottom: 0;
+}
+.wizNotifs .wizNotif {
+	background-color: #77e3ff;
+	padding: 15px 20px;
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+	display: inline-flex;
+	float: right;
+	clear: both;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 10px;
+	border-top-right-radius: 3px;
+	border-top-left-radius: 3px;
+	margin-bottom: 10px;
+}
+.wizNotifs .wizNotif .wizNotifIcon {
+	text-align: center;
+	color: #707070;
+	margin-right: 10px;
+} 
+.wizNotifs .wizNotif .wizNotifClose {
+	padding: 5px;
+	border-radius: 3px;
+	cursor: pointer;
+	margin-left: auto;
+}
+.wizNotifs .wizNotif .wizNotifClose:hover {
+	background-color: #fff;
 }

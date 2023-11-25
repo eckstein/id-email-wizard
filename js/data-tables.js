@@ -89,11 +89,9 @@ jQuery(document).ready(function ($) {
 			});
 
 			table.on("stateLoadParams", function (e, settings, data) {
-				// Delay the restoration of the date picker values
-				setTimeout(function () {
-					$("#wizStartDate").val(data.startDate);
-					$("#wizEndDate").val(data.endDate);
-				}, 500);
+				// Restore the date picker values
+				$("#wizStartDate").val(data.startDate).trigger('change');
+				$("#wizEndDate").val(data.endDate).trigger('change');
 			});
 		}
 
@@ -117,7 +115,7 @@ jQuery(document).ready(function ($) {
 			api.columns.adjust();
 
 			// Fetch rollup summary data
-			fetchRollUpSummaryData(api);
+			setTimeout(() => fetchRollUpSummaryData(api), 100);
 		}
 
 		let addButton = table.button("Add:name");
@@ -172,8 +170,6 @@ jQuery(document).ready(function ($) {
 			}
 		});
 
-		// Append date range into DataTables DOM
-
 		// Add date filter search logic
 		function addDateFilter() {
 			$.fn.dataTable.ext.search.push(function (settings, data, dataIndex, rowData) {
@@ -204,10 +200,16 @@ jQuery(document).ready(function ($) {
 				newUrl = updateUrlParameter(newUrl, "endDate", endDate);
 				history.pushState(null, null, newUrl);
 
-				$(".idemailwiz_table").DataTable().draw();
+				table.draw();
 			});
+
+			// Check if the date pickers have values on page load and trigger the change event
+			if ($("#wizStartDate").val() || $("#wizEndDate").val()) {
+				$("#wizStartDate, #wizEndDate").trigger("change");
+			}
 		}
 
+		// Utility function to update the URL when the dates change
 		function updateUrlParameter(url, param, paramVal) {
 			var newAdditionalURL = "";
 			var tempArray = url.split("?");
@@ -602,15 +604,28 @@ jQuery(document).ready(function ($) {
 				},
 				{
 					extend: "selected",
-					text: '<i class="fa-solid fa-rotate"></i>',
-					name: "Sync",
+					text: '<i class="fa-solid fa-rotate"></i>  Sync Selected',
+					titleAttr: "Sync selected campaigns",
 					className: "wiz-dt-button sync-selected",
-					attr: { title: "Sync selected campaigns" },
 					action: function (e, dt, node, config) {
+						// Use the DataTables button element (node) as the $button argument
+						let $button = $(node);
+
 						let selectedRowIndices = dt.rows({ selected: true }).indexes().toArray();
-						let selectedCampaignIds = selectedRowIndices.map((index) => dt.cell(index, "campaign_id:name").data());
-						handle_idwiz_sync_buttons("idemailwiz_ajax_sync", idAjax_data_tables.nonce, { campaignIds: JSON.stringify(selectedCampaignIds) });
-					},
+						let selectedCampaignIdsString = selectedRowIndices.map((index) => dt.cell(index, "campaign_id:name").data()).join(',');
+						let selectedCampaignIds = selectedCampaignIdsString.split(',');
+
+						// Disable the button, change its text, and add the spinner class to the icon
+						$button.addClass('disabled');
+						$button.data('original-text', $button.html());
+						$button.html('<i class="fa-solid fa-arrows-rotate fa-spin"></i>&nbsp;&nbsp;Syncing...');
+
+						// Disable the button here if handle_idwiz_sync_buttons expects a button jQuery object
+						$button.addClass('disabled').prop('disabled', true);
+
+						// Call the sync function with the campaign IDs and the button
+						handle_idwiz_sync_buttons(['blast'], selectedCampaignIds, $button);
+					}
 				},
 				{
 					extend: "selected",

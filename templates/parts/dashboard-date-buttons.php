@@ -13,4 +13,25 @@
     <a class="wiz-button green"
         href="<?php echo add_query_arg(array('startDate' => '2021-11-01', 'endDate' => date("Y-m-d"))); ?>"
         data-start="2021-11-01" data-end="<?php echo date("Y-m-d"); ?>">All Time</a>
+    <select class="month-year-select">
+        <option></option>
+        <?php
+        $currentMonth = date('n');
+        $currentYear = date('Y');
+
+        for ($y = $currentYear; $y >= 2021; $y--) {
+            $startMonth = ($y == $currentYear) ? $currentMonth : 12; // Start from the current month if it's the current year
+        
+            for ($m = $startMonth; $m >= 1; $m--) {
+                if ($y == 2021 && $m < 11) {
+                    break; // Stop the loop if it reaches before November 2021
+                }
+                $monthValue = date('Y-m', mktime(0, 0, 0, $m, 1, $y)); // Format for the value attribute
+                $monthName = date('M Y', mktime(0, 0, 0, $m, 1, $y)); // Format for the display
+                echo '<option value="' . $monthValue . '">' . $monthName . '</option>';
+            }
+        }
+        ?>
+    </select>
+
 </div>

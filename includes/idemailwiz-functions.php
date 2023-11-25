@@ -944,17 +944,18 @@ function prepare_promo_code_summary_data($purchases)
   ];
 }
 
-function idwiz_get_orders_from_purchases($purchases) {
-    $orders = [];
-    foreach ($purchases as $purchase) {
-        if (isset($orders[$purchase['orderId']])) {
-            $orders[$purchase['orderId']][] = $purchase;
-        } else {
-            $orders[$purchase['orderId']] = [$purchase];
-        }
+function idwiz_get_orders_from_purchases($purchases)
+{
+  $orders = [];
+  foreach ($purchases as $purchase) {
+    if (isset($orders[$purchase['orderId']])) {
+      $orders[$purchase['orderId']][] = $purchase;
+    } else {
+      $orders[$purchase['orderId']] = [$purchase];
     }
+  }
 
-    return $orders;
+  return $orders;
 }
 
 function get_idwiz_revenue($startDate, $endDate, $campaignTypes = ['Triggered', 'Blast'], $wizCampaignIds = null, $useGa = false)
@@ -1509,6 +1510,11 @@ function get_idwiz_rollup_row($metricRates, $include = [], $exclude = [])
       'format' => 'money',
       'value' => $metricRates['gaRevenue']
     ),
+    'wizCvr' => array(
+      'label' => 'CVR',
+      'format' => 'perc',
+      'value' => $metricRates['wizCvr']
+    ),
     'wizAov' => array(
       'label' => 'AOV',
       'format' => 'money',
@@ -1821,7 +1827,10 @@ function get_second_purchases_within_week($purchaseMonth, $purchaseMonthDay, $pu
 }
 
 
+function wiz_notifications() {
+    // Insert notifications wrapper into the footer
+    echo '<div class="wizNotifs" aria-live="assertive" aria-atomic="true"></div>';
+}
+add_action('wp_footer', 'wiz_notifications');
 
 
-
-?>
