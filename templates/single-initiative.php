@@ -12,6 +12,17 @@
             $purchases = get_idwiz_purchases(['campaignIds' => $associated_campaign_ids]);
         }
 
+        // If IDs exist, fetch campaigns
+        if (!empty($associated_campaign_ids)) {
+            $initCampaigns = get_idwiz_campaigns(
+                array(
+                    'campaignIds' => $associated_campaign_ids,
+                    'sortBy' => 'startAt',
+                    'sort' => 'DESC'
+                )
+            );
+        }
+
         ?>
         <article id="post-<?php the_ID(); ?>" data-initiativeid="<?php echo get_the_ID(); ?>" <?php post_class('has-wiz-chart'); ?>>
             <header class="wizHeader">
@@ -52,21 +63,7 @@
 
             <div class="entry-content" itemprop="mainContentOfPage">
 
-                <?php
-
-
-
-                // If IDs exist, fetch campaigns
-                if (!empty($associated_campaign_ids)) {
-                    $initCampaigns = get_idwiz_campaigns(
-                        array(
-                            'campaignIds' => $associated_campaign_ids,
-                            'sortBy' => 'startAt',
-                            'sort' => 'DESC'
-                        )
-                    );
-                }
-                ?>
+                
 
                 <?php
                 $metricRates = get_idwiz_metric_rates($associated_campaign_ids);
@@ -260,7 +257,11 @@
                  // Setup standard chart variables
                 $standardChartCampaignIds = $associated_campaign_ids;
                 $standardChartPurchases = $purchases;
-                $startDate = '2021-11-01';
+
+                $startAts = array_column($initCampaigns, 'startAt');
+                $earliestDate = min($startAts);
+                $startDate = date('Y-m-d', $earliestDate / 1000);
+ 
                 $endDate = date('Y-m-d');
                 include plugin_dir_path(__FILE__) . 'parts/standard-charts.php';
                 ?>

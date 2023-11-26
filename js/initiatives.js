@@ -669,6 +669,11 @@ jQuery(document).ready(function ($) {
 			} 
 		});
 	}
+
+	
+
+
+
 });
 
 //Global scope

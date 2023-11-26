@@ -17,9 +17,9 @@
                 <div class="wizToggle-container">
                     <span class="wizToggle-text">Limit 30 days</span>
                     <div class="wizToggle-switch">
-                        <input name="showTriggered" type="checkbox" id="toggleTriggeredDash"
+                        <input name="limit30Days" type="checkbox" id="limit30Days"
                             class="wizToggle-input wizDashControl">
-                        <label for="toggleTriggeredDash" class="wizToggle-label"></label>
+                        <label for="limit30Days" class="wizToggle-label"></label>
                     </div>
                 </div>
             </div>
@@ -59,7 +59,7 @@
             $purchByDateAttsString = implode(' ', $purchByDateAtts);
             ?>
 
-            <canvas class="purchByDate wiz-canvas" <?php echo $purchByDateAttsString; ?>></canvas>
+            <canvas class="purchByDate wiz-canvas" id="purchasesByDate" <?php echo $purchByDateAttsString; ?>></canvas>
 
         </div>
     </div>
