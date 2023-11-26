@@ -234,7 +234,7 @@ $linkedExperimentIds = array_map(function ($id) {
                                     <h4>
                                         <?php echo $experiment['name']; ?>
                                     </h4>
-                                    <div class="wiztable_view_metrics_div">
+                                    <div class="rollup_summary_wrapper">
                                         <?php
                                         foreach ($metrics as $key => $metric) {
                                             $value = $experiment[$key];

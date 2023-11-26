@@ -1111,7 +1111,7 @@ pre#generatedCode {
 }
 
 /* Metrics Rollup flex-table display */
-.wiztable_view_metrics_div {
+.rollup_summary_wrapper {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: center;
@@ -1762,7 +1762,7 @@ h2.wizArticle-title {
 .wizcampaign-experiments .wizcampaign-experiment {
 	margin-bottom: 30px;
 }
-.wizcampaign-experiments .wizcampaign-experiment .wiztable_view_metrics_div {
+.wizcampaign-experiments .wizcampaign-experiment .rollup_summary_wrapper {
 	margin-bottom: 0 !important;
 }
 .wizcampaign-experiments textarea#experimentNotes {

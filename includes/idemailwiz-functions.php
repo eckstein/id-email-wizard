@@ -1550,7 +1550,7 @@ function get_idwiz_rollup_row($metricRates, $include = [], $exclude = [])
   }
 
   $html = '';
-  $html .= '<div class="wiztable_view_metrics_div">';
+  $html .= '<div class="rollup_summary_wrapper">';
   foreach ($rollupFields as $metric) {
     $formattedValue = formatRollupMetric($metric['value'], $metric['format']);
     $html .= '<div class="metric-item">';

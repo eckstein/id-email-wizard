@@ -715,25 +715,38 @@ function idwiz_group_purchases_by_location($purchases)
 }
 
 
-function idwiz_group_purchases_by_date($purchases)
-{
+function idwiz_group_purchases_by_date($purchases) {
     $dateData = [];
 
     foreach ($purchases as $purchase) {
         $dateObject = new DateTime($purchase['purchaseDate']);
-
-        $formattedDate = $dateObject->format('m/d/Y');
-
-        if (!isset($dateData[$formattedDate])) {
-            $dateData[$formattedDate] = ['Purchases' => 0, 'Revenue' => 0];
+        
+        // Use Y-m-d format for sorting purposes.
+        $sortableDate = $dateObject->format('Y-m-d');
+        
+        if (!isset($dateData[$sortableDate])) {
+            $dateData[$sortableDate] = ['Purchases' => 0, 'Revenue' => 0];
         }
-
-        $dateData[$formattedDate]['Purchases'] += 1;
-        $dateData[$formattedDate]['Revenue'] += $purchase['total'];
+        
+        $dateData[$sortableDate]['Purchases'] += 1;
+        $dateData[$sortableDate]['Revenue'] += $purchase['total'];
     }
 
-    return $dateData;
+    // Sort the dates using uksort and a custom comparison function.
+    uksort($dateData, function($a, $b) {
+        return strtotime($a) - strtotime($b);
+    });
+
+    // Convert the sorted dates back to the desired format for display.
+    $sortedDateData = [];
+    foreach ($dateData as $date => $data) {
+        $formattedDate = (new DateTime($date))->format('m/d/Y');
+        $sortedDateData[$formattedDate] = $data;
+    }
+
+    return $sortedDateData;
 }
+
 
 
 

@@ -13,6 +13,16 @@
         ?>
         <div class="wizcampaign-section-title-area">
             <h4>Purchases by Date</h4>
+            <div class="wizcampaign-section-icons">
+                <div class="wizToggle-container">
+                    <span class="wizToggle-text">Limit 30 days</span>
+                    <div class="wizToggle-switch">
+                        <input name="showTriggered" type="checkbox" id="toggleTriggeredDash"
+                            class="wizToggle-input wizDashControl">
+                        <label for="toggleTriggeredDash" class="wizToggle-label"></label>
+                    </div>
+                </div>
+            </div>
         </diV>
         <div class="wizChartWrapper">
             <?php
@@ -122,68 +132,6 @@
         </div>
     </div>
 
-
-
-</div>
-<div class="wizcampaign-sections-row">
-    <div class="wizcampaign-section inset span2">
-        <div class="wizcampaign-section-title-area">
-            <h4>Purchases by Product</h4>
-            <div class="wizcampaign-section-icons">
-
-            </div>
-        </div>
-        <div class="tinyTableWrapper">
-            <?php
-            $byProductHeaders = [
-                'Product' => '30%',
-                'Topics' => '30%',
-                'Purchases' => '15%',
-                'Revenue' => '15%'
-            ];
-
-            $purchasesByProduct = transfigure_purchases_by_product($standardChartPurchases);
-
-            generate_mini_table($byProductHeaders, $purchasesByProduct);
-
-            ?>
-        </div>
-    </div>
-    <div class="wizcampaign-section inset span2">
-        <div class="wizcampaign-section-title-area">
-            <h4>Purchases by Location</h4>
-            <div class="wizcampaign-section-icons">
-                <i class="fa-solid fa-chart-simple active chart-type-switcher" data-chart-type="bar"></i><i
-                    class="fa-solid fa-chart-pie chart-type-switcher" data-chart-type="pie"></i>
-            </div>
-        </div>
-        <div class="tinyTableWrapper">
-            <?php 
-            // Group purchases by location
-            $locationData = idwiz_group_purchases_by_location($standardChartPurchases);
-
-            // Convert the grouped data into a format suitable for the table generator
-            $tableData = [];
-            foreach ($locationData as $location => $data) {
-                $tableData[] = [
-                    'Location' => $location,
-                    'Purchases' => $data['Purchases'],
-                    'Revenue' => '$' . number_format($data['Revenue'], 2)
-                ];
-            }
-
-            // Define headers for the table
-            $headers = [
-                'Location' => 'auto',
-                'Purchases' => 'auto',
-                'Revenue' => 'auto'
-            ];
-
-            // Generate the table
-            generate_mini_table($headers, $tableData);
-             ?>
-        </div>
-    </div>
     <div class="wizcampaign-section inset">
         <div class="wizcampaign-section-title-area">
             <h4>New vs Returning</h4>
@@ -217,6 +165,69 @@
             <canvas class="wiz-canvas" id="customerTypeChart" <?php echo $newVsReturningAttsString; ?>></canvas>
         </div>
     </div>
+
+
+
+</div>
+<div class="wizcampaign-sections-row">
+    <div class="wizcampaign-section inset span2">
+        <div class="wizcampaign-section-title-area">
+            <h4>Purchases by Product</h4>
+            <div class="wizcampaign-section-icons">
+
+            </div>
+        </div>
+        <div class="tinyTableWrapper">
+            <?php
+            $byProductHeaders = [
+                'Product' => '30%',
+                'Topics' => '30%',
+                'Purchases' => '15%',
+                'Revenue' => '15%'
+            ];
+
+            $purchasesByProduct = transfigure_purchases_by_product($standardChartPurchases);
+
+            generate_mini_table($byProductHeaders, $purchasesByProduct);
+
+            ?>
+        </div>
+    </div>
+    <div class="wizcampaign-section inset span2">
+        <div class="wizcampaign-section-title-area">
+            <h4>Purchases by Location</h4>
+            <div class="wizcampaign-section-icons">
+                
+            </div>
+        </div>
+        <div class="tinyTableWrapper">
+            <?php 
+            // Group purchases by location
+            $locationData = idwiz_group_purchases_by_location($standardChartPurchases);
+
+            // Convert the grouped data into a format suitable for the table generator
+            $tableData = [];
+            foreach ($locationData as $location => $data) {
+                $tableData[] = [
+                    'Location' => $location,
+                    'Purchases' => $data['Purchases'],
+                    'Revenue' => '$' . number_format($data['Revenue'], 2)
+                ];
+            }
+
+            // Define headers for the table
+            $headers = [
+                'Location' => 'auto',
+                'Purchases' => 'auto',
+                'Revenue' => 'auto'
+            ];
+
+            // Generate the table
+            generate_mini_table($headers, $tableData);
+             ?>
+        </div>
+    </div>
+    
 
     <div class="wizcampaign-section inset">
         <div class="wizcampaign-section-title-area">

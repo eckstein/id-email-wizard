@@ -16,43 +16,45 @@ function update_null_user_ids() {
     $wpdb->query('START TRANSACTION');
 
     try {
-        // Update userId for rows with NULL userId using a self-join
+        // Update userId for rows with blank (or NULL) userId using a self-join
         $result = $wpdb->query("
             UPDATE {$table_name} p1
             INNER JOIN (
                 SELECT MIN(id) as id, accountNumber, userId
                 FROM {$table_name}
-                WHERE userId IS NOT NULL
+                WHERE TRIM(IFNULL(userId, '')) <> ''
                 GROUP BY accountNumber
             ) p2 ON p1.accountNumber = p2.accountNumber
             SET p1.userId = p2.userId
-            WHERE p1.userId IS NULL
+            WHERE TRIM(IFNULL(p1.userId, '')) = ''
         ");
 
         // Check for the result to determine if rows were affected
-        if (!$result) {
+        if ($result === false) {
             // Log the error
-            wiz_log("No matching userIds found to update.");
-            $response = ['success' => false, 'error'=> 'No matching userIds found to update.'];
-            
+            wiz_log('No matching userIds found to update or error occurred.');
+            $response = ['success' => false, 'error' => 'No matching userIds found to update or error occurred.'];
+            $wpdb->query('ROLLBACK'); // Rollback if no rows were updated or error occurred
+            return $response;
         }
 
-        // Commit transaction
+        // Commit transaction if rows were updated
         $updatedUserIds = $wpdb->query('COMMIT');
-        $response = ['success' => true, 'updated'=> $updatedUserIds];
-        wiz_log("$updatedUserIds null userIds updated.");
+        $response = ['success' => true, 'updated' => $result]; // $result will contain the number of rows affected
+        wiz_log("$result null userIds updated.");
 
     } catch (Exception $e) {
         // Rollback the transaction on error
         $wpdb->query('ROLLBACK');
         // Log the error
-        wiz_log("Failed to update null userIds: " . $e->getMessage());
-        $response = ['success' => false, 'error'=> "Failed to update null userIds due to database error: " . $e->getMessage()];
+        wiz_log('Failed to update null userIds: ' . $e->getMessage());
+        $response = ['success' => false, 'error' => 'Failed to update null userIds due to database error: ' . $e->getMessage()];
         return $response;
     }
 
     return $response;
 }
+
 
 
 //update_missing_purchase_dates();
