@@ -1114,7 +1114,7 @@ pre#generatedCode {
 .rollup_summary_wrapper {
 	display: flex;
 	flex-wrap: wrap;
-	justify-content: center;
+	justify-content: space-between;
 	margin-bottom: 20px;
 }
 
@@ -1125,8 +1125,7 @@ pre#generatedCode {
 	justify-content: center;
 	min-width: 100px;
 	max-width: 200px;
-	margin: 0 4px;
-	padding: 6px 10px;
+	padding: 6px;
 	border: 1px solid #ccc;
 	border-radius: 4px;
 	background-color: #fff;
@@ -1158,7 +1157,7 @@ pre#generatedCode {
 	color: red;
 }
 .metric-value {
-	font-size: 16px;
+	font-size: 14px;
 	margin: 0;
 	padding: 0;
 	text-align: center;

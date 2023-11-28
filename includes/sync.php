@@ -1329,7 +1329,7 @@ function idemailwiz_process_sync_sequence($metricType, $campaignIds = null, $man
             if (!get_transient("idemailwiz_{$metricType}_sync_in_progress")) {
                 set_transient("idemailwiz_{$metricType}_sync_in_progress", true, 30 * 60);
             } else {
-                //wiz_log("Sync for {$metricType} is already running or ran too recently. Exiting...");
+                wiz_log("Sync for {$metricType} is already running or ran too recently. Exiting...");
                 return false;
             }
             idemailwiz_sync_triggered_metrics($metricType);
@@ -1463,7 +1463,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
         return false;
     }
 
-    wiz_log("Retrieving {$metricType} from Iterable... (2 -5 min)");
+    wiz_log("Retrieving Triggered {$metricType} jobs from Iterable... (2 -5 min)");
     set_time_limit(360);
 
     // Initialize counters for records

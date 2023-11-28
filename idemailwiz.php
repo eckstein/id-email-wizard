@@ -91,7 +91,7 @@ function idemailwiz_set_trash_term()
 }
 
 //Options pages
-include(plugin_dir_path(__FILE__) . 'includes/idemailwiz-options.php');
+include(plugin_dir_path(__FILE__) . 'includes/wiz-options.php');
 
 
 // Deactivation
@@ -102,25 +102,24 @@ function idemailwiz_deactivate()
 }
 
 //require files
-require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-functions.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-shortcodes.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-databases.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-database-cleanup.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-initiatives.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-sync.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-manual-import.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/idwiz-wiz-log.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/idwiz-curl.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-data-tables.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-charts.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-wysiwyg.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/functions.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/databases.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/database-cleanup.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/initiatives.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/sync.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/manual-import.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/wiz-log.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/cUrl.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/data-tables.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/charts.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/wysiwyg.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/template-builder.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/chunk-helpers.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/folder-tree.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/folder-template-actions.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/archive-query.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/iterable-functions.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/idemailwiz-google-sheets-api.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/google-sheets-api.php');
 
 
 
@@ -355,7 +354,7 @@ function idemailwiz_template_chooser($template)
     }
 
     if (strpos($_SERVER['REQUEST_URI'], '/metrics/campaign') !== false) {
-        return dirname(__FILE__) . '/templates/metrics-campaign.php';
+        return dirname(__FILE__) . '/templates/single-campaign.php';
     }
 
     if (strpos($_SERVER['REQUEST_URI'], '/journeys') !== false) {
@@ -364,7 +363,7 @@ function idemailwiz_template_chooser($template)
 
     // If user-profile endpoint is accessed
     if (isset($wp_query->query_vars['user-profile'])) {
-        $userProfileTemplate = plugin_dir_path(__FILE__) . 'templates/idemailwiz-user-profile.php';
+        $userProfileTemplate = plugin_dir_path(__FILE__) . 'templates/user-profile.php';
 
         // Use the custom template if it exists
         if (!empty($userProfileTemplate)) {
@@ -374,7 +373,7 @@ function idemailwiz_template_chooser($template)
 
     // If settings page endpoint is accessed
     if (isset($wp_query->query_vars['settings'])) {
-        $wizSettingsTemplate = plugin_dir_path(__FILE__) . 'templates/idemailwiz-settings.php';
+        $wizSettingsTemplate = plugin_dir_path(__FILE__) . 'templates/wiz-settings.php';
 
         // Use the custom template if it exists
         if (!empty($wizSettingsTemplate)) {
@@ -384,7 +383,7 @@ function idemailwiz_template_chooser($template)
 
     // If settings page endpoint is accessed
     if (isset($wp_query->query_vars['sync-station'])) {
-        $syncStationTemplate = plugin_dir_path(__FILE__) . 'templates/idemailwiz-sync-station.php';
+        $syncStationTemplate = plugin_dir_path(__FILE__) . 'templates/sync-station.php';
 
         // Use the custom template if it exists
         if (!empty($syncStationTemplate)) {
@@ -397,14 +396,14 @@ function idemailwiz_template_chooser($template)
     $dashboard_page = isset($options['dashboard_page']) ? $options['dashboard_page'] : '';
     if ($dashboard_page) {
         if (is_page($dashboard_page)) {
-            return dirname(__FILE__) . '/templates/idemailwiz-dashboard.php';
+            return dirname(__FILE__) . '/templates/dashboard.php';
         }
     }
 
     $campaigns_page = isset($options['campaigns_page']) ? $options['campaigns_page'] : '';
     if ($campaigns_page) {
         if (is_page($campaigns_page)) {
-            return dirname(__FILE__) . '/templates/idemailwiz-campaigns.php';
+            return dirname(__FILE__) . '/templates/campaigns-table.php';
         }
     }
 
@@ -413,8 +412,12 @@ function idemailwiz_template_chooser($template)
     if ($reports_page) {
 
         // Check if the current page is either the reports page or a child of the reports page
-        if (is_page($reports_page) || wp_get_post_parent_id(get_the_ID()) == $reports_page) {
-            return dirname(__FILE__) . '/templates/idemailwiz-reports.php';
+        if (is_page($reports_page)) {
+            return dirname(__FILE__) . '/templates/reports.php';
+        }
+
+        if (wp_get_post_parent_id(get_the_ID()) == $reports_page) {
+            // define reports pages here
         }
     }
 

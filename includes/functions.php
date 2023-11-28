@@ -1258,7 +1258,7 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
   $purchases = get_idwiz_purchases($purchaseArgs);
 
   // Initialize variables for summable metrics
-  $totalSends = $totalOpens = $totalClicks = $totalUnsubscribes = $totalDeliveries = $totalPurchases = $totalRevenue = 0;
+  $totalSends = $totalOpens = $totalClicks = $totalUnsubscribes = $totalDeliveries = $totalPurchases = $totalComplaints = $totalRevenue = 0;
 
   $totalPurchases = is_array($purchases) ? count($purchases) : 0;
 
@@ -1272,6 +1272,7 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
     $totalOpens += $blastMetricSet['uniqueEmailOpens'] ?? 0;
     $totalClicks += $blastMetricSet['uniqueEmailClicks'] ?? 0;
     $totalUnsubscribes += $blastMetricSet['uniqueUnsubscribes'] ?? 0;
+    $totalComplaints += $blastMetricSet['totalComplaints'] ?? 0;
     $totalDeliveries += $blastMetricSet['uniqueEmailsDelivered'] ?? 0;
     //$totalPurchases += $blastMetricSet['uniquePurchases'] ?? 0;
   }
@@ -1282,6 +1283,7 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
     $totalOpens += $triggeredMetrics['uniqueEmailOpens'] ?? 0;
     $totalClicks += $triggeredMetrics['uniqueEmailClicks'] ?? 0;
     $totalUnsubscribes += $triggeredMetrics['uniqueUnsubscribes'] ?? 0;
+    $totalComplaints += $triggeredMetrics['totalComplaints'] ?? 0;
     $totalDeliveries += $triggeredMetrics['uniqueEmailsDelivered'] ?? 0;
     //$totalPurchases += $triggeredMetrics['uniquePurchases'] ?? 0;
   }
@@ -1292,6 +1294,7 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
     'uniqueEmailOpens' => $totalOpens,
     'uniqueEmailClicks' => $totalClicks,
     'uniqueUnsubscribes' => $totalUnsubscribes,
+    'totalComplaints' => $totalUnsubscribes,
     'uniqueEmailsDelivered' => $totalDeliveries,
     'uniquePurchases' => $totalPurchases,
     'wizDeliveryRate' => ($totalSends > 0) ? ($totalDeliveries / $totalSends) * 100 : 0,
@@ -1301,6 +1304,7 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
     'wizCvr' => ($totalPurchases > 0 && $totalDeliveries > 0) ? ($totalPurchases / $totalDeliveries) * 100 : 0,
     'wizAov' => ($totalPurchases > 0 && $totalRevenue > 0) ? ($totalRevenue / $totalPurchases) : 0,
     'wizUnsubRate' => ($totalSends > 0) ? ($totalUnsubscribes / $totalSends) * 100 : 0,
+    'wizCompRate' => ($totalSends > 0) ? ($totalComplaints / $totalSends) * 100 : 0,
     'revenue' => $totalRevenue,
     'gaRevenue' => $gaRevenue
   ];
@@ -1340,6 +1344,7 @@ function get_triggered_campaign_metrics($campaignIds = [], $startDate = null, $e
     'uniqueEmailOpens' => 'idemailwiz_triggered_opens',
     'uniqueEmailClicks' => 'idemailwiz_triggered_clicks',
     'uniqueUnsubscribes' => 'idemailwiz_triggered_unsubscribes',
+    'totalComplaints' => 'idemailwiz_triggered_complaints',
     'emailSendSkips' => 'idemailwiz_triggered_sendskips',
     'emailBounces' => 'idemailwiz_triggered_bounces'
   ];
@@ -1496,7 +1501,7 @@ function get_idwiz_rollup_row($metricRates, $include = [], $exclude = [])
       'value' => $metricRates['wizCto']
     ),
     'uniquePurchases' => array(
-      'label' => 'Purchases',
+      'label' => 'Purch.',
       'format' => 'num',
       'value' => $metricRates['uniquePurchases']
     ),
@@ -1529,6 +1534,16 @@ function get_idwiz_rollup_row($metricRates, $include = [], $exclude = [])
       'label' => 'Unsub. Rate',
       'format' => 'perc',
       'value' => $metricRates['wizUnsubRate']
+    ),
+    'totalComplaints' => array(
+      'label' => 'Comp.',
+      'format' => 'num',
+      'value' => $metricRates['totalComplaints']
+    ),
+    'wizCompRate' => array(
+      'label' => 'Comp. Rate',
+      'format' => 'perc',
+      'value' => $metricRates['wizCompRate']
     ),
   );
 
@@ -1827,9 +1842,10 @@ function get_second_purchases_within_week($purchaseMonth, $purchaseMonthDay, $pu
 }
 
 
-function wiz_notifications() {
-    // Insert notifications wrapper into the footer
-    echo '<div class="wizNotifs" aria-live="assertive" aria-atomic="true"></div>';
+function wiz_notifications()
+{
+  // Insert notifications wrapper into the footer
+  echo '<div class="wizNotifs" aria-live="assertive" aria-atomic="true"></div>';
 }
 add_action('wp_footer', 'wiz_notifications');
 

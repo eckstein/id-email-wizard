@@ -6,7 +6,6 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
 {
     $attempts = 0;
     $consecutive400Errors = 0;
-    $bearerToken = get_field('ga_revenue_api_sheet_bearer_token', 'options');
 
     do {
         // Initialize cURL
@@ -58,7 +57,7 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
         // Check for authentication error
         if ($httpCode === 401) {
             error_log("Error fetching data from the API. HTTP Code: $httpCode. Response: $response");
-            throw new Exception("Authentication failed for API endpoint $apiURL. Check your bearer token: $bearerToken");
+            throw new Exception("Authentication failed for API endpoint $apiURL. Check your API Key.");
         }
 
         // If a 400 error occurs, log the response and attempt details
