@@ -251,7 +251,7 @@ jQuery(document).ready(function ($) {
 
 			function getRollupSuccess(response) {
 				if (response != 0) {
-					$("#campaigns-table-rollup").html(response);
+					$("#campaigns-table-rollup").replaceWith(response);
 				}
 			}
 

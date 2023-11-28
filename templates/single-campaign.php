@@ -5,12 +5,25 @@ global $wpdb; // Declare the WordPress Database variable
 
 date_default_timezone_set('America/Los_Angeles');
 
-// Check if the startDate and endDate parameters are present in the $_GET array
-$startDate = $_GET['startDate'] ?? '2021-11-01';
-$endDate = $_GET['endDate'] ?? date('Y-m-d');
-
 $campaign_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $campaign = get_idwiz_campaign($campaign_id);
+
+// Check if the startDate and endDate parameters are present in the $_GET array
+if (isset($_GET['startDate']) || isset($_GET['endDate'])) {
+if (isset($_GET['startDate']) && $_GET['startDate'] !== '') {
+    $startDate = $_GET['startDate'] ?? '2021-11-01';
+}
+if (isset($_GET['endDate']) && $_GET['endDate'] !== '') {
+    $endDate = $_GET['endDate'] ?? date('Y-m-d');
+}
+} else {
+    $startDate = date('Y-m-d', $campaign['startAt'] / 1000);
+    $endDate = date('Y-m-t');
+}
+
+
+
+
 $metrics = get_idwiz_metric($campaign['id']);
 $template = get_idwiz_template($campaign['templateId']);
 

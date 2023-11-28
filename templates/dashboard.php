@@ -126,6 +126,8 @@ foreach ($allPurchases as $purchase) {
                         Template</button>
                     <button class="wiz-button green doWizSync"
                     data-metricTypes="<?php echo esc_attr(json_encode(array('blast'))); ?>"><i class="fa-solid fa-arrows-rotate"></i>&nbsp;&nbsp;Sync Metrics</button>
+                    <a href="<?php echo get_bloginfo('url').'/sync-station'; ?>" class="wiz-button gray" id="viewSyncStation" title="View sync log">
+                    <i class="fa-regular fa-rectangle-list"></i></a>
                     <?php include plugin_dir_path(__FILE__) . 'parts/module-user-settings-form.php'; ?>
                 </div>
             </div>

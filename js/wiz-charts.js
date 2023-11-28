@@ -93,6 +93,7 @@ jQuery(document).ready(function ($) {
 					$(canvas).before('<div class="wizsection-error-message">No data available</div>');
 				}
 				if (response.success) {
+					$('.wizsection-error-message').remove();
 					let options = response.data.options;
 
 					// Determine the format function for each yAxisID
@@ -167,13 +168,14 @@ jQuery(document).ready(function ($) {
 
 					idwiz_create_chart(canvas, response.data.type, response.data.data.labels, response.data.data.datasets, options);
 				} else {
-					console.error("AJAX request successful but response indicated failure:", response);
+					//console.error("AJAX request successful but response indicated failure:", response);
+					$(canvas).before('<div class="wizsection-error-message">' + response.data + '</div>');
 				}
 			},
 			function (error) {
 				console.error("An error occurred during the AJAX request:", error);
 				if (error.responseJSON && error.responseJSON.message) {
-					console.error("Server says:", error.responseJSON.message);
+					//console.error("Server says:", error.responseJSON.message);
 					$(canvas).before('<div class="wizsection-error-message">' + error.responseJSON.message + "</div>");
 				} else {
 					$(canvas).before('<div class="wizsection-error-message">No data available</div>');

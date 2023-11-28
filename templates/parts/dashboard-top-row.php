@@ -1,26 +1,50 @@
-<div class="wizcampaign-sections-row">
-    <?php if ($displayGoal) { ?>
-        <div class="wizcampaign-section inset" id="monthly-goal-section">
-            <div class="wizcampaign-section-title-area">
-                <h4>To GA Goal
+<?php
 
-                </h4>
-                <div class="wizcampaign-section-title-area-right">
-                    $
-                    <?php echo number_format($displayGoal, 2); ?>
-                </div>
-            </div>
-            <?php if (isset($_GET['view']) && $_GET['view'] != 'FY' || !isset($_GET['view'])) { ?>
-                <div class="wizcampaign-section-content monthlyGoalTracker">
-                    <div class="wizChartWrapper">
-                        <canvas id="monthlyGoalTracker" data-startDate="<?php echo $_GET['startDate'] ?? date('Y-m-01'); ?>"
-                            data-endDate="<?php echo $_GET['endDate'] ?? date('Y-m-d'); ?>"></canvas>
+$currentDate = date('Y-m-d');
+
+$startDate = $_GET['startDate'] ?? date('Y-m-01');
+$endDate = $_GET['endDate'] ?? date('Y-m-t'); // Assuming you want the default to be the end of the current month
+
+$startDateTime = new DateTime($startDate);
+$endDateTime = new DateTime($endDate);
+
+$firstDayOfMonth = $startDateTime->format('Y-m-01');
+$lastDayOfMonth = $endDateTime->format('Y-m-t');
+
+// Check if view is not set to 'FY', if start date is first day of the month, and if end date is last day of the month
+if ((isset($_GET['view']) && $_GET['view'] != 'FY') || !isset($_GET['view'])) {
+    if ($startDate === $firstDayOfMonth && ($endDate === $lastDayOfMonth || $endDate === $currentDate)) {
+        ?>
+        <?php if ($displayGoal) { ?>
+            <div class="wizcampaign-sections-row">
+
+                <div class="wizcampaign-section inset" id="monthly-goal-section">
+                    <div class="wizcampaign-section-title-area">
+                        <h4>To GA Goal</h4>
+                        <div class="wizcampaign-section-title-area-right">
+                            $
+                            <?php echo number_format($displayGoal, 2); ?>
+                        </div>
+                    </div>
+
+                    <div class="wizcampaign-section-content monthlyGoalTracker">
+                        <div class="wizChartWrapper">
+                            <canvas id="monthlyGoalTracker" data-startDate="<?php echo $startDate; ?>"
+                                data-endDate="<?php echo $endDate; ?>"></canvas>
+                        </div>
                     </div>
 
                 </div>
-            <?php } ?>
-        </div>
-    <?php } ?>
+
+
+            </div>
+        <?php } ?>
+    <?php
+    }
+}
+?>
+<div class="wizcampaign-sections-row">
+
     <div class="wizcampaign-section inset metrics-tower-group span2">
         <div class="wizcampaign-section-title-area">
             <h4>Purchases & Revenue</h4>
@@ -56,45 +80,45 @@
             $revenueMetricsTowers = [
                 [
                     'metricType' => 'revenue',
-                    'thisMonthValue'=> $metricRates['revenue'],
-                    'lastMonthValue'=> $lastMonthMetricRates['revenue'],
-                    'lastYearValue'=> $lastYearMetricRates['revenue'],
+                    'thisMonthValue' => $metricRates['revenue'],
+                    'lastMonthValue' => $lastMonthMetricRates['revenue'],
+                    'lastYearValue' => $lastYearMetricRates['revenue'],
                     'metricFormat' => 'money',
                     'sectionTitle' => 'Rev',
                     'sectionID' => 'monthlyRev'
                 ],
                 [
                     'metricType' => 'gaRevenue',
-                    'thisMonthValue'=> $metricRates['gaRevenue'],
-                    'lastMonthValue'=> $lastMonthMetricRates['gaRevenue'],
-                    'lastYearValue'=> $lastYearMetricRates['gaRevenue'],
+                    'thisMonthValue' => $metricRates['gaRevenue'],
+                    'lastMonthValue' => $lastMonthMetricRates['gaRevenue'],
+                    'lastYearValue' => $lastYearMetricRates['gaRevenue'],
                     'metricFormat' => 'money',
                     'sectionTitle' => 'GA Rev',
                     'sectionID' => 'monthlyGaRev'
                 ],
                 [
                     'metricType' => 'uniquePurchases',
-                    'thisMonthValue'=> $metricRates['uniquePurchases'],
-                    'lastMonthValue'=> $lastMonthMetricRates['uniquePurchases'],
-                    'lastYearValue'=> $lastYearMetricRates['uniquePurchases'],
+                    'thisMonthValue' => $metricRates['uniquePurchases'],
+                    'lastMonthValue' => $lastMonthMetricRates['uniquePurchases'],
+                    'lastYearValue' => $lastYearMetricRates['uniquePurchases'],
                     'metricFormat' => 'num',
                     'sectionTitle' => 'Purchases',
                     'sectionID' => 'purchases'
                 ],
                 [
                     'metricType' => 'wizCvr',
-                    'thisMonthValue'=> $metricRates['wizCvr'],
-                    'lastMonthValue'=> $lastMonthMetricRates['wizCvr'],
-                    'lastYearValue'=> $lastYearMetricRates['wizCvr'],
+                    'thisMonthValue' => $metricRates['wizCvr'],
+                    'lastMonthValue' => $lastMonthMetricRates['wizCvr'],
+                    'lastYearValue' => $lastYearMetricRates['wizCvr'],
                     'metricFormat' => 'perc',
                     'sectionTitle' => 'CVR',
                     'sectionID' => 'monthlyCvr'
                 ],
                 [
                     'metricType' => 'wizAov',
-                    'thisMonthValue'=> $metricRates['wizAov'],
-                    'lastMonthValue'=> $lastMonthMetricRates['wizAov'],
-                    'lastYearValue'=> $lastYearMetricRates['wizAov'],
+                    'thisMonthValue' => $metricRates['wizAov'],
+                    'lastMonthValue' => $lastMonthMetricRates['wizAov'],
+                    'lastYearValue' => $lastYearMetricRates['wizAov'],
                     'metricFormat' => 'money',
                     'sectionTitle' => 'AOV',
                     'sectionID' => 'monthlyAOV'
@@ -129,45 +153,45 @@
             $engagementMetricsTowers = [
                 [
                     'metricType' => 'uniqueEmailSends',
-                    'thisMonthValue'=> $metricRates['uniqueEmailSends'],
-                    'lastMonthValue'=> $lastMonthMetricRates['uniqueEmailSends'],
-                    'lastYearValue'=> $lastYearMetricRates['uniqueEmailSends'],
+                    'thisMonthValue' => $metricRates['uniqueEmailSends'],
+                    'lastMonthValue' => $lastMonthMetricRates['uniqueEmailSends'],
+                    'lastYearValue' => $lastYearMetricRates['uniqueEmailSends'],
                     'metricFormat' => 'num',
                     'sectionTitle' => 'Sent',
                     'sectionID' => 'monthlySends'
                 ],
                 [
                     'metricType' => 'wizDeliveryRate',
-                    'thisMonthValue'=> $metricRates['wizDeliveryRate'],
-                    'lastMonthValue'=> $lastMonthMetricRates['wizDeliveryRate'],
-                    'lastYearValue'=> $lastYearMetricRates['wizDeliveryRate'],
+                    'thisMonthValue' => $metricRates['wizDeliveryRate'],
+                    'lastMonthValue' => $lastMonthMetricRates['wizDeliveryRate'],
+                    'lastYearValue' => $lastYearMetricRates['wizDeliveryRate'],
                     'metricFormat' => 'perc',
                     'sectionTitle' => 'Delivery',
                     'sectionID' => 'monthlyDelivered'
                 ],
                 [
                     'metricType' => 'uniqueEmailOpens',
-                    'thisMonthValue'=> $metricRates['uniqueEmailOpens'],
-                    'lastMonthValue'=> $lastMonthMetricRates['uniqueEmailOpens'],
-                    'lastYearValue'=> $lastYearMetricRates['uniqueEmailOpens'],
+                    'thisMonthValue' => $metricRates['uniqueEmailOpens'],
+                    'lastMonthValue' => $lastMonthMetricRates['uniqueEmailOpens'],
+                    'lastYearValue' => $lastYearMetricRates['uniqueEmailOpens'],
                     'metricFormat' => 'num',
                     'sectionTitle' => 'Opens',
                     'sectionID' => 'monthlyOpenRate'
                 ],
                 [
                     'metricType' => 'wizOpenRate',
-                    'thisMonthValue'=> $metricRates['wizOpenRate'],
-                    'lastMonthValue'=> $lastMonthMetricRates['wizOpenRate'],
-                    'lastYearValue'=> $lastYearMetricRates['wizOpenRate'],
+                    'thisMonthValue' => $metricRates['wizOpenRate'],
+                    'lastMonthValue' => $lastMonthMetricRates['wizOpenRate'],
+                    'lastYearValue' => $lastYearMetricRates['wizOpenRate'],
                     'metricFormat' => 'perc',
                     'sectionTitle' => 'Open Rate',
                     'sectionID' => 'monthlyOpenRate'
                 ],
                 [
                     'metricType' => 'uniqueEmailClicks',
-                    'thisMonthValue'=> $metricRates['uniqueEmailClicks'],
-                    'lastMonthValue'=> $lastMonthMetricRates['uniqueEmailClicks'],
-                    'lastYearValue'=> $lastYearMetricRates['uniqueEmailClicks'],
+                    'thisMonthValue' => $metricRates['uniqueEmailClicks'],
+                    'lastMonthValue' => $lastMonthMetricRates['uniqueEmailClicks'],
+                    'lastYearValue' => $lastYearMetricRates['uniqueEmailClicks'],
                     'metricFormat' => 'num',
                     'sectionTitle' => 'Clicks',
                     'sectionID' => 'monthlyClicks'
@@ -176,25 +200,25 @@
                     'metricType' => 'wizCtr',
                     'thisMonthValue' => $metricRates['wizCtr'],
                     'lastMonthValue' => $lastMonthMetricRates['wizCtr'],
-                    'lastYearValue' => $lastYearMetricRates['wizCtr'],            
+                    'lastYearValue' => $lastYearMetricRates['wizCtr'],
                     'metricFormat' => 'perc',
                     'sectionTitle' => 'CTR',
                     'sectionID' => 'monthlyCtr'
                 ],
                 [
                     'metricType' => 'wizCto',
-                    'thisMonthValue'=> $metricRates['wizCto'],
-                    'lastMonthValue'=> $lastMonthMetricRates['wizCto'],
-                    'lastYearValue'=> $lastYearMetricRates['wizCto'],
+                    'thisMonthValue' => $metricRates['wizCto'],
+                    'lastMonthValue' => $lastMonthMetricRates['wizCto'],
+                    'lastYearValue' => $lastYearMetricRates['wizCto'],
                     'metricFormat' => 'perc',
                     'sectionTitle' => 'CTO',
                     'sectionID' => 'monthlyCto'
                 ],
                 [
                     'metricType' => 'wizUnsubRate',
-                    'thisMonthValue'=> $metricRates['wizUnsubRate'],
-                    'lastMonthValue'=> $lastMonthMetricRates['wizUnsubRate'],
-                    'lastYearValue'=> $lastYearMetricRates['wizUnsubRate'],
+                    'thisMonthValue' => $metricRates['wizUnsubRate'],
+                    'lastMonthValue' => $lastMonthMetricRates['wizUnsubRate'],
+                    'lastYearValue' => $lastYearMetricRates['wizUnsubRate'],
                     'metricFormat' => 'perc',
                     'sectionTitle' => 'Unsubs',
                     'sectionID' => 'monthlyUnsubs'

@@ -83,7 +83,7 @@ if (isset($_GET['startDate']) && $_GET['startDate'] !== '' && isset($_GET['endDa
             
         </div>
     </div>
-    <div class="rollup_summary_wrapper" id="campaigns-table-rollup"><div><i class="fa-solid fa-arrows-rotate fa-spin"></i> Loading rollup summary...</div></div>
+    <div class="rollup_summary_wrapper" id="campaigns-table-rollup"><div class="rollup_summary_loader"><i class="fa-solid fa-arrows-rotate fa-spin"></i> Loading rollup summary...</div></div>
     <?php } ?>
 
     <div class="idemailwiz_table_container">

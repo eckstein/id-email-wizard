@@ -10,6 +10,7 @@ function idwiz_catch_chart_request()
 
     $chartOptions = [];
 
+    error_log(print_r($_POST, true));
     foreach ($_POST as $key => $value) {
         // Try decoding as JSON
         $decoded = json_decode(stripslashes($value), true);
@@ -63,7 +64,11 @@ function idwiz_catch_chart_request()
             break;
     }
 
-    wp_send_json_success($chartData);
+    if (isset($chartData['error'])) {
+        wp_send_json_error($chartData['error']);
+    } else {
+        wp_send_json_success($chartData);
+    }
 
 }
 
@@ -715,25 +720,26 @@ function idwiz_group_purchases_by_location($purchases)
 }
 
 
-function idwiz_group_purchases_by_date($purchases) {
+function idwiz_group_purchases_by_date($purchases)
+{
     $dateData = [];
 
     foreach ($purchases as $purchase) {
         $dateObject = new DateTime($purchase['purchaseDate']);
-        
+
         // Use Y-m-d format for sorting purposes.
         $sortableDate = $dateObject->format('Y-m-d');
-        
+
         if (!isset($dateData[$sortableDate])) {
             $dateData[$sortableDate] = ['Purchases' => 0, 'Revenue' => 0];
         }
-        
+
         $dateData[$sortableDate]['Purchases'] += 1;
         $dateData[$sortableDate]['Revenue'] += $purchase['total'];
     }
 
     // Sort the dates using uksort and a custom comparison function.
-    uksort($dateData, function($a, $b) {
+    uksort($dateData, function ($a, $b) {
         return strtotime($a) - strtotime($b);
     });
 

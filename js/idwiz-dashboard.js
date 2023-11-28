@@ -72,6 +72,7 @@
 								],
 							},
 							options: {
+								indexAxis:'y',
 								maintainAspectRatio: false,
 								responsive: true,
 								plugins: {
@@ -111,7 +112,7 @@
 										drawBorder: false,
 										position: "right",
 										beginAtZero: true,
-										max: 100,
+										max: 120,
 										ticks: {
 											display: false, // Hide tick marks
 										},
@@ -145,7 +146,7 @@
 												const percent = ((data / chartInstance.options.scales["revenue"].max) * 100).toFixed(2);
 
 												// Fixed y-position to align with the bottom axis
-												const yPos = canvasHeight - 200; // pixels above the bottom
+												const yPos = canvasHeight - 25; // pixels above the bottom
 
 												// Draw the percentage (Bold and Large)
 												ctx.font = "bold 22px 'Poppins', sans-serif";
@@ -154,7 +155,7 @@
 
 												// Draw the revenue amount (Normal and Smaller)
 												ctx.font = "normal 16px 'Poppins', sans-serif";
-												ctx.fillText(formatMoney(data), bar.x, yPos + 25); // pixels above the fixed position
+												ctx.fillText(formatMoney(data), bar.x, yPos + 20); // pixels above the fixed position
 											});
 										});
 									},

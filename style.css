@@ -1118,6 +1118,11 @@ pre#generatedCode {
 	margin-bottom: 20px;
 }
 
+.rollup_summary_wrapper .rollup_summary_loader {
+	margin: 0 auto;
+	text-align: center;
+}
+
 .metric-item {
 	display: flex;
 	flex-direction: column;
@@ -1742,14 +1747,17 @@ h2.wizArticle-title {
 }
 
 #monthly-goal-section {
-	flex: 0 0 150px;
-	min-width: 150px;
+	height: 150px;
+}
+#monthly-goal-section .wizChartWrapper {
+	min-height: 0!important;
+	height: 50px!important;
+}
+#monthly-goal-section .wizChartWrapper canvas {
+	height: 50px!important;
 }
 
-.wizChartWrapper.monthlyCampaignStack {
-	height: 100%;
-	width: 150px;
-}
+
 
 .wizcampaign-experiments {
 	margin: 30px 0;
