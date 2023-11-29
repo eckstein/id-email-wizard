@@ -14,14 +14,7 @@
         <div class="wizcampaign-section-title-area">
             <h4>Purchases by Date</h4>
             <div class="wizcampaign-section-icons">
-                <div class="wizToggle-container">
-                    <span class="wizToggle-text">Limit 30 days</span>
-                    <div class="wizToggle-switch">
-                        <input name="limit30Days" type="checkbox" id="limit30Days"
-                            class="wizToggle-input wizDashControl">
-                        <label for="limit30Days" class="wizToggle-label"></label>
-                    </div>
-                </div>
+                
             </div>
         </diV>
         <div class="wizChartWrapper">

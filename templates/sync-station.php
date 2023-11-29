@@ -110,7 +110,7 @@ if (isset($_GET['db-cleanup'])) {
             <!-- Sync Log Section -->
             <div class="wizcampaign-section inset" id="sync-log-panel">
                 <h2>Sync Log</h2>
-                <pre id="syncLogContent"><code><?php echo get_wiz_log(); ?></code></pre>
+                <pre id="syncLogContent"><code><?php echo get_wiz_log(250); ?></code></pre>
             </div>
         </div>
 
