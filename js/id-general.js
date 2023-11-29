@@ -174,14 +174,14 @@ jQuery(document).ready(function ($) {
 	});
 
 	//Attribution form change
-	$(".purchase-attribution").on("change", function () {
+	$('#attribution-settings-form').on('change', 'input, select, textarea', function(){
+		var field = $(this).attr('name');
 		var value = $(this).val();
+
 		idemailwiz_do_ajax(
 			"idemailwiz_update_user_attribution_setting",
 			idAjax_id_general.nonce,
-			{
-				value: value,
-			},
+			{field, value},
 			function (data) {
 				location.reload();
 			},

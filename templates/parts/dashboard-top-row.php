@@ -74,9 +74,9 @@ if ((isset($_GET['view']) && $_GET['view'] != 'FY') || !isset($_GET['view'])) {
             $lastYearDateTime->modify('last day of this month');
             $lastYearMonthEnd = $lastYearDateTime->format('Y-m-d');
 
-            $metricRates = get_idwiz_metric_rates(null, $startDate, $endDate, $campaignTypes);
-            $lastMonthMetricRates = get_idwiz_metric_rates(null, $lastMonthStart, $lastMonthEnd, $campaignTypes);
-            $lastYearMetricRates = get_idwiz_metric_rates(null, $lastYearMonthStart, $lastYearMonthEnd, $campaignTypes);
+            $metricRates = get_idwiz_metric_rates(null, $startDate, $endDate, $campaignTypes, 'purchasesInDate');
+            $lastMonthMetricRates = get_idwiz_metric_rates(null, $lastMonthStart, $lastMonthEnd, $campaignTypes, 'purchasesInDate');
+            $lastYearMetricRates = get_idwiz_metric_rates(null, $lastYearMonthStart, $lastYearMonthEnd, $campaignTypes, 'purchasesInDate');
             $revenueMetricsTowers = [
                 [
                     'metricType' => 'revenue',

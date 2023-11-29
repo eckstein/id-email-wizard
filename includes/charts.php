@@ -10,7 +10,7 @@ function idwiz_catch_chart_request()
 
     $chartOptions = [];
 
-    error_log(print_r($_POST, true));
+    //error_log(print_r($_POST, true));
     foreach ($_POST as $key => $value) {
         // Try decoding as JSON
         $decoded = json_decode(stripslashes($value), true);
@@ -133,7 +133,8 @@ function idwiz_get_report_chartdata($chartOptions)
 
         if ($campaignMetrics['uniqueEmailSends'] >= $minSends && $campaignMetrics['uniqueEmailSends'] <= $maxSends && $campaignMetrics[$dbMetric] > 0 && $campaignMetrics[$dbMetric] >= $minMetric && $campaignMetrics[$dbMetric] <= $maxMetric) {
             $campaignNameTrunc = wiz_truncate_string($campaign['name'], 50);
-            $labels[] = date('m/d/Y', $campaign['startAt'] / 1000);
+            $campaignStartStamp = (int)($campaign['startAt'] / 1000);
+            $labels[] = date('m/d/Y', $campaignStartStamp);
             $toolTip[] = [
                 date('D, M d, Y', $campaign['startAt'] / 1000),
                 $campaignNameTrunc

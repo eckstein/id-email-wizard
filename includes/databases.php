@@ -322,6 +322,7 @@ function idemailwiz_create_databases()
         userId VARCHAR(20),
         id VARCHAR(40),
         campaignId INT,
+        campaignStartAt BIGINT,
         createdAt VARCHAR(26),
         purchaseDate VARCHAR(26),
         shoppingCartItems TEXT,
@@ -482,9 +483,6 @@ function build_idwiz_query($args, $table_name)
     // Setup special variable cases 
     $dateKey = 'startAt';
 
-
-
-
     if ($table_name == $wpdb->prefix . 'idemailwiz_purchases') {
         $dateKey = 'purchaseDate';
         //exclude terciary purchases (lunches, add-ons, etc)
@@ -496,6 +494,33 @@ function build_idwiz_query($args, $table_name)
         $currentUser = wp_get_current_user();
         $currentUserId = $currentUser->ID;
         $userAttMode = get_user_meta($currentUserId, 'purchase_attribution_mode', true);
+        $userAttLength = get_user_meta($currentUserId, 'purchase_attribution_length', true);
+
+        if ($userAttLength && $userAttLength != 'allTime') {
+            $interval = '';
+            switch ($userAttLength) {
+                case '72Hours':
+                    $interval = 'INTERVAL 72 HOUR';
+                    break;
+                case '30Days':
+                    $interval = 'INTERVAL 30 DAY';
+                    break;
+                case '60Days':
+                    $interval = 'INTERVAL 60 DAY';
+                    break;
+                case '90Days':
+                    $interval = 'INTERVAL 90 DAY';
+                    break;
+            }
+
+            if ($interval) {
+                // Convert campaignStartAt from milliseconds to a date
+                $sql .= " AND purchaseDate <= DATE_ADD(DATE(FROM_UNIXTIME(campaignStartAt / 1000)), $interval)";
+                $sql .= " AND purchaseDate >= DATE(FROM_UNIXTIME(campaignStartAt / 1000))"; // Ensure the purchase is after the campaign started
+            }
+        }
+
+
 
         // default mode is campaign-id, which gets no extra parameters here
         if ($userAttMode == 'broad-channel-match') {
@@ -609,7 +634,7 @@ function build_idwiz_query($args, $table_name)
         $sql .= $wpdb->prepare(" OFFSET %d", (int) $args['offset']);
     }
 
-
+    
     return $sql;
 
 
@@ -618,12 +643,12 @@ function build_idwiz_query($args, $table_name)
 
 
 // Does the sql query for the main get_ functions based on the passed parameters
-function execute_idwiz_query($sql, $batch_size = 10000)
+function execute_idwiz_query($sql, $batch_size = 20000)
 {
     global $wpdb;
     $offset = 0;
     $results = [];
-
+    
     do {
         $current_batch_query = $sql . " LIMIT $offset, $batch_size";
         $current_batch = $wpdb->get_results($current_batch_query, ARRAY_A);

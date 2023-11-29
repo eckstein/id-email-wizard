@@ -158,3 +158,29 @@ function remove_apostrophes_from_column($table_suffix, $column_name) {
         return false;
     }
 }
+
+function idemailwiz_backfill_campaign_start_dates() {
+    global $wpdb;
+    $purchases_table = $wpdb->prefix . 'idemailwiz_purchases';
+    $campaigns_table = $wpdb->prefix . 'idemailwiz_campaigns';
+
+    // Fetch all purchases that have a campaignId and an empty or null campaignStartAt
+    $purchases = $wpdb->get_results("SELECT id, campaignId FROM $purchases_table WHERE campaignId IS NOT NULL AND (campaignStartAt IS NULL OR campaignStartAt = '')");
+
+    foreach ($purchases as $purchase) {
+        // Fetch the campaign's startAt date
+        $campaignStartAt = $wpdb->get_var($wpdb->prepare("SELECT startAt FROM $campaigns_table WHERE id = %d", $purchase->campaignId));
+
+        if ($campaignStartAt) {
+            // Update the purchase record with the campaignStartAt date
+            $wpdb->update(
+                $purchases_table,
+                ['campaignStartAt' => $campaignStartAt],
+                ['id' => $purchase->id]
+            );
+        }
+    }
+
+    wiz_log("Back-fill process completed.");
+    return "Back-fill process completed.";
+}

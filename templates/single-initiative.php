@@ -106,7 +106,8 @@
                                     foreach ($initCampaigns as $campaign) {
                                         $wizCampaign = get_idwiz_campaign($campaign['id']);
                                         $campaignMetrics = get_idwiz_metric($campaign['id']);
-                                        $readableStartAt = date('m/d/Y', $campaign['startAt'] / 1000);
+                                        $campaignStartStamp = (int) ($campaign['startAt'] / 1000);
+                                        $readableStartAt = date('m/d/Y', $campaignStartStamp);
                                         ?>
                                         <tr data-campaignid="<?php echo $campaign['id']; ?>">
                                             <td class="campaignDate">

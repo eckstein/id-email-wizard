@@ -162,6 +162,7 @@ function idwiz_google_sheet_api_curl_call($url)
 function get_idwiz_ga_data($args = [])
 {
     global $wpdb;
+    date_default_timezone_set('America/Los_Angeles');
     $ga_campaign_rev_table_name = $wpdb->prefix . 'idemailwiz_ga_campaign_revenue';
 
     // Initialize the WHERE clause

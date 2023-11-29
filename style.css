@@ -1436,6 +1436,9 @@ h2.wizArticle-title {
 	padding: 10px;
 }
 
+#module-settings-dropdown .input-groups {
+	margin-bottom: 10px;
+}
 #module-settings-dropdown .input-group {
 	border: 1px solid #cdcdcd;
 	border-radius: 5px;
@@ -1464,6 +1467,12 @@ h2.wizArticle-title {
 	display: flex;
 	align-items: center;
 	gap: 5px;
+}
+
+#selectAttrLength {
+	width: 100%;
+	padding: 5px;
+	border-radius: 3px;
 }
 
 /* wizcampaign-section styles */

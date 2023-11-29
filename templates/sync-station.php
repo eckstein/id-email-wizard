@@ -3,6 +3,9 @@ get_header();
 
 global $wpdb;
 
+//idemailwiz_backfill_campaign_start_dates();
+//idemailwiz_sync_users();
+
 if (isset($_GET['db-cleanup'])) {
     $doCleanup = $_GET['db-cleanup'];
     if ($doCleanup == 'update-null-user-ids') {

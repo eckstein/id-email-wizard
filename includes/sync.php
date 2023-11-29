@@ -17,6 +17,12 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
         $id_field = 'templateId';
     }
 
+    // If this is a user sync
+    if ($table_name == $wpdb->prefix . 'idemailwiz_users') {
+        $id_field = 'userId' ?? 'accountNumber';
+    }
+
+
     // If this is a purchase sync, we do some database cleanup
     if ($table_name == $wpdb->prefix . 'idemailwiz_purchases') {
         foreach ($items as $key => $item) {
@@ -72,7 +78,7 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 
         //If this is an experiment record, we check if the corrosponding campaign in the campaign table has the experiment ID present. If not, add it.
         if ($table_name == $wpdb->prefix . 'idemailwiz_experiments') {
-            $experimentId = $item['experimentId']; // Retrieve the current experiment ID
+            $experimentId = $item['experimentId'];
 
             $experimentCampaign = get_idwiz_campaign($item['campaignId']);
 
@@ -515,6 +521,101 @@ function idemailwiz_fetch_metrics($campaignIds = null)
 
 
 
+function idemailwiz_fetch_users()
+{
+    // Define the base URL
+    $baseUrl = 'https://api.iterable.com/api/export/data.csv';
+
+    $onlyFields = [
+        'AccountNumber',
+        'userId',
+        'signupDate',
+        'PostalCode',
+        'timeZone',
+        'StudentArray',
+        'subscribedMessageTypeIds',
+        'unsubscribedChannelIds',
+        'unsubscribedMessageTypeIds',
+    ];
+
+    // Create the base array of query parameters without 'onlyFields'
+    $queryParams = [
+        'dataTypeName' => 'user',
+        'delimiter' => ','
+    ];
+
+    // Define the start and end date time for the API call
+    $startDateTime = date('Y-m-d', strtotime('-3 days'));
+    $endDateTime = date('Y-m-d', strtotime('+1 day'));
+
+    // Add the start and end datetime to the query parameters
+    $queryParams['startDateTime'] = $startDateTime;
+    $queryParams['endDateTime'] = $endDateTime;
+
+    // Build the base query string
+    $queryString = http_build_query($queryParams);
+
+    // Manually append each 'onlyFields' parameter
+    foreach ($onlyFields as $field) {
+        $queryString .= '&onlyFields=' . urlencode($field);
+    }
+
+    // Combine the base URL with the query string
+    $url = $baseUrl . '?' . $queryString;
+
+    try {
+        $response = idemailwiz_iterable_curl_call($url);
+    } catch (Exception $e) {
+        if ($e->getMessage() === "CONSECUTIVE_400_ERRORS") {
+            // Stop execution if more than 5 consecutive 400 errors
+            wiz_log("More than 5 consecutive HTTP 400 errors. Stopping execution.");
+            return;
+        }
+    }
+
+    $allUsers = []; // Initialize $allUsers as an array
+
+    // Open a memory-based stream for reading and writing
+    if (($handle = fopen("php://temp", "r+")) !== FALSE) {
+        // Write the CSV content to the stream and rewind the pointer
+        fwrite($handle, $response['response']);
+        rewind($handle);
+
+        // Parse the header line into headers
+        $headers = fgetcsv($handle);
+
+        // Prepare the headers
+        $processedHeaders = array_map(function ($header) {
+            return lcfirst($header);
+        }, $headers);
+
+        // Iterate over each line of the file
+        while (($values = fgetcsv($handle)) !== FALSE) {
+            $userData = []; // Initialize as empty array
+
+            // Only process lines with the correct number of columns
+            if (count($values) === count($processedHeaders)) {
+                // Iterate over the values and headers simultaneously
+                foreach ($values as $index => $value) {
+                    $header = $processedHeaders[$index];
+                    $userData[$header] = $value;
+                }
+            }
+
+            // If there's data to add, append it to all users
+            if (!empty($userData)) {
+                $allUsers[] = $userData;
+            }
+        }
+
+        // Close the file handle
+        fclose($handle);
+    }
+
+    // Return the data array
+    return $allUsers;
+}
+
 
 function idemailwiz_fetch_purchases($campaignIds = [])
 {
@@ -525,6 +626,7 @@ function idemailwiz_fetch_purchases($campaignIds = [])
     $baseUrl = 'https://api.iterable.com/api/export/data.csv';
 
     // Define the fields to be omitted
+
     $omitFields = [
         'shoppingCartItems.orderDetailId',
         'shoppingCartItems.parentOrderDetailId',
@@ -545,8 +647,8 @@ function idemailwiz_fetch_purchases($campaignIds = [])
     $queryParams = [
         'dataTypeName' => 'purchase',
         'delimiter' => ',',
-        'omitFields' => implode(',', $omitFields)
     ];
+
 
     // Define the start and end date time for the API call
     $startDateTime = date('Y-m-d', strtotime('-3 days')); // defaults to past 3 days, unless altered below
@@ -558,7 +660,7 @@ function idemailwiz_fetch_purchases($campaignIds = [])
             // If there's only one campaign ID, add it directly
             $queryParams['campaignId'] = $campaignIds[0];
             $wizCampaign = get_idwiz_campaign($campaignIds[0]);
-            
+
             $startDateTime = date('Y-m-d', $wizCampaign['startAt'] / 1000);
         } else {
             // If multiple campaign IDs, find the earliest date
@@ -566,20 +668,25 @@ function idemailwiz_fetch_purchases($campaignIds = [])
             $wizCampaigns = get_idwiz_campaigns(['campaignIds' => $campaignIds]);
             $earliestDate = min(array_column($wizCampaigns, 'startAt'));
             $latestDate = max(array_column($wizCampaigns, 'startAt'));
-            
+
             $startDateTime = date('Y-m-d', ($earliestDate / 1000) - 86400); // one day before campaign start date
             $endDateTime = date('Y-m-d', ($latestDate / 1000) + MONTH_IN_SECONDS); // one month after last campaign start date
-            
+
         }
     }
-   
+
 
     // Add the start and end datetime to the query parameters
     $queryParams['startDateTime'] = $startDateTime;
     $queryParams['endDateTime'] = $endDateTime;
 
-    // Build the query string
+    // Build the base query string
     $queryString = http_build_query($queryParams);
+
+    // Manually append each 'omitFields' parameter
+    foreach ($omitFields as $field) {
+        $queryString .= '&omitFields=' . urlencode($field);
+    }
 
     // Combine the base URL with the query string
     $url = $baseUrl . '?' . $queryString;
@@ -595,7 +702,7 @@ function idemailwiz_fetch_purchases($campaignIds = [])
     }
 
 
-    // Prepare the omit fields to match the processed headers format
+    // Prepare the omit fields to match the processed headers format (safeguard)
     $omitFields[] = 'shoppingCartItems'; //Add the main shoppingCartItems column to be omitted.
     $processedOmitFields = array_map(function ($field) {
         $fieldWithoutPeriods = str_replace('.', '_', $field);
@@ -652,6 +759,48 @@ function idemailwiz_fetch_purchases($campaignIds = [])
     // Return the data array
     return $allPurchases;
 
+}
+
+function idemailwiz_sync_users()
+{
+    // Fetch the users
+    $users = idemailwiz_fetch_users();
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_users';
+
+    // Prepare arrays for comparison
+    $records_to_update = [];
+    $records_to_insert = [];
+
+    foreach ($users as $user) {
+
+        // Check if the user exists in the database
+        $existingUserId = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM $table_name WHERE userId = %d",
+                $user['userId']
+            )
+        );
+
+        $existingAccountNumber = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM $table_name WHERE accountNumber = %d",
+                $user['accountNumber']
+            )
+        );
+
+        if ($existingUserId > 0 || $existingAccountNumber > 0) {
+            // User exists, prepare to update
+            $records_to_update[] = $user;
+        } else {
+            // User not in the database, prepare to insert
+            $records_to_insert[] = $user;
+        }
+    }
+
+    // Process and log the sync operation
+    return idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update);
 }
 
 
@@ -797,7 +946,8 @@ function idemailwiz_sync_purchases($campaignIds = null)
     $purchases = idemailwiz_fetch_purchases($campaignIds);
 
     global $wpdb;
-    $table_name = $wpdb->prefix . 'idemailwiz_purchases';
+    $purchases_table = $wpdb->prefix . 'idemailwiz_purchases';
+    $campaigns_table = $wpdb->prefix . 'idemailwiz_campaigns';
 
     $records_to_insert = [];
     $records_to_update = [];
@@ -807,8 +957,16 @@ function idemailwiz_sync_purchases($campaignIds = null)
             wiz_log('No ID found in the fetched purchase record!');
             continue;
         }
-        //$wizPurchase = get_idwiz_purchase($purchase['id']);
-        $wizPurchase = $wpdb->get_var($wpdb->prepare("SELECT id FROM $table_name WHERE id = %s", $purchase['id']));
+
+        // Fetch the campaign's startAt if campaignId is set
+        if (isset($purchase['campaignId'])) {
+            $campaignStartAt = $wpdb->get_var($wpdb->prepare("SELECT startAt FROM $campaigns_table WHERE id = %d", $purchase['campaignId']));
+            if ($campaignStartAt) {
+                $purchase['campaignStartAt'] = $campaignStartAt;
+            }
+        }
+
+        $wizPurchase = $wpdb->get_var($wpdb->prepare("SELECT id FROM $purchases_table WHERE id = %s", $purchase['id']));
 
         if (!$wizPurchase) {
             $records_to_insert[] = $purchase;
@@ -817,8 +975,9 @@ function idemailwiz_sync_purchases($campaignIds = null)
         }
     }
 
-    return idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update);
+    return idemailwiz_process_and_log_sync($purchases_table, $records_to_insert, $records_to_update);
 }
+
 
 
 

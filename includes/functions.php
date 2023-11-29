@@ -1212,11 +1212,12 @@ function transfigure_purchases_by_product($purchases)
 
 
 
-function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate = null, $campaignTypes = ['Blast', 'Triggered'])
+function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate = null, $campaignTypes = ['Blast', 'Triggered'], $purchaseMode = 'campaignsInDate')
 {
 
   $startDate = $startDate ? $startDate : '2021-11-01';
   $endDate = $endDate ? $endDate : date('Y-m-d');
+
 
   // Determine campaign IDs for Blast and Triggered campaigns
   if (empty($campaignIds)) {
@@ -1242,20 +1243,31 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
   // Retrieve metrics for Blast and (optional) Triggered campaigns
   $blastMetrics = in_array('Blast', $campaignTypes) && !empty($blastCampaignIds) ? get_idwiz_metrics(['campaignIds' => $blastCampaignIds]) : [];
   $triggeredMetrics = in_array('Triggered', $campaignTypes) && !empty($triggeredCampaignIds) ? get_triggered_campaign_metrics($triggeredCampaignIds, $startDate, $endDate) : [];
+  $purchaseArgs = [];
 
-  // Retrieve purchases so we can calculate AOV
+  // If the mode is set to getting purchases only for specific campaigns, we pass the campaignIds
+  if ($purchaseMode == 'campaignsInDate') {
+    if (in_array('Triggered', $campaignTypes)) {
+      $purchaseArgs['campaignIds'] = $allIncludedIds;
+    } else {
+      $purchaseArgs['campaignIds'] = $blastCampaignIds;
+    }
+  } else {
+    // If the mode is set to getting purchases between dates (without regard to campaign) we don't pass campaignIds
+    $allIncludedIds = null;
+  }
+
   $purchaseArgs = [
     'startAt_start' => $startDate,
     'startAt_end' => $endDate,
+    'shoppingCartItems_utmMedium' => 'email',
+    'fields' => 'accountNumber,OrderId' // limit fields for faster query
   ];
 
-  if (in_array('Triggered', $campaignTypes)) {
-    $purchaseArgs['campaignIds'] = $allIncludedIds;
-  } else {
-    $purchaseArgs['campaignIds'] = $blastCampaignIds;
-  }
-
   $purchases = get_idwiz_purchases($purchaseArgs);
+
+  //$uniquePurchasers = array_unique(array_column($purchases, 'accountNumber'));
+  //$totalOrders = array_unique(array_column($purchases, 'OrderId'));
 
   // Initialize variables for summable metrics
   $totalSends = $totalOpens = $totalClicks = $totalUnsubscribes = $totalDeliveries = $totalPurchases = $totalComplaints = $totalRevenue = 0;
@@ -1263,6 +1275,7 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
   $totalPurchases = is_array($purchases) ? count($purchases) : 0;
 
   $totalRevenue = get_idwiz_revenue($startDate, $endDate, $campaignTypes, $allIncludedIds);
+
   $gaRevenue = get_idwiz_revenue($startDate, $endDate, $campaignTypes, $allIncludedIds, true);
 
 
@@ -1440,11 +1453,13 @@ function idemailwiz_update_user_attribution_setting()
     return;
   }
 
-  $newValue = $_POST['value'];
+  $field = $_POST['field'] ?? null;
+  $newValue = $_POST['value'] ?? null;
+  
   $currentUser = wp_get_current_user();
   $currentUserId = $currentUser->ID;
-  if ($newValue) {
-    $updateAttribution = update_user_meta($currentUserId, 'purchase_attribution_mode', $newValue);
+  if ($field && $newValue) {
+    $updateAttribution = update_user_meta($currentUserId, $field, $newValue);
   }
 
   wp_send_json_success($updateAttribution);

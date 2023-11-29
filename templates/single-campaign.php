@@ -10,14 +10,15 @@ $campaign = get_idwiz_campaign($campaign_id);
 
 // Check if the startDate and endDate parameters are present in the $_GET array
 if (isset($_GET['startDate']) || isset($_GET['endDate'])) {
-if (isset($_GET['startDate']) && $_GET['startDate'] !== '') {
-    $startDate = $_GET['startDate'] ?? '2021-11-01';
-}
-if (isset($_GET['endDate']) && $_GET['endDate'] !== '') {
-    $endDate = $_GET['endDate'] ?? date('Y-m-d');
-}
+    if (isset($_GET['startDate']) && $_GET['startDate'] !== '') {
+        $startDate = $_GET['startDate'] ?? '2021-11-01';
+    }
+    if (isset($_GET['endDate']) && $_GET['endDate'] !== '') {
+        $endDate = $_GET['endDate'] ?? date('Y-m-d');
+    }
 } else {
-    $startDate = date('Y-m-d', $campaign['startAt'] / 1000);
+    $campaignStartStamp = (int) ($campaign['startAt'] / 1000);
+    $startDate = date('Y-m-d', $campaignStartStamp);
     $endDate = date('Y-m-t');
 }
 
@@ -27,13 +28,22 @@ if (isset($_GET['endDate']) && $_GET['endDate'] !== '') {
 $metrics = get_idwiz_metric($campaign['id']);
 $template = get_idwiz_template($campaign['templateId']);
 
-$campaignStartAt = date('m/d/Y \a\t g:ia', $campaign['startAt'] / 1000);
-$campaignEndDateTime = date('m/d/Y \a\t g:ia', $campaign['endedAt'] / 1000);
-$campaignEndedAt = date('g:ia', $campaign['endedAt'] / 1000);
-$sendsTimezone = date('T', $campaign['endedAt'] / 1000);
+
+
+$campaignStartStamp = (int) ($campaign['startAt'] / 1000);
+$campaignStartAt = date('m/d/Y', $campaignStartStamp);
+
+$campaignEndStamp = (int) ($campaign['endedAt'] / 1000);
+$campaignEndedAt = date('g:ia', $campaignEndStamp);
+
+$campaignEndDateTime = date('m/d/Y \a\t g:ia', $campaignEndStamp);
+
+$sendsTimezone = date('T', $campaignStartStamp);
+
+
 
 $purchases = get_idwiz_purchases(array('campaignIds' => [$campaign['id'], 'shoppingCartItems_utmMedium' => 'email']));
-;
+
 //$experimentIds = maybe_unserialize($campaign['experimentIds']) ?? array();
 // This returns one row per experiment TEMPLATE
 $experiments = get_idwiz_experiments(array('campaignIds' => [$campaign['id']]));
@@ -76,7 +86,7 @@ $linkedExperimentIds = array_map(function ($id) {
                         echo 'Last ';
                     } ?>Sent on
                     <?php echo $campaignStartAt; ?>
-                    <?php 
+                    <?php
                     if ($campaignStartAt != $campaignEndDateTime) {
                         echo "— $campaignEndedAt";
                     }
