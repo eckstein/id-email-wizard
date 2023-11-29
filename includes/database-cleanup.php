@@ -4,6 +4,7 @@ function do_database_cleanups() {
     update_null_user_ids();
     update_missing_purchase_dates();
     remove_zero_campaign_ids();
+    idemailwiz_backfill_campaign_start_dates();
 }
 function update_null_user_ids() {
     wiz_log('Updating null User IDs...');

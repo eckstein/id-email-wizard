@@ -1330,8 +1330,16 @@ function idemailwiz_check_for_cron_sequence_start()
     // Clear expired transients manually before checking anything
     delete_expired_transients();
 
-    // Check if a sync is in progress
-    $blastSyncInProgress = get_transient('idemailwiz_blast_sync_in_progress');
+    // Check for GA sync
+    // Wait a couple seconds in case the transient is being set to avoid quickly re-running
+    sleep(2);
+    $gaSyncWaiting = get_transient('ga_sync_waiting');
+    if (!$gaSyncWaiting) {
+        sync_ga_campaign_revenue_data();
+        // Sync every 2 hours only
+        set_transient('ga_sync_waiting', true, (120 * MINUTE_IN_SECONDS));
+        
+    }
 
     $metricTypes = ['send', 'open', 'click', 'unSubscribe', 'bounce', 'sendSkip', 'complaint'];
     $triggeredSyncInProgress = false;
@@ -1352,6 +1360,9 @@ function idemailwiz_check_for_cron_sequence_start()
     $blastSyncWaiting = get_transient('blast_sync_waiting');
     $triggeredSyncWaiting = get_transient('triggered_sync_waiting');
     $exportSyncWaiting = get_transient('export_sync_waiting');
+
+    // Check if a sync is in progress
+    $blastSyncInProgress = get_transient('idemailwiz_blast_sync_in_progress');
 
     // Start blast sync sequence if not in progress or waiting
     if (!$blastSyncInProgress && !$blastSyncWaiting) {

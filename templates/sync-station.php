@@ -12,8 +12,11 @@ if (isset($_GET['db-cleanup'])) {
         update_null_user_ids();
     } else if ($doCleanup == 'update-missing-purchase-dates') {
         update_missing_purchase_dates();
-    } else if ($doCleanup == 'clean-campaign-ids')
+    } else if ($doCleanup == 'clean-campaign-ids') {
         remove_zero_campaign_ids();
+    } else if ($doCleanup == 'backfill-purchase-campaign-dates') {
+        idemailwiz_backfill_campaign_start_dates();
+    }
 }
 
 ?>
@@ -94,6 +97,12 @@ if (isset($_GET['db-cleanup'])) {
                                 href="<?php echo add_query_arg('db-cleanup', 'clean-campaign-ids'); ?>"
                                 id="removeZeroCampaignIds">Clean Campaign IDs</a>
                             <h5>Remove campaignIds with a value of "0" (updates value to null).</h5>
+                        </div>
+                        <div class="wizcampaign-section">
+                            <a class="wiz-button green"
+                                href="<?php echo add_query_arg('db-cleanup', 'backfill-purchase-campaign-dates'); ?>"
+                                id="backfillPurchaseCampaignDates">Backfill Purchase Campaign Send Dates</a>
+                            <h5>At the startAt date/time to each purchase, if missing.</h5>
                         </div>
                     </div>
                 </div>
