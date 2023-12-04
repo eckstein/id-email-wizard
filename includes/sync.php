@@ -108,7 +108,7 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 
             $experimentCampaign = get_idwiz_campaign($item['campaignId']);
 
-            wiz_log('Found matching campaign: '.$experimentCampaign['id'].' for experiment '.$experimentId);
+            //wiz_log('Found matching campaign: '.$experimentCampaign['id'].' for experiment '.$experimentId);
 
             // Get the existing experimentIds, if any
             $existingExperimentIds = $experimentCampaign['experimentIds'];
