@@ -1245,24 +1245,36 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
   $triggeredMetrics = in_array('Triggered', $campaignTypes) && !empty($triggeredCampaignIds) ? get_triggered_campaign_metrics($triggeredCampaignIds, $startDate, $endDate) : [];
   $purchaseArgs = [];
 
-  // If the mode is set to getting purchases only for specific campaigns, we pass the campaignIds
+ 
+  $purchaseArgs = [
+    'startAt_start' => $startDate,
+    'startAt_end' => $endDate,
+    'fields' => 'accountNumber,OrderId' // limit fields for faster query
+  ];
+
+  // Set attribution mode
+  $currentUser = wp_get_current_user();
+  $currentUserId = $currentUser->ID;
+  $userAttMode = get_user_meta($currentUserId, 'purchase_attribution_mode', true);
+   // default mode is campaign-id, which gets no extra parameters here
+  if ($userAttMode == 'broad-channel-match') {
+    $purchaseArgs['shoppingCartItems_utmMedium'] = ['email',''];
+  } elseif ($userAttMode == 'email-channel-match') {
+    $purchaseArgs['shoppingCartItems_utmMedium'] = ['email'];
+  }
+
+   // If the mode is set to getting purchases only for specific campaigns, we pass the campaignIds
   if ($purchaseMode == 'campaignsInDate') {
     if (in_array('Triggered', $campaignTypes)) {
+      $purchaseArgs['campaignIds'] = $allIncludedIds;
       $purchaseArgs['campaignIds'] = $allIncludedIds;
     } else {
       $purchaseArgs['campaignIds'] = $blastCampaignIds;
     }
   } else {
     // If the mode is set to getting purchases between dates (without regard to campaign) we don't pass campaignIds
-    $allIncludedIds = null;
   }
 
-  $purchaseArgs = [
-    'startAt_start' => $startDate,
-    'startAt_end' => $endDate,
-    'shoppingCartItems_utmMedium' => 'email',
-    'fields' => 'accountNumber,OrderId' // limit fields for faster query
-  ];
 
   $purchases = get_idwiz_purchases($purchaseArgs);
 
@@ -1274,9 +1286,9 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
 
   $totalPurchases = is_array($purchases) ? count($purchases) : 0;
 
-  $totalRevenue = get_idwiz_revenue($startDate, $endDate, $campaignTypes, $allIncludedIds);
+  $totalRevenue = get_idwiz_revenue($startDate, $endDate, $campaignTypes, $purchaseArgs['campaignIds']);
 
-  $gaRevenue = get_idwiz_revenue($startDate, $endDate, $campaignTypes, $allIncludedIds, true);
+  $gaRevenue = get_idwiz_revenue($startDate, $endDate, $campaignTypes, $purchaseArgs['campaignIds'], true);
 
 
   // Process Blast metrics

@@ -368,8 +368,8 @@ $linkedExperimentIds = array_map(function ($id) {
                             $messageMedium = $campaign['messageMedium'];
                         }
                         if ($messageMedium == 'Email') {
-                            $csv_file = 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/heatmap.csv';
-                            //$heatmap_div = generate_idwizcampaign_heatmap_overlay($csv_file);
+                            $csv_file = 'http://localhost/wp-content/uploads/2023/12/heatmap.csv';
+                            $heatmap_div = generate_idwizcampaign_heatmap_overlay($csv_file);
                             ?>
                             <div class="wizcampaign-template-details">
                                 <h3>
@@ -394,7 +394,7 @@ $linkedExperimentIds = array_map(function ($id) {
                                 <iframe srcdoc="<?php echo htmlspecialchars($currentTemplate['html'], ENT_QUOTES, 'UTF-8'); ?>"
                                     frameborder="0" class="templatePreviewIframe"></iframe>
                                 <div class="heatmap-container"> <!-- Position heatmap over iframe -->
-                                    <?php //echo $heatmap_div; ?>
+                                    <?php echo $heatmap_div; ?>
                                 </div>
                             </div>
                         <?php } else {
