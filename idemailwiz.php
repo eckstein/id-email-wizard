@@ -247,7 +247,8 @@ function idemailwiz_create_template_post_types()
             'feeds' => false,
         ),
         'delete_with_user' => false,
-    ));
+    )
+    );
 
 
 
@@ -315,6 +316,7 @@ function idemailwiz_custom_rewrite_rule()
     // Add custom endpoints
     add_rewrite_endpoint('metrics/campaign', EP_ROOT);
     add_rewrite_endpoint('build-template', EP_ROOT);
+    add_rewrite_endpoint('build-template-v2', EP_ROOT);
     add_rewrite_endpoint('user-profile', EP_ROOT);
     add_rewrite_endpoint('settings', EP_ROOT);
     add_rewrite_endpoint('sync-station', EP_ROOT);
@@ -342,7 +344,13 @@ function idemailwiz_template_chooser($template)
     }
 
     if (get_post_type() == 'idemailwiz_template' && is_single()) {
-        return dirname(__FILE__) . '/templates/single-idemailwiz_template.php';
+        $wizSettings = get_option('idemailwiz_settings');
+        $builderVersion = $wizSettings['wysiwyg_builder_version'];
+        if ($builderVersion == 'v2') {
+            return dirname(__FILE__) . '/templates/single-idemailwiz_template-v2.php';
+        } else {
+            return dirname(__FILE__) . '/templates/single-idemailwiz_template.php';
+        }
     }
 
     if (get_post_type() == 'idwiz_initiative' && is_single()) {
@@ -461,25 +469,7 @@ function redirect_to_proper_url()
 add_action('template_redirect', 'redirect_to_proper_url', 11);
 
 
-add_action('template_redirect', 'idemailwiz_handle_template_request', 20);
-function idemailwiz_handle_template_request()
-{
-    global $wp_query, $wp;
 
-    // Handle build-template
-    if (isset($wp_query->query_vars['build-template'])) {
-
-        $current_url = home_url(add_query_arg(array(), $wp->request));
-        if (strpos($current_url, '/build-template/') !== false && !isset($_SERVER['HTTP_REFERER'])) {
-            $dieMessage = 'Direct access to the template builder endpoint is not allowed!';
-            wp_die($dieMessage);
-            exit;
-        }
-
-        echo '<div style="padding: 30px; text-align: center; font-weight: bold; font-family: Poppins, sans-serif;"><i style="font-family: Font Awesome 5;" class="fas fa-spinner fa-spin"></i>  Loading template...<br/>';
-        exit;
-    }
-}
 
 
 

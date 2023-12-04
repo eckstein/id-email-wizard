@@ -3,22 +3,21 @@ jQuery(document).ready(function ($) {
 
 	let previewMode = "desktop";
 
-	$('#showMobile').click(function () {
-		previewMode = 'mobile';
-		$('#previewFrame').addClass('mobile-preview');
-		$(this).addClass('active');
-		$('#showDesktop').removeClass('active');
-		idwiz_updatepreview(); 
+	$("#showMobile").click(function () {
+		previewMode = "mobile";
+		$("#previewFrame").addClass("mobile-preview");
+		$(this).addClass("active");
+		$("#showDesktop").removeClass("active");
+		idwiz_updatepreview();
 	});
 
-	$('#showDesktop').click(function () {
-		previewMode = 'desktop';
-		$('#previewFrame').removeClass('mobile-preview');
-		$(this).addClass('active');
-		$('#showMobile').removeClass('active');
-		idwiz_updatepreview(); 
+	$("#showDesktop").click(function () {
+		previewMode = "desktop";
+		$("#previewFrame").removeClass("mobile-preview");
+		$(this).addClass("active");
+		$("#showMobile").removeClass("active");
+		idwiz_updatepreview();
 	});
-
 
 	$("#saveTemplate").on("click", function () {
 		$(".acf-form-submit input").click();
@@ -46,15 +45,28 @@ jQuery(document).ready(function ($) {
 		$("#templateUI .left").scrollTop(finalScrollPosition);
 	});
 
-	//Scrolls the panes when a chunk or layout is activated
+	// Scrolls the panes when a chunk or layout is activated
 	function scrollPanes(preview, chunk, layout) {
-		//console.log(preview+chunk+layout);
-		var previewScrollPos = $(chunk).offset().top - 130;
-		preview.find("body, html").animate({ scrollTop: previewScrollPos }, 200);
-		var builder = $("#templateUI .left");
-		var scrollPosBuilder = layout.offset().top - builder.offset().top + builder.scrollTop() - 200;
-		builder.animate({ scrollTop: scrollPosBuilder }, 200);
+		// Ensure that the layout is visible before calculating positions
+		if (layout.is(":visible")) {
+			// Recalculate positions to ensure they are up-to-date
+			var previewScrollPos = $(chunk).offset().top - 130;
+			preview.find("body, html").animate({ scrollTop: previewScrollPos }, 200);
+
+			var builder = $("#templateUI .left");
+
+			// Make sure the builder element is present and visible before scrolling
+			if (builder.length > 0 && builder.is(":visible")) {
+				var scrollPosBuilder = layout.offset().top - builder.offset().top + builder.scrollTop() - 200;
+				builder.animate({ scrollTop: scrollPosBuilder }, 200);
+			} else {
+				console.log("Builder element not found or not visible");
+			}
+		} else {
+			console.log("Layout is not visible, cannot scroll");
+		}
 	}
+
 
 	//When a new layout field is added
 	acf.addAction("append", function ($el) {
@@ -70,43 +82,117 @@ jQuery(document).ready(function ($) {
 		});
 	});
 
-	//When a layout field is drag/drog reordered
-	acf.addAction("sortstop", function ($el) {
-		console.log("sortstop");
-		console.log($el);
-		if (!$el.hasClass("-collapsed")) {
-			setTimeout(function () {
-				$el.addClass("-collapsed");
-				//$el.find('.acf-fc-layout-handle').click();
-				//idwiz_handle_layout_click($el.find('.acf-fc-layout-handle'));
-				$el.find(".acf-fc-layout-handle").click();
-				$el.removeClass("-collapsed");
-			}, 1000);
+	var initialLayoutOrder = [];
+
+	// When a layout field drag starts
+	acf.addAction('sortstart', function ($el) {
+		// Record the initial order of layout fields
+			initialLayoutOrder = $el.closest('.layout-fields-container').find('.layout-field').map(function() {
+			return $(this).data('layout-id'); // Adjust this selector/data attribute to match your structure
+		}).get();
+	});
+
+	// When a layout field drag stops
+	acf.addAction('sortstop', function ($el) {
+		// Get the new order of layout fields
+		var newOrder = $el.closest('.layout-fields-container').find('.layout-field').map(function() {
+			return $(this).data('layout-id'); // Adjust this selector/data attribute to match your structure
+		}).get();
+
+		// Compare the initial order with the new order
+		var orderChanged = !initialLayoutOrder.every(function(element, index) {
+			return element === newOrder[index];
+		});
+
+		// Execute the code only if the order has changed
+		if (orderChanged) {
+			console.log("A re-ordering has occurred.");
+			if (!$el.hasClass("-collapsed")) {
+				setTimeout(function () {
+					$el.addClass("-collapsed");
+					$el.find(".acf-fc-layout-handle").click();
+					$el.removeClass("-collapsed");
+				}, 1000);
+			}
 		}
 	});
 
-	//When a chunk layout is clicked
+
+	//When a layout is clicked
 	$(".acf-fc-layout-handle").on("click", function () {
 		idwiz_handle_layout_click($(this));
 	});
 
 	function idwiz_handle_layout_click(clicked) {
-		var chunkID = clicked.parent(".layout").attr("data-id");
-		//console.log('chunkID: ', chunkID); // log the chunkID
-		var layout = clicked.parent(".layout");
-		layout.siblings(".layout").addClass("-collapsed");
+		var isChildLayout = clicked.closest(".layout").parents(".layout").length > 0;
+		var layout = clicked.closest(".layout");
 		var previewPane = $("iframe#previewFrame").contents();
-		previewPane.find(".chunkWrap").removeClass("active");
 
-		if (clicked.closest(".layout").hasClass("-collapsed")) {
-			var correspondingChunkWrap = previewPane.find('.chunkWrap[data-id="' + chunkID + '"]');
-			//console.log('correspondingChunkWrap: ', correspondingChunkWrap); // log the correspondingChunkWrap
+		var layoutDataId;
+		var inputName = layout.children("input").attr("name");
+
+		if (isChildLayout) {
+			// For child layouts, find the parent layout's layoutDataId
+			layoutDataId = layout.parents(".layout").last().attr("data-id");
+		} else {
+			// For parent layouts, use the clicked layout's layoutDataId
+			layoutDataId = layout.attr("data-id");
+		}
+
+		layout.siblings(".layout").addClass("-collapsed");
+		layout.closest('.layout').find('.layout').addClass('-collapsed');
+
+		// Activate the corresponding chunkWrap
+		var correspondingChunkWrap = previewPane.find('.chunkWrap[data-id="' + layoutDataId + '"]');
+
+		if (!isChildLayout) {
+			// Remove active class from all chunkwraps
+			previewPane.find(".chunkWrap").removeClass("active");
+			previewPane.find(".child-chunkWrap").removeClass("active");
+			
+			
+			//layout.closest('.acf-fields').find('.layout').addClass('-collapsed');
+		}
+		
+
+		// Add active class to the clicked layout
+		if (layout.hasClass("-collapsed")) {
 			correspondingChunkWrap.addClass("active");
+		} 
+
+		if (!isChildLayout && layout.hasClass("-collapsed")) {
+			// Scroll to the corresponding chunkWrap
 			scrollPanes(previewPane, correspondingChunkWrap, layout);
+		}
+
+		// Highlight the specific child element for child layouts
+		if (isChildLayout) {
+			var childIndex = layout.attr("data-id");
+			var inputName = layout.children("input").attr("name");
+			var nameParts = inputName ? inputName.split("][") : [];
+			var parentFieldId = null;
+
+			// Check if the nameParts array has the expected number of parts
+			if (nameParts.length > 2) {
+				var thirdBracketContent = nameParts[2]; // Content of the third set of brackets
+				parentFieldId = thirdBracketContent;
+			}
+
+			var correspondingChild = correspondingChunkWrap.find('[data-content-index="' + childIndex + '"][data-parent-field-id="' + parentFieldId + '"]');
+			correspondingChild.siblings().removeClass("active");
+			if (correspondingChild.length) {
+				if (correspondingChild.hasClass("active")) {
+					correspondingChild.removeClass("active");
+				} else {
+					correspondingChild.addClass("active");
+				}
+			} else {
+				console.log("No corresponding child found."); // Debug log
+			}
+			scrollPanes(previewPane, correspondingChild, layout);
 		}
 	}
 
-	var timeoutId;
 	//Update preview on page load
 	$(function () {
 		// Check for the chunks creator, indicating we're on a template edit page
@@ -120,6 +206,7 @@ jQuery(document).ready(function ($) {
 		idwiz_updatepreview();
 	});
 
+	var timeoutId;
 	//update preview via ajax
 	function idwiz_updatepreview() {
 		//check for merge tags toggle
@@ -259,32 +346,100 @@ jQuery(document).ready(function ($) {
 	addEventHandlers = function (iframeDocument) {
 		var preview = $(iframeDocument);
 
-		
+		preview.find(".child-chunkWrap").click(function (e) {
+
+			
+
+			// Click the builder tab in case we're on a settings tabs
+			$("#id-chunks-creator > .acf-fields > .acf-tab-group li:first-child").click();
+
+			var parentFieldId = $(this).closest(".child-chunkWrap").attr("data-parent-field-id");
+			var contentIndex = $(this).closest(".child-chunkWrap").attr("data-content-index");
+
+			attachedEditor = $("body")
+				.find(".layout")
+				.filter(function () {
+					var inputName = $(this).find("input").attr("name");
+					return inputName && inputName.includes(parentFieldId) && $(this).attr("data-id") === contentIndex;
+				});
+
+			var self = this; // Capture the context outside setTimeout
+
+			setTimeout(function () {
+				if (!attachedEditor.is(":visible")) {
+					var tabs = attachedEditor.closest(".acf-field").siblings(".acf-tab-wrap").find(".acf-tab-group li a");
+					var found = false; // Variable to track if a matching tab is found
+
+					tabs.each(function (index, tab) {
+						$(tab).click();
+						if (attachedEditor.is(":visible")) {                
+							found = true; // Set to true if the editor becomes visible
+							return false; // Exit the loop if the editor is visible
+						}
+					});
+
+					// Check if the attachedEditor is still not visible after checking all tabs
+					if (!found) {
+						$(tabs[0]).click(); // Click the first tab as a fallback
+					}
+				}
+
+				preview.find(".child-chunkWrap").removeClass("active");
+
+				$(self).addClass("active"); // Use 'self' instead of 'this'
+
+				//attachedEditor.siblings(".layout").addClass("-collapsed");
+				attachedEditor.closest(".acf-fields").find(".layout").addClass("-collapsed");
+				if (attachedEditor.hasClass("-collapsed")) {
+					attachedEditor.removeClass("-collapsed").trigger("editorActivated");
+				}
+
+				// Scroll to layout
+				scrollPanes(preview, self, attachedEditor); // Use 'self' here as well
+
+				return;
+
+			}, 100);
+
+
+			
+		});
+
 		preview.find(".chunkWrap").click(function (e) {
 			//console.log("chunkWrap clicked");
 			if ($(this).hasClass("showChunkCode")) {
 				$(this).closest(".chunkCode").show();
+			} 
+			if ($(this).hasClass("child-chunkWrap")) {
+				e.stopPropagation();
+				return false;
 			} else {
 				e.preventDefault();
 			}
 
+			// If chunk is already active, we do nothing
 			if ($(this).hasClass("active")) {
 				return;
 			}
-
 			var editorID = $(this).attr("data-id");
 			var attachedEditor = $("body").find('.layout[data-id="' + editorID + '"]');
+
+			preview.find(".chunkWrap").removeClass("active");
+
+			$(".layout").addClass("-collapsed");
+			attachedEditor.removeClass("-collapsed").trigger("editorActivated");
 
 			if (attachedEditor.length === 0) {
 				//console.log('No editor found with ID: ' + editorID);
 				return;
 			}
 
-			preview.find(".chunkWrap").removeClass("active");
 			$(this).addClass("active");
-			$(".layout").addClass("-collapsed");
-			attachedEditor.removeClass("-collapsed").trigger("editorActivated");
-			$('a[data-key="field_63e3d761ed5b4"]').click();
+
+			// Click the builder tab in case we're on a settings tabs
+			$(".acf-tab-group li:first-child").click();
+
+			// Scroll to layout
 			scrollPanes(preview, this, attachedEditor);
 		});
 

@@ -209,7 +209,7 @@ a.wiz-button:hover {
 #builder-chunks {
 }
 .scrollSpace {
-	padding-top: 100vh;
+	padding-top: 75vh;
 }
 #id-chunks-creator {
 	background-color: #fff;
@@ -1287,7 +1287,9 @@ pre#generatedCode {
 .experiment_var_wrapper.winner {
 	background-color: #c5deff;
 }
-
+.experiment_var_wrapper .rollup_summary_wrapper {
+	gap: 10px;
+}
 .dt-buttons {
 	display: flex;
 	float: none;

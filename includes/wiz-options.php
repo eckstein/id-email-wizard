@@ -50,6 +50,16 @@ function idemailwiz_register_settings() {
         'options' => array('on' => 'On', 'off' => 'Off') 
     ));
 
+    add_settings_field('user_send_sync_toggle', 'User Sends Sync On/Off', 'idemailwiz_render_radio_field', 'idemailwiz_settings', 'idemailwiz_main_section', array(
+        'option_name' => 'user_send_sync_toggle',
+        'options' => array('on' => 'On', 'off' => 'Off') 
+    ));
+
+    add_settings_field('wysiwyg_builder_version', 'WYSIWYG Builder Version', 'idemailwiz_render_radio_field', 'idemailwiz_settings', 'idemailwiz_main_section', array(
+        'option_name' => 'wysiwyg_builder_version',
+        'options' => array('v1' => 'V1', 'v2' => 'V2') 
+    ));
+
   
 }
 

@@ -1,15 +1,18 @@
 <?php
 
-function do_database_cleanups() {
+function do_database_cleanups()
+{
     update_null_user_ids();
     update_missing_purchase_dates();
     remove_zero_campaign_ids();
     idemailwiz_backfill_campaign_start_dates();
+    //idwiz_cleanup_users_database();
 }
-function update_null_user_ids() {
+function update_null_user_ids()
+{
     wiz_log('Updating null User IDs...');
     global $wpdb;
-    $table_name = $wpdb->prefix.'idemailwiz_purchases'; // Use your actual table name
+    $table_name = $wpdb->prefix . 'idemailwiz_purchases'; // Use your actual table name
 
     $response = [];
 
@@ -59,10 +62,11 @@ function update_null_user_ids() {
 
 
 //update_missing_purchase_dates();
-function update_missing_purchase_dates() {
+function update_missing_purchase_dates()
+{
     wiz_log('Updating missing purchase dates...');
     global $wpdb;
-    $table_name = $wpdb->prefix.'idemailwiz_purchases'; 
+    $table_name = $wpdb->prefix . 'idemailwiz_purchases';
 
     // Begin transaction
     $wpdb->query('START TRANSACTION');
@@ -97,7 +101,8 @@ function update_missing_purchase_dates() {
     return true;
 }
 //remove_zero_campaign_ids();
-function remove_zero_campaign_ids() {
+function remove_zero_campaign_ids()
+{
     wiz_log('Cleaning campaign IDs...');
     global $wpdb;
     $table_name = $wpdb->prefix . 'idemailwiz_purchases';
@@ -124,7 +129,8 @@ function remove_zero_campaign_ids() {
 
 
 //remove_apostrophes_from_column('idemailwiz_purchases', 'accountNumber');
-function remove_apostrophes_from_column($table_suffix, $column_name) {
+function remove_apostrophes_from_column($table_suffix, $column_name)
+{
     global $wpdb;
     $table_name = $wpdb->prefix . $table_suffix; // Construct table name with WP prefix
 
@@ -160,28 +166,96 @@ function remove_apostrophes_from_column($table_suffix, $column_name) {
     }
 }
 
-function idemailwiz_backfill_campaign_start_dates() {
+function idemailwiz_backfill_campaign_start_dates()
+{
     global $wpdb;
     $purchases_table = $wpdb->prefix . 'idemailwiz_purchases';
     $campaigns_table = $wpdb->prefix . 'idemailwiz_campaigns';
 
     // Fetch all purchases that have a campaignId and an empty or null campaignStartAt
     $purchases = $wpdb->get_results("SELECT id, campaignId FROM $purchases_table WHERE campaignId IS NOT NULL AND (campaignStartAt IS NULL OR campaignStartAt = '')");
-
+    $countUpdates = 0;
     foreach ($purchases as $purchase) {
         // Fetch the campaign's startAt date
         $campaignStartAt = $wpdb->get_var($wpdb->prepare("SELECT startAt FROM $campaigns_table WHERE id = %d", $purchase->campaignId));
 
         if ($campaignStartAt) {
             // Update the purchase record with the campaignStartAt date
-            $wpdb->update(
+            $updateRecord = $wpdb->update(
                 $purchases_table,
                 ['campaignStartAt' => $campaignStartAt],
                 ['id' => $purchase->id]
             );
+            if ($updateRecord && $updateRecord > 0) {
+                $countUpdates++;
+            }
         }
     }
 
-    wiz_log("Back-fill process completed.");
-    return "Back-fill process completed.";
+    wiz_log("Purchase campaign start date backfill completed for {$countUpdates} records.");
+    return "Purchase campaign start date backfill completed for {$countUpdates} records.";
 }
+
+function idwiz_cleanup_users_database($batchSize = 10000)
+{
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_users';
+
+    wiz_log("Fetching users and cleaning up records...");
+
+    // Fetch all users from the database
+    $totalUsers = $wpdb->get_var("SELECT COUNT(*) FROM {$table_name}");
+    $batches = ceil($totalUsers / $batchSize);
+
+    for ($batch = 0; $batch < $batches; $batch++) {
+        $offset = $batch * $batchSize;
+
+        // Fetch a batch of users from the database
+        $users = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$table_name} LIMIT %d OFFSET %d", $batchSize, $offset), ARRAY_A);
+
+
+
+        $countUpdates = 0;
+        foreach ($users as $user) {
+            $update = false; // Flag to check if we need to update the record
+
+            foreach ($user as $field => $value) {
+                // Change blank values to NULL
+                if ($value === '') {
+                    $user[$field] = NULL;
+                    $update = true;
+                }
+
+                // Change string "[]" to NULL
+                elseif ($value === '[]') {
+                    $user[$field] = NULL;
+                    $update = true;
+                }
+
+                // Check if the value is a string representation of an array
+                elseif (is_string($value) && strpos($value, '[') === 0) {
+                    // Attempt to decode it as JSON
+                    $decoded = json_decode($value, true);
+
+                    // If decoding is successful and the result is an array, serialize it
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                        $user[$field] = serialize($decoded);
+                        $update = true;
+                    }
+                }
+            }
+
+            // Update the user record if changes were made
+            if ($update) {
+                $wpdb->update(
+                    $table_name,
+                    $user,
+                    ['wizId' => $user['wizId']] 
+                );
+                $countUpdates++;
+            }
+        }
+        wiz_log("Cleaned up {$countUpdates} user records.");
+    }
+}
+

@@ -1,0 +1,67 @@
+<style type="text/css">
+	.chunkWrap,
+	.child-chunkWrap {
+		position: relative;
+		cursor: pointer;
+    box-sizing: border-box;
+	}
+
+	.chunkWrap.hide-seps {
+		border: 0;
+	}
+	.chunkWrap td {
+		color: #222 !important;
+	}
+
+	.chunkWrap.active {
+		outline: 2px solid #222222 !important;
+    outline-offset: -2px;
+	}
+	.child-chunkWrap.active {
+    outline: 2px solid #222222 !important;
+    outline-offset: -2px;
+	}
+
+	.chunkWrap:hover,
+	.child-chunkWrap:hover {
+    outline: 2px solid #63e4bd;
+    outline-offset: -2px;
+	}
+
+	.chunkWrap:hover .chunkOverlay {
+		display: block;
+	}
+	.chunkWrap.hiddenChunk {
+		border: 0 !important;
+	}
+	.chunkOverlay {
+		display: none;
+		position: absolute;
+		top: 5px;
+		right: 5px;
+	}
+	.chunkOverlay .chunk-label {
+		font-size: 12px;
+		padding: 5px;
+		background-color: rgba(0, 0, 0, 0.9);
+		color: #fff;
+		display: inline-block;
+		margin-right: 10px;
+	}
+	.showChunkCode {
+		background-color: #000;
+		color: #fff;
+		border-radius: 0px;
+		padding: 5px 15px;
+		cursor: pointer;
+		border: 0;
+	}
+	.showChunkCode:hover {
+		background-color: #94d40a;
+	}
+
+	.preview-scrollspace {
+		height: 100%;
+		background-color: #fff;
+	}
+</style>

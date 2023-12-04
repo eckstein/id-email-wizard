@@ -48,6 +48,8 @@ function idemailwiz_import_triggered_metrics_from_api($campaignIds, $metricType)
 
 function idemailwiz_import_triggered_metrics_from_csv($localCsvFilePath, $metricType)
 {
+    global $wpdb;
+
     // Open the local CSV file
     $tempFile = fopen($localCsvFilePath, 'r');
 
@@ -100,7 +102,8 @@ function idemailwiz_import_triggered_metrics_from_csv($localCsvFilePath, $metric
 
     // Insert unique records into the database
     foreach ($uniqueRecords as $record) {
-        idemailwiz_insert_triggered_metric_record($record, $metricType);
+        $tableName = $wpdb->prefix . 'idemailwiz_triggered_' . lcfirst($metricType) . 's';
+        idemailwiz_insert_exported_job_record($record, $tableName);
     }
 
     error_log("Finished inserting new $metricType records for triggered campaigns from CSV.");

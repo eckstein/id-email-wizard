@@ -156,6 +156,24 @@ function idemailwiz_create_databases()
     ) $charset_collate;";
 
 
+    $users_table_name = $wpdb->prefix . 'idemailwiz_users';
+    $users_sql = "CREATE TABLE IF NOT EXISTS $users_table_name (
+        wizId VARCHAR(100),
+        accountNumber VARCHAR(20),
+        userId VARCHAR(40),
+        signupDate VARCHAR(255),
+        postalCode VARCHAR(20),
+        timeZone VARCHAR(255),
+        studentArray LONGTEXT,
+        unsubscribedChannelIds MEDIUMTEXT,
+        subscribedMessageTypeIds MEDIUMTEXT,
+        unsubscribedMessageTypeIds MEDIUMTEXT,
+        campaignSends LONGTEXT,
+        wizSalt VARCHAR(255),
+        INDEX wizId (wizId)
+    ) $charset_collate;";
+
+
 
     // Define Templates table
     $template_table_name = $wpdb->prefix . 'idemailwiz_templates';
@@ -376,6 +394,7 @@ function idemailwiz_create_databases()
 
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($campaign_sql);
+    dbDelta($users_sql);
     dbDelta($campaign_init_sql);
     dbDelta($cohorts_sql);
     dbDelta($triggered_sends_sql);
@@ -634,7 +653,7 @@ function build_idwiz_query($args, $table_name)
         $sql .= $wpdb->prepare(" OFFSET %d", (int) $args['offset']);
     }
 
-    
+
     return $sql;
 
 
@@ -648,7 +667,7 @@ function execute_idwiz_query($sql, $batch_size = 20000)
     global $wpdb;
     $offset = 0;
     $results = [];
-    
+
     do {
         $current_batch_query = $sql . " LIMIT $offset, $batch_size";
         $current_batch = $wpdb->get_results($current_batch_query, ARRAY_A);

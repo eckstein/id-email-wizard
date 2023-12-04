@@ -5,6 +5,10 @@ global $wpdb;
 
 //idemailwiz_backfill_campaign_start_dates();
 //idemailwiz_sync_users();
+//print_r(idemailwiz_fetch_users());
+//idemailwiz_sync_experiments();
+
+
 
 if (isset($_GET['db-cleanup'])) {
     $doCleanup = $_GET['db-cleanup'];
@@ -16,6 +20,8 @@ if (isset($_GET['db-cleanup'])) {
         remove_zero_campaign_ids();
     } else if ($doCleanup == 'backfill-purchase-campaign-dates') {
         idemailwiz_backfill_campaign_start_dates();
+    } else if ($doCleanup == 'cleanup-users-database') {
+        idwiz_cleanup_users_database();
     }
 }
 
@@ -82,8 +88,8 @@ if (isset($_GET['db-cleanup'])) {
                         <div class="wizcampaign-section">
                             <a class="wiz-button green"
                                 href="<?php echo add_query_arg('db-cleanup', 'update-null-user-ids'); ?>"
-                                id="updateNullUserIds">Match User IDs</a>
-                            <h5>Fills null userIds by matching accountNumber to other purchases</h5>
+                                id="updateNullUserIds">Match Purchase User IDs</a>
+                            <h5>Fills null userIds in the purchases database by matching accountNumber to other purchases</h5>
                         </div>
                         <div class="wizcampaign-section">
                             <a class="wiz-button green"
@@ -103,6 +109,12 @@ if (isset($_GET['db-cleanup'])) {
                                 href="<?php echo add_query_arg('db-cleanup', 'backfill-purchase-campaign-dates'); ?>"
                                 id="backfillPurchaseCampaignDates">Backfill Purchase Campaign Send Dates</a>
                             <h5>At the startAt date/time to each purchase, if missing.</h5>
+                        </div>
+                        <div class="wizcampaign-section">
+                            <a class="wiz-button green"
+                                href="<?php echo add_query_arg('db-cleanup', 'cleanup-users-database'); ?>"
+                                id="cleanupUsersDatabase">Cleanup Users Database</a>
+                            <h5>Removes empty arrays and blank values. Converts array to properly serialized data</h5>
                         </div>
                     </div>
                 </div>
