@@ -260,7 +260,32 @@ jQuery(document).ready(function ($) {
 		window.location.href = newUrl;
 	});
 
+$(document).on('click', '#removeHeatmap', function() {
+	var templateId = $(this).data('templateid');
+	idemailwiz_do_ajax(
+		"idemailwiz_remove_heatmap",
+		idAjax_id_general.nonce,
+		{templateId},
+		function (response) { // success callback
+			Swal.fire({
+				icon: "success",
+				title: "Success",
+				text: 'Heatmap removed from template.',
+			}).then(() => {
+				location.reload();
+			});
+			
+		},
+		function (xhr, status, error) { // error callback
 
+			Swal.fire({
+				title: 'Error!',
+				text: error || 'There was an error removing the heatmap. Try refreshing the page.',
+				icon: 'error'
+			});
+		}
+	);
+});
 	
 
 });
@@ -677,5 +702,4 @@ function do_wiz_notif(notifData) {
 		});
 	});
 }
-
 

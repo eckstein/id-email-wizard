@@ -213,7 +213,7 @@ foreach ($allPurchases as $purchase) {
                                         </td>
                                         <td class="campaignName"><a
                                                 href="<?php echo get_bloginfo('wpurl'); ?>/metrics/campaign/?id=<?php echo $campaign['id']; ?>"
-                                                target="_blank">
+                                                >
                                                 <?php echo $campaign['name']; ?>
                                             </a></td>
                                         <td class="uniqueSends">

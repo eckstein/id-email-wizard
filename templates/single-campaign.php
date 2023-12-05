@@ -344,7 +344,6 @@ $linkedExperimentIds = array_map(function ($id) {
 
             if (!empty($displayTemplates)) {
 
-
                 foreach ($displayTemplates as $currentTemplate) {
                     if (!$currentTemplate) {
                         continue;
@@ -359,7 +358,40 @@ $linkedExperimentIds = array_map(function ($id) {
                     }
 
                     ?>
+
                     <div class="wizcampaign-template-html">
+                        <div class="wizcampaign-template-top">
+                            <?php if (isset($currentTemplate['heatmapFile'])) {
+
+                                $fullFilePath = $currentTemplate['heatmapFile'];
+
+                                // Extract just the file name from the full path
+                                $fileName = basename($fullFilePath);
+
+                                // Extract the timestamp from the file name
+                                // Assuming the format is "heatmap_[unique_id]_[timestamp].csv"
+                                $parts = explode('_', $fileName);
+                                $timestamp = rtrim(end($parts), '.csv'); // Remove the file extension and get the timestamp
+                    
+                                // Convert the timestamp to a human-readable date format
+                                $lastUpdated = date("F j, Y, g:ia", $timestamp);
+
+                                // Display the file name as a link and the last updated date
+                                echo "Heatmap file: <a href='$fullFilePath'>$fileName</a> | Last updated: $lastUpdated";
+                                echo "&nbsp;&nbsp;<span id='removeHeatmap' title='Remove heatmap' data-templateid='{$currentTemplate['templateId']}'><i class='fa-solid fa-circle-xmark'></i></span>";
+
+                            } else { ?>
+                                <?php echo do_shortcode('[wordpress_file_upload uploadid="' . $currentTemplate['templateId'] . '" singlebutton="true" fitmode="responsive" resetmode="onsuccess" uploadrole="all" uploadpatterns="*.csv" createpath="false" showtargetfolder="true" duplicatespolicy="maintain both" uniquepattern="datetimestamp" placements="filename+selectbutton+uploadbutton/message" uploadtitle="Upload heatmap" selectbutton="Upload Heatmap" successmessage="Success! Heatmap uploaded to %filepath%" userdatalabel="website|t:honeypot" medialink="true"]'); ?>
+                                (<a target="_blank"
+                                    href="https://app.iterable.com/analytics/campaignPerformance/heatmap?campaignId=<?php echo $campaign_id; ?>">Get
+                                    heatmap from Iterable</a>)
+                            <?php } ?>
+                            <?php if (isset($currentTemplate['clientTemplateId'])) { ?>
+                                <button title="Duplicate Template" class="wiz-button duplicate-template"
+                                    data-postid="<?php echo $template['clientTemplateId']; ?>"><i
+                                        class="fa-solid fa-copy"></i></button>
+                            <?php } ?>
+                        </div>
                         <?php
 
                         $messageMedium = $currentTemplate['messageMedium'];
@@ -368,7 +400,7 @@ $linkedExperimentIds = array_map(function ($id) {
                             $messageMedium = $campaign['messageMedium'];
                         }
                         if ($messageMedium == 'Email') {
-                            $csv_file = 'http://localhost/wp-content/uploads/2023/12/heatmap.csv';
+                            $csv_file = $currentTemplate['heatmapFile'];
                             $heatmap_div = generate_idwizcampaign_heatmap_overlay($csv_file);
                             ?>
                             <div class="wizcampaign-template-details">
@@ -406,6 +438,7 @@ $linkedExperimentIds = array_map(function ($id) {
                         <?php } ?>
                     </div>
                     <?php
+
                 }
             }
             ?>

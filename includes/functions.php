@@ -592,6 +592,16 @@ function generate_idwizcampaign_heatmap_overlay($csv_file)
   $rows = str_getcsv($data, "\n");
   $header = str_getcsv(array_shift($rows));
 
+  // Find the min and max unique clicks for color scaling
+  $min_clicks = PHP_INT_MAX;
+  $max_clicks = 0;
+  foreach ($rows as $row) {
+    $data = array_combine($header, str_getcsv($row));
+    $clicks = intval($data['uniqueCount']);
+    $min_clicks = min($min_clicks, $clicks);
+    $max_clicks = max($max_clicks, $clicks);
+  }
+
   // Start the heatmap overlay div
   $overlay_html = '<div class="heatmap-overlay">';
   $overlay_html .= '<div class="heatmap-tooltips"></div>';
@@ -604,18 +614,15 @@ function generate_idwizcampaign_heatmap_overlay($csv_file)
     // Extract the required fields
     $x = floatval($data['x']) - 100;
     $y = floatval($data['y']) - 20;
-    $opacity = $data['uniqueClickRate'];
-
-    // Transform the opacity value, e.g., by applying a logarithmic scale or using a minimum threshold
-    $adjusted_opacity = max(0.5, log($opacity + 1) * 0.5); // You can adjust the formula as needed
-
-    // Create a heatmap point
-    $unique_clicks = $data['uniqueCount'];
-    $unique_click_rate = number_format($data['uniqueClickRate'] * 100, 2) . '%'; // Format as percentage with 2 decimal places
+    $unique_clicks = intval($data['uniqueCount']);
+    $unique_click_rate = number_format($data['uniqueClickRate'] * 100, 2) . '%';
     $url = $data['url'];
 
-    $overlay_html .= "<div class=\"heatmap-point\" style=\"left: {$x}px; top: {$y}px; opacity: {$adjusted_opacity};\" data-unique-clicks=\"{$unique_clicks}\" data-unique-click-rate=\"{$unique_click_rate}\" data-url=\"{$url}\"></div>";
+    // Map the unique clicks to a color from yellow to red
+    $color = map_clicks_to_color($unique_clicks, $min_clicks, $max_clicks);
 
+    // Create a heatmap point with unique clicks displayed
+    $overlay_html .= "<div class=\"heatmap-point\" style=\"left: {$x}px; top: {$y}px; background-color: {$color};\" data-unique-click-rate =\"{$unique_click_rate}\" data-unique-clicks=\"{$unique_clicks}\" data-url=\"{$url}\">{$unique_clicks}</div>";
   }
 
   // Close the heatmap overlay div
@@ -623,6 +630,21 @@ function generate_idwizcampaign_heatmap_overlay($csv_file)
 
   return $overlay_html;
 }
+
+function map_clicks_to_color($clicks, $min_clicks, $max_clicks)
+{
+  // Normalize clicks value between 0 and 1
+  $normalized = ($clicks - $min_clicks) / ($max_clicks - $min_clicks);
+
+  // Convert normalized value to a color on the yellow-to-red gradient
+  $red = 255;
+  $green = 255 - $normalized * 255; // Decrease green to move from yellow to red
+  $blue = 0;
+
+  return sprintf("#%02x%02x%02x", $red, $green, $blue);
+}
+
+
 
 
 //Add custom meta metabox back to edit screens 	
@@ -1245,7 +1267,7 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
   $triggeredMetrics = in_array('Triggered', $campaignTypes) && !empty($triggeredCampaignIds) ? get_triggered_campaign_metrics($triggeredCampaignIds, $startDate, $endDate) : [];
   $purchaseArgs = [];
 
- 
+
   $purchaseArgs = [
     'startAt_start' => $startDate,
     'startAt_end' => $endDate,
@@ -1256,14 +1278,14 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
   $currentUser = wp_get_current_user();
   $currentUserId = $currentUser->ID;
   $userAttMode = get_user_meta($currentUserId, 'purchase_attribution_mode', true);
-   // default mode is campaign-id, which gets no extra parameters here
+  // default mode is campaign-id, which gets no extra parameters here
   if ($userAttMode == 'broad-channel-match') {
-    $purchaseArgs['shoppingCartItems_utmMedium'] = ['email',''];
+    $purchaseArgs['shoppingCartItems_utmMedium'] = ['email', ''];
   } elseif ($userAttMode == 'email-channel-match') {
     $purchaseArgs['shoppingCartItems_utmMedium'] = ['email'];
   }
 
-   // If the mode is set to getting purchases only for specific campaigns, we pass the campaignIds
+  // If the mode is set to getting purchases only for specific campaigns, we pass the campaignIds
   if ($purchaseMode == 'campaignsInDate') {
     if (in_array('Triggered', $campaignTypes)) {
       $purchaseArgs['campaignIds'] = $allIncludedIds;
@@ -1286,9 +1308,10 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
 
   $totalPurchases = is_array($purchases) ? count($purchases) : 0;
 
-  $totalRevenue = get_idwiz_revenue($startDate, $endDate, $campaignTypes, $purchaseArgs['campaignIds']);
+  $purchaseCampaigns = $purchaseArgs['campaignIds'] ?? null;
+  $totalRevenue = get_idwiz_revenue($startDate, $endDate, $campaignTypes, $purchaseCampaigns);
 
-  $gaRevenue = get_idwiz_revenue($startDate, $endDate, $campaignTypes, $purchaseArgs['campaignIds'], true);
+  $gaRevenue = get_idwiz_revenue($startDate, $endDate, $campaignTypes, $purchaseCampaigns, true);
 
 
   // Process Blast metrics
@@ -1467,7 +1490,7 @@ function idemailwiz_update_user_attribution_setting()
 
   $field = $_POST['field'] ?? null;
   $newValue = $_POST['value'] ?? null;
-  
+
   $currentUser = wp_get_current_user();
   $currentUserId = $currentUser->ID;
   if ($field && $newValue) {
@@ -1876,4 +1899,136 @@ function wiz_notifications()
 }
 add_action('wp_footer', 'wiz_notifications');
 
+
+
+if (!function_exists('wfu_after_file_loaded_handler')) {
+  /** Function syntax
+   *  The function takes two parameters, $changable_data and $additional_data.
+   *  - $changable_data is an array that can be modified by the filter and
+   *    contains the items:
+   *    > error_message: initially it is set to an empty value, if the handler
+   *      sets a non-empty value then upload of the file will be cancelled
+   *      showing this error message
+   *    > admin_message: initially it is set to an empty value, if the handler
+   *      sets a non-empty value then this value will be shown to
+   *      administrators if adminmessages attribute has been activated,
+   *      provided that error_message is also set. You can use it to display
+   *      more information about the error, visible only to admins.
+   *  - $additional_data is an array with additional data to be used by the
+   *    filter (but cannot be modified) as follows:
+   *    > file_unique_id: this id is unique for each individual file upload
+   *      and can be used to identify each separate upload
+   *    > file_path: the full path of the uploaded file
+   *    > shortcode_id: this is the id of the plugin, as set using uploadid
+   *      attribute; it can be used to apply this filter only to a specific
+   *      instance of the plugin (if it is used in more than one pages or
+   *      posts)
+   *  The function must return the final $changable_data. */
+  function wfu_after_file_loaded_handler($changable_data, $additional_data)
+  {
+    global $wpdb;
+    $templateId = $additional_data['shortcode_id'];
+
+    $filePath = $additional_data['file_path'];
+
+    $wpdb->query(
+      $wpdb->prepare(
+        "UPDATE {$wpdb->prefix}idemailwiz_templates SET heatmapFile = %s WHERE templateId = %d",
+        $filePath,
+        $templateId
+      )
+    );
+
+    return $changable_data;
+  }
+  add_filter('wfu_after_file_loaded', 'wfu_after_file_loaded_handler', 10, 2);
+}
+
+
+/*
+  This filter is executed after the upload process for each individual file has
+  finished, in order to allow additional tasks to be executed and define custom
+  javascript code to run in clientâ  s browser. 
+*/
+if (!function_exists('wfu_after_file_upload_handler')) {
+  /** Function syntax
+   *  The function takes two parameters, $changable_data and $additional_data.
+   *  - $changable_data is an array that can be modified by the filter and
+   *    contains the items:
+   *    > ret_value: not used for the moment, it exists for future additions
+   *    > js_script: javascript code to be executed on the client's browser
+   *      after each file is uploaded
+   *  - $additional_data is an array with additional data to be used by the
+   *    filter (but cannot be modified) as follows:
+   *    > shortcode_id: this is the id of the plugin, as set using uploadid
+   *      attribute; it can be used to apply this filter only to a specific
+   *      instance of the plugin (if it is used in more than one pages or
+   *      posts)
+   *    > file_unique_id: this id is unique for each individual file upload
+   *      and can be used to identify each separate upload
+   *    > upload_result: it is the result of the upload process, taking the
+   *      following values:
+   *        success: the upload was successful
+   *        warning: the upload was successful but with warning messages
+   *        error: the upload failed
+   *    > error_message: contains warning or error messages generated during
+   *      the upload process
+   *    > admin_messages: contains detailed error messages for administrators
+   *      generated during the upload process
+   *  The function must return the final $changable_data. */
+  function wfu_after_file_upload_handler($changable_data, $additional_data)
+  {
+    $changable_data['js_script'] = "location.reload()";
+    return $changable_data;
+  }
+  add_filter('wfu_after_file_upload', 'wfu_after_file_upload_handler', 10, 2);
+}
+
+/*
+  This filter runs right before the uploaded file starts to be uploaded in order
+  to make modifications of its filename.
+*/
+if (!function_exists('wfu_before_file_upload_handler')) {
+  /** Function syntax
+   *  The function takes two parameters, $file_path and $file_unique_id.
+   *  - $file_path is the filename of the uploaded file (after all internal
+   *    checks have been applied) and can be modified by the filter.
+   *  - $file_unique_id is is unique for each individual file upload and can
+   *    be used to identify each separate upload.
+   *  The function must return the final $file_path.
+   *  If additional data are required (such as user id or userdata) you can
+   *  get them by implementing the previous filter wfu_before_file_check and
+   *  link both filters by $file_unique_id parameter. Please note that no
+   *  filename validity checks will be performed after the filter. The filter
+   *  must ensure that filename is valid. */
+  function wfu_before_file_upload_handler($file_path, $file_unique_id)
+  {
+    // Extract the directory part of the file path
+    $directory = dirname($file_path);
+
+    // Create the new file name
+    $new_file_name = "heatmap_" . $file_unique_id . "_" . time() . ".csv";
+
+    // Concatenate the directory with the new file name
+    $new_file_path = $directory . DIRECTORY_SEPARATOR . $new_file_name;
+
+    return $new_file_path;
+  }
+
+  add_filter('wfu_before_file_upload', 'wfu_before_file_upload_handler', 10, 2);
+}
+
+add_action('wp_ajax_idemailwiz_remove_heatmap', 'idemailwiz_remove_heatmap');
+function idemailwiz_remove_heatmap()
+{
+  global $wpdb;
+  $templateId = $_POST['templateId'];
+  $wpdb->query(
+    $wpdb->prepare(
+      "UPDATE {$wpdb->prefix}idemailwiz_templates SET heatmapFile = NULL WHERE templateId = %d",
+      $templateId
+    )
+  );
+  wp_send_json_success(true);
+}
 
