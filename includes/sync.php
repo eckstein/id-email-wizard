@@ -1874,13 +1874,28 @@ function idemailwiz_process_jobids($jobIds, $metricType)
         'totalFailed' => 0
     ];
 
-
+    $maxRetries = 3; // Maximum number of retries for a job
+    $retryCounter = array_fill_keys($jobIds, 0); // Initialize retry counters for each job
     foreach ($jobIds as $jobId) {
         $apiResponse = idemailwiz_iterable_curl_call('https://api.iterable.com/api/export/' . $jobId . '/files');
         if (!$apiResponse or empty($apiResponse)) {
             continue;
         }
         $jobState = $apiResponse['response']['jobState'];
+
+         if ($jobState === 'Enqueued' || $jobState === 'Running') {
+            if ($retryCounter[$jobId] < $maxRetries) {
+                if ($retryCounter[$jobId] === 1) { // after the 2nd attempt, give it 10 seconds more to complete
+                    sleep(10); // Delay before re-adding to the queue
+                }
+                $retryCounter[$jobId]++;
+                
+                $jobIds[] = $jobId; // Re-add the jobId to the end of the array for retry
+            } else {
+                wiz_log("Job {$jobId} did not complete before reaching maximum retry attempts.");
+            }
+            continue;
+        }
 
         if ($jobState === 'failed') {
             $return['totalFailed']++;
