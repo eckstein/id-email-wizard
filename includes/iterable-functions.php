@@ -63,11 +63,12 @@ function idemailwiz_get_template_data_for_iterable()
 			$wizTemplate = get_idwiz_template($templateId);
 			if ($wizTemplate) {
 				$wizCampaign = get_idwiz_campaign($wizTemplate['campaignId']);
+				if ($wizCampaign && $wizCampaign['campaignState'] === 'Finished') {
+					$response['alreadySent'] = true;
+				}
 			}
 			
-			if ($wizCampaign && $wizCampaign['campaignState'] === 'Finished') {
-				$response['alreadySent'] = true;
-			}
+			
 		}
 
 	} else {

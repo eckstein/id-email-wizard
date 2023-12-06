@@ -1942,7 +1942,7 @@ function idemailwiz_process_completed_sync_job($fileUrl, $jobId, $metricType)
                 wiz_log('json error, skipping');
             }
 
-            $tableName = $wpdb->prefix . 'idemailwiz_triggered_' . lcfirst($metricType) . 's';
+            $tableName = $wpdb->prefix . 'idemailwiz_triggered_' . strtolower($metricType) . 's';
             $upsertResult = idemailwiz_insert_exported_job_record($decodedData, $tableName);
 
             if ($upsertResult === 'inserted') {
