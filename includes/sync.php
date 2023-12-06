@@ -1904,7 +1904,7 @@ function idemailwiz_process_jobids($jobIds, $metricType)
 
                 $moreFilesAvailable = count($fileApiResponse['response']['files']) > 0;
             } while ($moreFilesAvailable);
-            wiz_log("Job export {$jobId} completed.");
+            //wiz_log("Job export {$jobId} completed.");
         } else {
             continue;
         }
