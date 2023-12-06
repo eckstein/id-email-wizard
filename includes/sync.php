@@ -1776,7 +1776,7 @@ function idwiz_request_iterable_export_jobs($metricType, $campaignTypes = 'Trigg
     $transientData = ['jobIds' => [], 'lastUpdated' => ''];
     $countRetrieved = 0;
 
-    set_time_limit(360);
+    //set_time_limit(360);
 
     wiz_log("Exporting jobs for $countCampaigns campaign's {$metricType} records... (2-5 mins)");
     foreach ($campaigns as $campaign) {
@@ -1867,7 +1867,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
 // Loops through job IDs and pulls data from Iterable, then sends completed jobs to be processed
 function idemailwiz_process_jobids($jobIds, $metricType)
 {
-    set_time_limit(360);
+    //set_time_limit(360);
     $return = [
         'totalInserted' => 0,
         'totalUpdated' => 0,
@@ -1884,6 +1884,7 @@ function idemailwiz_process_jobids($jobIds, $metricType)
 
         if ($jobState === 'failed') {
             $return['totalFailed']++;
+            wiz_log("Job {$jobId} failed to complete.");
             continue; // Log this if necessary
         } else if ($jobState === 'completed') {
             $startAfter = '';
@@ -1903,6 +1904,7 @@ function idemailwiz_process_jobids($jobIds, $metricType)
 
                 $moreFilesAvailable = count($fileApiResponse['response']['files']) > 0;
             } while ($moreFilesAvailable);
+            wiz_log("Job export {$jobId} completed.");
         } else {
             continue;
         }
@@ -1916,7 +1918,7 @@ function idemailwiz_process_jobids($jobIds, $metricType)
 // Access the files in each job and passed them to another function to insert the records into the database
 function idemailwiz_process_completed_sync_job($fileUrl, $jobId, $metricType)
 {
-    set_time_limit(360);
+    //set_time_limit(360);
     //wiz_log("Processing $metricType records from exported file...");
     global $wpdb;
     $cntRecords = 0;
@@ -1961,7 +1963,7 @@ function idemailwiz_process_completed_sync_job($fileUrl, $jobId, $metricType)
 
         }
         if ($cntRecords > 0) {
-            //wiz_log("Job {$jobId}: Updated $cntRecords triggered $metricType records.");
+           //wiz_log("Job {$jobId}: Updated $cntRecords triggered $metricType records.");
         } else {
             //wiz_log("Job {$jobId}: No $metricType records found within exported file.");
         }
@@ -1970,7 +1972,7 @@ function idemailwiz_process_completed_sync_job($fileUrl, $jobId, $metricType)
     }
 
     if ($insertCount > 0 || $updateCount > 0) {
-        //wiz_log("Job {$jobId}: Inserted {$insertCount}, Updated {$updateCount}, and Skipped {$skippedCount} triggered {$metricType} records with {$errorCount} errors.");
+        wiz_log("Job {$jobId}: Inserted {$insertCount}, Updated {$updateCount}, and Skipped {$skippedCount} triggered {$metricType} records with {$errorCount} errors.");
     } else {
         // No changes made
         //wiz_log("Job {$jobId}: No changes made to triggered {$metricType} records. {$errorCount} errors encountered.");
