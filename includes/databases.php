@@ -198,6 +198,7 @@ function idemailwiz_create_databases()
         html MEDIUMTEXT,
         message MEDIUMTEXT,
         imageUrl VARCHAR(255),
+        heatmapFile VARCHAR(255),
         PRIMARY KEY  (templateId)
     ) $charset_collate;";
 

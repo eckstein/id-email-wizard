@@ -39,7 +39,6 @@
             $lastJourneySend = max($sendAts);
         } else {
             // Fallback if no sends are in the specified range
-            // You may adjust these fallback values as needed
             $firstJourneySend = $startDateDT->getTimestamp() * 1000;
             $lastJourneySend = $endDateDT->getTimestamp() * 1000;
         }

@@ -122,6 +122,11 @@ $linkedExperimentIds = array_map(function ($id) {
                         data-metricTypes="<?php echo esc_attr(json_encode(array('blast'))); ?>"><i
                             class="fa-solid fa-arrows-rotate"></i>&nbsp;&nbsp;Sync Metrics</button>
 
+                    <button class="wiz-button green doWizSync"
+                    data-campaignIds="<?php echo esc_attr(json_encode(array($campaign['id']))); ?>"
+                    data-metricTypes="<?php echo esc_attr(json_encode(array('send','open','click','bounce','sendSkip','unSubscribe','complaint'))); ?>"><i
+                        class="fa-solid fa-arrows-rotate"></i>&nbsp;&nbsp;Sync Triggered Data</button>
+
                     <?php include plugin_dir_path(__FILE__) . 'parts/module-user-settings-form.php'; ?>
                 </div>
             </div>

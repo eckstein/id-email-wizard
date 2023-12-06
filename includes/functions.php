@@ -1377,7 +1377,7 @@ function get_triggered_campaign_metrics($campaignIds = [], $startDate = null, $e
   }
   $allPurchases = get_idwiz_purchases($purchasesOptions);
 
-  // Prepare arguments for database queries
+  // Prepare arguments for triggered database queries
   $campaignDataArgs = [
     'campaignIds' => $campaignIds,
     'startAt_start' => $startDate,
@@ -1398,7 +1398,7 @@ function get_triggered_campaign_metrics($campaignIds = [], $startDate = null, $e
   ];
 
   foreach ($databases as $metricKey => $database) {
-    $transient_key = 'count_of_' . $database . md5(json_encode($campaignDataArgs));
+    $transient_key = 'count_of_' . $database;
 
     // Try to get the metric count from transient
     $metric_count = get_transient($transient_key);

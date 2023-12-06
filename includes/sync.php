@@ -376,7 +376,7 @@ function idemailwiz_fetch_experiments($campaignIds = null)
     $allCampaigns = get_idwiz_campaigns($fetchCampArgs);
     $campaignIds = array_column($allCampaigns, 'id');
 
-    
+
     $data = [];
     $allExpMetrics = [];
 
@@ -681,7 +681,7 @@ function wiz_process_user_sync_queue($batchSize = 50)
     $wizSettings = get_option('idemailwiz_settings');
     $userSync = $wizSettings['user_send_sync_toggle'];
     if ($userSync == 'on') {
-        
+
         // Get the queue from the transient
         $sync_queue = get_transient('wiz_user_send_sync_queue');
         if (!$sync_queue) {
@@ -1546,28 +1546,11 @@ function idemailwiz_check_for_cron_sequence_start()
 
     $metricTypes = ['send', 'open', 'click', 'unSubscribe', 'bounce', 'sendSkip', 'complaint'];
     $triggeredSyncInProgress = false;
-    $exportSyncInProgress = false;
-
-    foreach ($metricTypes as $metricType) {
-        if ($triggeredSync == 'on') {
-            if (get_transient("idemailwiz_{$metricType}_sync_in_progress")) {
-                $triggeredSyncInProgress = true;
-                break; // No need to check further if one is already in progress
-            }
-            if (get_transient("idemailwiz_export_{$metricType}_jobs_running")) {
-                $exportSyncInProgress = true;
-                break; // No need to check further if one is already in progress
-            }
-        } else {
-            wiz_log('Triggered campaigns metrics sync is turned off in the settings.');
-            break;
-        }
-    }
 
     // Check if we're waiting to start the next sync
     $blastSyncWaiting = get_transient('blast_sync_waiting');
     $triggeredSyncWaiting = get_transient('triggered_sync_waiting');
-    $exportSyncWaiting = get_transient('export_sync_waiting');
+
 
     // Check if a sync is in progress
     $blastSyncInProgress = get_transient('idemailwiz_blast_sync_in_progress');
@@ -1607,31 +1590,29 @@ function idemailwiz_check_for_cron_sequence_start()
         wiz_log('Triggered sync was triggered, but is turned off in the settings.');
     }
 
-    // Start export sync sequence if not in progress or waiting, and no other sync is in progress
-    if ($triggeredSync == 'on') {
-        if (!$exportSyncWaiting) {
-            if (!$exportSyncInProgress) {
-                $addTime = 0;
-                foreach ($metricTypes as $metricType) {
-                    set_transient("idemailwiz_export_{$metricType}_jobs_running", true, (20 * MINUTE_IN_SECONDS) + $addTime);
-                    $addTime += (5 * MINUTE_IN_SECONDS);
-                }
 
-                set_transient('export_sync_waiting', true, (90 * MINUTE_IN_SECONDS));
-                $delay = ($blastSyncInProgress) ? (2 * MINUTE_IN_SECONDS) : 0;
-                idwiz_maybe_start_wpcron_jobs_exports($delay);
-            } else {
-                wiz_log('Export jobs requests are already in progress.');
-            }
-        }
-    } else {
-        wiz_log('Export sync was triggered, but Triggered Sync is turned off in the settings.');
-    }
 
 
 }
 
+if (!wp_next_scheduled('idemailwiz_check_for_export_sequence_start')) {
+    wp_schedule_event(time(), 'hourly', 'idemailwiz_check_for_export_sequence_start');
+}
+add_action('idemailwiz_check_for_export_sequence_start', 'idemailwiz_check_for_export_sequence_start', 10, 0);
 
+function idemailwiz_check_for_export_sequence_start()
+{
+    $metricTypes = ['send', 'open', 'click', 'unSubscribe', 'bounce', 'sendSkip', 'complaint'];
+
+    $exportSyncWaiting = get_transient('export_sync_waiting');
+    // Start export sync sequence if not in progress or waiting, and no other sync is in progress
+    if (!$exportSyncWaiting) {
+        set_transient('export_sync_waiting', true, (60 * MINUTE_IN_SECONDS));
+
+        idwiz_maybe_start_wpcron_jobs_exports();
+
+    }
+}
 
 
 
@@ -1690,7 +1671,7 @@ function idemailwiz_process_sync_sequence($metricType, $campaignIds = null, $man
     return true; // Indicate successful completion of the sync sequence
 }
 
-// If we're starting export jobs, we kick off the export cron schedules with an option delay (in seconds) passed in
+// If we're starting export jobs, we kick off the export cron schedules with an optional delay (in seconds) passed in
 function idwiz_maybe_start_wpcron_jobs_exports($delay = 0)
 {
     $metricTypes = ['send', 'open', 'click', 'bounce', 'sendSkip', 'unSubscribe', 'complaint'];
@@ -1730,12 +1711,11 @@ function idemailwiz_start_triggered_export_jobs_by_metric($metricType)
 
     if (!$jobExports || ($transientLastUpdated && (time() - $transientLastUpdated) > (60 * 60))) {
         if (get_transient('idemailwiz_export_' . $metricType . '_jobs_running')) {
-            //wiz_log("Triggered $metricType export jobs do not need updated, skipping...");
+            wiz_log("Triggered $metricType export jobs do not need updated, skipping...");
             return false;
         }
-
-        set_transient('idemailwiz_export_' . $metricType . '_jobs_running', true, 60 * 30);
-        //wiz_log("Starting triggered {$metricType}s export jobs...");
+        set_transient('idemailwiz_export_' . $metricType . '_jobs_running', true, 60 * 60);
+        wiz_log("Starting triggered {$metricType}s export jobs...");
 
         $retrieved = idwiz_request_iterable_export_jobs($metricType);
         $retrievedJobIds = count($retrieved['jobIds']);
@@ -1745,6 +1725,7 @@ function idemailwiz_start_triggered_export_jobs_by_metric($metricType)
         } else {
             wiz_log("No export jobs were stored for campaign {$metricType}s.");
         }
+
     }
 
     $endTime = microtime(true);
@@ -1758,7 +1739,7 @@ function idemailwiz_start_triggered_export_jobs_by_metric($metricType)
 
 }
 
-// Fetches triggered data jobs from the Iterable API
+// Fetches triggered data jobs from the Iterable API and saves them to transients
 // If simply passed a metric type only, gets the last 12 hours of metrics, and only for triggered campaigns
 // Can be used as a utility function for other metrics types, campaign types, and date/time parameters
 function idwiz_request_iterable_export_jobs($metricType, $campaignTypes = 'Triggered', $campaignIds = null, $exportStart = null, $exportEnd = null)
@@ -1783,7 +1764,7 @@ function idwiz_request_iterable_export_jobs($metricType, $campaignTypes = 'Trigg
     if ($exportStart) {
         $exportFetchStart = new DateTimeImmutable($exportStart);
     } else {
-        $exportFetchStart = new DateTimeImmutable('-12 hours');
+        $exportFetchStart = new DateTimeImmutable('-21 days');
     }
 
     if ($exportEnd) {
@@ -1822,14 +1803,14 @@ function idwiz_request_iterable_export_jobs($metricType, $campaignTypes = 'Trigg
                 if (!in_array($jobId, $transientData['jobIds'])) {
                     $transientData['jobIds'][] = $jobId;
                 }
-                set_transient("idemailwiz_sync_{$metricType}_jobs", $transientData, (60 * 60 * 24) * 7); // 7 days expiration (Iterable holds exports for 7 days)
+                set_transient("idemailwiz_sync_{$metricType}_jobs", $transientData, (60 * 60 * 24) * 1); // 1 day expiration
 
                 $countRetrieved++;
-                //wiz_log("Triggered {$metricType}s export started for campaign {$campaign['id']} with Job ID: $jobId");
+                wiz_log("Triggered {$metricType}s export started for campaign {$campaign['id']} with Job ID: $jobId");
             } else {
                 // Job ID was not found, so we skip. 
                 // TODO: investigate why Job ID may not be present here
-                // wiz_log('Failed to start export job, no jobId found.');
+                wiz_log('Failed to start export job, no jobId found.');
             }
         } catch (Exception $e) {
             wiz_log("Error starting export job: " . $e->getMessage());
@@ -1858,6 +1839,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
     if (!$jobIds || empty($jobIds)) {
         wiz_log("No Export Job IDs found for Triggered {$metricType}s. Will check again in an hour.");
         delete_transient("idemailwiz_{$metricType}_sync_in_progress");
+        delete_transient("idemailwiz_sync_{$metricType}_jobs");
         return false;
     }
 
@@ -1872,6 +1854,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
 
     wiz_log("Finished sync for Triggered {$metricType}: {$totalInserted} records inserted, {$totalUpdated} records updated, {$totalFailed} failures encountered.");
     delete_transient("idemailwiz_{$metricType}_sync_in_progress");
+    delete_transient("idemailwiz_sync_{$metricType}_jobs");
 
     // Return the counts for further processing, if needed
     return [
@@ -1943,6 +1926,7 @@ function idemailwiz_process_completed_sync_job($fileUrl, $jobId, $metricType)
 
     $insertCount = 0;
     $updateCount = 0;
+    $skippedCount = 0;
     $errorCount = 0;
 
     if (!empty($lines) && (count(array_filter($lines)) > 0)) {
@@ -1965,6 +1949,8 @@ function idemailwiz_process_completed_sync_job($fileUrl, $jobId, $metricType)
                 $insertCount++;
             } elseif ($upsertResult === 'updated') {
                 $updateCount++;
+            } elseif ($upsertResult === 'skipped') {
+                $skippedCount++;
             } elseif ($upsertResult === false) {
                 $errorCount++;
             }
@@ -1975,16 +1961,16 @@ function idemailwiz_process_completed_sync_job($fileUrl, $jobId, $metricType)
 
         }
         if ($cntRecords > 0) {
-            wiz_log("Job {$jobId}: Updated $cntRecords triggered $metricType records.");
+            //wiz_log("Job {$jobId}: Updated $cntRecords triggered $metricType records.");
         } else {
-            //wiz_log("Job {$job}: No $metricType records found within exported file.");
+            //wiz_log("Job {$jobId}: No $metricType records found within exported file.");
         }
     } else {
         //wiz_log("Job {$job}: No $metricType records found within exported file.");
     }
 
     if ($insertCount > 0 || $updateCount > 0) {
-        wiz_log("Job {$jobId}: Inserted {$insertCount}, Updated {$updateCount} triggered {$metricType} records with {$errorCount} errors.");
+        //wiz_log("Job {$jobId}: Inserted {$insertCount}, Updated {$updateCount}, and Skipped {$skippedCount} triggered {$metricType} records with {$errorCount} errors.");
     } else {
         // No changes made
         //wiz_log("Job {$jobId}: No changes made to triggered {$metricType} records. {$errorCount} errors encountered.");
@@ -2002,13 +1988,17 @@ function idemailwiz_insert_exported_job_record($record, $tableName)
         return false;
     }
 
+    $createdAt = new DateTime($record['createdAt'], new DateTimeZone('UTC'));
+
+    $msTimestamp = (int)($createdAt->format('U.u') * 1000);
+
     // Prepare data for insertion or update
     $data = [
         'messageId' => $record['messageId'],
         'userId' => $record['userId'] ?? null,
         'campaignId' => $record['campaignId'] ?? null,
         'templateId' => $record['templateId'] ?? null,
-        'startAt' => strtotime($record['createdAt']) ?? null,
+        'startAt' => $msTimestamp,
     ];
 
 

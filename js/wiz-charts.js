@@ -16,12 +16,28 @@ jQuery(document).ready(function ($) {
 
 	// On page load, fill canvases with their charts
 	$("canvas.wiz-canvas").each(function () {
-		if ($(this).attr("data-chartid") === "customerTypesChart") {
-			populate_customer_types_chart(this);
+		if ($(this).attr("data-lazy-load") == "true") {
+			$(this).before('<button class="wizChart-loadChart wiz-button green">Load chart</button>');
 		} else {
-			idwiz_fill_chart_canvas(this);
+			do_canvas_chart(this);
 		}
 	});
+
+	$(document).on("click", ".wizChart-loadChart", function () {
+		$(this).closest(".wizChartWrapper").append('<span class="wizChartLoader"><i class="fa-solid fa-spinner fa-spin"></i>Fetching chart data...</span>');
+		do_canvas_chart($(this).siblings("canvas")[0]);
+		$(this).remove();
+	});
+
+	function do_canvas_chart(canvas) {
+		if ($(canvas).attr("data-chartid") === "customerTypesChart") {
+			populate_customer_types_chart(canvas);
+		} else {
+			idwiz_fill_chart_canvas(canvas);
+		}
+	}
+
+	
 
 	$(document).on("change", "#limit30Days", function () {
 		var startDate = $('#purchasesByDate').data('startdate');
@@ -167,9 +183,11 @@ jQuery(document).ready(function ($) {
 					}
 
 					idwiz_create_chart(canvas, response.data.type, response.data.data.labels, response.data.data.datasets, options);
+					$(canvas).siblings(".wizChartLoader").remove();
 				} else {
 					//console.error("AJAX request successful but response indicated failure:", response);
 					$(canvas).before('<div class="wizsection-error-message">' + response.data + '</div>');
+				$(canvas).siblings(".wizChartLoader").remove();
 				}
 			},
 			function (error) {
@@ -180,6 +198,7 @@ jQuery(document).ready(function ($) {
 				} else {
 					$(canvas).before('<div class="wizsection-error-message">No data available</div>');
 				}
+				$(canvas).siblings(".wizChartLoader").remove();
 			}
 		);
 	}
@@ -245,6 +264,7 @@ jQuery(document).ready(function ($) {
 				} else {
 					console.error("AJAX request successful but response indicated failure:", response);
 				}
+				$(canvas).siblings(".wizChartLoader").remove();
 			},
 			function (error) {
 				console.error("An error occurred during the AJAX request:", error);
@@ -254,6 +274,7 @@ jQuery(document).ready(function ($) {
 				} else {
 					$(canvas).before('<div class="wizsection-error-message">No data available</div>');
 				}
+				$(canvas).siblings(".wizChartLoader").remove();
 			}
 		);
 	}

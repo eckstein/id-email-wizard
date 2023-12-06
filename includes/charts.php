@@ -371,10 +371,10 @@ function idwiz_get_eventBydate_chartdata($chartOptions)
 
     $campaignIds = $chartOptions['campaignIds'] ?? false;
 
-    $campaignTypes = $chartOptions['campaignTypes'] ?? ['Blast', 'Triggered'];
+    //$campaignTypes = $chartOptions['campaignTypes'] ?? ['Blast', 'Triggered'];
 
     $startDate = $chartOptions['startDate'] ?? false;
-    $endDate = $chartOptions['endDate'] ?? false;
+    $endDate = $chartOptions['endDate'] ?? date('Y-m-d');
 
     switch ($chartId) {
         case 'sendsByDate':

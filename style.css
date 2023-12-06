@@ -1740,6 +1740,10 @@ h2.wizArticle-title {
 	min-height: 250px;
 	max-height: 350px;
 }
+.wizChart-loadChart {
+	margin: 0 auto;
+	display: block;
+}
 .wizChartLoader {
 	position: absolute;
 	top: 100px;
@@ -2172,7 +2176,7 @@ table.compact th {
 	align-items: center;
 }
 .journey-timeline .timeline-campaign-row.highlight .timeline-cell {
-	background-color: #75c0f2;
+	background-color: #75c0f2!important;
 }
 .journey-timeline .timeline-campaign-title {
 	font-size: 12px;
