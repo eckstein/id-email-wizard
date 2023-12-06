@@ -1806,11 +1806,11 @@ function idwiz_request_iterable_export_jobs($metricType, $campaignTypes = 'Trigg
                 set_transient("idemailwiz_sync_{$metricType}_jobs", $transientData, (60 * 60 * 24) * 1); // 1 day expiration
 
                 $countRetrieved++;
-                wiz_log("Triggered {$metricType}s export started for campaign {$campaign['id']} with Job ID: $jobId");
+                //wiz_log("Triggered {$metricType}s export started for campaign {$campaign['id']} with Job ID: $jobId");
             } else {
                 // Job ID was not found, so we skip. 
                 // TODO: investigate why Job ID may not be present here
-                wiz_log('Failed to start export job, no jobId found.');
+                //wiz_log('Failed to start export job, no jobId found.');
             }
         } catch (Exception $e) {
             wiz_log("Error starting export job: " . $e->getMessage());
