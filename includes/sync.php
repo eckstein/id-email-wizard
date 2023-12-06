@@ -1751,9 +1751,9 @@ function idwiz_request_iterable_export_jobs($metricType, $campaignTypes = 'Trigg
     }
 
     if (!$campaignIds || (is_array($campaignIds) && empty($campaignIds))) {
-        $campaigns = get_idwiz_campaigns(['type' => $campaignTypes, 'campaignState' => 'Running', 'fields' => 'id']);
+        $campaigns = get_idwiz_campaigns(['type' => $campaignTypes, 'campaignState' => 'Running', 'fields' => 'id', 'sortBy'=>'startAt', 'sort'=> 'DESC']);
     } else {
-        $campaigns = get_idwiz_campaigns(['campaignIds' => $campaignIds, 'fields' => 'id']);
+        $campaigns = get_idwiz_campaigns(['campaignIds' => $campaignIds, 'fields' => 'id', 'sortBy'=>'startAt', 'sort'=> 'DESC']);
     }
 
     $countCampaigns = count($campaigns);
@@ -1867,7 +1867,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
 // Loops through job IDs and pulls data from Iterable, then sends completed jobs to be processed
 function idemailwiz_process_jobids($jobIds, $metricType)
 {
-    //set_time_limit(360);
+    set_time_limit(1200);
     $return = [
         'totalInserted' => 0,
         'totalUpdated' => 0,
