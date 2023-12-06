@@ -250,7 +250,7 @@ function idwiz_cleanup_users_database($batchSize = 10000)
                 $wpdb->update(
                     $table_name,
                     $user,
-                    ['wizId' => $user['wizId']] 
+                    ['wizId' => $user['wizId']]
                 );
                 $countUpdates++;
             }
@@ -259,3 +259,45 @@ function idwiz_cleanup_users_database($batchSize = 10000)
     }
 }
 
+function updateTimestampsToMilliseconds()
+{
+    global $wpdb;
+
+    $tableNames = [
+        'idemailwiz_triggered_sends',
+        'idemailwiz_triggered_opens',
+        'idemailwiz_triggered_clicks',
+        'idemailwiz_triggered_bounces',
+        'idemailwiz_triggered_unsubscribes',
+        'idemailwiz_triggered_complaints',
+        'idemailwiz_triggered_sendskips'
+    ];
+
+    // SQL query to update startAt column
+    // This query assumes that startAt is a BIGINT and multiplies values less than a certain threshold
+    $threshold = 10000000000; // Adjust this threshold according to your needs
+    foreach ($tableNames as $tableName) {
+        $table = $wpdb->prefix . $tableName;
+        wiz_log("Updating timestamps in table {$table}...");
+        $sql = "UPDATE `$table` SET `startAt` = `startAt` * 1000 WHERE `startAt` < %d";
+
+        try {
+            // Execute the query
+            $wpdb->query($wpdb->prepare($sql, $threshold));
+
+            // Check for errors
+            if (!empty($wpdb->last_error)) {
+                wiz_log("Error updating timestamps in table {$table}: ". $wpdb->last_error);
+                throw new Exception('Database error: ' . $wpdb->last_error);
+            }
+
+            wiz_log ("Timestamps updated successfully in table {$table}.");
+            //return "Timestamps updated successfully in table {$table}.";
+        } catch (Exception $e) {
+            wiz_log("Error updating timestamps in table {$table}: ". $e->getMessage());
+            //return "Error: " . $e->getMessage();
+        }
+        sleep(2);
+    }
+    wiz_log("Timestamps updated successfully.");
+}

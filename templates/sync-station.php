@@ -22,6 +22,8 @@ if (isset($_GET['db-cleanup'])) {
         idemailwiz_backfill_campaign_start_dates();
     } else if ($doCleanup == 'cleanup-users-database') {
         idwiz_cleanup_users_database();
+    } else if ($doCleanup == 'fix-triggered-timestamps') {
+        updateTimestampsToMilliseconds();
     }
 }
 
@@ -115,6 +117,12 @@ if (isset($_GET['db-cleanup'])) {
                                 href="<?php echo add_query_arg('db-cleanup', 'cleanup-users-database'); ?>"
                                 id="cleanupUsersDatabase">Cleanup Users Database</a>
                             <h5>Removes empty arrays and blank values. Converts array to properly serialized data</h5>
+                        </div>
+                        <div class="wizcampaign-section">
+                            <a class="wiz-button green"
+                                href="<?php echo add_query_arg('db-cleanup', 'fix-triggered-timestamps'); ?>"
+                                id="fixTriggeredTimestamps">Fix Triggered Timestamps</a>
+                            <h5>Converts timestamps in seconds to milliseconds, where needed.</h5>
                         </div>
                     </div>
                 </div>
