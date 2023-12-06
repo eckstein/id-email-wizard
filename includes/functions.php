@@ -587,6 +587,9 @@ add_action('wp_ajax_idemailwiz_save_template_title', 'idemailwiz_save_template_t
 
 function generate_idwizcampaign_heatmap_overlay($csv_file)
 {
+  if (!$csv_file) {
+    return false;
+  }
   // Read the CSV file
   $data = file_get_contents($csv_file);
   $rows = str_getcsv($data, "\n");
