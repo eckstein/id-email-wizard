@@ -2030,10 +2030,22 @@ function idemailwiz_remove_heatmap()
   wp_send_json_success(true);
 }
 
-if (!wp_next_scheduled('idemailwiz_delete_expired_transients')) {
-  wp_schedule_event(time(), 'minutely', 'idemailwiz_delete_expired_transients');
+
+add_filter('cron_schedules', 'idemailwiz_add_five_minutes_cron_schedule');
+function idemailwiz_add_five_minutes_cron_schedule($schedules) {
+    $schedules['every_five_minutes'] = array(
+        'interval' => 5 * 60, // 5 minutes in seconds
+        'display'  => esc_html__('Every Five Minutes')
+    );
+    return $schedules;
 }
-add_action('idemailwiz_delete_expired_transients', 'idemailwiz_delete_expired_transients');
-function idemailwiz_delete_expired_transients() {
-  delete_expired_transients();
+
+
+// Schedule the event if it's not already scheduled
+if (!wp_next_scheduled('idemailwiz_custom_transient_cleanup')) {
+    wp_schedule_event(time(), 'every_five_minutes', 'idemailwiz_custom_transient_cleanup');
 }
+
+// Add the action hook
+add_action('idemailwiz_custom_transient_cleanup', 'delete_expired_transients');
+
