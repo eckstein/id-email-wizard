@@ -1839,7 +1839,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
     // Limit the number of jobs processed in each run
     $batchSize = 50;
 
-    wiz_log("Syncing $batchSize Triggered ' . $metricType . 's from queue...");
+    wiz_log("Syncing $batchSize Triggered {$metricType}s from queue...");
 
     if (!$jobIds || empty($jobIds)) {
         wiz_log("No Export Job IDs found for Triggered {$metricType}s. Will check again in an hour.");
