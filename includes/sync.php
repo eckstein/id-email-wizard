@@ -1764,7 +1764,7 @@ function idwiz_request_iterable_export_jobs($metricType, $campaignTypes = 'Trigg
     if ($exportStart) {
         $exportFetchStart = new DateTimeImmutable($exportStart);
     } else {
-        $exportFetchStart = new DateTimeImmutable('-7 days');
+        $exportFetchStart = new DateTimeImmutable('-30 days');
     }
 
     if ($exportEnd) {
