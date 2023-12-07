@@ -1870,10 +1870,11 @@ function idemailwiz_sync_triggered_metrics($metricType)
         wp_schedule_single_event(time() + 10, "idemailwiz_process_{$metricType}_sync", [$metricType]);
     }
 
-    wiz_log("Finished processing Triggered {$metricType}s queue.");
+    
 
     delete_transient("idemailwiz_{$metricType}_sync_in_progress");
     if (empty($remainingJobIds)) {
+        wiz_log("Finished processing Triggered {$metricType}s queue.");
         delete_transient("idemailwiz_sync_{$metricType}_jobs");
     }
 
