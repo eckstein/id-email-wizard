@@ -1840,7 +1840,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
     $batchSize = 50;
 
     if (!$jobIds || empty($jobIds)) {
-        wiz_log("No Export Job IDs found for Triggered {$metricType}s. Will check again in an hour.");
+        //wiz_log("No Export Job IDs found for Triggered {$metricType}s. Will check again in an hour.");
         delete_transient("idemailwiz_{$metricType}_sync_in_progress");
         delete_transient("idemailwiz_sync_{$metricType}_jobs");
         return false;
