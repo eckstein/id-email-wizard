@@ -1630,7 +1630,7 @@ function idwiz_maybe_start_wpcron_sync_sequence($metricTypes = ['blast', 'send',
             wp_schedule_single_event($nextStart, "idemailwiz_process_{$metricType}_sync", array($metricType));
         }
         // Schedule the next metric type for a few minutes later to avoid overlapping
-        $nextStart += 300;
+        $nextStart += 420;
     }
 
 }
@@ -1683,8 +1683,8 @@ function idwiz_maybe_start_wpcron_jobs_exports($delay = 0)
         if (!wp_next_scheduled("idemailwiz_start_{$metricType}_export_jobs")) {
             wp_schedule_single_event($nextStart, "idemailwiz_start_{$metricType}_export_jobs", array($metricType));
         }
-        // Schedule the next metric type for 5 minutes later to avoid overlapping
-        $nextStart += 5 * MINUTE_IN_SECONDS;
+        // Schedule the next metric type for a bit later later to avoid overlapping
+        $nextStart += 150;
     }
 
 }
@@ -1778,8 +1778,6 @@ function idwiz_request_iterable_export_jobs($metricType, $campaignTypes = 'Trigg
     $transientData = ['jobIds' => [], 'lastUpdated' => ''];
     $countRetrieved = 0;
 
-    //set_time_limit(360);
-
     wiz_log("Exporting jobs for $countCampaigns campaign's {$metricType} records... (2-5 mins)");
     foreach ($campaigns as $campaign) {
 
@@ -1864,7 +1862,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
 
     $totalTouched = $totalInserted + $totalUpdated + $totalFailed;
 
-    wiz_log("Finished processing batch of {$totalTouched} Triggered {$metricType}s: {$totalInserted} inserted, {$totalUpdated} updated, {$totalFailed} failed.");
+    wiz_log("Finished processing Triggered {$metricType}s batch: {$totalInserted} inserted, {$totalUpdated} updated, {$totalFailed} failed.");
     wiz_log("Checking for more Triggered {$metricType} jobs in queue...");
 
     if (!empty($remainingJobIds)) {
