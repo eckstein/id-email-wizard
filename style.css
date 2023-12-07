@@ -2162,7 +2162,7 @@ table.compact th {
 	max-width: 100%;
 	overflow-x: auto;
 	border:1px solid #eee;
-	padding-bottom: 6px;
+	padding-bottom: 110px;
 }
 
 .dragScroll-indicator {
@@ -2182,7 +2182,7 @@ table.compact th {
 	font-size: 12px;
 	padding: 10px;
 	flex: 0 0 200px;
-	width: 200px;
+	width: 250px;
 	background-color: #fff;
 	overflow: hidden;
 	white-space: nowrap;
