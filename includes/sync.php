@@ -1629,8 +1629,8 @@ function idwiz_maybe_start_wpcron_sync_sequence($metricTypes = ['blast', 'send',
         if (!wp_next_scheduled("idemailwiz_process_{$metricType}_sync")) {
             wp_schedule_single_event($nextStart, "idemailwiz_process_{$metricType}_sync", array($metricType));
         }
-        // Schedule the next metric type for 4 minutes later to avoid overlapping
-        $nextStart += 240;
+        // Schedule the next metric type for a few minutes later to avoid overlapping
+        $nextStart += 300;
     }
 
 }
@@ -1656,7 +1656,7 @@ function idemailwiz_process_sync_sequence($metricType, $campaignIds = null, $man
         return false;
     }
 
-    wiz_log('Sync sequence for ' . $metricType . 's initiated, please wait...');
+    
 
     if ($metricType == 'blast') {
         // Perform the non-triggered (blast) sync
@@ -1836,6 +1836,11 @@ function idemailwiz_sync_triggered_metrics($metricType)
     $jobTransient = get_transient("idemailwiz_sync_{$metricType}_jobs") ?? false;
     $jobIds = $jobTransient['jobIds'] ?? false;
 
+    // Limit the number of jobs processed in each run
+    $batchSize = 50;
+
+    wiz_log("Syncing $batchSize Triggered ' . $metricType . 's from queue...");
+
     if (!$jobIds || empty($jobIds)) {
         wiz_log("No Export Job IDs found for Triggered {$metricType}s. Will check again in an hour.");
         delete_transient("idemailwiz_{$metricType}_sync_in_progress");
@@ -1843,18 +1848,34 @@ function idemailwiz_sync_triggered_metrics($metricType)
         return false;
     }
 
-    wiz_log("Retrieving Triggered {$metricType} jobs from Iterable... (2 -5 min)");
+    
+    $processJobIds = array_slice($jobIds, 0, $batchSize);
+    $remainingJobIds = array_slice($jobIds, $batchSize);
 
+    // Update the transient with the remaining jobs
+    set_transient("idemailwiz_sync_{$metricType}_jobs", ['jobIds' => $remainingJobIds]);
 
-    $processJobIds = idemailwiz_process_jobids($jobIds, $metricType);
+    wiz_log("Retrieving batch of Triggered {$metricType} jobs from Iterable...");
+    $processResults = idemailwiz_process_jobids($processJobIds, $metricType);
 
-    $totalInserted = $processJobIds['inserted'] ?? 0;
-    $totalUpdated = $processJobIds['totalUpdated'] ?? 0;
-    $totalFailed = $processJobIds['totalFailed'] ?? 0;
+    $totalInserted = $processResults['totalInserted'] ?? 0;
+    $totalUpdated = $processResults['totalUpdated'] ?? 0;
+    $totalFailed = $processResults['totalFailed'] ?? 0;
 
-    wiz_log("Finished sync for Triggered {$metricType}: {$totalInserted} records inserted, {$totalUpdated} records updated, {$totalFailed} failures encountered.");
+    wiz_log("Finished processing batch of {$batchSize} Triggered {$metricType}s: {$totalInserted} inserted, {$totalUpdated} updated, {$totalFailed} failed.");
+    wiz_log("Checking for more Triggered {$metricType} jobs in queue...");
+
+    if (!empty($remainingJobIds)) {
+        // Re-trigger the function for the remaining jobs
+        wp_schedule_single_event(time() + 10, "idemailwiz_process_{$metricType}_sync", [$metricType]);
+    }
+
+    wiz_log("Finished processing Triggered {$metricType}s queue.");
+
     delete_transient("idemailwiz_{$metricType}_sync_in_progress");
-    delete_transient("idemailwiz_sync_{$metricType}_jobs");
+    if (empty($remainingJobIds)) {
+        delete_transient("idemailwiz_sync_{$metricType}_jobs");
+    }
 
     // Return the counts for further processing, if needed
     return [
@@ -1864,10 +1885,11 @@ function idemailwiz_sync_triggered_metrics($metricType)
     ];
 }
 
+
+
 // Loops through job IDs and pulls data from Iterable, then sends completed jobs to be processed
 function idemailwiz_process_jobids($jobIds, $metricType)
 {
-    set_time_limit(1200);
     $return = [
         'totalInserted' => 0,
         'totalUpdated' => 0,
