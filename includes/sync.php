@@ -1764,7 +1764,9 @@ function idwiz_request_iterable_export_jobs($metricType, $campaignTypes = 'Trigg
     if ($exportStart) {
         $exportFetchStart = new DateTimeImmutable($exportStart);
     } else {
-        $exportFetchStart = new DateTimeImmutable('-30 days');
+        $wizSettings = get_option('idwemailwiz_settings');
+        $triggered_sync_length = $wizSettings['triggered_sync_length'] ?? 30;
+        $exportFetchStart = new DateTimeImmutable('-'.$triggered_sync_length.' days');
     }
 
     if ($exportEnd) {
