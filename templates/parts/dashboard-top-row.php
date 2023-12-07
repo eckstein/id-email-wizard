@@ -11,37 +11,7 @@ $endDateTime = new DateTime($endDate);
 $firstDayOfMonth = $startDateTime->format('Y-m-01');
 $lastDayOfMonth = $endDateTime->format('Y-m-t');
 
-// Check if view is not set to 'FY', if start date is first day of the month, and if end date is last day of the month
-if ((isset($_GET['view']) && $_GET['view'] != 'FY') || !isset($_GET['view'])) {
-    if ($startDate === $firstDayOfMonth && ($endDate === $lastDayOfMonth || $endDate === $currentDate)) {
-        ?>
-        <?php if ($displayGoal) { ?>
-            <div class="wizcampaign-sections-row">
 
-                <div class="wizcampaign-section inset" id="monthly-goal-section">
-                    <div class="wizcampaign-section-title-area">
-                        <h4>To GA Goal</h4>
-                        <div class="wizcampaign-section-title-area-right">
-                            $
-                            <?php echo number_format($displayGoal, 2); ?>
-                        </div>
-                    </div>
-
-                    <div class="wizcampaign-section-content monthlyGoalTracker">
-                        <div class="wizChartWrapper">
-                            <canvas id="monthlyGoalTracker" data-startDate="<?php echo $startDate; ?>"
-                                data-endDate="<?php echo $endDate; ?>"></canvas>
-                        </div>
-                    </div>
-
-                </div>
-
-
-            </div>
-        <?php } ?>
-    <?php
-    }
-}
 ?>
 <div class="wizcampaign-sections-row">
 
@@ -49,7 +19,11 @@ if ((isset($_GET['view']) && $_GET['view'] != 'FY') || !isset($_GET['view'])) {
         <div class="wizcampaign-section-title-area">
             <h4>Purchases & Revenue</h4>
             <div class="wizcampaign-section-title-area-right wizcampaign-section-icons">
-
+                <?php
+                if ($startDate === $firstDayOfMonth && ($endDate === $lastDayOfMonth || $endDate === $currentDate)) { ?>
+                    GA Goal: $
+                    <?php echo number_format($displayGoal, 2); ?>
+                <?php } ?>
             </div>
         </div>
         <div class="wizcampaign-section-content">
@@ -222,6 +196,15 @@ if ((isset($_GET['view']) && $_GET['view'] != 'FY') || !isset($_GET['view'])) {
                     'metricFormat' => 'perc',
                     'sectionTitle' => 'Unsubs',
                     'sectionID' => 'monthlyUnsubs'
+                ],
+                [
+                    'metricType' => 'wizCompRate',
+                    'thisMonthValue' => $metricRates['wizCompRate'],
+                    'lastMonthValue' => $lastMonthMetricRates['wizCompRate'],
+                    'lastYearValue' => $lastYearMetricRates['wizCompRate'],
+                    'metricFormat' => 'perc',
+                    'sectionTitle' => 'Complaints',
+                    'sectionID' => 'monthlyComplaints'
                 ]
             ];
 

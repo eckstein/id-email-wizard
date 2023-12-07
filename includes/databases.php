@@ -505,6 +505,7 @@ function build_idwiz_query($args, $table_name)
 
     if ($table_name == $wpdb->prefix . 'idemailwiz_purchases') {
         $dateKey = 'purchaseDate';
+        
         //exclude terciary purchases (lunches, add-ons, etc)
         $sql .= $wpdb->prepare(" AND shoppingCartItems_productCategory != %s", '17004');
         $sql .= $wpdb->prepare(" AND shoppingCartItems_productCategory != %s", '17003');

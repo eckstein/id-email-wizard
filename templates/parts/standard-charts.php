@@ -4,6 +4,7 @@
 //$fetchPurchases = idemailwiz_sync_purchases();
 //echo count($fetchPurchases);
 //print_r($fetchPurchases);
+$lazyLoad = $lazyLoadCharts ? 'true' : 'false';
 ?>
 <div class="wizcampaign-sections-row">
 
@@ -52,7 +53,7 @@
             $purchByDateAttsString = implode(' ', $purchByDateAtts);
             ?>
 
-            <canvas class="purchByDate wiz-canvas" id="purchasesByDate" <?php echo $purchByDateAttsString; ?> data-lazy-load="true"></canvas>
+            <canvas class="purchByDate wiz-canvas" id="purchasesByDate" <?php echo $purchByDateAttsString; ?> data-lazy-load="<?php echo $lazyLoad; ?>"></canvas>
 
         </div>
     </div>
@@ -87,7 +88,7 @@
             $purchByDivisionAttsString = implode(' ', $purchByDivisionAtts);
             ?>
             <canvas class="purchByDivision wiz-canvas" data-chartid="purchasesByDivision"
-                data-campaignids='<?php echo json_encode($standardChartCampaignIds); ?>' <?php echo $purchByDivisionAttsString; ?>  data-lazy-load="true"></canvas>
+                data-campaignids='<?php echo json_encode($standardChartCampaignIds); ?>' <?php echo $purchByDivisionAttsString; ?>  data-lazy-load="<?php echo $lazyLoad; ?>"></canvas>
         </div>
     </div>
     <div class="wizcampaign-section inset">
@@ -121,7 +122,7 @@
             // Convert the array to a string for echoing
             $purchByTopicAttsString = implode(' ', $purchByTopicAtts);
             ?>
-            <canvas class="purchByTopic wiz-canvas" <?php echo $purchByTopicAttsString; ?>  data-lazy-load="true"></canvas>
+            <canvas class="purchByTopic wiz-canvas" <?php echo $purchByTopicAttsString; ?>  data-lazy-load="<?php echo $lazyLoad; ?>"></canvas>
         </div>
     </div>
 
@@ -155,7 +156,7 @@
             // Convert the array to a string for echoing
             $newVsReturningAttsString = implode(' ', $newVsReturningAtts);
             ?>
-            <canvas class="wiz-canvas" id="customerTypeChart" <?php echo $newVsReturningAttsString; ?>  data-lazy-load="true"></canvas>
+            <canvas class="wiz-canvas" id="customerTypeChart" <?php echo $newVsReturningAttsString; ?>  data-lazy-load="<?php echo $lazyLoad; ?>"></canvas>
         </div>
     </div>
 

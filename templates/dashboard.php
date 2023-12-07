@@ -162,6 +162,7 @@ foreach ($allPurchases as $purchase) {
         // Setup standard chart variables
         //$standardChartCampaignIds = array_column($campaigns, 'id');
         $standardChartCampaignIds = false;
+        $lazyLoadCharts = true;
         $standardChartPurchases = array_merge($blastPurchases, $triggeredPurchases);
         include plugin_dir_path(__FILE__) . 'parts/standard-charts.php';
         ?>

@@ -1240,8 +1240,11 @@ function transfigure_purchases_by_product($purchases)
 function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate = null, $campaignTypes = ['Blast', 'Triggered'], $purchaseMode = 'campaignsInDate')
 {
 
-  $startDate = $startDate ? $startDate : '2021-11-01';
-  $endDate = $endDate ? $endDate : date('Y-m-d');
+  
+  $startDate = $startDate ?? '2021-11-01';
+  $endDate = $endDate ?? date('Y-m-d');
+
+  
 
 
   // Determine campaign IDs for Blast and Triggered campaigns
@@ -1363,6 +1366,7 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
 
 function get_triggered_campaign_metrics($campaignIds = [], $startDate = null, $endDate = null)
 {
+  
   if (!$startDate) {
     $startDate = '2021-11-01';
   }
@@ -1401,19 +1405,10 @@ function get_triggered_campaign_metrics($campaignIds = [], $startDate = null, $e
   ];
 
   foreach ($databases as $metricKey => $database) {
-    $transient_key = 'count_of_' . $database;
+    
 
-    // Try to get the metric count from transient
-    $metric_count = get_transient($transient_key);
-
-    if ($metric_count === false) {
-      // Transient expired or not set, fetch the data
-      $metric_data = get_idemailwiz_triggered_data($database, $campaignDataArgs);
-      $metric_count = count($metric_data);
-
-      // Set the transient with a staggered expiration time
-      set_transient($transient_key, $metric_count, HOUR_IN_SECONDS + rand(0, 1800)); // Staggered expiry between 1 to 1.5 hours
-    }
+    $metric_data = get_idemailwiz_triggered_data($database, $campaignDataArgs);
+    $metric_count = count($metric_data);
 
     $metrics[$metricKey] = $metric_count;
   }

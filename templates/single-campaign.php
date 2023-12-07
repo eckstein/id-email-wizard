@@ -143,8 +143,7 @@ $linkedExperimentIds = array_map(function ($id) {
         ?>
 
         <?php
-        $metricRates = get_idwiz_metric_rates([$campaign['id']], $startDate, $endDate);
-
+        $metricRates = get_idwiz_metric_rates([$campaign['id']], $startDate, $endDate, [$campaign['type']]);
         echo get_idwiz_rollup_row($metricRates);
         ?>
 
@@ -386,10 +385,9 @@ $linkedExperimentIds = array_map(function ($id) {
                                 echo "&nbsp;&nbsp;<span id='removeHeatmap' title='Remove heatmap' data-templateid='{$currentTemplate['templateId']}'><i class='fa-solid fa-circle-xmark'></i></span>";
 
                             } else { ?>
-                                <?php echo do_shortcode('[wordpress_file_upload uploadid="' . $currentTemplate['templateId'] . '" singlebutton="true" fitmode="responsive" resetmode="onsuccess" uploadrole="all" uploadpatterns="*.csv" createpath="false" showtargetfolder="true" duplicatespolicy="maintain both" uniquepattern="datetimestamp" placements="filename+selectbutton+uploadbutton/message" uploadtitle="Upload heatmap" selectbutton="Upload Heatmap" successmessage="Success! Heatmap uploaded to %filepath%" userdatalabel="website|t:honeypot" medialink="true"]'); ?>
+                                <?php //echo do_shortcode('[wordpress_file_upload uploadid="' . $currentTemplate['templateId'] . '" singlebutton="true" fitmode="responsive" resetmode="onsuccess" uploadrole="all" uploadpatterns="*.csv" createpath="false" showtargetfolder="true" duplicatespolicy="maintain both" uniquepattern="datetimestamp" placements="filename+selectbutton+uploadbutton/message" uploadtitle="Upload heatmap" selectbutton="Upload Heatmap" successmessage="Success! Heatmap uploaded to %filepath%" userdatalabel="website|t:honeypot" medialink="true"]'); ?>
                                 (<a target="_blank"
-                                    href="https://app.iterable.com/analytics/campaignPerformance/heatmap?campaignId=<?php echo $campaign_id; ?>">Get
-                                    heatmap from Iterable</a>)
+                                    href="https://app.iterable.com/analytics/campaignPerformance/heatmap?campaignId=<?php echo $campaign_id; ?>">View heatmap on Iterable</a>)
                             <?php } ?>
                             <?php if (isset($currentTemplate['clientTemplateId'])) { ?>
                                 <button title="Duplicate Template" class="wiz-button duplicate-template"

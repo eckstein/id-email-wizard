@@ -19,7 +19,7 @@ $monthDifferenceClass = ($lastMonthDifference >= 0) ? 'positive' : 'negative';
 $yearDifferenceClass = ($lastYearDifference >= 0) ? 'positive' : 'negative';
 
 // Reverse color coding for 'unsubs'
-if ($metricType == 'wizUnsubRate') {
+if ($metricType == 'wizUnsubRate' || $metricType == 'wizCompRate') {
     $monthDifferenceClass = ($lastMonthDifference >= 0) ? 'negative' : 'positive';
     $yearDifferenceClass = ($lastYearDifference >= 0) ? 'negative' : 'positive';
 }
