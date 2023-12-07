@@ -361,7 +361,7 @@ function idemailwiz_simplify_templates_array($template)
 function idemailwiz_fetch_experiments($campaignIds = null)
 {
     $today = new DateTime();
-    $startFetchDate = $today->modify('-4 weeks')->format('Y-m-d');
+    $startFetchDate = $today->modify('2 years')->format('Y-m-d');
 
     $fetchCampArgs = array(
         'messageMedium' => 'Email',
