@@ -2030,3 +2030,9 @@ function idemailwiz_remove_heatmap()
   wp_send_json_success(true);
 }
 
+if (!wp_next_scheduled('idemailwiz_delete_expired_transients', 'idemailwiz_delete_expired_transients')) {
+  wp_schedule_event(time(), 'minutely', 'idemailwiz_delete_expired_transients');
+}
+function idemailwiz_delete_expired_transients() {
+  delete_expired_transients();
+}

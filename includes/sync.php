@@ -1855,14 +1855,16 @@ function idemailwiz_sync_triggered_metrics($metricType)
     // Update the transient with the remaining jobs
     set_transient("idemailwiz_sync_{$metricType}_jobs", ['jobIds' => $remainingJobIds]);
 
-    wiz_log("Retrieving batch of $batchSize Triggered $metricType jobs from Iterable...");
+    wiz_log("Retrieving batch of Triggered $metricType jobs from Iterable...");
     $processResults = idemailwiz_process_jobids($processJobIds, $metricType);
 
     $totalInserted = $processResults['totalInserted'] ?? 0;
     $totalUpdated = $processResults['totalUpdated'] ?? 0;
     $totalFailed = $processResults['totalFailed'] ?? 0;
 
-    wiz_log("Finished processing batch of {$batchSize} Triggered {$metricType}s: {$totalInserted} inserted, {$totalUpdated} updated, {$totalFailed} failed.");
+    $totalTouched = $totalInserted + $totalUpdated + $totalFailed;
+
+    wiz_log("Finished processing batch of {$totalTouched} Triggered {$metricType}s: {$totalInserted} inserted, {$totalUpdated} updated, {$totalFailed} failed.");
     wiz_log("Checking for more Triggered {$metricType} jobs in queue...");
 
     if (!empty($remainingJobIds)) {
