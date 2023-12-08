@@ -3,10 +3,7 @@ get_header();
 
 global $wpdb;
 
-//idemailwiz_backfill_campaign_start_dates();
-//idemailwiz_sync_users();
-//print_r(idemailwiz_fetch_users());
-//idemailwiz_sync_experiments();
+//print_r(idemailwiz_fetch_experiments([6027838]));
 
 
 

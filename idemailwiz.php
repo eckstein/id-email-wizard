@@ -415,6 +415,13 @@ function idemailwiz_template_chooser($template)
         }
     }
 
+    $experiments_page = isset($options['experiments_page']) ? $options['experiments_page'] : '';
+    if ($experiments_page) {
+        if (is_page($experiments_page)) {
+            return dirname(__FILE__) . '/templates/experiments.php';
+        }
+    }
+
     $reports_page = isset($options['reports_page']) ? $options['reports_page'] : '';
 
     if ($reports_page) {

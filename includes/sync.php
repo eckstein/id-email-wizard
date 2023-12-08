@@ -361,16 +361,17 @@ function idemailwiz_simplify_templates_array($template)
 function idemailwiz_fetch_experiments($campaignIds = null)
 {
     $today = new DateTime();
-    $startFetchDate = $today->modify('-2 years')->format('Y-m-d');
+    $startFetchDate = $today->modify('30 days')->format('Y-m-d');
 
     $fetchCampArgs = array(
         'messageMedium' => 'Email',
         'type' => 'Blast',
-        'startAt_start' => $startFetchDate
     );
 
     if ($campaignIds) {
         $fetchCampArgs['campaignIds'] = $campaignIds;
+    } else {
+        $fetchCampArgs['startAt_start'] = $startFetchDate;
     }
 
     $allCampaigns = get_idwiz_campaigns($fetchCampArgs);
@@ -1157,43 +1158,44 @@ function idemailwiz_sync_purchases($campaignIds = null)
 
 function idemailwiz_sync_experiments($passedCampaigns = null)
 {
-
-    $experiments = idemailwiz_fetch_experiments($passedCampaigns);
-
     global $wpdb;
     $table_name = $wpdb->prefix . 'idemailwiz_experiments';
+
+    // Fetch experiments
+    $experiments = idemailwiz_fetch_experiments($passedCampaigns);
 
     // Prepare arrays for comparison
     $records_to_update = [];
     $records_to_insert = [];
 
-    if ($passedCampaigns) {
-        $records_to_update = $experiments;
-    } else {
-        foreach ($experiments as $experiment) {
-            if (!isset($experiment['templateId'])) {
+    foreach ($experiments as $experiment) {
+
+        if (!isset($experiment['templateId'])) {
+            if (!empty($experiment)) {
                 wiz_log('No templateId found in the fetched experiment record!');
                 continue;
             }
-            $wizExperiment = get_idwiz_experiment($experiment['templateId']);
+        }
 
-            // Check for experiment in database
-            if ($wizExperiment) {
-                // Mark existing rows for update
-                if (!in_array($experiment, $records_to_update)) {
-                    $records_to_update[] = $experiment;
-                }
+        // Retrieve existing experiments from the database
+        $wizExperiments = get_idwiz_experiments(['campaignIds' => [$experiment['campaignId']], 'templateId' => $experiment['templateId']]);
 
-            } else {
-                // experiment not in db, we'll add it
-                $records_to_insert[] = $experiment;
+        if ($wizExperiments) {
+            // Check if the experiment is already marked for update to avoid duplicates
+            if (!in_array($experiment, $records_to_update)) {
+                // Mark for update
+                $records_to_update[] = $experiment;
             }
+        } else {
+            // Mark for insert
+            $records_to_insert[] = $experiment;
         }
     }
 
-    // Does our wiz_logging and returns the returns data about the insert/update
+    // Process the insert/update and log them
     return idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update);
 }
+
 
 
 
@@ -1656,7 +1658,7 @@ function idemailwiz_process_sync_sequence($metricType, $campaignIds = null)
         return false;
     }
 
-    
+
 
     if ($metricType == 'blast') {
         // Perform the non-triggered (blast) sync
@@ -1751,9 +1753,9 @@ function idwiz_request_iterable_export_jobs($metricType, $campaignTypes = 'Trigg
     }
 
     if (!$campaignIds || (is_array($campaignIds) && empty($campaignIds))) {
-        $campaigns = get_idwiz_campaigns(['type' => $campaignTypes, 'campaignState' => 'Running', 'fields' => 'id', 'sortBy'=>'startAt', 'sort'=> 'DESC']);
+        $campaigns = get_idwiz_campaigns(['type' => $campaignTypes, 'campaignState' => 'Running', 'fields' => 'id', 'sortBy' => 'startAt', 'sort' => 'DESC']);
     } else {
-        $campaigns = get_idwiz_campaigns(['campaignIds' => $campaignIds, 'fields' => 'id', 'sortBy'=>'startAt', 'sort'=> 'DESC']);
+        $campaigns = get_idwiz_campaigns(['campaignIds' => $campaignIds, 'fields' => 'id', 'sortBy' => 'startAt', 'sort' => 'DESC']);
     }
 
     $countCampaigns = count($campaigns);
@@ -1766,7 +1768,7 @@ function idwiz_request_iterable_export_jobs($metricType, $campaignTypes = 'Trigg
     } else {
         $wizSettings = get_option('idwemailwiz_settings');
         $triggered_sync_length = $wizSettings['triggered_sync_length'] ?? 30;
-        $exportFetchStart = new DateTimeImmutable('-'.$triggered_sync_length.' days');
+        $exportFetchStart = new DateTimeImmutable('-' . $triggered_sync_length . ' days');
     }
 
     if ($exportEnd) {
@@ -1847,7 +1849,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
         return false;
     }
 
-    
+
     $processJobIds = array_slice($jobIds, 0, $batchSize);
     $remainingJobIds = array_slice($jobIds, $batchSize);
 
@@ -1869,7 +1871,7 @@ function idemailwiz_sync_triggered_metrics($metricType)
         wp_schedule_single_event(time() + 10, "idemailwiz_process_{$metricType}_sync", [$metricType]);
     }
 
-    
+
 
     delete_transient("idemailwiz_{$metricType}_sync_in_progress");
     if (empty($remainingJobIds)) {
@@ -1905,13 +1907,13 @@ function idemailwiz_process_jobids($jobIds, $metricType)
         }
         $jobState = $apiResponse['response']['jobState'];
 
-         if ($jobState === 'Enqueued' || $jobState === 'Running') {
+        if ($jobState === 'Enqueued' || $jobState === 'Running') {
             if ($retryCounter[$jobId] < $maxRetries) {
                 if ($retryCounter[$jobId] === 1) { // after the 2nd attempt, give it 10 seconds more to complete
                     sleep(10); // Delay before re-adding to the queue
                 }
                 $retryCounter[$jobId]++;
-                
+
                 $jobIds[] = $jobId; // Re-add the jobId to the end of the array for retry
             } else {
                 wiz_log("Job {$jobId} did not complete before reaching maximum retry attempts.");
@@ -2000,7 +2002,7 @@ function idemailwiz_process_completed_sync_job($fileUrl, $jobId, $metricType)
 
         }
         if ($cntRecords > 0) {
-           //wiz_log("Job {$jobId}: Updated $cntRecords triggered $metricType records.");
+            //wiz_log("Job {$jobId}: Updated $cntRecords triggered $metricType records.");
         } else {
             //wiz_log("Job {$jobId}: No $metricType records found within exported file.");
         }
@@ -2029,7 +2031,7 @@ function idemailwiz_insert_exported_job_record($record, $tableName)
 
     $createdAt = new DateTime($record['createdAt'], new DateTimeZone('UTC'));
 
-    $msTimestamp = (int)($createdAt->format('U.u') * 1000);
+    $msTimestamp = (int) ($createdAt->format('U.u') * 1000);
 
     // Prepare data for insertion or update
     $data = [
@@ -2092,12 +2094,12 @@ function idemailwiz_handle_manual_sync()
         if ($syncType == 'blast') {
             $syncResult = idemailwiz_process_sync_sequence($syncType, $campaignIds, true);
         } else {
-            $exportJob = idwiz_request_iterable_export_jobs($syncType,'Triggered', $campaignIds,date('Y-m-d',strtotime('-7 days')));
+            $exportJob = idwiz_request_iterable_export_jobs($syncType, 'Triggered', $campaignIds, date('Y-m-d', strtotime('-7 days')));
             sleep(5); // wait 5 seconds for job to hopefully finished
             idemailwiz_process_jobids([$exportJob], $syncType);
-            
+
         }
-        
+
     }
 
     if ($syncResult === false) {

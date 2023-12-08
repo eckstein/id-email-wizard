@@ -505,7 +505,7 @@ function build_idwiz_query($args, $table_name)
 
     if ($table_name == $wpdb->prefix . 'idemailwiz_purchases') {
         $dateKey = 'purchaseDate';
-        
+
         //exclude terciary purchases (lunches, add-ons, etc)
         $sql .= $wpdb->prepare(" AND shoppingCartItems_productCategory != %s", '17004');
         $sql .= $wpdb->prepare(" AND shoppingCartItems_productCategory != %s", '17003');
@@ -572,12 +572,12 @@ function build_idwiz_query($args, $table_name)
                 $sql .= $wpdb->prepare(" AND $campaignKey = %d", $value);
             }
 
-            if ($key === 'campaignIds') { // Special case for array of campaign IDs
-                $placeholders = implode(',', array_fill(0, count($value), '%d'));
+            if ($key === 'campaignIds') {
+                // Direct placeholder generation
+                $placeholders = rtrim(str_repeat('%d,', count($value)), ',');
 
-                // Use call_user_func_array to dynamically pass an array of arguments to $wpdb->prepare
-                $sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND $campaignKey IN ($placeholders)"), $value));
-
+                // Prepare statement with placeholders
+                $sql .= $wpdb->prepare(" AND $campaignKey IN ($placeholders)", $value);
             } elseif ($key === 'purchaseIds') {
                 $placeholders = implode(',', array_fill(0, count($value), '%s'));
                 $sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND id IN ($placeholders)"), $args['purchaseIds']));
@@ -660,8 +660,6 @@ function build_idwiz_query($args, $table_name)
 
 
 }
-
-
 
 // Does the sql query for the main get_ functions based on the passed parameters
 function execute_idwiz_query($sql, $batch_size = 20000)

@@ -1312,6 +1312,7 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
   // Initialize variables for summable metrics
   $totalSends = $totalOpens = $totalClicks = $totalUnsubscribes = $totalDeliveries = $totalPurchases = $totalComplaints = $totalRevenue = 0;
 
+  // Purchases and revenue using our custom functions
   $totalPurchases = is_array($purchases) ? count($purchases) : 0;
 
   $purchaseCampaigns = $purchaseArgs['campaignIds'] ?? null;
@@ -1328,7 +1329,6 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
     $totalUnsubscribes += $blastMetricSet['uniqueUnsubscribes'] ?? 0;
     $totalComplaints += $blastMetricSet['totalComplaints'] ?? 0;
     $totalDeliveries += $blastMetricSet['uniqueEmailsDelivered'] ?? 0;
-    //$totalPurchases += $blastMetricSet['uniquePurchases'] ?? 0;
   }
 
   // Add Triggered campaign metrics, if applicable
@@ -1339,7 +1339,6 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
     $totalUnsubscribes += $triggeredMetrics['uniqueUnsubscribes'] ?? 0;
     $totalComplaints += $triggeredMetrics['totalComplaints'] ?? 0;
     $totalDeliveries += $triggeredMetrics['uniqueEmailsDelivered'] ?? 0;
-    //$totalPurchases += $triggeredMetrics['uniquePurchases'] ?? 0;
   }
 
   // Calculate and return all metrics

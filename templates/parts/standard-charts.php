@@ -4,7 +4,11 @@
 //$fetchPurchases = idemailwiz_sync_purchases();
 //echo count($fetchPurchases);
 //print_r($fetchPurchases);
-$lazyLoad = $lazyLoadCharts ? 'true' : 'false';
+
+$lazyLoad = 'false';
+if ($lazyLoadCharts && $lazyLoadCharts == 'true') {
+    $lazyLoad = 'true';
+}
 ?>
 <div class="wizcampaign-sections-row">
 
