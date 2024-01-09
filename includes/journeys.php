@@ -233,11 +233,11 @@ function generate_journey_campaign_send_cell_data( $campaignId, $sendData, $date
 	}
 	return [ 'dateCampaignSends' => $totalDateSends, 'messageOpens' => $dateMessageOpens, 'messageClicks' => $dateMessageClicks ];
 }
-function get_journey_sends_data($post_id) {
-	$journeyCampaignIds = get_filtered_journey_campaigns($post_id);
+function get_journey_campaign_sends_data($post_id, $campaignId) {
+	//$journeyCampaignIds = get_filtered_journey_campaigns($post_id);
 	$result = ['sends' => [], 'opens' => [], 'clicks' => []];
 
-	foreach ($journeyCampaignIds as $campaignId) {
+	//foreach ($journeyCampaignIds as $campaignId) {
 		$offset = 0;
 		$batchSize = 10000;
 		$allTriggeredSends = [];
@@ -264,8 +264,8 @@ function get_journey_sends_data($post_id) {
 		} while (!empty($triggeredSends));
 
 		// Accumulate the results
-		$result['sends'][$campaignId] = $allTriggeredSends;
-	}
+		$result['sends'] = $allTriggeredSends;
+	//}
 
 	return $result;
 }
@@ -274,60 +274,60 @@ function get_journey_sends_data($post_id) {
 
 
 
-function generate_journey_campaigns_data_array( $post_id, $journeyCampaignIds, $startDate, $endDate, $campaignSends = [] ) {
+function generate_journey_campaigns_data_array( $post_id, $campaignId, $startDate, $endDate, $campaignSends = [] ) {
 
-	$journeySendData = get_journey_sends_data( $post_id );
+	$campaignSendData = get_journey_campaign_sends_data( $post_id, $campaignId );
 
-	foreach ( $journeyCampaignIds as $campaignId ) {
+	//foreach ( $journeyCampaignIds as $campaignId ) {
 		// Initialize the array for this campaignId
-		if ( ! isset( $campaignSends[ $campaignId ] ) ) {
-			$campaignSends[ $campaignId ] = [ 
+		//if ( ! isset( $campaignSends[ $campaignId ] ) ) {
+			$campaignSends = [ 
 				'sendDates' => [],
 				'messageIds' => [],
 				'sends' => [],
 				'sendOpens' => [],
 				'sendClicks' => []
 			];
-		}
+		//}
 
 		// Convert startAt and endAt dates to DateTime objects for comparison
 		$startDateObj = new DateTime( $startDate );
 		$endDateObj = new DateTime( $endDate );
 
 		// Process sends within date range for this campaign ID
-		foreach ( $journeySendData['sends'][ $campaignId ] as $send ) {
+		foreach ( $campaignSendData['sends'] as $send ) {
 			$sendDate = new DateTime( date( 'Y-m-d', $send['startAt'] / 1000 ) );
 			// Check if the send date is within the desired date range
 			if ( $sendDate >= $startDateObj && $sendDate <= $endDateObj ) {
 				$sendDateString = $sendDate->format( 'Y-m-d' );
 				$messageId = $send['messageId'];
 
-				if ( ! in_array( $sendDateString, $campaignSends[ $campaignId ]['sendDates'] ) ) {
-					$campaignSends[ $campaignId ]['sendDates'][] = $sendDateString;
+				if ( ! in_array( $sendDateString, $campaignSends['sendDates'] ) ) {
+					$campaignSends['sendDates'][] = $sendDateString;
 				}
-				if ( ! in_array( $messageId, $campaignSends[ $campaignId ]['messageIds'] ) ) {
-					$campaignSends[ $campaignId ]['messageIds'][] = $messageId;
-					$campaignSends[ $campaignId ]['sends'][] = $send;
+				if ( ! in_array( $messageId, $campaignSends['messageIds'] ) ) {
+					$campaignSends['messageIds'][] = $messageId;
+					$campaignSends['sends'][] = $send;
 				}
 			}
 		}
 
 		// Collect all opens and clicks that correspond to the messageIds for this campaign
-		if ( isset( $journeyData['opens'] ) ) {
-			foreach ( $journeySendData['opens'][ $campaignId ] as $open ) {
-				if ( in_array( $open['messageId'], $campaignSends[ $campaignId ]['messageIds'] ) ) {
-					$campaignSends[ $campaignId ]['sendOpens'][] = $open;
+		if ( isset( $campaignSendData['opens'] ) ) {
+			foreach ( $campaignSendData['opens'] as $open ) {
+				if ( in_array( $open['messageId'], $campaignSends['messageIds'] ) ) {
+					$campaignSends['sendOpens'][] = $open;
 				}
 			}
 		}
-		if ( isset( $journeyData['clicks'] ) ) {
-			foreach ( $journeySendData['clicks'][ $campaignId ] as $click ) {
-				if ( in_array( $click['messageId'], $campaignSends[ $campaignId ]['messageIds'] ) ) {
-					$campaignSends[ $campaignId ]['sendClicks'][] = $click;
+		if ( isset( $campaignSendData['clicks'] ) ) {
+			foreach ( $campaignSendData['clicks'] as $click ) {
+				if ( in_array( $click['messageId'], $campaignSends['messageIds'] ) ) {
+					$campaignSends['sendClicks'][] = $click;
 				}
 			}
 		}
-	}
+	//}
 
 	return $campaignSends;
 }
@@ -506,8 +506,7 @@ function get_journey_timeline_campaign_rows( $post_id, $campaignIds, $startDate,
 	ob_start();
 
 	foreach ( $campaignIds as $campaignId ) {
-		$sendData = generate_journey_campaigns_data_array( $post_id, [ $campaignId ], $startDate, $endDate );
-		$sendData = $sendData[ $campaignId ];
+		$sendData = generate_journey_campaigns_data_array( $post_id, $campaignId, $startDate, $endDate );
 
 		$wizCampaign = get_idwiz_campaign( $campaignId );
 		?>
