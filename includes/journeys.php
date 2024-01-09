@@ -233,64 +233,43 @@ function generate_journey_campaign_send_cell_data( $campaignId, $sendData, $date
 	}
 	return [ 'dateCampaignSends' => $totalDateSends, 'messageOpens' => $dateMessageOpens, 'messageClicks' => $dateMessageClicks ];
 }
-function get_journey_sends_data( $post_id ) {
+function get_journey_sends_data($post_id) {
+	$journeyCampaignIds = get_filtered_journey_campaigns($post_id);
+	$result = ['sends' => [], 'opens' => [], 'clicks' => []];
 
-	$journeyCampaignIds = get_filtered_journey_campaigns( $post_id );
-	$result = [ 'sends' => [], 'opens' => [], 'clicks' => [] ];
-
-	foreach ( $journeyCampaignIds as $campaignId ) {
-		// Check for triggered data transients for this campaign
-		// $triggeredSends = get_transient('journey_campaign_sendData_' . $campaignId);
-		// $triggeredOpens = get_transient('journey_campaign_openData_' . $campaignId);
-		// $triggeredClicks = get_transient('journey_campaign_clickData_' . $campaignId);
-
-		// if (!$triggeredSends) {
-		// 	$triggeredSends = get_idemailwiz_triggered_data('idemailwiz_triggered_sends', ['campaignIds' => [$campaignId]]);
-		// 	set_transient('journey_campaign_sendData_' . $campaignId, $triggeredSends, DAY_IN_SECONDS);
-		// }
-		// if (!$triggeredOpens) {
-		// 	$triggeredOpens = get_idemailwiz_triggered_data('idemailwiz_triggered_opens', ['campaignIds' => [$campaignId]]);
-		// 	set_transient('journey_campaign_openData_' . $campaignId, $triggeredOpens, DAY_IN_SECONDS);
-		// }
-		// if (!$triggeredClicks) {
-		// 	$triggeredClicks = get_idemailwiz_triggered_data('idemailwiz_triggered_clicks', ['campaignIds' => [$campaignId]]);
-		// 	set_transient('journey_campaign_clickData_' . $campaignId, $triggeredClicks, DAY_IN_SECONDS);
-		// }
-
+	foreach ($journeyCampaignIds as $campaignId) {
 		$offset = 0;
 		$batchSize = 10000;
 		$allTriggeredSends = [];
 
 		do {
-			$triggeredSends = get_idemailwiz_triggered_data( 'idemailwiz_triggered_sends', [ 
-				'campaignIds' => [ $campaignId ],
-				'fields' => [ 'messageId', 'startAt', 'campaignId' ],
+			$triggeredSends = get_idemailwiz_triggered_data('idemailwiz_triggered_sends', [ 
+				'campaignIds' => [$campaignId],
+				'fields' => ['messageId', 'startAt', 'campaignId'],
 				'batchSize' => $batchSize,
 				'offset' => $offset
-			] );
+			]);
 
-			if ( is_array( $triggeredSends ) && ! empty( $triggeredSends ) ) {
-				// Process the batch here (e.g., appending to $allTriggeredSends or directly processing data)
-				$allTriggeredSends = array_merge( $allTriggeredSends, $triggeredSends );
+			if (is_array($triggeredSends) && !empty($triggeredSends)) {
+				// Append each element of $triggeredSends to $allTriggeredSends
+				foreach ($triggeredSends as $send) {
+					$allTriggeredSends[] = $send;
+				}
 
 				// Free up memory
-				unset( $triggeredSends );
+				unset($triggeredSends);
 			}
 
 			$offset += $batchSize;
-		} while ( ! empty( $triggeredSends ) );
-
-		//$triggeredOpens = get_idemailwiz_triggered_data('idemailwiz_triggered_opens', ['campaignIds' => [$campaignId]]);
-		//$triggeredClicks = get_idemailwiz_triggered_data('idemailwiz_triggered_clicks', ['campaignIds' => [$campaignId]]);
+		} while (!empty($triggeredSends));
 
 		// Accumulate the results
-		$result['sends'][ $campaignId ] = $allTriggeredSends;
-		// $result['opens'][$campaignId] = $triggeredOpens;
-		// $result['clicks'][$campaignId] = $triggeredClicks;
+		$result['sends'][$campaignId] = $allTriggeredSends;
 	}
 
 	return $result;
 }
+
 
 
 
