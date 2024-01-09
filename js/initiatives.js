@@ -23,6 +23,9 @@ jQuery(document).ready(function ($) {
 		idemailwiz_do_ajax("idemailwiz_save_initiative_update", nonceValue, additionalData, successCallback, errorCallback);
 	});
 
+	// async load images
+	loadCompareImagesAsync('.init-template-preview img');
+
 	// Fill our summary table on page load
 	// Initialize variables for totals
 	var totalSends = 0;

@@ -310,7 +310,7 @@ jQuery(document).ready(function ($) {
 		var templateId = $(this).data("templateid");
 		var nonce = idAjax_id_general.nonce; 
 		var previewContainer = $('.template-image-wrapper[data-templateid="' + templateId + '"]');
-		var spinnerWrapper = previewContainer.find(".template-image-spinner");
+		var spinnerWrapper = previewContainer.find(".wiztemplate-image-spinner");
 
 		spinnerWrapper.show();
 
@@ -332,9 +332,64 @@ jQuery(document).ready(function ($) {
 		});
 	});
 
+
+	$(document).on("click", ".wiztemplate-preview", function () {
+		var image = $(this).find("img").clone();
+
+		// Create lightbox structure with close button
+		var lightbox = $('<div class="campaign-template-lightbox">' + '<div class="lightbox-wrapper">' + '<div class="campaign-template-lightbox-content"></div>' + '<span class="lightbox-close"><i class="fa-solid fa-xmark"></i></span>' + "</div>" + "</div>");
+
+		// Append image and add click event for closing
+		lightbox.find(".campaign-template-lightbox-content").append(image);
+		lightbox.appendTo("body").fadeIn();
+		$("body").addClass("no-scroll"); // Disable scrolling on the main page
+
+		// Function to close lightbox and re-enable scrolling
+		function closeLightbox() {
+			lightbox.fadeOut(function () {
+				lightbox.remove();
+				$("body").removeClass("no-scroll"); // Re-enable scrolling on the main page
+			});
+		}
+
+		// Close functionality
+		lightbox.find(".lightbox-close").click(closeLightbox);
+
+		// Close lightbox when clicking outside the image
+		lightbox.click(function (event) {
+			if (!$(event.target).closest(".campaign-template-lightbox-content").length) {
+				closeLightbox();
+			}
+		});
+	});
+
 });
 
+
+
 //Global scope functions
+
+function loadCompareImagesAsync(imgElement) {
+	jQuery(imgElement).each(function () {
+		var $img = jQuery(this);
+		var imgSrc = $img.data("src");
+		var templateId = $img.data("templateid");
+
+		if (imgSrc) {
+
+			jQuery("<img>")
+			.on("load", function () {
+				$img.attr("src", imgSrc).show();
+				$img.siblings(".wiztemplate-image-spinner").hide();
+			})
+			.attr("src", imgSrc);
+
+		} else {
+			$img.siblings(".wiztemplate-image-spinner").hide();
+			$img.parent().html("<div class='compare-campaign-missing-preview' style='padding: 20px; font-size: 12px; color: #343434;'>No template image available yet.<br/><button class='wiz-button green regenerate-compare-campaign-preview' data-templateid='" + templateId + "'><i class='fa-regular fa-file-image'></i>&nbsp;Generate Preview</button></div>");
+		}
+	});
+}
 
 function initialize_select2_for_template_search() {
 	jQuery("#live-template-search")

@@ -94,7 +94,12 @@
 									</div>
                                     <div class="template-timeline-card-image">
 									<?php
-                                        echo get_template_preview($template); ?>
+                                    echo "<div title='Click to enlarge' class='init-template-preview wiztemplate-preview'>";
+                                    echo "<div class='wiztemplate-image-spinner'><div class='fa-solid fa-spin fa-spinner fa-3x'></div></div>";
+                                    echo "<img data-templateid='" . $template['templateId'] . "' data-src='" . $template['templateImage'] . "' />";
+                                    echo "</div>"; // Close template preview
+                                    
+                                       ?>
                                     </div>
 								</div>
 							<?php } ?>

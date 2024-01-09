@@ -2031,19 +2031,22 @@ h2.wizArticle-title {
 }
 .template-timeline-card {
 	flex: 0 0 300px;
-	width: 300px;
-	height: 500px;
+	width: 180px;
+	height: 350px;
 	border: 1px solid #eee;
-	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 .template-timeline-card-title {
 	padding: 10px;
 	background-color: #222;
 	color: #fff;
+	height: 70px;
+	font-size: 12px;
+	border-top-left-radius: 5px;
+	border-top-right-radius: 5px;
 }
 .template-timeline-card-image {
 	overflow-y: auto;
-	height: 420px;
+	height: 280px;
 }
 .template-timeline-card img {
 	width: 100%
@@ -2921,9 +2924,11 @@ color: #eee;
 	flex: 0 0 300px;
 	height: 300px;
 	overflow-y: auto;
+}
+.wiztemplate-preview {
 	cursor: pointer;
 }
-.compare-template-preview .compare-template-image-spinner {
+.wiztemplate-image-spinner {
 	display: flex;
 	height: 90%;
 	justify-content: center;
@@ -3016,7 +3021,7 @@ color: #eee;
 	color: #94c52a;
 	cursor: pointer;
 }
-.compare-campaign-template-lightbox {
+.campaign-template-lightbox {
 	position: fixed;
 	top: 40px;
 	left: 0;
@@ -3040,12 +3045,12 @@ color: #eee;
 	box-sizing: border-box; /* Include padding in width and height */
 }
 
-.compare-campaign-template-lightbox-content {
+.campaign-template-lightbox-content {
 	height: 100%; /* Frame extends from top to bottom */
 	overflow-y: auto; /* Scrollable content */
 }
 
-.compare-campaign-template-lightbox-content img {
+.campaign-template-lightbox-content img {
 	max-width: 100%; /* Image occupies the full width of its container */
 	display: block;
 	margin: 0 auto;

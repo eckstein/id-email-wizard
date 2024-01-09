@@ -806,8 +806,8 @@ function build_campaign_card_html( $setId, $campaignId, $postId, $asNew, $campai
 
 	$html .= "<div class='compare-campaign-details'>";
 
-	$html .= "<div title='Click to enlarge' class='compare-template-preview'>";
-	$html .= "<div class='compare-template-image-spinner'><div class='fa-solid fa-spin fa-spinner fa-3x'></div></div>";
+	$html .= "<div title='Click to enlarge' class='compare-template-preview wiztemplate-preview'>";
+	$html .= "<div class='wiztemplate-image-spinner'><div class='fa-solid fa-spin fa-spinner fa-3x'></div></div>";
 	$html .= "<img data-templateid='" . $templateId . "' data-src='" . $templateImage . "' />";
 	$html .= "</div>"; // Close template preview
 

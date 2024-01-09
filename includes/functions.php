@@ -2408,8 +2408,8 @@ function get_template_preview($template) {
   ob_start();
   ?>
   <div class="template-image-wrapper" data-templateid="<?php echo $template['templateId'];?>">
-      <div class="template-image-spinner">
-          <i class="fas fa-spinner fa-spin"></i>
+      <div class="wiztemplate-image-spinner">
+      <div class="fa-solid fa-spin fa-spinner fa-3x"></div>
       </div>
       <?php
       if ($template['templateImage']) {
