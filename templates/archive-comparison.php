@@ -29,7 +29,7 @@ $activeTab = $_GET['view'] ?? 'Active';
         <div class="wizHeader-right">
             <div class="wizHeader-actions">
 
-                <button class="wiz-button green new-comparisoin"><i class="fa-regular fa-plus"></i>&nbsp;New
+                <button class="wiz-button green new-comparison"><i class="fa-regular fa-plus"></i>&nbsp;New
                     Comparison</button>
             </div>
         </div>
