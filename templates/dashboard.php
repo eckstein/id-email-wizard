@@ -191,17 +191,17 @@ foreach ($allPurchases as $purchase) {
 
                                 <th>Medium</th>
                                 <th class="campaignName">Campaign</th>
-                                <th>Sent</th>
-                                <th>Opens</th>
+                                <th class="dtNumVal">Sent</th>
+                                <th class="dtNumVal">Opens</th>
                                 <th>Opened</th>
-                                <th>Clicks</th>
+                                <th class="dtNumVal">Clicks</th>
                                 <th>CTR</th>
                                 <th>CTO</th>
-                                <th>Prchs</th>
+                                <th class="dtNumVal">Prchs</th>
                                 <th>Rev</th>
                                 <th>GA Rev</th>
                                 <th>CVR</th>
-                                <th>Unsubs</th>
+                                <th class="dtNumVal">Unsubs</th>
                                 <th>Unsubed</th>
                                 <th class="campaignId">ID</th>
                             </tr>

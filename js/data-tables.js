@@ -394,6 +394,7 @@ jQuery(document).ready(function ($) {
 					data: "unique_email_opens",
 					name: "unique_email_opens",
 					title: "Opens",
+					type: "num",
 					render: $.fn.dataTable.render.number(",", ""),
 					className: "idwiz_searchBuilder_enabled",
 					searchBuilderType: "num-fmt",
@@ -413,6 +414,7 @@ jQuery(document).ready(function ($) {
 					data: "unique_email_clicks",
 					name: "unique_email_clicks",
 					title: "Clicks",
+					type: "num",
 					render: $.fn.dataTable.render.number(",", ""),
 					className: "idwiz_searchBuilder_enabled",
 					searchBuilderType: "num-fmt",
@@ -442,6 +444,7 @@ jQuery(document).ready(function ($) {
 					data: "unique_unsubscribes",
 					name: "unique_unsubscribes",
 					title: "Unsubs.",
+					type: "num",
 					render: function (data, type, row) {
 						return $.fn.dataTable.render.number(",", "").display(data);
 					},
@@ -494,6 +497,7 @@ jQuery(document).ready(function ($) {
 					data: "ga_revenue",
 					name: "ga_revenue",
 					title: "GA Revenue",
+					type: "num",
 					render: function (data) {
 						return "$" + parseFloat(data).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 					},
@@ -555,6 +559,7 @@ jQuery(document).ready(function ($) {
 					data: "campaign_labels",
 					name: "campaign_labels",
 					title: "Labels<div style='margin-right: 150px;'></div>",
+					type: "num",
 					className: "idwiz_searchBuilder_enabled",
 					searchBuilderType: "string",
 				},

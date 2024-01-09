@@ -187,6 +187,7 @@
 				columnDefs: [
 					{ targets: "campaignDate", type: "date-mdy" },
 					{ targets: "campaignId", visible: false },
+					{ targets: "dtNumVal", type: "num" },
 				],
 				order: [[0, "desc"]],
 				autoWidth: false,
