@@ -233,7 +233,7 @@ function generate_journey_campaign_send_cell_data( $campaignId, $sendData, $date
 	}
 	return [ 'dateCampaignSends' => $totalDateSends, 'messageOpens' => $dateMessageOpens, 'messageClicks' => $dateMessageClicks ];
 }
-function get_journey_campaign_sends_data($post_id, $campaignId) {
+function get_journey_campaign_sends_data($post_id, $campaignId, $startDate, $endDate) {
 	//$journeyCampaignIds = get_filtered_journey_campaigns($post_id);
 	$result = ['sends' => [], 'opens' => [], 'clicks' => []];
 
@@ -245,6 +245,8 @@ function get_journey_campaign_sends_data($post_id, $campaignId) {
 		do {
 			$triggeredSends = get_idemailwiz_triggered_data('idemailwiz_triggered_sends', [ 
 				'campaignIds' => [$campaignId],
+				'startAt_start' => $startDate,
+				'startAt_end' => $endDate,
 				'fields' => ['messageId', 'startAt', 'campaignId'],
 				'batchSize' => $batchSize,
 				'offset' => $offset
@@ -276,7 +278,7 @@ function get_journey_campaign_sends_data($post_id, $campaignId) {
 
 function generate_journey_campaigns_data_array( $post_id, $campaignId, $startDate, $endDate, $campaignSends = [] ) {
 
-	$campaignSendData = get_journey_campaign_sends_data( $post_id, $campaignId );
+	$campaignSendData = get_journey_campaign_sends_data( $post_id, $campaignId, $startDate, $endDate );
 
 	//foreach ( $journeyCampaignIds as $campaignId ) {
 		// Initialize the array for this campaignId
