@@ -1237,15 +1237,23 @@ function transfigure_purchases_by_product($purchases)
 
 
 
+/**
+ * Retrieves and calculates metric rates for the given campaigns and date range.
+ * 
+ * @param array $campaignIds Array of campaign IDs to include. If empty, gets all Blast and Triggered campaigns. 
+ * @param string $startDate Start date for metrics and purchases, in YYYY-MM-DD format. Default is 30 days ago.
+ * @param string $endDate End date for metrics and purchases, in YYYY-MM-DD format. Default is today.
+ * @param array $campaignTypes Array of campaign types to include. Default is ['Blast', 'Triggered'].
+ * @param string $purchaseMode Purchase attribution mode. 'campaignsInDate' or 'allPurchasesInDate'. Default is 'campaignsInDate'.
+ * @return array Array of metrics with calculated rates.
+ */
 function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate = null, $campaignTypes = ['Blast', 'Triggered'], $purchaseMode = 'campaignsInDate')
+
 {
 
-  
+
   $startDate = $startDate ?? '2021-11-01';
   $endDate = $endDate ?? date('Y-m-d');
-
-  
-
 
   // Determine campaign IDs for Blast and Triggered campaigns
   if (empty($campaignIds)) {
@@ -1365,7 +1373,7 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
 
 function get_triggered_campaign_metrics($campaignIds = [], $startDate = null, $endDate = null)
 {
-  
+
   if (!$startDate) {
     $startDate = '2021-11-01';
   }
@@ -1404,7 +1412,7 @@ function get_triggered_campaign_metrics($campaignIds = [], $startDate = null, $e
   ];
 
   foreach ($databases as $metricKey => $database) {
-    
+
 
     $metric_data = get_idemailwiz_triggered_data($database, $campaignDataArgs);
     $metric_count = count($metric_data);
@@ -1460,22 +1468,6 @@ function formatRollupMetric($value, $format, $includeDifSign = false)
   return $formattedValue;
 }
 
-function idwiz_generate_dynamic_rollup()
-{
-
-  if (isset($_POST['campaignIds'])) {
-    $startDate = isset($_POST['startdate']) ? $_POST['startDate'] : '2021-11-01';
-    $endDate = isset($_POST['endDate']) ? $_POST['endDate'] : date('Y-m-d');
-    $metricRates = get_idwiz_metric_rates($_POST['campaignIds'], $startDate, $endDate);
-
-    echo get_idwiz_rollup_row($metricRates); //include/exclude metrics here if needed with 2nd and 3rd argument
-  }
-  wp_die();
-}
-
-add_action('wp_ajax_idwiz_generate_dynamic_rollup', 'idwiz_generate_dynamic_rollup');
-
-
 function idemailwiz_update_user_attribution_setting()
 {
 
@@ -1500,11 +1492,38 @@ function idemailwiz_update_user_attribution_setting()
 
 add_action('wp_ajax_idemailwiz_update_user_attribution_setting', 'idemailwiz_update_user_attribution_setting');
 
+function idwiz_generate_dynamic_rollup()
+{
+
+  //error_log(print_r($_POST, true));
+
+  if (!check_ajax_referer('id-general', 'security', false)) {
+    if (!check_ajax_referer('data-tables', 'security', false)) {
+      error_log('Nonce check failed');
+      wp_send_json_error('Nonce check failed');
+      return;
+    }
+  }
+
+  if (isset($_POST['campaignIds'])) {
+    $startDate = isset($_POST['startDate']) ? $_POST['startDate'] : '2021-11-01';
+    $endDate = isset($_POST['endDate']) ? $_POST['endDate'] : date('Y-m-d');
+    $metricRates = get_idwiz_metric_rates($_POST['campaignIds'], $startDate, $endDate);
+    
+    $rollupElementId = isset($_POST['rollupElementId']) ? $_POST['rollupElementId'] : '';
+
+    $include = isset($_POST['includeMetrics']) ? $_POST['includeMetrics'] : [];
+    $exclude = isset($_POST['excludeMetrics']) ? $_POST['excludeMetrics'] : [];
+
+    echo get_idwiz_rollup_row($metricRates, $rollupElementId, $include, $exclude);
+  }
+  wp_die();
+}
+
+add_action('wp_ajax_idwiz_generate_dynamic_rollup', 'idwiz_generate_dynamic_rollup');
 
 
-
-
-function get_idwiz_rollup_row($metricRates, $include = [], $exclude = [])
+function get_idwiz_rollup_row($metricRates, $elementId = '', $include = [], $exclude = [])
 {
   $defaultRollupFields = array(
     'uniqueEmailSends' => array(
@@ -1594,25 +1613,27 @@ function get_idwiz_rollup_row($metricRates, $include = [], $exclude = [])
     ),
   );
 
-  $rollupFields = $defaultRollupFields;
+  $rollupFields = [];
 
-  if (!empty($include)) {
-    //include and exclude shouldn't be used together, so we let include take precedence
-    foreach ($defaultRollupFields as $rollupField) {
-      if (isset($rollupFields[$include])) {
-        $rollupFields[] = $rollupField;
+  if (!empty($include) && is_array($include)) {
+      foreach ($include as $rollupFieldKey) {
+          if (isset($defaultRollupFields[$rollupFieldKey])) {
+              $rollupFields[$rollupFieldKey] = $defaultRollupFields[$rollupFieldKey];
+          }
       }
-    }
-  } else if (!empty($exclude)) {
-    foreach ($defaultRollupFields as $rollupField) {
-      if (!isset($exclude[$rollupField])) {
-        $rollupFields[] = $rollupField;
+  } elseif (!empty($exclude) && is_array($exclude)) {
+      foreach ($defaultRollupFields as $rollupFieldKey => $rollupField) {
+          if (!in_array($rollupFieldKey, $exclude)) {
+              $rollupFields[$rollupFieldKey] = $rollupField;
+          }
       }
-    }
+  } else {
+      $rollupFields = $defaultRollupFields;
   }
 
+
   $html = '';
-  $html .= '<div class="rollup_summary_wrapper">';
+  $html .= '<div class="rollup_summary_wrapper" id="' . $elementId . '">';
   foreach ($rollupFields as $metric) {
     $formattedValue = formatRollupMetric($metric['value'], $metric['format']);
     $html .= '<div class="metric-item">';
@@ -1648,62 +1669,61 @@ class RawHtml
     return $this->html;
   }
 }
-function group_first_and_repeat_purchases($purchases)
-{
-  $ordersGroupedByOrderId = [];
-  foreach ($purchases as $purchase) {
-    $orderId = $purchase['orderId'];
-    if (!isset($ordersGroupedByOrderId[$orderId])) {
-      $ordersGroupedByOrderId[$orderId] = [];
-    }
-    $ordersGroupedByOrderId[$orderId][] = $purchase;
+
+
+function group_first_and_repeat_purchases($passedPurchases) {
+  // Get unique account numbers from passed purchases
+  $accountNumbers = array_unique(array_column($passedPurchases, 'accountNumber'));
+
+  // Fetch all purchases for these accounts
+  $allCustomerPurchases = get_idwiz_purchases([
+      'fields' => ['accountNumber', 'purchaseDate'],
+      'accountNumber' => $accountNumbers
+  ]);
+
+  // Determine the first purchase date for each account
+  $firstPurchaseDateByAccount = [];
+  foreach ($allCustomerPurchases as $purchase) {
+      $accountId = $purchase['accountNumber'];
+      $purchaseDate = $purchase['purchaseDate'];
+
+      if (!isset($firstPurchaseDateByAccount[$accountId]) || $purchaseDate < $firstPurchaseDateByAccount[$accountId]) {
+          $firstPurchaseDateByAccount[$accountId] = $purchaseDate;
+      }
   }
 
+  // Deduplicate purchases by orderId
+  $uniqueOrders = [];
+  foreach ($passedPurchases as $purchase) {
+      $uniqueOrders[$purchase['orderId']] = $purchase;
+  }
+
+  // Count new and returning orders
   $newOrdersCount = 0;
   $returningOrdersCount = 0;
-  $processedCustomers = [];
+  foreach ($uniqueOrders as $orderId => $purchase) {
+      $accountId = $purchase['accountNumber'];
+      $purchaseDate = $purchase['purchaseDate'];
 
-  foreach ($ordersGroupedByOrderId as $orderId => $orderPurchases) {
-    $firstPurchase = reset($orderPurchases);
-    $accountId = $firstPurchase['accountNumber'];
-
-    if (in_array($accountId, $processedCustomers)) {
-      continue;
-    }
-
-    $processedCustomers[] = $accountId;
-
-    $allCustomerPurchases = get_idwiz_purchases([
-      'fields' => 'accountNumber, orderId, purchaseDate',
-      'accountNumber' => $accountId
-    ]);
-
-    usort($allCustomerPurchases, function ($a, $b) {
-      return strcmp($a['purchaseDate'], $b['purchaseDate']);
-    });
-
-    $firstPurchaseDate = $allCustomerPurchases[0]['purchaseDate'];
-
-    if ($firstPurchase['purchaseDate'] == $firstPurchaseDate) {
-      $newOrdersCount++;
-    } else {
-      $returningOrdersCount++;
-    }
+      if (isset($firstPurchaseDateByAccount[$accountId]) && $purchaseDate == $firstPurchaseDateByAccount[$accountId]) {
+          $newOrdersCount++;
+      } else {
+          $returningOrdersCount++;
+      }
   }
 
   return [
-    'groupedPurchases' => $ordersGroupedByOrderId,
-    'counts' => [
       'new' => $newOrdersCount,
       'returning' => $returningOrdersCount
-    ]
   ];
 }
 
+
 function return_new_and_returning_customers($purchases)
 {
-  $results = group_first_and_repeat_purchases($purchases);
-  return $results['counts'];
+  // $results = group_first_and_repeat_purchases($purchases);
+  // return $results['counts'];
+  return;
 }
 
 
@@ -2031,20 +2051,385 @@ function idemailwiz_remove_heatmap()
 
 
 add_filter('cron_schedules', 'idemailwiz_add_five_minutes_cron_schedule');
-function idemailwiz_add_five_minutes_cron_schedule($schedules) {
-    $schedules['every_five_minutes'] = array(
-        'interval' => 5 * 60, // 5 minutes in seconds
-        'display'  => esc_html__('Every Five Minutes')
-    );
-    return $schedules;
+function idemailwiz_add_five_minutes_cron_schedule($schedules)
+{
+  $schedules['every_five_minutes'] = array(
+    'interval' => 5 * 60, // 5 minutes in seconds
+    'display' => esc_html__('Every Five Minutes')
+  );
+  return $schedules;
 }
 
 
 // Schedule the event if it's not already scheduled
 if (!wp_next_scheduled('idemailwiz_custom_transient_cleanup')) {
-    wp_schedule_event(time(), 'every_five_minutes', 'idemailwiz_custom_transient_cleanup');
+  wp_schedule_event(time(), 'every_five_minutes', 'idemailwiz_custom_transient_cleanup');
 }
 
 // Add the action hook
 add_action('idemailwiz_custom_transient_cleanup', 'delete_expired_transients');
 
+
+function get_idwiz_courses()
+{
+  global $wpdb;
+  $table_name = $wpdb->prefix . 'idemailwiz_courses';
+  $query = "SELECT * FROM {$table_name}";
+  $courses = $wpdb->get_results($query);
+  if (empty($courses)) {
+    return new WP_Error('no_courses', __('No courses found', 'text-domain'));
+  }
+  return $courses;
+}
+function get_course_details_by_id($course_id)
+{
+  global $wpdb;
+  $table_name = $wpdb->prefix . 'idemailwiz_courses';
+
+  // Sanitize the course ID to prevent SQL injection
+  $course_id = sanitize_text_field($course_id);
+
+  // Prepare the query to get a specific course by ID
+  $query = $wpdb->prepare("SELECT * FROM {$table_name} WHERE id = %s", $course_id);
+
+  // Execute the query
+  $course = $wpdb->get_row($query);
+
+  if (is_null($course)) {
+    return new WP_Error('no_course', __('Course not found', 'text-domain'));
+  }
+
+  return $course;
+}
+
+add_action('wp_ajax_id_get_courses_options', 'id_get_courses_options_handler');
+function id_get_courses_options_handler()
+{
+
+  if (!check_ajax_referer('id-general', 'security', false)) {
+    error_log('Nonce check failed');
+    wp_send_json_error('Nonce check failed');
+    return;
+  }
+
+  global $wpdb;
+  $table_name = $wpdb->prefix . 'idemailwiz_courses';
+  $division = isset($_POST['division']) ? sanitize_text_field($_POST['division']) : '';
+  $term = isset($_POST['term']) ? sanitize_text_field($_POST['term']) : '';
+
+  // Building the query
+  $query = "SELECT id, name FROM {$table_name} WHERE name LIKE %s";
+  $params = array('%' . $wpdb->esc_like($term) . '%');
+
+  // Add division filter if provided
+  if (!empty($division)) {
+    $query .= " AND division LIKE %s";
+    $params[] = '%' . $wpdb->esc_like($division) . '%';
+  }
+
+  $courses = $wpdb->get_results($wpdb->prepare($query, $params));
+
+  $results = array();
+  foreach ($courses as $course) {
+    $results[] = array(
+      'id' => $course->id,
+      'text' => $course->id . ' | ' . $course->name
+    );
+  }
+
+  wp_send_json_success($results);
+}
+
+
+
+add_action('wp_ajax_id_add_course_to_rec', 'id_add_course_to_rec_handler');
+function id_add_course_to_rec_handler()
+{
+
+  if (!check_ajax_referer('id-general', 'security', false)) {
+    error_log('Nonce check failed');
+    wp_send_json_error('Nonce check failed');
+    return;
+  }
+
+  $course_id = isset($_POST['course_id']) ? sanitize_text_field($_POST['course_id']) : '';
+  $rec_type = isset($_POST['rec_type']) ? sanitize_text_field($_POST['rec_type']) : '';
+  $selected_course = isset($_POST['selected_course']) ? sanitize_text_field($_POST['selected_course']) : '';
+
+  if (empty($course_id) || empty($rec_type) || empty($selected_course)) {
+    wp_send_json_error('Missing data');
+    return;
+  }
+
+  global $wpdb;
+  $table_name = $wpdb->prefix . 'idemailwiz_courses';
+
+  // Fetch the current recommendations
+  $course = $wpdb->get_row($wpdb->prepare("SELECT course_recs FROM {$table_name} WHERE id = %s", $course_id));
+
+  if (null === $course) {
+    wp_send_json_error('Course not found');
+    return;
+  }
+
+  // Ensure $course_recs is an array
+  $course_recs = maybe_unserialize($course->course_recs);
+  if (!is_array($course_recs)) {
+    $course_recs = []; // Initialize as an empty array if it's not an array
+  }
+
+  // Check if the specific rec_type is an array, initialize if not
+  if (!isset($course_recs[$rec_type]) || !is_array($course_recs[$rec_type])) {
+    $course_recs[$rec_type] = [];
+  }
+
+  // Add the selected course
+  $course_recs[$rec_type][] = $selected_course;
+
+  // Update the course recommendations
+  $updated = $wpdb->update($table_name, ['course_recs' => maybe_serialize($course_recs)], ['id' => $course_id]);
+
+  if (false === $updated) {
+    wp_send_json_error('Database update failed');
+  } else {
+    wp_send_json_success('Course added successfully');
+  }
+}
+
+add_action('wp_ajax_id_remove_course_from_rec', 'id_remove_course_from_rec_handler');
+function id_remove_course_from_rec_handler()
+{
+  // Check nonce
+  if (!check_ajax_referer('id-general', 'security', false)) {
+    error_log('Nonce check failed');
+    wp_send_json_error('Nonce check failed');
+    return;
+  }
+
+  $course_id = sanitize_text_field($_POST['course_id']);
+  $rec_type = sanitize_text_field($_POST['rec_type']);
+  $recd_course_id = sanitize_text_field($_POST['recd_course_id']);
+
+  global $wpdb;
+  $table_name = $wpdb->prefix . 'idemailwiz_courses';
+
+  // Fetch and modify the course recommendations
+  $course = $wpdb->get_row($wpdb->prepare("SELECT course_recs FROM {$table_name} WHERE id = %s", $course_id));
+  if (null === $course) {
+    wp_send_json_error('Course not found');
+    return;
+  }
+
+  $course_recs = maybe_unserialize($course->course_recs);
+  if (isset($course_recs[$rec_type])) {
+    $course_recs[$rec_type] = array_diff($course_recs[$rec_type], [$recd_course_id]);
+  }
+
+  // Update the database
+  $updated = $wpdb->update($table_name, ['course_recs' => maybe_serialize($course_recs)], ['id' => $course_id]);
+  if (false === $updated) {
+    wp_send_json_error('Database update failed');
+  } else {
+    wp_send_json_success('Course removed successfully');
+  }
+}
+
+function idemailwiz_ajax_save_item_update()
+{
+  // Check for nonce and security
+  if (!check_ajax_referer('id-general', 'security', false)) {
+    wp_send_json_error('Invalid nonce');
+    return;
+  }
+
+  // Fetch data from POST
+  $itemID = $_POST['itemId'];
+  $updateType = $_POST['updateType'];
+
+  $updateContent = $_POST['updateContent'];
+
+  // Validate that the new title is not empty
+  if (empty($updateContent)) {
+    wp_send_json_error('The title/content cannot be empty');
+    return;
+  }
+
+  // Start the post data array with the ID
+  $post_data = array(
+    'ID' => $itemID,
+  );
+  if ($updateType == 'title') {
+    $post_data['post_title'] = $updateContent;
+  }
+
+  if ($updateType == 'content') {
+    $post_data['post_content'] = $updateContent;
+  }
+
+  $update_status = wp_update_post($post_data, true);
+
+  // Check if the update was successful
+  if (is_wp_error($update_status)) {
+    $errors = $update_status->get_error_messages();
+    wp_send_json_error('Failed to update the item with ID ' . $itemID . '. Errors: ' . print_r($errors, true));
+  } else {
+    wp_send_json_success('Item updated successfully');
+  }
+
+}
+add_action('wp_ajax_idemailwiz_ajax_save_item_update', 'idemailwiz_ajax_save_item_update');
+
+
+function generate_all_template_images()
+{
+
+  global $wpdb;
+
+  $templates_without_images = $wpdb->get_results(
+    "SELECT * FROM {$wpdb->prefix}idemailwiz_templates WHERE templateImage IS NULL"
+
+  );
+
+  foreach ($templates_without_images as $template) {
+
+    $template_id = $template->templateId;
+
+    $image = idemailwiz_generate_image_from_template($template_id);
+
+    $wpdb->update(
+      "{$wpdb->prefix}idemailwiz_templates",
+      ['templateImage' => $image],
+      ['templateId' => $template_id],
+      ['%s'],
+      ['%d']
+    );
+
+  }
+
+}
+
+add_action('wp_ajax_regenerate_template_preview', 'regenerate_template_preview_handler');
+
+function regenerate_template_preview_handler()
+{
+  global $wpdb; // Make sure to include global $wpdb
+  check_ajax_referer('id-general', 'security'); // Check nonce for security
+
+  $templateIds = isset($_POST['templateIds']) ? $_POST['templateIds'] : array();
+  $imageUrls = array();
+  if (empty($templateIds)) {
+    wp_send_json_error('No template IDs provided');
+  }
+  foreach ($templateIds as $templateId) {
+    $image = idemailwiz_generate_image_from_template($templateId);
+    if ($image) {
+      // Update the database with the new image URL
+      $wpdb->update(
+        "{$wpdb->prefix}idemailwiz_templates",
+        ['templateImage' => $image], // New image URL
+        ['templateId' => $templateId], // Where condition
+        ['%s'], // Format of the new value
+        ['%d']  // Format of the where condition
+      );
+      $imageUrls[$templateId] = $image;
+    }
+  }
+
+  wp_send_json_success($imageUrls); // Send back the array of URLs
+}
+
+
+// https://hcti.io image generation
+function idemailwiz_generate_image_from_template($templateId)
+{
+
+  $template = get_idwiz_template($templateId); 
+
+  if ($template['messageMedium'] == 'Email') {
+    // wrap template in 800px div and limit the image generation to that div
+    $html = '<div class="toImageFrame" style="width: 800px;">';
+    $html .= $template['html'];
+    $html .= '</div>';
+  } else {
+    $html = '<div class="toImageFrame" style="width: 800px; text-align: center;">';
+    $html .= '<img src="' . $template['imageUrl'] . '" style="width: 90%; display: block; margin: 0 auto 40px auto;" />';
+    $html .= '<p style="font-size: 36px; width: 90%; margin: 0 auto; padding-bottom: 40px;">' . $template['message'] . '</p>';
+    $html .= '</div>';
+
+  }
+   
+
+  $data = array('html' => $html, 'selector' => '.toImageFrame', 'device_scale' => 1, 'format' => 'jpg');
+
+  $ch = curl_init();
+
+  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+
+  curl_setopt($ch, CURLOPT_URL, "https://hcti.io/v1/image");
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+
+  curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+
+  curl_setopt($ch, CURLOPT_POST, 1);
+  // Retrieve your user_id and api_key from https://htmlcsstoimage.com/dashboard
+  curl_setopt($ch, CURLOPT_USERPWD, "a69a8a1d-ac76-4b76-a980-0459175c366a" . ":" . "80c47e1e-ec29-4d9b-8d43-9be67166f465");
+
+  $headers = array();
+  $headers[] = "Content-Type: application/x-www-form-urlencoded";
+  curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+  $result = curl_exec($ch);
+  if (curl_errno($ch)) {
+    echo 'Error:' . curl_error($ch);
+  }
+  curl_close($ch);
+  $res = json_decode($result, true);
+
+  if (isset($res['url'])) {
+    return $res['url'];
+  } else {
+    return NULL;
+  }
+
+}
+
+// Checks the first few bytes of an image stream to see if it's producing an actual image
+function wiz_isValidImage($url) {
+  $context = stream_context_create(['http' => ['method' => 'HEAD']]);
+  $headers = get_headers($url, 1, $context);
+
+  if (isset($headers['Content-Type'])) {
+      return strpos($headers['Content-Type'], 'image/') === 0;
+  }
+  return false;
+}
+
+function get_template_preview($template) {
+  ob_start();
+  ?>
+  <div class="template-image-wrapper" data-templateid="<?php echo $template['templateId'];?>">
+      <div class="template-image-spinner">
+          <i class="fas fa-spinner fa-spin"></i>
+      </div>
+      <?php
+      if ($template['templateImage']) {
+          $imageSize = @getimagesize($template['templateImage']);
+
+          if ($imageSize !== false) { ?>
+              <img src=<?php echo $template['templateImage']; ?> />
+          <?php } else {
+              echo '<div class="template-preview-missing-message"><em>Template preview image missing or invalid. Click below to regenerate.</em><br/><br/>';
+              echo '<button title="Regenerate Preview" class="wiz-button green regenerate-preview"
+              data-templateid="' . $template['templateId'] . '"><i
+                  class="fa-solid fa-arrows-rotate"></i>&nbsp;Regenerate Preview</button></div>';
+          }
+      } else {
+          echo '<div class="template-preview-missing-message"><em>No template preview available.<br/><br/></em>';
+          echo '<button title="Generate Template Preview" class="wiz-button green regenerate-preview"
+          data-templateid="' . $template['templateId'] . '"><i
+              class="fa-solid fa-arrows-rotate"></i>&nbsp;Generate Preview</button></div>';
+      } ?>
+  </div>
+  <?php
+  return ob_get_clean();
+}

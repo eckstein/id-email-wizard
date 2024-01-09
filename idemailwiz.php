@@ -106,10 +106,13 @@ require_once(plugin_dir_path(__FILE__) . 'includes/functions.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/databases.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/database-cleanup.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/initiatives.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/journeys.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/comparisons.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/sync.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/manual-import.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/wiz-log.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/cUrl.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/wiz-rest.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/data-tables.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/charts.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/wysiwyg.php');
@@ -201,6 +204,62 @@ function idemailwiz_create_template_post_types()
 
     register_post_type('idwiz_initiative', $initiativeArgs);
 
+    $comparisonLabels = array(
+        'name' => _x('Comparisons', 'Post Type General Name', 'idemailwiz'),
+        'singular_name' => _x('Comparison', 'Post Type Singular Name', 'idemailwiz'),
+        'menu_name' => __('Comparisons', 'idemailwiz'),
+        'name_admin_bar' => __('Comparison', 'idemailwiz'),
+        'archives' => __('Comparison Archives', 'idemailwiz'),
+        'attributes' => __('Comparison Attributes', 'idemailwiz'),
+        'parent_item_colon' => __('Parent Comparison:', 'idemailwiz'),
+        'all_items' => __('All Comparisons', 'idemailwiz'),
+        'add_new_item' => __('Add New Comparison', 'idemailwiz'),
+        'add_new' => __('Add New', 'idemailwiz'),
+        'new_item' => __('New Comparison', 'idemailwiz'),
+        'edit_item' => __('Edit Comparison', 'idemailwiz'),
+        'update_item' => __('Update Comparison', 'idemailwiz'),
+        'view_item' => __('View Comparison', 'idemailwiz'),
+        'view_items' => __('View Comparisons', 'idemailwiz'),
+        'search_items' => __('Search Comparison', 'idemailwiz'),
+        'not_found' => __('Not found', 'idemailwiz'),
+        'not_found_in_trash' => __('Not found in Trash', 'idemailwiz'),
+        'featured_image' => __('Featured Image', 'idemailwiz'),
+        'set_featured_image' => __('Set featured image', 'idemailwiz'),
+        'remove_featured_image' => __('Remove featured image', 'idemailwiz'),
+        'use_featured_image' => __('Use as featured image', 'idemailwiz'),
+        'insert_into_item' => __('Insert into comparison', 'idemailwiz'),
+        'uploaded_to_this_item' => __('Uploaded to this comparison', 'idemailwiz'),
+        'items_list' => __('Comparisons list', 'idemailwiz'),
+        'items_list_navigation' => __('Comparisons list navigation', 'idemailwiz'),
+        'filter_items_list' => __('Filter comparisons list', 'idemailwiz'),
+    );
+     $comparisonArgs = array(
+        'label' => __('Comparison', 'idemailwiz'),
+        'description' => __('Comparison Description', 'idemailwiz'),
+        'labels' => $comparisonLabels,
+        'supports' => array('title', 'editor', 'thumbnail', 'custom-fields', 'revisions', 'page-attributes'),
+        'taxonomies' => array('category', 'post_tag'),
+        // Optional
+        'hierarchical' => true,
+        'public' => true,
+        'show_ui' => true,
+        'show_in_menu' => true,
+        'menu_position' => 5,
+        'show_in_admin_bar' => true,
+        'show_in_nav_menus' => true,
+        'can_export' => true,
+        'exclude_from_search' => false,
+        'publicly_queryable' => true,
+        'rewrite' => ['slug' => 'comparison'],
+        'has_archive' => 'comparisons',
+        'capability_type' => 'post',
+        'show_in_rest' => true,
+        // Enable Gutenberg editor
+    );
+
+    register_post_type('idwiz_comparison', $comparisonArgs);
+
+
 
     register_post_type('journey', array(
         'labels' => array(
@@ -261,6 +320,10 @@ function idemailwiz_custom_archive_templates($tpl)
     if (is_post_type_archive('idwiz_initiative')) {
         $tpl = plugin_dir_path(__FILE__) . 'templates/archive-initiative.php';
     }
+
+    if (is_post_type_archive('idwiz_comparison')) {
+        $tpl = plugin_dir_path(__FILE__) . 'templates/archive-comparison.php';
+    }
     return $tpl;
 }
 
@@ -320,7 +383,7 @@ function idemailwiz_custom_rewrite_rule()
     add_rewrite_endpoint('user-profile', EP_ROOT);
     add_rewrite_endpoint('settings', EP_ROOT);
     add_rewrite_endpoint('sync-station', EP_ROOT);
-    add_rewrite_endpoint('external-cron', EP_ROOT); // New endpoint for external cron
+    add_rewrite_endpoint('course-mapping', EP_ROOT);
 }
 
 add_action('init', 'idemailwiz_custom_rewrite_rule', 10);
@@ -357,6 +420,10 @@ function idemailwiz_template_chooser($template)
         return dirname(__FILE__) . '/templates/single-initiative.php';
     }
 
+    if (get_post_type() == 'idwiz_comparison' && is_single()) {
+        return dirname(__FILE__) . '/templates/single-comparison.php';
+    }
+
     if (get_post_type() == 'journey' && is_single()) {
         return dirname(__FILE__) . '/templates/single-journey.php';
     }
@@ -365,9 +432,11 @@ function idemailwiz_template_chooser($template)
         return dirname(__FILE__) . '/templates/single-campaign.php';
     }
 
+
     if (strpos($_SERVER['REQUEST_URI'], '/journeys') !== false) {
         return dirname(__FILE__) . '/templates/journeys.php';
     }
+
 
     // If user-profile endpoint is accessed
     if (isset($wp_query->query_vars['user-profile'])) {
@@ -389,13 +458,23 @@ function idemailwiz_template_chooser($template)
         }
     }
 
-    // If settings page endpoint is accessed
+    // If sync station page endpoint is accessed
     if (isset($wp_query->query_vars['sync-station'])) {
         $syncStationTemplate = plugin_dir_path(__FILE__) . 'templates/sync-station.php';
 
         // Use the custom template if it exists
         if (!empty($syncStationTemplate)) {
             return $syncStationTemplate;
+        }
+    }
+
+    // If course mapping page endpoint is accessed
+    if (isset($wp_query->query_vars['course-mapping'])) {
+        $courseMappingTemplate = plugin_dir_path(__FILE__) . 'templates/course-mapping.php';
+
+        // Use the custom template if it exists
+        if (!empty($courseMappingTemplate)) {
+            return $courseMappingTemplate;
         }
     }
 
@@ -489,6 +568,8 @@ function idemailwiz_enqueue_assets()
 {
 
     wp_enqueue_script('jquery');
+    wp_enqueue_script('jquery-ui-sortable', null, array('jquery'));
+
 
     wp_enqueue_script('sweetalert2', 'https://cdn.jsdelivr.net/npm/sweetalert2@11', array(), '11.0', true);
     wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array(), '4.1.0', true);
@@ -542,6 +623,8 @@ function idemailwiz_enqueue_assets()
         'wiz-charts' => array('/js/wiz-charts.js', array('jquery', 'id-general', 'charts-js')),
         'wiz-metrics' => array('/js/metrics.js', array('jquery', 'id-general', 'wiz-charts', 'data-tables')),
         'initiatives' => array('/js/initiatives.js', array('jquery', 'id-general', 'wiz-charts', 'data-tables')),
+        'comparisons' => array('/js/comparisons.js', array('jquery', 'jquery-ui-sortable', 'id-general', 'wiz-charts', 'data-tables')),
+        'journeys' => array('/js/journeys.js', array('jquery', 'jquery-ui-sortable', 'id-general', 'wiz-charts', 'data-tables')),
         'dashboard' => array('/js/idwiz-dashboard.js', array('jquery', 'id-general', 'wiz-charts', 'data-tables')),
         'google-sheets-api' => array('/js/google-sheets-api.js', array('jquery', 'id-general')),
 
@@ -568,6 +651,7 @@ function idemailwiz_enqueue_assets()
                 'stylesheet' => plugins_url('', __FILE__),
                 'plugin_url' => plugin_dir_url(__FILE__),
                 'site_url' => get_bloginfo('url'),
+                'current_user' => wp_get_current_user(),
             )
         );
     }
@@ -581,6 +665,7 @@ function idemailwiz_enqueue_assets()
             'currentPost' => get_post(get_the_ID()),
             'stylesheet' => plugins_url('', __FILE__),
             'site_url' => get_bloginfo('url'),
+            'current_user' => wp_get_current_user(),
         )
     );
 

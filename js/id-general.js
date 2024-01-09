@@ -174,14 +174,14 @@ jQuery(document).ready(function ($) {
 	});
 
 	//Attribution form change
-	$('#attribution-settings-form').on('change', 'input, select, textarea', function(){
-		var field = $(this).attr('name');
+	$("#attribution-settings-form").on("change", "input, select, textarea", function () {
+		var field = $(this).attr("name");
 		var value = $(this).val();
 
 		idemailwiz_do_ajax(
 			"idemailwiz_update_user_attribution_setting",
 			idAjax_id_general.nonce,
-			{field, value},
+			{ field, value },
 			function (data) {
 				location.reload();
 			},
@@ -232,61 +232,105 @@ jQuery(document).ready(function ($) {
 		}
 	}
 
-	$('.month-year-select').select2({
-		allowClear: true,
-		placeholder: "Go to Month",
-	}).on("select2:select", function (e) {
-		// Get the selected value which is in 'Y-m' format
-		var selectedMonthYear = e.params.data.id;
-    
-		// Parse year and month from the selected value
-		var [year, month] = selectedMonthYear.split('-').map(Number);
+	$(".month-year-select")
+		.select2({
+			allowClear: true,
+			placeholder: "Go to Month",
+		})
+		.on("select2:select", function (e) {
+			// Get the selected value which is in 'Y-m' format
+			var selectedMonthYear = e.params.data.id;
 
-		// Calculate the startDate (first day of the month)
-		var startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
+			// Parse year and month from the selected value
+			var [year, month] = selectedMonthYear.split("-").map(Number);
 
-		// Calculate the endDate (last day of the month)
-		var endDate = new Date(year, month, 0).toISOString().split('T')[0];
+			// Calculate the startDate (first day of the month)
+			var startDate = new Date(year, month - 1, 1).toISOString().split("T")[0];
 
-		// Construct the query parameters
-		var queryParams = new URLSearchParams(window.location.search);
-		queryParams.set('startDate', startDate);
-		queryParams.set('endDate', endDate);
+			// Calculate the endDate (last day of the month)
+			var endDate = new Date(year, month, 0).toISOString().split("T")[0];
 
-		// Construct the new URL with the updated query parameters
-		var newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?' + queryParams.toString();
+			// Construct the query parameters
+			var queryParams = new URLSearchParams(window.location.search);
+			queryParams.set("startDate", startDate);
+			queryParams.set("endDate", endDate);
 
-		// Update the browser's location to the new URL and reload the page
-		window.location.href = newUrl;
+			// Construct the new URL with the updated query parameters
+			var newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?" + queryParams.toString();
+
+			// Update the browser's location to the new URL and reload the page
+			window.location.href = newUrl;
+		});
+
+	// Handle both title and content updates for initiatives
+	$(document).on("change", ".editableTitle", function () {
+		const itemId = $(this).attr("data-itemid");
+		const value = $(this).val();
+		const updateType = $(this).attr("data-updatetype");
+		const nonceValue = idAjax_id_general.nonce;
+
+		const additionalData = {
+			itemId: itemId,
+			updateContent: value,
+			updateType: updateType,
+		};
+
+		const successCallback = function (result) {
+			console.log(result);
+		};
+
+		const errorCallback = function (xhr, status, error) {
+			console.log(error);
+		};
+
+		idemailwiz_do_ajax("idemailwiz_ajax_save_item_update", nonceValue, additionalData, successCallback, errorCallback);
 	});
 
-$(document).on('click', '#removeHeatmap', function() {
-	var templateId = $(this).data('templateid');
-	idemailwiz_do_ajax(
-		"idemailwiz_remove_heatmap",
-		idAjax_id_general.nonce,
-		{templateId},
-		function (response) { // success callback
-			Swal.fire({
-				icon: "success",
-				title: "Success",
-				text: 'Heatmap removed from template.',
-			}).then(() => {
-				location.reload();
-			});
-			
-		},
-		function (xhr, status, error) { // error callback
+	function regenerateTemplatePreview(templateId, nonce, onSuccess) {
+		idemailwiz_do_ajax(
+			"regenerate_template_preview",
+			nonce,
+			{ templateIds: [templateId] },
+			function(response) {
+				if (response.success && response.data && response.data[templateId]) {
+					var newImageUrl = response.data[templateId] + "?t=" + new Date().getTime();
+					if (typeof onSuccess === 'function') {
+						onSuccess(newImageUrl);
+					}
+				}
+			},
+			function(xhr, status, error) {
+				console.error("Error regenerating preview:", error);
+			}
+		);
+	}
 
-			Swal.fire({
-				title: 'Error!',
-				text: error || 'There was an error removing the heatmap. Try refreshing the page.',
-				icon: 'error'
-			});
-		}
-	);
-});
 	
+	$(document).on("click", ".regenerate-preview", function() {
+		var templateId = $(this).data("templateid");
+		var nonce = idAjax_id_general.nonce; 
+		var previewContainer = $('.template-image-wrapper[data-templateid="' + templateId + '"]');
+		var spinnerWrapper = previewContainer.find(".template-image-spinner");
+
+		spinnerWrapper.show();
+
+		regenerateTemplatePreview(templateId, nonce, function(newImageUrl) {
+			var imageElement = previewContainer.find("img").length ?
+							   previewContainer.find("img") :
+							   $("<img>").appendTo(previewContainer);
+
+			imageElement.attr("src", newImageUrl)
+				.on("load", function() {
+					spinnerWrapper.hide();
+					$(previewContainer).find(".template-preview-missing-message").hide();
+					do_wiz_notif({message: 'Template preview re-generated!', duration: 3000 });
+				})
+				.on("error", function() {
+					spinnerWrapper.hide();
+					alert("Failed to load image.");
+				});
+		});
+	});
 
 });
 
@@ -413,37 +457,65 @@ function wizReloadThing(selector) {
 }
 
 jQuery(document).on("click", ".sync-single-triggered", function () {
-	var campaignId = jQuery(this).attr("data-campaignid");
+	var $thisButton = jQuery(this);
+
+	var campaignId = $thisButton.attr("data-campaignid");
+	var startDate = $thisButton.attr("data-start-date");
+	var endDate = $thisButton.attr("data-end-date");
+
+	$thisButton.addClass("disabled");
+	$thisButton.data("original-text", $thisButton.html());
+	$thisButton.html('<i class="fa-solid fa-arrows-rotate fa-spin"></i>&nbsp;&nbsp;Syncing...');
+	var syncStationUrl = idAjax_id_general.site_url + "/sync-station";
+	do_wiz_notif({
+		message: "Syncing data from " + moment(startDate, 'YYYY-MM-DD').format('M/D/YYYY') + " to " + moment(endDate, 'YYYY-MM-DD').format('M/D/YYYY') + "... <a href='" + syncStationUrl + "'>View sync log</a>",
+		duration: 10000
+	});
+
+
 	idemailwiz_do_ajax(
-		"sync_single_triggered_campaign",
+		"idemailwiz_manual_export_request_ajax",
 		idAjax_id_general.nonce,
 		{
 			campaignId: campaignId,
+			startDate: startDate,
+			endDate: endDate,
 		},
 		function (result) {
-			//success
-			console.log("Success: " + result);
-			alert("Triggered sync success!");
+			// success
+			console.log("Success: ", result.data);
+    
+			$thisButton.html($thisButton.data("original-text")).removeClass("disabled");
+    
+			
+
+			Swal.fire({
+				title: "Sync Complete",
+				html: 'Check the <a target="_blank" href="'+idAjax_id_general.site_url+'/sync-station">sync log</a> for details.',
+				icon: "success",
+			});
+
 		},
 		function (error) {
 			console.log(error);
+			// Reset the button's HTML content to its original state and remove the disabled class
+			$thisButton.html($thisButton.data("original-text")).removeClass("disabled");
 		}
 	);
 });
 
-
 jQuery(document).on("click", ".doWizSync:not(.disabled)", function () {
 	var $thisButton = jQuery(this);
-	var metricTypes = $thisButton.attr('data-metricTypes');
-	var campaignIds = $thisButton.attr('data-campaignIds');
+	var metricTypes = $thisButton.attr("data-metricTypes");
+	var campaignIds = $thisButton.attr("data-campaignIds");
 
 	// Convert the data attributes to arrays if they are JSON strings
-	metricTypes = metricTypes ? JSON.parse(metricTypes) : ['blast'];
+	metricTypes = metricTypes ? JSON.parse(metricTypes) : ["blast"];
 	campaignIds = campaignIds ? JSON.parse(campaignIds) : [];
 
 	// Disable the button, change its text, and add the spinner class to the icon
-	$thisButton.addClass('disabled');
-	$thisButton.data('original-text', $thisButton.html());
+	$thisButton.addClass("disabled");
+	$thisButton.data("original-text", $thisButton.html());
 	$thisButton.html('<i class="fa-solid fa-arrows-rotate fa-spin"></i>&nbsp;&nbsp;Syncing...');
 
 	// Call the function to handle the sync process
@@ -459,40 +531,40 @@ function handle_idwiz_sync_buttons(metricTypes, campaignIds, $button) {
 		idAjax_id_general.nonce,
 		{
 			metricTypes: JSON.stringify(metricTypes), // Pass arrays as JSON strings
-			campaignIds: JSON.stringify(campaignIds)
+			campaignIds: JSON.stringify(campaignIds),
 		},
-		function (response) { // success callback
+		function (response) {
+			// success callback
 			// Reset the button's HTML content to its original state and remove the disabled class
-			$button.html($button.data('original-text')).removeClass('disabled');
+			$button.html($button.data("original-text")).removeClass("disabled");
 
 			if (response.success) {
 				Swal.fire({
-					title: 'Success!',
-					text: 'The sync sequence has finished successfully.',
-					icon: 'success'
+					title: "Success!",
+					text: "The sync sequence has finished successfully.",
+					icon: "success",
 				});
 			} else {
 				Swal.fire({
-					title: 'Error!',
-					text: response.data.error || 'Unknown error.',
-					icon: 'error'
+					title: "Error!",
+					text: response.data.error || "Unknown error.",
+					icon: "error",
 				});
 			}
 		},
-		function (xhr, status, error) { // error callback
+		function (xhr, status, error) {
+			// error callback
 			// Reset the button's HTML content to its original state and remove the disabled class
-			$button.html($button.data('original-text')).removeClass('disabled');
+			$button.html($button.data("original-text")).removeClass("disabled");
 
 			Swal.fire({
-				title: 'Error!',
-				text: error || 'There was an error completing the sync sequence.',
-				icon: 'error'
+				title: "Error!",
+				text: error || "There was an error completing the sync sequence.",
+				icon: "error",
 			});
 		}
 	);
 }
-
-
 
 // Add or remove initiatives from one or more campaigns
 window.manageCampaignsInInitiative = function (action, campaignIds, onSuccess = null, skipInitiativeSelection = false, initiativeId = null) {
@@ -638,7 +710,7 @@ jQuery("#syncStationForm").on("submit", function (e) {
 	var formFields = jQuery(this).serialize();
 	jQuery(".syncForm-overlay").addClass("active");
 	idemailwiz_do_ajax(
-		"idemailwiz_handle_manual_sync",
+		"handle_sync_station_sync",
 		idAjax_id_general.nonce,
 		{ formFields },
 		function (data) {
@@ -672,34 +744,191 @@ jQuery("#syncStationForm").on("submit", function (e) {
 	);
 });
 
-
 // Generates and displays a notification
 // Example: do_wiz_notif({ message: 'You clicked a thing.', duration: 3000 });
 function do_wiz_notif(notifData) {
 	// Create the notification elements
-	var notif = jQuery('<div>', { class: 'wizNotif' });
-	var icon = jQuery('<div>', { class: 'wizNotifIcon' }).append(jQuery('<i>', { class: 'fa fa-bell' }));
-	var content = jQuery('<div>', { class: 'wizNotifContent' }).html(notifData.message);
-	var close = jQuery('<i>', { class: 'fa fa-times wizNotifClose' });
+	var notif = jQuery("<div>", { class: "wizNotif" });
+	var icon = jQuery("<div>", { class: "wizNotifIcon" }).append(jQuery("<i>", { class: "fa fa-bell" }));
+	var content = jQuery("<div>", { class: "wizNotifContent" }).html(notifData.message);
+	var close = jQuery("<i>", { class: "fa fa-times wizNotifClose" });
 
 	// Assemble the notification
 	notif.append(icon, content, close);
 
 	// Append to the container
-	jQuery('.wizNotifs').prepend(notif);
+	jQuery(".wizNotifs").prepend(notif);
 
 	// Set a timeout to automatically remove the notification after a certain period
-	setTimeout(function() {
-		notif.fadeOut(function() {
+	setTimeout(function () {
+		notif.fadeOut(function () {
 			jQuery(this).remove();
 		});
 	}, notifData.duration || 5000); // Default duration to 5 seconds if not specified
 
 	// Handle the click event on the close button
-	close.on('click', function() {
-		notif.fadeOut(function() {
+	close.on("click", function () {
+		notif.fadeOut(function () {
 			jQuery(this).remove();
 		});
 	});
 }
 
+jQuery(document).on("click", ".add-course", function () {
+	var courseId = jQuery(this).data("course-id");
+	var recType = jQuery(this).data("rec-type");
+	var division = jQuery(this).closest(".course-recs").data("division");
+
+	Swal.fire({
+		title: "Add Course",
+		html: '<select id="selectCourse" style="width: 100%;"><option value="">Select a course</option></select>',
+		showCancelButton: true,
+		confirmButtonText: "Add Course",
+		didOpen: function () {
+			// Initialize Select2
+			jQuery("#selectCourse").select2({
+				dropdownParent: jQuery(".swal2-container"),
+				width: "100%",
+				placeholder: "Select a course",
+				ajax: {
+					transport: function (params, success, failure) {
+						idemailwiz_do_ajax(
+							"id_get_courses_options",
+							idAjax_id_general.nonce,
+							{
+								term: params.data.term, // Pass the search term for filtering courses
+								division: division,
+							},
+							function (response) {
+								success(response);
+							},
+							function (error) {
+								failure(error);
+							}
+						);
+					},
+					processResults: function (data) {
+						// Check if data is in expected format, if not, handle appropriately
+						if (!Array.isArray(data) && data.success && Array.isArray(data.data)) {
+							// If data is wrapped in an object with 'data' key
+							return { results: data.data };
+						} else if (Array.isArray(data)) {
+							// If data is a plain array
+							return { results: data };
+						} else {
+							console.error("Unexpected data format received for Select2: ", data);
+							return { results: [] };
+						}
+					},
+				},
+			});
+		},
+		preConfirm: function () {
+			return new Promise(function (resolve) {
+				resolve({
+					course_id: courseId,
+					rec_type: recType,
+					selected_course: jQuery("#selectCourse").val(),
+				});
+			});
+		},
+	}).then(function (result) {
+		if (result.isConfirmed && result.value.selected_course) {
+			idemailwiz_do_ajax(
+				"id_add_course_to_rec",
+				idAjax_id_general.nonce,
+				{
+					course_id: result.value.course_id,
+					rec_type: result.value.rec_type,
+					selected_course: result.value.selected_course,
+				},
+				function (response) {
+					Swal.fire({
+						title: "Course Added!",
+						icon: "success",
+					}).then(function () {
+						location.reload();
+					});
+				},
+				function (error) {
+					console.log("Error: ", error);
+				}
+			);
+		}
+	});
+});
+
+jQuery(document).on("click", ".remove-course", function () {
+	var recdCourseId = jQuery(this).closest(".course-blob").data("recd-course");
+	var courseId = jQuery(this).closest("td").data("course-id");
+	var recType = jQuery(this).closest("td").data("rec-type");
+
+	Swal.fire({
+		title: "Are you sure?",
+		text: "Do you really want to remove this course?",
+		icon: "warning",
+		showCancelButton: true,
+		confirmButtonText: "Yes, remove it!",
+		cancelButtonText: "No, cancel!",
+	}).then((result) => {
+		if (result.isConfirmed) {
+			// AJAX call to remove the course
+			idemailwiz_do_ajax(
+				"id_remove_course_from_rec",
+				idAjax_id_general.nonce,
+				{
+					course_id: courseId,
+					rec_type: recType,
+					recd_course_id: recdCourseId,
+				},
+				function (response) {
+					Swal.fire({
+						title: "Removed!",
+						text: "The course has been removed.",
+						icon: "success",
+					}).then(function () {
+						location.reload();
+					});
+				},
+				function (error) {
+					console.log("Error: ", error);
+				}
+			);
+		}
+	});
+});
+
+// Fetch and fill the rollup summary
+function fetchRollUpSummaryData(campaignIds, startDate, endDate, rollupSelector, includeMetrics=[], excludeMetrics=[]) {
+	console.log('Fetching rollup data');
+	var $rollupElement = jQuery(document).find(rollupSelector);
+
+	var rollupElementId;
+	if ($rollupElement[0]) {
+		rollupElementId = $rollupElement[0].id;
+	} else {
+		rollupElementId = $rollupElement.attr("id");
+	}
+
+	const rollupData = {
+		campaignIds,
+		rollupElementId,
+		startDate,
+		endDate,
+		includeMetrics,
+		excludeMetrics
+	};
+	
+	idemailwiz_do_ajax("idwiz_generate_dynamic_rollup", idAjax_id_general.nonce, rollupData, getRollupSuccess, getRollupError, "html");
+
+	function getRollupSuccess(response) {
+		console.log("Rollup metrics success");
+		if (response != 0) {
+			$rollupElement.replaceWith(response);
+		}
+	}
+
+	function getRollupError(response) {
+		console.log("Rollup metrics error: " + response);
+	}
+}

@@ -62,8 +62,7 @@ function update_null_user_ids()
 
 
 //update_missing_purchase_dates();
-function update_missing_purchase_dates()
-{
+function update_missing_purchase_dates() {
     wiz_log('Updating missing purchase dates...');
     global $wpdb;
     $table_name = $wpdb->prefix . 'idemailwiz_purchases';
@@ -72,11 +71,11 @@ function update_missing_purchase_dates()
     $wpdb->query('START TRANSACTION');
 
     try {
-        // Update purchaseDate based on createdAt for all records with a missing purchaseDate
+        // Update purchaseDate based on createdAt for records where purchaseDate is NULL
         $result = $wpdb->query("
             UPDATE {$table_name}
             SET purchaseDate = DATE(createdAt)
-            WHERE purchaseDate IS NULL OR purchaseDate = ''
+            WHERE purchaseDate IS NULL
         ");
 
         // Check for the result to determine if rows were affected
@@ -100,6 +99,7 @@ function update_missing_purchase_dates()
 
     return true;
 }
+
 //remove_zero_campaign_ids();
 function remove_zero_campaign_ids()
 {

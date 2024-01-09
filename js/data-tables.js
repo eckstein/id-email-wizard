@@ -48,7 +48,7 @@ jQuery(document).ready(function ($) {
 				[1, "desc"],
 			],
 			autoWidth: false,
-			fixedColumns: { left: 2 },
+			fixedColumns: { left: 3 },
 			columns: get_wiz_campaign_columns(),
 			buttons: get_wiz_campaign_buttons(),
 			language: get_wiz_campaign_languages(),
@@ -73,6 +73,7 @@ jQuery(document).ready(function ($) {
 				items: "row",
 			},
 			stateSave: true,
+			stateDuration: 1,
 			drawCallback: idwiz_dt_draw_callback,
 			initComplete: idwiz_dt_init_callback,
 		});
@@ -114,8 +115,23 @@ jQuery(document).ready(function ($) {
 			// Readjust the column widths
 			api.columns.adjust();
 
+			// Handle the dynamic rollup
+			
+			var rollupSelector = '#campaigns-table-rollup';
+			$(rollupSelector).html('<div class="rollup_summary_loader"><i class="fa-solid fa-spinner fa-spin"></i>&nbsp;&nbsp;Loading rollup summary...</div>');
+
+			var campaignIds = [];
+			
+			api.rows({ search: "applied" }).every(function (rowIdx, tableLoop, rowLoop) {
+				var data = this.data();
+				campaignIds.push(data.campaign_id);
+			});
+			
+			var startDate = $('.idemailwiz_table_wrapper').find("#wizStartDate").val();
+			var endDate = $('.idemailwiz_table_wrapper').find("#wizEndDate").val();
+			
 			// Fetch rollup summary data
-			setTimeout(() => fetchRollUpSummaryData(api), 100);
+			setTimeout(() => fetchRollUpSummaryData(campaignIds, startDate, endDate, rollupSelector), 500);
 		}
 
 		let addButton = table.button("Add:name");
@@ -151,6 +167,7 @@ jQuery(document).ready(function ($) {
 
 			// Trigger the change event to refresh the table
 			$("#wizStartDate, #wizEndDate").trigger("change");
+			
 		});
 
 		// Listen for select and deselect events
@@ -230,35 +247,7 @@ jQuery(document).ready(function ($) {
 			return baseURL + "?" + newAdditionalURL + rowsText;
 		}
 
-		// Fetch and fill the rollup summary
-		function fetchRollUpSummaryData(api) {
-			var campaignIds = [];
-			
-			api.rows({ search: "applied" }).every(function (rowIdx, tableLoop, rowLoop) {
-				var data = this.data();
-				campaignIds.push(data.campaign_id);
-			});
-			
-			var startDate = $("#wizStartDate").val();
-			var endDate = $("#wizEndDate").val();
-			
-			const rollupData = {
-				campaignIds: campaignIds,	
-				startDate: startDate,	
-				endDate: endDate,	
-			};
-			idemailwiz_do_ajax("idwiz_generate_dynamic_rollup", idAjax_data_tables.nonce, rollupData, getRollupSuccess, getRollupError, "html");
-
-			function getRollupSuccess(response) {
-				if (response != 0) {
-					$("#campaigns-table-rollup").replaceWith(response);
-				}
-			}
-
-			function getRollupError(response) {
-				console.log("Rollup metrics error: " + response);
-			}
-		}
+		
 
 		// Function to move buttons to their respective locations
 		function moveButtons() {
@@ -306,26 +295,8 @@ jQuery(document).ready(function ($) {
 					type: "date",
 					
 				},
-				{
-					data: "campaign_type",
-					name: "campaign_type",
-					title: "Type",
-					className: "idwiz_searchBuilder_enabled",
-					searchBuilder: {
-						defaultCondition: '='
-					},
-					searchBuilderType: "string",
-				},
-				{
-					data: "message_medium",
-					name: "message_medium",
-					title: "Medium",
-					className: "idwiz_searchBuilder_enabled",
-					searchBuilderType: "string",
-					searchBuilder: {
-						defaultCondition: '='
-					},
-				},
+				
+				
 				{
 					data: "campaign_name",
 					name: "campaign_name",
@@ -343,40 +314,25 @@ jQuery(document).ready(function ($) {
 					width: "300px",
 				},
 				{
-					data: "initiative_links",
-					name: "initiative_links",
-					title: "Initiatives<div style='margin-right: 150px;'></div>",
+					data: "campaign_type",
+					name: "campaign_type",
+					title: "Type",
 					className: "idwiz_searchBuilder_enabled",
-					searchBuilderType: "string",
-					render: function (data, type, row, meta) {
-						if (type === "display") {
-							return data || "";
-						}
-						if (type === "filter") {
-							// Extract the inner text (initiative names) for filtering in the SearchBuilder
-							if (data) {
-								var parser = new DOMParser();
-								var doc = parser.parseFromString(data, "text/html");
-								var anchorTags = doc.querySelectorAll("a");
-								var uniqueNames = Array.from(new Set(Array.from(anchorTags).map((a) => a.innerText)));
-
-								// Exclude blank or whitespace-only names
-								var filteredNames = uniqueNames.filter((name) => name.trim() !== "");
-
-								// If filteredNames is empty, return an empty string
-								return filteredNames.length > 0 ? filteredNames.join("~") : "";
-							}
-							return "";
-						}
-						return data;
+					searchBuilder: {
+						defaultCondition: '='
 					},
+					searchBuilderType: "string",
+					visible: false
 				},
 				{
-					data: "campaign_labels",
-					name: "campaign_labels",
-					title: "Labels<div style='margin-right: 150px;'></div>",
+					data: "message_medium",
+					name: "message_medium",
+					title: "Medium",
 					className: "idwiz_searchBuilder_enabled",
 					searchBuilderType: "string",
+					searchBuilder: {
+						defaultCondition: '='
+					},
 				},
 				{
 					data: "experiment_ids",
@@ -422,6 +378,7 @@ jQuery(document).ready(function ($) {
 					render: $.fn.dataTable.render.number(",", ""),
 					className: "idwiz_searchBuilder_enabled",
 					searchBuilderType: "num-fmt",
+					visible: false,
 				},
 				{
 					data: "wiz_delivery_rate",
@@ -440,6 +397,7 @@ jQuery(document).ready(function ($) {
 					render: $.fn.dataTable.render.number(",", ""),
 					className: "idwiz_searchBuilder_enabled",
 					searchBuilderType: "num-fmt",
+					visible: false,
 				},
 				{
 					data: "wiz_open_rate",
@@ -458,6 +416,7 @@ jQuery(document).ready(function ($) {
 					render: $.fn.dataTable.render.number(",", ""),
 					className: "idwiz_searchBuilder_enabled",
 					searchBuilderType: "num-fmt",
+					visible: false,
 				},
 				{
 					data: "wiz_ctr",
@@ -488,6 +447,7 @@ jQuery(document).ready(function ($) {
 					},
 					className: "idwiz_searchBuilder_enabled",
 					searchBuilderType: "num-fmt",
+					visible: false,
 				},
 				{
 					data: "wiz_unsub_rate",
@@ -502,6 +462,7 @@ jQuery(document).ready(function ($) {
 				{
 					data: "unique_purchases",
 					name: "unique_purchases",
+					type: "num",
 					title: "Purchases",
 					render: function (data, type, row) {
 						return $.fn.dataTable.render.number(",", "").display(data);
@@ -561,7 +522,42 @@ jQuery(document).ready(function ($) {
 						defaultCondition: 'contains'
 					},
 				},
+				{
+					data: "initiative_links",
+					name: "initiative_links",
+					title: "Initiatives<div style='margin-right: 150px;'></div>",
+					className: "idwiz_searchBuilder_enabled",
+					searchBuilderType: "string",
+					render: function (data, type, row, meta) {
+						if (type === "display") {
+							return data || "";
+						}
+						if (type === "filter") {
+							// Extract the inner text (initiative names) for filtering in the SearchBuilder
+							if (data) {
+								var parser = new DOMParser();
+								var doc = parser.parseFromString(data, "text/html");
+								var anchorTags = doc.querySelectorAll("a");
+								var uniqueNames = Array.from(new Set(Array.from(anchorTags).map((a) => a.innerText)));
 
+								// Exclude blank or whitespace-only names
+								var filteredNames = uniqueNames.filter((name) => name.trim() !== "");
+
+								// If filteredNames is empty, return an empty string
+								return filteredNames.length > 0 ? filteredNames.join("~") : "";
+							}
+							return "";
+						}
+						return data;
+					},
+				},
+				{
+					data: "campaign_labels",
+					name: "campaign_labels",
+					title: "Labels<div style='margin-right: 150px;'></div>",
+					className: "idwiz_searchBuilder_enabled",
+					searchBuilderType: "string",
+				},
 				{
 					data: "campaign_id",
 					name: "campaign_id",
@@ -671,7 +667,7 @@ jQuery(document).ready(function ($) {
 								if (idx == dt.colReorder.transpose(1)) {
 									return "Info";
 								}
-								if (idx == dt.colReorder.transpose(7)) {
+								if (idx == dt.colReorder.transpose(5)) {
 									return "Has Experiment";
 								} else {
 									return title;

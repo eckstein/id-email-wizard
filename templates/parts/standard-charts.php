@@ -6,7 +6,7 @@
 //print_r($fetchPurchases);
 
 $lazyLoad = 'false';
-if ($lazyLoadCharts && $lazyLoadCharts == 'true') {
+if (isset($lazyLoadCharts) && $lazyLoadCharts == 'true') {
     $lazyLoad = 'true';
 }
 ?>

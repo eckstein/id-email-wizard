@@ -22,7 +22,10 @@ $lastDayOfMonth = $endDateTime->format('Y-m-t');
                 <?php
                 if ($startDate === $firstDayOfMonth && ($endDate === $lastDayOfMonth || $endDate === $currentDate)) { ?>
                     GA Goal: $
-                    <?php echo number_format($displayGoal, 2); ?>
+                    <?php 
+                    if ($displayGoal && is_int($displayGoal)) {
+                        echo number_format($displayGoal, 2); 
+                    } ?>
                 <?php } ?>
             </div>
         </div>

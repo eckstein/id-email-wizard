@@ -1,6 +1,6 @@
 <?php
 
-function sync_single_triggered_campaign()
+function manual_import_single_triggered_campaign()
 {
     $campaignId = $_POST['campaignId'];
     check_ajax_referer('id-general', 'security');
@@ -8,8 +8,10 @@ function sync_single_triggered_campaign()
     idemailwiz_import_triggered_metrics_from_api([$campaignId], 'send');
     idemailwiz_import_triggered_metrics_from_api([$campaignId], 'open');
     idemailwiz_import_triggered_metrics_from_api([$campaignId], 'click');
+
+    wp_send_json_success('Triggered sync functions called....');
 }
-add_action('wp_ajax_sync_single_triggered_campaign', 'sync_single_triggered_campaign');
+add_action('wp_ajax_manual_import_single_triggered_campaign', 'manual_import_single_triggered_campaign');
 
 
 if (isset($syncFromCsvCampaigns)) {
@@ -109,4 +111,59 @@ function idemailwiz_import_triggered_metrics_from_csv($localCsvFilePath, $metric
     error_log("Finished inserting new $metricType records for triggered campaigns from CSV.");
     return true;
 }
+
+function updateDatabaseFromCSV($csvUrl, $tableName) {
+    global $wpdb;
+    $fullTableName = "{$wpdb->prefix}$tableName";
+
+    // Fetch existing columns and their data types from the table
+    $columnsData = $wpdb->get_results("DESCRIBE $fullTableName", OBJECT_K);
+    $tableColumns = array_keys((array)$columnsData);
+
+    // Open CSV file
+    if (($handle = fopen($csvUrl, "r")) !== FALSE) {
+        $header = fgetcsv($handle); // Assuming first row is header
+
+        while (($data = fgetcsv($handle)) !== FALSE) {
+            // Ensure $header and $data have the same number of elements
+            if (count($header) !== count($data)) {
+                continue; // Skip this row if they don't match
+            }
+
+            $dataAssoc = array_combine($header, $data);
+            if ($dataAssoc === false) {
+                continue; // Skip if array_combine fails
+            }
+
+            $dataFiltered = array_intersect_key($dataAssoc, array_flip($tableColumns));
+
+            // Check for empty dataFiltered to skip rows with no matching columns
+            if (empty($dataFiltered)) {
+                continue;
+            }
+
+            // Determine format based on column data type
+            $format = array_map(function ($column) use ($columnsData) {
+                $type = $columnsData[$column]->Type;
+                if (strpos($type, 'int') !== false) {
+                    return '%d';
+                } elseif (strpos($type, 'float') !== false || strpos($type, 'double') !== false || strpos($type, 'decimal') !== false) {
+                    return '%f';
+                } else {
+                    return '%s';
+                }
+            }, array_keys($dataFiltered));
+
+            // Insert or update data
+            if ($wpdb->replace($fullTableName, $dataFiltered, $format) === FALSE) {
+                echo "Error: " . $wpdb->last_error;
+            }
+        }
+
+        fclose($handle);
+    }
+}
+
+
+
 

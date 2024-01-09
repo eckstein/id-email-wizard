@@ -20,7 +20,10 @@ global $wpdb;
         </div>
     </header>
     <div class="entry-content" itemprop="mainContentOfPage">
-        <?php //idemailwiz_sync_purchases(); ?>
+        <pre><code><?php //print_r(idemailwiz_process_jobids([1149112], 'open')); ?></code></pre>
+        <pre><code><?php //idemailwiz_sync_triggered_metric_from_transient('send'); ?></code></pre>
+
+        <?php //updateDatabaseFromCSV('https://localhost/wp-content/uploads/2024/01/wiz-purchase-non-email-12-31-23.csv', 'idemailwiz_purchases'); ?>
 
 
     </div>

@@ -70,32 +70,44 @@ $allPurchases = [];
 $gaPurchases = [];
 $gaRevenue = [];
 
-// Fetch campaigns
-$campaigns = get_idwiz_campaigns(['startAt_start' => $startDate, 'startAt_end' => $endDate, 'type' => 'Blast']);
+// Fetch all campaigns
+$allCampaigns = get_idwiz_campaigns(['startAt_start' => $startDate, 'startAt_end' => $endDate]);
 
-$triggeredCampaigns = get_idwiz_campaigns(['startAt_start' => $startDate, 'startAt_end' => $endDate, 'type' => 'Triggered']);
+// Categorize campaigns into Blast and Triggered
+$blastCampaigns = [];
+$triggeredCampaigns = [];
+foreach ($allCampaigns as $campaign) {
+    if ($campaign['type'] == 'Blast') {
+        $blastCampaigns[] = $campaign;
+    } elseif ($campaign['type'] == 'Triggered') {
+        $triggeredCampaigns[] = $campaign;
+    }
+}
 
-$blastCampaignIds = array_column($campaigns, 'id');
-$triggeredCampaignIds = array_column($triggeredCampaigns, 'id');
+// Create a map of all campaigns with campaign ID as key
+$campaignMap = [];
+foreach ($allCampaigns as $campaign) {
+    $campaignMap[$campaign['id']] = $campaign;
+}
 
+// Fetch all purchases
+$allPurchases = get_idwiz_purchases(['startAt_start' => $startDate, 'startAt_end' => $endDate]);
 
-
-$allPurchaseArgs = ['startAt_start' => $startDate, 'startAt_end' => $endDate];
+// Categorize purchases based on campaign type
 $blastPurchases = [];
 $triggeredPurchases = [];
-$allPurchases = get_idwiz_purchases($allPurchaseArgs);
-
-
 foreach ($allPurchases as $purchase) {
-    $purchaseCampaign = get_idwiz_campaign($purchase['campaignId']);
-    if ($purchaseCampaign) {
+    $purchaseCampaignId = $purchase['campaignId'];
+    if (isset($campaignMap[$purchaseCampaignId])) {
+        $purchaseCampaign = $campaignMap[$purchaseCampaignId];
         if ($purchaseCampaign['type'] == 'Blast') {
             $blastPurchases[] = $purchase;
-        } else if ($purchaseCampaign['type'] == 'Triggered') {
+        } elseif ($purchaseCampaign['type'] == 'Triggered') {
             $triggeredPurchases[] = $purchase;
         }
     }
 }
+
 
 ?>
 <article id="post-<?php the_ID(); ?>" <?php post_class('wiz_dashboard'); ?>>
@@ -107,13 +119,13 @@ foreach ($allPurchases as $purchase) {
                 </h1>
 
                 <?php
-                $currentView = $_GET['view'] ?? 'Month';
-                $viewTabs = [
-                    ['title' => 'This Month', 'view' => 'Month'],
-                    ['title' => 'Fiscal Year', 'view' => 'FY'],
-                ];
+                // $currentView = $_GET['view'] ?? 'Month';
+                // $viewTabs = [
+                //     ['title' => 'This Month', 'view' => 'Month'],
+                //     ['title' => 'Fiscal Year', 'view' => 'FY'],
+                // ];
 
-                get_idwiz_header_tabs($viewTabs, $currentView);
+                // get_idwiz_header_tabs($viewTabs, $currentView);
 
                 ?>
             </div>
@@ -162,7 +174,7 @@ foreach ($allPurchases as $purchase) {
         // Setup standard chart variables
         //$standardChartCampaignIds = array_column($campaigns, 'id');
         $standardChartCampaignIds = false;
-        $lazyLoadCharts = true;
+        $lazyLoadCharts = false;
         $standardChartPurchases = array_merge($blastPurchases, $triggeredPurchases);
         include plugin_dir_path(__FILE__) . 'parts/standard-charts.php';
         ?>
@@ -199,8 +211,8 @@ foreach ($allPurchases as $purchase) {
 
 
 
-                            if (!empty($campaigns)) {
-                                foreach ($campaigns as $campaign) {
+                            if (!empty($blastCampaigns)) {
+                                foreach ($blastCampaigns as $campaign) {
                                     $campaignMetrics = get_idwiz_metric($campaign['id']);
                                     $campaignStartStamp = (int)($campaign['startAt'] / 1000);
                                     $readableStartAt = date('m/d/Y', $campaignStartStamp);

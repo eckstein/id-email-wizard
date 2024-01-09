@@ -45,7 +45,7 @@ function idemailwiz_register_settings()
 
 
 
-    add_settings_field('external_cron_api', 'API key for external cron auth', 'idemailwiz_render_text_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'external_cron_api'));
+    add_settings_field('external_cron_api', 'API key for external auth', 'idemailwiz_render_text_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'external_cron_api'));
 
 
 

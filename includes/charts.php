@@ -212,35 +212,41 @@ function idwiz_get_report_chartdata($chartOptions)
 
 
 
-function idwiz_get_byPurchaseField_chartdata($chartOptions)
-{
+function idwiz_get_byPurchaseField_chartdata($chartOptions) {
     global $wpdb;
 
     $chartId = $chartOptions['chartId'];
     $chartType = $chartOptions['chartType'];
 
-    //$filteredPurchases = idwiz_find_matching_purchases($chartOptions);
     $purchaseArgs = [
         'startAt_start' => $chartOptions['startDate'],
         'startAt_end' => $chartOptions['endDate'],
-        //'shoppingCartItems_utmMedium' => 'email'
     ];
     if ($chartOptions['campaignIds']) {
         $purchaseArgs['campaignIds'] = $chartOptions['campaignIds'];
     }
+
+    // Limit fields to what we need
+    $purchaseArgs['fields'] = ['campaignId', 'total', 'purchaseDate', 'shoppingCartItems_categories', 'shoppingCartItems_locationName', 'shoppingCartItems_divisionName'];
+
     $allPurchases = get_idwiz_purchases($purchaseArgs);
     if (!$allPurchases) {
         return ['error' => 'No purchases were returned from the query.'];
     }
+
+    // Fetch all campaigns in one go
+    $campaignIds = array_unique(array_column($allPurchases, 'campaignId'));
+    $allCampaigns = get_idwiz_campaigns(['campaignIds'=>$campaignIds]); // Assuming this function exists to fetch campaigns by IDs
+    $campaignMap = array_column($allCampaigns, null, 'id');
+
     $blastPurchases = [];
     $triggeredPurchases = [];
     foreach ($allPurchases as $purchase) {
+        $purchaseCampaign = $campaignMap[$purchase['campaignId']] ?? null;
 
-        $purchaseCampaign = get_idwiz_campaign($purchase['campaignId']);
-
-        if (isset($purchaseCampaign['type']) && $purchaseCampaign['type'] == 'Triggered') {
+        if ($purchaseCampaign && $purchaseCampaign['type'] == 'Triggered') {
             $triggeredPurchases[] = $purchase;
-        } elseif (isset($purchaseCampaign['type']) && $purchaseCampaign['type'] == 'Blast') {
+        } elseif ($purchaseCampaign && $purchaseCampaign['type'] == 'Blast') {
             $blastPurchases[] = $purchase;
         }
     }
@@ -920,7 +926,8 @@ function idwiz_fetch_customer_types_chart_data()
     $purchaseArgs['startAt_end'] = $endDate;
 
     $purchases = get_idwiz_purchases($purchaseArgs);
-    $orderCounts = return_new_and_returning_customers($purchases);
+    $orderCounts = group_first_and_repeat_purchases($purchases);
+    
 
     $newCount = $orderCounts['new'];
     $returningCount = $orderCounts['returning'];
