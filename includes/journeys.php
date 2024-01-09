@@ -54,8 +54,8 @@ function update_journey_meta_on_acf_save( $post_id ) {
 			update_post_meta( $post_id, 'latest_send', $latestSend );
 		}
 		update_post_meta( $post_id, 'journey_campaign_ids', $campaignIds );
-		
-		
+
+
 	}
 }
 
@@ -200,140 +200,6 @@ function get_journey_campaign_single_metric_data( $campaignId, $dataType ) {
 	return $triggeredData;
 }
 
-function generate_journey_campaign_send_cell_data( $campaignId, $sendData, $dateString ) {
-	// Initialize metrics for sends
-	$totalDateSends = 0;
-	$dateMessageOpens = 0;
-	$dateMessageClicks = 0;
-	$messageIdsForDate = [];
-
-	// Count sends for this date and collect message IDs
-	foreach ( $sendData['sends'] as $send ) {
-		$sendDate = new DateTimeImmutable( date( 'Y-m-d', $send['startAt'] / 1000 ) );
-		if ( $sendDate->format( 'Y-m-d' ) === $dateString ) {
-			$totalDateSends++;
-			$messageIdsForDate[] = $send['messageId'];
-		}
-	}
-
-	$thisCampaignDateOpens = get_idemailwiz_triggered_data( 'idemailwiz_triggered_opens', [ 'campaignIds' => [ $campaignId ] ] );
-	$thisCampaignDateClicks = get_idemailwiz_triggered_data( 'idemailwiz_triggered_clicks', [ 'campaignIds' => [ $campaignId ] ] );
-
-	// Count opens and clicks for message IDs sent on this date
-	foreach ( $thisCampaignDateOpens as $open ) {
-		if ( in_array( $open['messageId'], $messageIdsForDate ) ) {
-			$dateMessageOpens++;
-		}
-	}
-
-	foreach ( $thisCampaignDateClicks as $click ) {
-		if ( in_array( $click['messageId'], $messageIdsForDate ) ) {
-			$dateMessageClicks++;
-		}
-	}
-	return [ 'dateCampaignSends' => $totalDateSends, 'messageOpens' => $dateMessageOpens, 'messageClicks' => $dateMessageClicks ];
-}
-function get_journey_campaign_sends_data($post_id, $campaignId, $startDate, $endDate) {
-	//$journeyCampaignIds = get_filtered_journey_campaigns($post_id);
-	$result = ['sends' => [], 'opens' => [], 'clicks' => []];
-
-	//foreach ($journeyCampaignIds as $campaignId) {
-		$offset = 0;
-		$batchSize = 10000;
-		$allTriggeredSends = [];
-
-		do {
-			$triggeredSends = get_idemailwiz_triggered_data('idemailwiz_triggered_sends', [ 
-				'campaignIds' => [$campaignId],
-				'startAt_start' => $startDate,
-				'startAt_end' => $endDate,
-				'fields' => ['messageId', 'startAt', 'campaignId'],
-				'batchSize' => $batchSize,
-				'offset' => $offset
-			]);
-
-			if (is_array($triggeredSends) && !empty($triggeredSends)) {
-				// Append each element of $triggeredSends to $allTriggeredSends
-				foreach ($triggeredSends as $send) {
-					$allTriggeredSends[] = $send;
-				}
-
-				// Free up memory
-				unset($triggeredSends);
-			}
-
-			$offset += $batchSize;
-		} while (!empty($triggeredSends));
-
-		// Accumulate the results
-		$result['sends'] = $allTriggeredSends;
-	//}
-
-	return $result;
-}
-
-
-
-
-
-function generate_journey_campaigns_data_array( $post_id, $campaignId, $startDate, $endDate, $campaignSends = [] ) {
-
-	$campaignSendData = get_journey_campaign_sends_data( $post_id, $campaignId, $startDate, $endDate );
-
-	//foreach ( $journeyCampaignIds as $campaignId ) {
-		// Initialize the array for this campaignId
-		//if ( ! isset( $campaignSends[ $campaignId ] ) ) {
-			$campaignSends = [ 
-				'sendDates' => [],
-				'messageIds' => [],
-				'sends' => [],
-				'sendOpens' => [],
-				'sendClicks' => []
-			];
-		//}
-
-		// Convert startAt and endAt dates to DateTime objects for comparison
-		$startDateObj = new DateTime( $startDate );
-		$endDateObj = new DateTime( $endDate );
-
-		// Process sends within date range for this campaign ID
-		foreach ( $campaignSendData['sends'] as $send ) {
-			$sendDate = new DateTime( date( 'Y-m-d', $send['startAt'] / 1000 ) );
-			// Check if the send date is within the desired date range
-			if ( $sendDate >= $startDateObj && $sendDate <= $endDateObj ) {
-				$sendDateString = $sendDate->format( 'Y-m-d' );
-				$messageId = $send['messageId'];
-
-				if ( ! in_array( $sendDateString, $campaignSends['sendDates'] ) ) {
-					$campaignSends['sendDates'][] = $sendDateString;
-				}
-				if ( ! in_array( $messageId, $campaignSends['messageIds'] ) ) {
-					$campaignSends['messageIds'][] = $messageId;
-					$campaignSends['sends'][] = $send;
-				}
-			}
-		}
-
-		// Collect all opens and clicks that correspond to the messageIds for this campaign
-		if ( isset( $campaignSendData['opens'] ) ) {
-			foreach ( $campaignSendData['opens'] as $open ) {
-				if ( in_array( $open['messageId'], $campaignSends['messageIds'] ) ) {
-					$campaignSends['sendOpens'][] = $open;
-				}
-			}
-		}
-		if ( isset( $campaignSendData['clicks'] ) ) {
-			foreach ( $campaignSendData['clicks'] as $click ) {
-				if ( in_array( $click['messageId'], $campaignSends['messageIds'] ) ) {
-					$campaignSends['sendClicks'][] = $click;
-				}
-			}
-		}
-	//}
-
-	return $campaignSends;
-}
-
 
 function get_journey_total_send_days_to_show( $post_id, $startDate, $endDate ) {
 	$firstJourneySend = get_post_meta( $post_id, 'earliest_send', true );
@@ -370,6 +236,160 @@ function get_filtered_journey_campaigns( $post_id ) {
 	$journeyHiddenCampaignIds = is_array( get_post_meta( $post_id, 'journey_hidden_campaign_ids', true ) ) ? get_post_meta( $post_id, 'journey_hidden_campaign_ids', true ) : [];
 
 	return array_diff( $allJourneyCampaignIds, $journeyHiddenCampaignIds );
+}
+
+
+
+function generate_journey_campaign_send_cell_data($campaignId, $messageIdsForDate, $dateString) {
+	$totalDateSends = count($messageIdsForDate);
+
+	// Fetch all opens and clicks for the day
+	$openClickArgs = [ 
+		'campaignIds' => [ $campaignId ],
+		'startAt_start' => $dateString,
+		'startAt_end' => $dateString,
+		'fields' => [ 'messageId' ]
+	];
+
+	$allOpens = get_idemailwiz_triggered_data('idemailwiz_triggered_opens', $openClickArgs);
+	$allClicks = get_idemailwiz_triggered_data('idemailwiz_triggered_clicks', $openClickArgs);
+
+	// Count opens and clicks for each messageId
+	$dateMessageOpens = 0;
+	$dateMessageClicks = 0;
+
+	foreach ($messageIdsForDate as $messageId) {
+		$dateMessageOpens += count(array_filter($allOpens, function($open) use ($messageId) {
+			return $open['messageId'] == $messageId;
+		}));
+		$dateMessageClicks += count(array_filter($allClicks, function($click) use ($messageId) {
+			return $click['messageId'] == $messageId;
+		}));
+	}
+
+	return [ 
+		'dateCampaignSends' => $totalDateSends,
+		'messageOpens' => $dateMessageOpens,
+		'messageClicks' => $dateMessageClicks
+	];
+}
+
+
+
+
+function get_journey_timeline_campaign_rows( $post_id, $campaignIds, $startDate, $endDate, $asNew = false ) {
+
+	$totalSendDays = get_journey_total_send_days_to_show( $post_id, $startDate, $endDate );
+
+
+
+	ob_start();
+
+	foreach ( $campaignIds as $campaignId ) {
+		$sendData = generate_journey_campaigns_data_array( $post_id, $campaignId, $startDate, $endDate );
+
+		$wizCampaign = get_idwiz_campaign( $campaignId );
+		?>
+		<tr class="timeline-campaign-row <?php echo $asNew ? 'showAsNew' : ''; ?>" data-campaign-id='<?php echo $campaignId; ?>'
+			data-post-id='<?php echo $post_id; ?>' data-start-date="<?php echo $startDate; ?>"
+			data-end-date="<?php echo $endDate; ?>">
+			<td class="timeline-campaign-fixedCol">
+				<div class="timeline-campaign-fixedCol-flexWrap">
+					<div class="timeline-campaign-row-actions">
+						<i title="Hide this campaign from the timeline view"
+							class="fa-solid fa-eye-slash hide-journey-campaign"></i><i class="fa-solid fa-up-down"></i>
+					</div>
+					<h4>
+						<a href="<?php echo get_bloginfo( 'url' ) . '/metrics/campaign?id=' . $wizCampaign['id']; ?>">
+							<?php echo $wizCampaign['name']; ?>
+						</a>
+					</h4>
+				</div>
+			</td>
+			<?php
+			$startDateObject = new DateTimeImmutable( $startDate );
+			for ( $day = 0; $day < $totalSendDays; $day++ ) {
+				$cellDate = ( clone $startDateObject )->modify( "+$day day" );
+				$sendDateString = $cellDate->format( 'Y-m-d' );
+
+				// Filter sends for this specific date
+				$sendsForDate = $sendData['sendsByDate'][ $sendDateString ] ?? [];
+
+				$cellData = generate_journey_campaign_send_cell_data( $campaignId, $sendsForDate, $sendDateString );
+
+
+				$activeCell = in_array( $sendDateString, $sendData['sendDates'] ) ? true : false;
+
+				echo generate_journey_campaign_date_cell( $campaignId, $cellData, $sendDateString, $endDate, $activeCell );
+
+				?>
+
+				<?php
+			}
+			?>
+		</tr>
+		<?php
+	}
+	return ob_get_clean();
+}
+
+
+function generate_journey_campaigns_data_array( $post_id, $campaignId, $startDate, $endDate ) {
+	$campaignSendData = get_idemailwiz_triggered_data( 'idemailwiz_triggered_sends', [ 
+		'campaignIds' => [ $campaignId ],
+		'startAt_start' => $startDate,
+		'startAt_end' => $endDate,
+		'fields' => [ 'messageId', 'startAt', 'campaignId' ]
+	] );
+
+	$campaignSends = [ 'sendDates' => [], 'sendsByDate' => [] ];
+
+	foreach ( $campaignSendData as $send ) {
+		$sendDateString = ( new DateTime( date( 'Y-m-d', $send['startAt'] / 1000 ) ) )->format( 'Y-m-d' );
+
+		if ( ! in_array( $sendDateString, $campaignSends['sendDates'] ) ) {
+			$campaignSends['sendDates'][] = $sendDateString;
+		}
+
+		//if ( ! in_array( $dateMessageOpens, $campaignSends['sendsByDate'][ $sendDateString ] ) ) {
+			$campaignSends['sendsByDate'][ $sendDateString ][] = $send['messageId'];
+		//}
+	}
+
+	return $campaignSends;
+}
+
+
+
+
+function generate_journey_campaign_date_cell( $campaignId, $cellData, $sendDateString, $endDate, $activeCell = false ) {
+
+	ob_start();
+	?>
+	<td class='timeline-cell <?php echo $activeCell ? 'active' : ''; ?>'>
+		<?php
+		if ( $activeCell ) {
+			echo '<a target="_blank" href="' . get_bloginfo( 'url' ) . '/metrics/campaign?id=' . $campaignId . '&startDate=' . $sendDateString . '&endDate=' . $endDate . '" class="timeline-cell-link"></a><i class="fa-regular fa-envelope"></i>';
+			?>
+			<div class="timeline-cell-popup">
+				<div class="timeline-cell-popup-title">
+					<?php echo $sendDateString; ?>
+				</div>
+				<div class="timeline-cell-popup-content">
+					Sends:
+					<?php echo $cellData['dateCampaignSends']; ?><br />
+					Opens:
+					<?php echo $cellData['messageOpens']; ?> (
+					<?php echo ( $cellData['dateCampaignSends'] > 0 ? number_format( $cellData['messageOpens'] / $cellData['dateCampaignSends'] * 100, 2 ) : '0' ) . '%'; ?>)<br />
+					Clicks:
+					<?php echo $cellData['messageClicks']; ?> (
+					<?php echo ( $cellData['messageClicks'] > 0 ? number_format( $cellData['messageClicks'] / $cellData['dateCampaignSends'] * 100, 2 ) : '0' ) . '%'; ?>)
+				</div>
+			</div>
+		<?php } ?>
+	</td>
+	<?php
+	return ob_get_clean();
 }
 
 function generate_journey_timeline_html( $post_id, $startDate, $endDate ) {
@@ -501,85 +521,5 @@ function ajax_generate_journey_timeline_row() {
 add_action( 'wp_ajax_ajax_generate_journey_timeline_row', 'ajax_generate_journey_timeline_row' );
 
 
-function get_journey_timeline_campaign_rows( $post_id, $campaignIds, $startDate, $endDate, $asNew = false ) {
-
-	$totalSendDays = get_journey_total_send_days_to_show( $post_id, $startDate, $endDate );
-
-	ob_start();
-
-	foreach ( $campaignIds as $campaignId ) {
-		$sendData = generate_journey_campaigns_data_array( $post_id, $campaignId, $startDate, $endDate );
-
-		$wizCampaign = get_idwiz_campaign( $campaignId );
-		?>
-		<tr class="timeline-campaign-row <?php echo $asNew ? 'showAsNew' : ''; ?>" data-campaign-id='<?php echo $campaignId; ?>'
-			data-post-id='<?php echo $post_id; ?>' data-start-date="<?php echo $startDate; ?>"
-			data-end-date="<?php echo $endDate; ?>">
-			<td class="timeline-campaign-fixedCol">
-				<div class="timeline-campaign-fixedCol-flexWrap">
-					<div class="timeline-campaign-row-actions">
-						<i title="Hide this campaign from the timeline view"
-							class="fa-solid fa-eye-slash hide-journey-campaign"></i><i class="fa-solid fa-up-down"></i>
-					</div>
-					<h4>
-						<a href="<?php echo get_bloginfo( 'url' ) . '/metrics/campaign?id=' . $wizCampaign['id']; ?>">
-							<?php echo $wizCampaign['name']; ?>
-						</a>
-					</h4>
-				</div>
-			</td>
-			<?php
-			$startDateObject = new DateTimeImmutable( $startDate );
-			for ( $day = 0; $day < $totalSendDays; $day++ ) {
-				$cellDate = ( clone $startDateObject )->modify( "+$day day" );
-				$sendDateString = $cellDate->format( 'Y-m-d' );
-
-
-				$cellData = generate_journey_campaign_send_cell_data( $campaignId, $sendData, $sendDateString );
-
-				$activeCell = in_array( $sendDateString, $sendData['sendDates'] ) ? true : false;
-
-				echo generate_journey_campaign_date_cell( $campaignId, $cellData, $sendDateString, $endDate, $activeCell );
-
-				?>
-
-				<?php
-			}
-			?>
-		</tr>
-		<?php
-	}
-	return ob_get_clean();
-}
-
-function generate_journey_campaign_date_cell( $campaignId, $cellData, $sendDateString, $endDate, $activeCell = false ) {
-
-	ob_start();
-	?>
-	<td class='timeline-cell <?php echo $activeCell ? 'active' : ''; ?>'>
-		<?php
-		if ( $activeCell ) {
-			echo '<a target="_blank" href="' . get_bloginfo( 'url' ) . '/metrics/campaign?id=' . $campaignId . '&startDate=' . $sendDateString . '&endDate=' . $endDate . '" class="timeline-cell-link"></a><i class="fa-regular fa-envelope"></i>';
-			?>
-			<div class="timeline-cell-popup">
-				<div class="timeline-cell-popup-title">
-					<?php echo $sendDateString; ?>
-				</div>
-				<div class="timeline-cell-popup-content">
-					Sends:
-					<?php echo $cellData['dateCampaignSends']; ?><br />
-					Opens:
-					<?php echo $cellData['messageOpens']; ?> (
-					<?php echo ( $cellData['dateCampaignSends'] > 0 ? number_format( $cellData['messageOpens'] / $cellData['dateCampaignSends'] * 100, 2 ) : '0' ) . '%'; ?>)<br />
-					Clicks:
-					<?php echo $cellData['messageClicks']; ?> (
-					<?php echo ( $cellData['messageClicks'] > 0 ? number_format( $cellData['messageClicks'] / $cellData['dateCampaignSends'] * 100, 2 ) : '0' ) . '%'; ?>)
-				</div>
-			</div>
-		<?php } ?>
-	</td>
-	<?php
-	return ob_get_clean();
-}
 
 

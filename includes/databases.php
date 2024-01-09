@@ -807,7 +807,7 @@ function get_idemailwiz_triggered_data( $database, $args = [], $batchSize = 2000
 
 	// Check if messageIds are provided
 	if ( isset( $args['messageIds'] ) && is_array( $args['messageIds'] ) && ! empty( $args['messageIds'] ) ) {
-		$placeholders = array_fill( 0, count( $args['messageIds'] ), '%d' );
+		$placeholders = array_fill( 0, count( $args['messageIds'] ), '%s' );
 		$where_clauses[] = "messageId IN (" . implode( ", ", $placeholders ) . ")";
 		$query_params = array_merge( $query_params, $args['messageIds'] );
 	}
@@ -846,6 +846,7 @@ function get_idemailwiz_triggered_data( $database, $args = [], $batchSize = 2000
 			$sql .= " WHERE " . implode( " AND ", $where_clauses );
 		}
 		$sql .= " LIMIT %d OFFSET %d";
+
 
 		// Add batch size and offset to query parameters
 		$prepared_sql = $wpdb->prepare( $sql, array_merge( $query_params, [ $batchSize, $offset ] ) );
