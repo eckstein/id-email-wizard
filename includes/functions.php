@@ -2408,9 +2408,7 @@ function get_template_preview($template) {
   ob_start();
   ?>
   <div class="template-image-wrapper" data-templateid="<?php echo $template['templateId'];?>">
-      <div class="wiztemplate-image-spinner">
-      <div class="fa-solid fa-spin fa-spinner fa-3x"></div>
-      </div>
+     
       <?php
       if ($template['templateImage']) {
           $imageSize = @getimagesize($template['templateImage']);
