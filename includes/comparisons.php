@@ -795,7 +795,7 @@ function build_campaign_card_html( $setId, $campaignId, $postId, $asNew, $campai
 	$html = "<div class='wizcampaign-sections-row compare-campaign-wrapper $showAsNewClass' data-setid='" . htmlspecialchars( $setId ) . "' data-campaignid='" . htmlspecialchars( $campaignId ) . "' data-postid='" . htmlspecialchars( $postId ) . "' data-templateid='" . htmlspecialchars( $campaign['templateId'] ) . "'>";
 	$html .= "<div class='wizcampaign-section shadow'>";
 	$html .= "<div class='wizcampaign-section-title-area'>";
-	$html .= "<div class='compare-campaign-datetime sortable-handle'><span class='compare-campaign-date'>" . $readableStartAt . "</span><span class='compare-campaign-time'>" . $readableStartTime . "</span></div><h4 class='sortable-handle' title='" . htmlspecialchars( $campaign['name'] ) . "'><a href='https://localhost/metrics/campaign/?id=" . $campaignId . "'>" . htmlspecialchars( $campaign['name'] ) . "</a></h4>";
+	$html .= "<div class='compare-campaign-datetime sortable-handle'><span class='compare-campaign-date'>" . $readableStartAt . "</span><span class='compare-campaign-time'>" . $readableStartTime . "</span></div><h4 class='sortable-handle' title='" . htmlspecialchars( $campaign['name'] ) . "'><a href='".get_bloginfo('url')."/metrics/campaign/?id=" . $campaignId . "'>" . htmlspecialchars( $campaign['name'] ) . "</a></h4>";
 	$html .= "<div class='wizcampaign-section-title-area-right wizcampaign-section-icons compare-campaign-actions' data-set-id='" . htmlspecialchars( $setId ) . "' data-campaign-id='" . htmlspecialchars( $campaignId ) . "'>";
 	$html .= "<i class='fa-solid fa-up-down sortable-handle' title='Drag campaign up or down to change order'></i>";
 
