@@ -249,6 +249,13 @@ function idemailwiz_handle_ajax_add_compare_campaign() {
 		// Handle 'byCampaign' mode - Specific Campaigns
 		if ( $mode === 'byCampaign' && isset( $_POST['campaigns'] ) ) {
 			$newCampaignIds = array_map( 'intval', $_POST['campaigns'] );
+		} else if ( $mode === 'byInitiative' ) {
+			$initiativeIds = array_map( 'intval', $_POST['initiatives'] );
+			$initCampaigns = [];
+			foreach ( $initiativeIds as $initiativeId ) {
+				$initCampaigns[] = idemailwiz_get_campaign_ids_for_initiative( $initiativeId );
+			}
+			$newCampaignIds = array_unique(array_merge( $initCampaigns , $newCampaignIds));
 		} else if ( $mode === 'byDate' && isset( $_POST['startDate'], $_POST['endDate'] ) ) {
 			// Handle 'byDate' mode - Date Range
 			$startDate = sanitize_text_field( $_POST['startDate'] );
@@ -272,17 +279,17 @@ function idemailwiz_handle_ajax_add_compare_campaign() {
 		}
 
 		$setFound = false;
-        $setValid = false;
+		$setValid = false;
 		$html = '';
 
 		// Find the specific set and append or insert new campaign IDs
 		foreach ( $campaignSets['sets'] as &$set ) {
-			if ( isset( $set['setId'] ) && $set['setId'] === $setId) {
+			if ( isset( $set['setId'] ) && $set['setId'] === $setId ) {
 				$setFound = true;
 
-                if (count($set['campaigns']) > 1) {
-                    $setValid = true;
-                }
+				if ( count( $set['campaigns'] ) > 1 ) {
+					$setValid = true;
+				}
 
 				if ( $replaceWith !== false ) {
 					$replaceIndex = array_search( $replaceWith, $set['campaigns'] );
@@ -505,9 +512,9 @@ function idemailwiz_remove_comparision_campaign() {
 
 			$campaignIdCount = count( $set['campaigns'] );
 			$refreshForEmpty = false;
-            if ( $campaignIdCount === 0 ) {
-                $refreshForEmpty = true;
-            }
+			if ( $campaignIdCount === 0 ) {
+				$refreshForEmpty = true;
+			}
 
 			// Check if the update was successful
 			if ( $updateSuccess ) {
@@ -674,9 +681,9 @@ function build_campaign_card_html( $setId, $campaignId, $postId, $asNew, $campai
 
 	// Retrieve template image
 	$templateImage = false;
-	if (isset($campaignTemplate['templateImage']) && $campaignTemplate['templateImage']!= '') {
+	if ( isset( $campaignTemplate['templateImage'] ) && $campaignTemplate['templateImage'] != '' ) {
 		// Checks the first byte of an image for a valid type, or false if image invalid
-		$templateImage = $campaignTemplate['templateImage'] ? $campaignTemplate['templateImage'].'.jpg' : false;
+		$templateImage = $campaignTemplate['templateImage'] ? $campaignTemplate['templateImage'] . '.jpg' : false;
 	}
 
 
@@ -742,19 +749,19 @@ function build_campaign_card_html( $setId, $campaignId, $postId, $asNew, $campai
 
 	$campaignMetricsSection .= "<div class='compare-campaign-metrics-item rev'>";
 	$campaignMetricsSection .= "<div class='compare-campaign-metrics-item-title'>Rev.</div>";
-	$campaignMetricsSection .= "<div class='compare-campaign-metrics-item-value'>$". number_format( $campaignMetrics['revenue'])."</div>";
+	$campaignMetricsSection .= "<div class='compare-campaign-metrics-item-value'>$" . number_format( $campaignMetrics['revenue'] ) . "</div>";
 	$campaignMetricsSection .= "<div class='compare-campaign-metric-item-difference'>";
 	$campaignMetricsSection .= "</div>";
 	$campaignMetricsSection .= "</div>";
 
-	
+
 	$campaignMetricsSection .= "<div class='compare-campaign-metrics-item rev'>";
 	$campaignMetricsSection .= "<div class='compare-campaign-metrics-item-title'>GA Rev.</div>";
 	$campaignMetricsSection .= "<div class='compare-campaign-metrics-item-value'>";
 	if ( $isBaseMetric ) {
-	$campaignMetricsSection .= "$" . number_format( get_idwiz_revenue( '2021-11-01', date( 'Y-m-d' ), null, [ $campaignId ], true ) );
+		$campaignMetricsSection .= "$" . number_format( get_idwiz_revenue( '2021-11-01', date( 'Y-m-d' ), null, [ $campaignId ], true ) );
 	} else {
-	$campaignMetricsSection .= "<span title='Not available for experiment variations'>N/A</span>";
+		$campaignMetricsSection .= "<span title='Not available for experiment variations'>N/A</span>";
 	}
 	$campaignMetricsSection .= "<div class='compare-campaign-metric-item-difference'>";
 	$campaignMetricsSection .= "</div>";
@@ -763,21 +770,21 @@ function build_campaign_card_html( $setId, $campaignId, $postId, $asNew, $campai
 
 	$campaignMetricsSection .= "<div class='compare-campaign-metrics-item rev'>";
 	$campaignMetricsSection .= "<div class='compare-campaign-metrics-item-title'>Prchs.</div>";
-	$campaignMetricsSection .= "<div class='compare-campaign-metrics-item-value'>". $campaignMetrics['totalPurchases']."</div>";
+	$campaignMetricsSection .= "<div class='compare-campaign-metrics-item-value'>" . $campaignMetrics['totalPurchases'] . "</div>";
 	$campaignMetricsSection .= "<div class='compare-campaign-metric-item-difference'>";
 	$campaignMetricsSection .= "</div>";
 	$campaignMetricsSection .= "</div>";
 
 	$campaignMetricsSection .= "<div class='compare-campaign-metrics-item rev'>";
 	$campaignMetricsSection .= "<div class='compare-campaign-metrics-item-title'>CVR</div>";
-	$campaignMetricsSection .= "<div class='compare-campaign-metrics-item-value'>" . number_format( $campaignMetrics['wizCvr'], 3 )."%</div>";
+	$campaignMetricsSection .= "<div class='compare-campaign-metrics-item-value'>" . number_format( $campaignMetrics['wizCvr'], 3 ) . "%</div>";
 	$campaignMetricsSection .= "<div class='compare-campaign-metric-item-difference'>";
 	$campaignMetricsSection .= "</div>";
 	$campaignMetricsSection .= "</div>";
 
 	$campaignMetricsSection .= "<div class='compare-campaign-metrics-item rev'>";
 	$campaignMetricsSection .= "<div class='compare-campaign-metrics-item-title'>AOV</div>";
-	$campaignMetricsSection .= "<div class='compare-campaign-metrics-item-value'>$" . number_format( $campaignMetrics['wizAov'])."</div>";
+	$campaignMetricsSection .= "<div class='compare-campaign-metrics-item-value'>$" . number_format( $campaignMetrics['wizAov'] ) . "</div>";
 	$campaignMetricsSection .= "<div class='compare-campaign-metric-item-difference'>";
 	$campaignMetricsSection .= "</div>";
 	$campaignMetricsSection .= "</div>";
@@ -795,7 +802,7 @@ function build_campaign_card_html( $setId, $campaignId, $postId, $asNew, $campai
 	$html = "<div class='wizcampaign-sections-row compare-campaign-wrapper $showAsNewClass' data-setid='" . htmlspecialchars( $setId ) . "' data-campaignid='" . htmlspecialchars( $campaignId ) . "' data-postid='" . htmlspecialchars( $postId ) . "' data-templateid='" . htmlspecialchars( $campaign['templateId'] ) . "'>";
 	$html .= "<div class='wizcampaign-section shadow'>";
 	$html .= "<div class='wizcampaign-section-title-area'>";
-	$html .= "<div class='compare-campaign-datetime sortable-handle'><span class='compare-campaign-date'>" . $readableStartAt . "</span><span class='compare-campaign-time'>" . $readableStartTime . "</span></div><h4 class='sortable-handle' title='" . htmlspecialchars( $campaign['name'] ) . "'><a href='".get_bloginfo('url')."/metrics/campaign/?id=" . $campaignId . "'>" . htmlspecialchars( $campaign['name'] ) . "</a></h4>";
+	$html .= "<div class='compare-campaign-datetime sortable-handle'><span class='compare-campaign-date'>" . $readableStartAt . "</span><span class='compare-campaign-time'>" . $readableStartTime . "</span></div><h4 class='sortable-handle' title='" . htmlspecialchars( $campaign['name'] ) . "'><a href='" . get_bloginfo( 'url' ) . "/metrics/campaign/?id=" . $campaignId . "'>" . htmlspecialchars( $campaign['name'] ) . "</a></h4>";
 	$html .= "<div class='wizcampaign-section-title-area-right wizcampaign-section-icons compare-campaign-actions' data-set-id='" . htmlspecialchars( $setId ) . "' data-campaign-id='" . htmlspecialchars( $campaignId ) . "'>";
 	$html .= "<i class='fa-solid fa-up-down sortable-handle' title='Drag campaign up or down to change order'></i>";
 
@@ -818,7 +825,7 @@ function build_campaign_card_html( $setId, $campaignId, $postId, $asNew, $campai
 	$html .= "<div title='Click to enlarge' class='compare-template-preview wiztemplate-preview template-image-wrapper' data-templateid='" . $templateId . "'>";
 	$html .= "<div class='wiztemplate-image-spinner'><i class='fa-solid fa-spin fa-spinner fa-3x'></i></div>";
 	$html .= "<img data-templateid='" . $templateId . "' data-src='" . $templateImage . "' />";
-	$html .= "</div>"; 
+	$html .= "</div>";
 
 
 	$html .= "<div class='compare-campaign-info'>";

@@ -317,6 +317,7 @@ jQuery(document).ready(function ($) {
 				'<div class="form-group">' +
 				'<label><input type="radio" name="campaign_mode" value="byDate" checked> Date Range</label>&nbsp;&nbsp;' +
 				'<label><input type="radio" name="campaign_mode" value="byCampaign"> Specific Campaigns</label><br/><br/>' +
+				'<label><input type="radio" name="campaign_mode" value="byInitiative"> Initiatives</label><br/><br/>' +
 				"</div>" +
 				'<div class="form-group byDate-group">' +
 				"<label>Start Date:</label>" +
@@ -326,6 +327,9 @@ jQuery(document).ready(function ($) {
 				"</div>" +
 				'<div class="form-group byCampaign-group" style="display: none;">' +
 				'<select class="swal2-input swalSelect2" id="campaign-select" multiple="multiple"></select>' +
+				"</div>" +
+				'<div class="form-group byInitiative-group" style="display: none;">' +
+				'<select class="swal2-input swalSelect2" id="initiative-select" multiple="multiple"></select>' +
 				"</div>" +
 				"</form>",
 			showCancelButton: true,
@@ -339,7 +343,12 @@ jQuery(document).ready(function ($) {
 						startDate: $("#start-date").val(),
 						endDate: $("#end-date").val(),
 					};
-				} else {
+				} else if (mode === "byInitiative") {
+					return {
+						mode: mode,
+						initiatives: $("#initiative-select").val(),
+					}
+				} else if (mode === "byCampaign") {
 					return {
 						mode: mode,
 						campaigns: $("#campaign-select").val(),
@@ -369,14 +378,41 @@ jQuery(document).ready(function ($) {
 					},
 				});
 
+				// Initialize Select2 for 'byInitiative' mode
+				$("#initiative-select").select2({
+					multiple: true,
+					ajax: {
+						delay: 250,
+						transport: function (params, success, failure) {
+							idemailwiz_do_ajax(
+								"idemailwiz_get_initiatives_for_select",
+								idAjax_initiatives.nonce,
+								{
+									q: params.data.term,
+								},
+								function (data) {
+									success({ results: data });
+								},
+								failure
+							);
+						},
+					},
+				});
+
 				// Toggle form visibility based on mode selection
 				$("input[name='campaign_mode']").change(function () {
 					if (this.value === "byDate") {
 						$(".byDate-group").show();
 						$(".byCampaign-group").hide();
-					} else {
+						$(".byInitiative-group").hide();
+					} else if (this.value === "byCampaign") {
 						$(".byDate-group").hide();
+						$(".byInitiative-group").hide();
 						$(".byCampaign-group").show();
+					} else if (this.value === "byInitiative") {
+						$(".byDate-group").hide();
+						$(".byCampaign-group").hide();
+						$(".byInitiative-group").show();
 					}
 				});
 			},
@@ -397,6 +433,7 @@ jQuery(document).ready(function ($) {
 					startDate: result.value.startDate,
 					endDate: result.value.endDate,
 					campaigns: result.value.campaigns,
+					initiatives: result.value.initiatives,
 				};
 
 				if (addBefore !== false) {

@@ -171,25 +171,40 @@ add_action('wp_ajax_idemailwiz_get_templates_for_select', 'idemailwiz_get_templa
 
 
 // Initiaves select2 ajax handler
-function idemailwiz_get_initiatives_for_select()
-{
-  check_ajax_referer('data-tables', 'security');
 
-  $searchTerm = $_POST['q'] ?? '';
 
-  $allInitiatives = get_posts(array('post_type' => 'idwiz_initiative', 'posts_per_page' => -1, 's' => $searchTerm));
-  $data = [];
-  $cnt = 0;
-  foreach ($allInitiatives as $initiative) {
-    $data[$cnt]['id'] = $initiative->ID;
-    $data[$cnt]['text'] = $initiative->post_title;
-    $cnt++;
+function idemailwiz_get_initiatives_for_select() {
+  // Check for nonce and security
+  if ( ! check_ajax_referer( 'initiatives', 'security', false ) 
+  && ! check_ajax_referer( 'id-general', 'security', false ) 
+  && ! check_ajax_referer( 'data-tables', 'security', false )) {
+      wp_send_json_error( array( 'message' => 'Invalid nonce' ) );
+      return;
   }
-  //error_log(print_r($data,true));
+
+  $searchTerm = isset($_POST['q']) ? $_POST['q'] : '';
+
+  // Fetch initiatives
+  $allInitiatives = get_posts(array(
+      'post_type' => 'idwiz_initiative', // Ensure this matches your actual custom post type name
+      'posts_per_page' => -1,
+      's' => $searchTerm
+  ));
+
+  // Prepare data
+  $data = array_map(function($initiative) {
+      return array(
+          'id' => $initiative->ID,
+          'text' => $initiative->post_title
+      );
+  }, $allInitiatives);
+
+  // Return JSON-encoded data
   echo json_encode(array_values($data));
   wp_die();
 }
 add_action('wp_ajax_idemailwiz_get_initiatives_for_select', 'idemailwiz_get_initiatives_for_select');
+
 
 
 
@@ -2426,3 +2441,43 @@ function get_template_preview($template) {
   <?php
   return ob_get_clean();
 }
+
+function idemailwiz_get_campaigns_for_select() {
+  // Check for nonce and security
+  if ( ! check_ajax_referer( 'initiatives', 'security', false ) ) {
+    if ( ! check_ajax_referer( 'id-general', 'security', false ) ) {
+      wp_send_json_error( array( 'message' => 'Invalid nonce' ) );
+      return;
+    }
+  }
+
+  $campaignArgs = array(
+    'sortBy' => 'startAt',
+    'sort' => 'DESC',
+  );
+
+  if ( isset( $_POST['type'] ) ) {
+    $campaignArgs['type'] = $_POST['type'];
+  }
+
+  $all_campaigns = get_idwiz_campaigns( $campaignArgs );
+  $search = isset( $_POST['q'] ) ? $_POST['q'] : '';
+  $exclude_ids = isset( $_POST['exclude'] ) ? $_POST['exclude'] : array(); // Get the exclude parameter
+
+  $filtered_campaigns = array_filter( $all_campaigns, function ($campaign) use ($search, $exclude_ids) {
+    return ( $search === '' || strpos( strtolower( trim( $campaign['name'] ) ), strtolower( trim( $search ) ) ) !== false )
+      && ! in_array( $campaign['id'], $exclude_ids ); // Exclude campaigns with specified IDs
+  } );
+
+
+  $data = array_map( function ($campaign) {
+    return array( 'id' => $campaign['id'], 'text' => $campaign['name'] );
+  }, $filtered_campaigns );
+
+  echo json_encode( array_values( $data ) );
+  wp_die();
+}
+add_action( 'wp_ajax_idemailwiz_get_campaigns_for_select', 'idemailwiz_get_campaigns_for_select' );
+
+
+
