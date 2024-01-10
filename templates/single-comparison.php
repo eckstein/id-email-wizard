@@ -30,6 +30,8 @@
 						<div class="wizHeader-actions">
 							<button class="wiz-button green new-comparison"><i class="fa-regular fa-plus"></i>&nbsp;New
 								Comparison</button>
+							<button class="wiz-button red delete-comparison" data-post-id="<?php echo $postId; ?>"><i class="fa-solid fa-trash"></i>&nbsp;Delete
+								Comparison</button>
 							<?php //include plugin_dir_path(__FILE__) . 'parts/module-user-settings-form.php'; ?>
 
 						</div>

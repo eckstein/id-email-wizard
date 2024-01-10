@@ -231,7 +231,7 @@ function idemailwiz_handle_ajax_add_compare_campaign() {
 	$addBefore = isset( $_POST['addBefore'] ) ? $_POST['addBefore'] : false;
 	$replaceWith = isset( $_POST['replaceWith'] ) ? $_POST['replaceWith'] : false;
 	$refreshOnly = isset( $_POST['refreshOnly'] ) ? $_POST['refreshOnly'] : false;
-	$siblingCard = isset( $_POST['siblingCard'] ) ? $_POST['siblingCard'] : false; //ID of the sibling card
+	//$siblingCard = isset( $_POST['siblingCard'] ) ? $_POST['siblingCard'] : false; //ID of the sibling card
 
 	// Check if a valid post ID is provided
 	if ( ! $postId ) {
@@ -249,11 +249,11 @@ function idemailwiz_handle_ajax_add_compare_campaign() {
 		// Handle 'byCampaign' mode - Specific Campaigns
 		if ( $mode === 'byCampaign' && isset( $_POST['campaigns'] ) ) {
 			$newCampaignIds = array_map( 'intval', $_POST['campaigns'] );
-		} else if ( $mode === 'byInitiative' ) {
+		} else if ( $mode === 'byInitiative' && isset($_POST['initiatives'] ) ) {
 			$initiativeIds = array_map( 'intval', $_POST['initiatives'] );
 			$initCampaigns = [];
 			foreach ( $initiativeIds as $initiativeId ) {
-				$initCampaigns[] = idemailwiz_get_campaign_ids_for_initiative( $initiativeId );
+				$initCampaigns = array_merge(idemailwiz_get_campaign_ids_for_initiative( $initiativeId ), $initCampaigns);
 			}
 			$newCampaignIds = array_unique(array_merge( $initCampaigns , $newCampaignIds));
 		} else if ( $mode === 'byDate' && isset( $_POST['startDate'], $_POST['endDate'] ) ) {
@@ -414,6 +414,20 @@ function idemailwiz_clear_comparision_campaign() {
 	wp_send_json_error( 'Set not found' );
 }
 add_action( 'wp_ajax_idemailwiz_clear_comparision_campaign', 'idemailwiz_clear_comparision_campaign' );
+
+function idemailwiz_delete_comparison() {
+	$postId = isset( $_POST['postId'] ) ? intval( $_POST['postId'] ) : false;
+	if ($postId) {
+		$deleteComparisions = wp_delete_post( $postId, false); //move to trash, no forced deletion
+		if ($deleteComparisions) {
+			wp_send_json_success( 'Comparison deleted successfully' );
+			return;
+		} 
+	}
+	wp_send_json_error( 'Comparison not deleted' );
+}
+add_action( 'wp_ajax_idemailwiz_delete_comparison', 'idemailwiz_delete_comparison' );
+
 
 
 function idemailwiz_update_comparison_campaigns_order() {
@@ -1044,7 +1058,7 @@ function idwiz_get_comparison_column_buttons( $postId, $setId ) {
 		data-collapse-state="close"><i class="fa-solid fa-square-minus"></i>
 		Collapse</button>
 	<button title="Remove all campaigns" class="wiz-button red centered clear-compare-campaigns"
-		data-set-id="<?php echo $setId; ?>" data-post-id="<?php echo $postId; ?>"><i class="fa-solid fa-trash"></i>
+		data-set-id="<?php echo $setId; ?>" data-post-id="<?php echo $postId; ?>"><i class="fa-solid fa-eraser"></i>
 		Clear</button>
 	<?php
 	return ob_get_clean();

@@ -268,7 +268,36 @@ jQuery(document).ready(function ($) {
 
 	
 
-    
+    $(".delete-comparison").on("click", function () {
+		var postId = $(this).data("post-id");
+
+		Swal.fire({
+			title: "Are you sure?",
+			text: "Delete this comparison?",
+			icon: "warning",
+			showCancelButton: true,
+			confirmButtonColor: "#3085d6",
+			cancelButtonColor: "#d33",
+			confirmButtonText: "Yes, delete!",
+		}).then((result) => {
+			if (result.isConfirmed) {
+				idemailwiz_do_ajax(
+					"idemailwiz_delete_comparison",
+					idAjax_comparisons.nonce,
+					{ postId: postId },
+					function (response) {
+						console.log("Comparison deleted", response);
+						//location.reload();
+						window.location.href=idAjax_comparisons.site_url+"/comparisons";
+					},
+					function (error) {
+						console.error("Error clearing campaigns", error);
+					}
+				);
+			}
+		});
+
+	});
 
 	
 
