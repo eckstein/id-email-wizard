@@ -24,7 +24,7 @@ jQuery(document).ready(function ($) {
 	});
 
 	// async load images
-	loadCompareImagesAsync('.init-template-preview img');
+	loadTemplatePreviewsAsync('.init-template-preview');
 
 	// Fill our summary table on page load
 	// Initialize variables for totals

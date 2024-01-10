@@ -2308,36 +2308,6 @@ function generate_all_template_images()
 
 }
 
-add_action('wp_ajax_regenerate_template_preview', 'regenerate_template_preview_handler');
-
-function regenerate_template_preview_handler()
-{
-  global $wpdb; // Make sure to include global $wpdb
-  check_ajax_referer('id-general', 'security'); // Check nonce for security
-
-  $templateIds = isset($_POST['templateIds']) ? $_POST['templateIds'] : array();
-  $imageUrls = array();
-  if (empty($templateIds)) {
-    wp_send_json_error('No template IDs provided');
-  }
-  foreach ($templateIds as $templateId) {
-    $image = idemailwiz_generate_image_from_template($templateId);
-    if ($image) {
-      // Update the database with the new image URL
-      $wpdb->update(
-        "{$wpdb->prefix}idemailwiz_templates",
-        ['templateImage' => $image], // New image URL
-        ['templateId' => $templateId], // Where condition
-        ['%s'], // Format of the new value
-        ['%d']  // Format of the where condition
-      );
-      $imageUrls[$templateId] = $image;
-    }
-  }
-
-  wp_send_json_success($imageUrls); // Send back the array of URLs
-}
-
 
 // https://hcti.io image generation
 function idemailwiz_generate_image_from_template($templateId)
@@ -2393,22 +2363,45 @@ function idemailwiz_generate_image_from_template($templateId)
 
 }
 
-// Checks the first few bytes of an image stream to see if it's producing an actual image
-function wiz_isValidImage($url) {
-  $context = stream_context_create(['http' => ['method' => 'HEAD']]);
-  $headers = get_headers($url, 1, $context);
 
-  if (isset($headers['Content-Type'])) {
-      return strpos($headers['Content-Type'], 'image/') === 0;
+add_action('wp_ajax_regenerate_template_preview', 'regenerate_template_preview_handler');
+
+function regenerate_template_preview_handler()
+{
+  global $wpdb; // Make sure to include global $wpdb
+  check_ajax_referer('id-general', 'security'); // Check nonce for security
+
+  $templateIds = isset($_POST['templateIds']) ? $_POST['templateIds'] : array();
+  $imageUrls = array();
+  if (empty($templateIds)) {
+    wp_send_json_error('No template IDs provided');
   }
-  return false;
+  foreach ($templateIds as $templateId) {
+    $image = idemailwiz_generate_image_from_template($templateId);
+    if ($image) {
+      // Update the database with the new image URL
+      $wpdb->update(
+        "{$wpdb->prefix}idemailwiz_templates",
+        ['templateImage' => $image], // New image URL
+        ['templateId' => $templateId], // Where condition
+        ['%s'], // Format of the new value
+        ['%d']  // Format of the where condition
+      );
+      $imageUrls[$templateId] = $image;
+    }
+  }
+
+  wp_send_json_success($imageUrls); // Send back the array of URLs
 }
+
+
+
 
 function get_template_preview($template) {
   ob_start();
   ?>
   <div class="template-image-wrapper" data-templateid="<?php echo $template['templateId'];?>">
-     
+  <div class='wiztemplate-image-spinner hide'><i class='fa-solid fa-spin fa-spinner fa-3x'></i></div>
       <?php
       if ($template['templateImage']) {
           $imageSize = @getimagesize($template['templateImage']);
@@ -2417,16 +2410,18 @@ function get_template_preview($template) {
               <img src=<?php echo $template['templateImage']; ?> />
           <?php } else {
               echo '<div class="template-preview-missing-message"><em>Template preview image missing or invalid. Click below to regenerate.</em><br/><br/>';
-              echo '<button title="Regenerate Preview" class="wiz-button green regenerate-preview"
+              echo '<button title="Regenerate Preview" class="wiz-button green regenerate-template-preview"
               data-templateid="' . $template['templateId'] . '"><i
                   class="fa-solid fa-arrows-rotate"></i>&nbsp;Regenerate Preview</button></div>';
           }
       } else {
           echo '<div class="template-preview-missing-message"><em>No template preview available.<br/><br/></em>';
-          echo '<button title="Generate Template Preview" class="wiz-button green regenerate-preview"
+          echo '<button title="Generate Template Preview" class="wiz-button green regenerate-template-preview"
           data-templateid="' . $template['templateId'] . '"><i
               class="fa-solid fa-arrows-rotate"></i>&nbsp;Generate Preview</button></div>';
+          
       } ?>
+    
   </div>
   <?php
   return ob_get_clean();

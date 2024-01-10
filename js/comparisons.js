@@ -46,7 +46,7 @@ jQuery(document).ready(function ($) {
 	if ($('.single-idwiz_comparison').length) {
 		reinitializeInBetweenElements();
 		updateDynamicCompareRollup();
-		loadCompareImagesAsync(".compare-template-preview img");
+		loadTemplatePreviewsAsync(".compare-template-preview");
 	}
 
 	function refreshComparisonSubtitle() {
@@ -268,31 +268,7 @@ jQuery(document).ready(function ($) {
 
 	
 
-    $(document).on("click", ".regenerate-compare-campaign-preview", function() {
-        var templateId = $(this).data("templateid");
-        var nonce = idAjax_id_general.nonce; 
-        var previewContainer = $(this).closest(".compare-template-preview");
-        var spinnerWrapper = previewContainer.find(".compare-template-image-spinner");
-
-        spinnerWrapper.show();
-
-        regenerateTemplatePreview(templateId, nonce, function(newImageUrl) {
-            var imageElement = previewContainer.find("img").length ?
-                               previewContainer.find("img") :
-                               $("<img>").appendTo(previewContainer);
-
-            imageElement.attr("src", newImageUrl)
-                .on("load", function() {
-                    spinnerWrapper.hide();
-                    $(".compare-campaign-missing-preview").hide();
-                })
-                .on("error", function() {
-                    spinnerWrapper.hide();
-                    do_wiz_notif({ message: "Failed to load image.", duration: 10000 });
-                    //alert("Failed to load image.");
-                });
-        });
-    });
+    
 
 	
 
@@ -477,7 +453,7 @@ jQuery(document).ready(function ($) {
 							reinitializeInBetweenElements();
 							syncCampaignStatesAcrossColumns();
 							refreshComparisonSubtitle();
-							loadCompareImagesAsync(".compare-template-preview img");
+							loadTemplatePreviewsAsync(".compare-template-preview");
 							updateDynamicCompareRollup();
 
 							setTimeout(function () {
@@ -544,7 +520,7 @@ jQuery(document).ready(function ($) {
 					// Reinitialize any necessary events or styles
 					reinitializeInBetweenElements();
 					syncCampaignStatesAcrossColumns();
-					loadCompareImagesAsync(".compare-template-preview img");
+					loadTemplatePreviewsAsync(".compare-template-preview");
 
 					setTimeout(function () {
 						$(".compare-campaign-wrapper.showAsNew").css("background-color", "#fff");
@@ -716,7 +692,7 @@ jQuery(document).ready(function ($) {
 					console.log("Campaign card HTML updated");
 					// Replace the campaign with the new HTML
 					campaignWrapper.replaceWith(response.data.html);
-					loadCompareImagesAsync(".compare-template-preview img");
+					loadTemplatePreviewsAsync(".compare-template-preview");
 				} else {
 					do_wiz_notif({ message: response.data.message, duration: 10000 });
 					console.error(response.data.message);

@@ -9,7 +9,7 @@
 	?>
 	<div class="wizcampaign-template-top">
 
-		<button title="Regenerate Preview" class="wiz-button green regenerate-preview"
+		<button title="Regenerate Preview" class="wiz-button green regenerate-template-preview"
 			data-templateid="<?php echo $currentTemplate['templateId']; ?>"><i
 				class="fa-solid fa-arrows-rotate"></i>&nbsp;Regenerate</button>
 		<?php if ( isset( $currentTemplate['clientTemplateId'] ) ) { ?>

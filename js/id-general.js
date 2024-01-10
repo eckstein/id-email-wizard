@@ -289,36 +289,27 @@ jQuery(document).ready(function ($) {
 	
 
 	
-	$(document).on("click", ".regenerate-preview", function() {
+	$(document).on("click", ".regenerate-template-preview", function() {
 		var templateId = $(this).data("templateid");
-		var nonce = idAjax_id_general.nonce; 
-		var previewContainer = $('.template-image-wrapper[data-templateid="' + templateId + '"]');
+		var nonce = idAjax_id_general.nonce;
+		var previewContainer = $('[data-templateid="' + templateId + '"]').closest('.template-image-wrapper, .compare-template-preview');
 		var spinnerWrapper = previewContainer.find(".wiztemplate-image-spinner");
 
 		spinnerWrapper.show();
 
 		regenerateTemplatePreview(templateId, nonce, function(newImageUrl) {
-			var imageElement = previewContainer.find("img").length ?
-							   previewContainer.find("img") :
-							   $("<img>").appendTo(previewContainer);
-
-			imageElement.attr("src", newImageUrl)
-				.on("load", function() {
-					spinnerWrapper.hide();
-					$(previewContainer).find(".template-preview-missing-message").hide();
-					do_wiz_notif({message: 'Template preview re-generated!', duration: 3000 });
-				})
-				.on("error", function() {
-					spinnerWrapper.hide();
-					alert("Failed to load image.");
-				});
+			updateTemplatePreviewImageElement(previewContainer, newImageUrl, spinnerWrapper);
+			do_wiz_notif({message: 'Template preview regenerated!', duration: 3000 });
 		});
 	});
+
+	
+
 
 
 	$(document).on("click", ".wiztemplate-preview", function (e) {
 		// Check if the clicked element or any of its parents have the specific class
-		if ($(e.target).closest('.regenerate-compare-campaign-preview').length) {
+		if ($(e.target).closest('.regenerate-template-preview').length) {
 			return false; // Do nothing if the clicked element is the specified class or a child of it
 		}
 
@@ -353,36 +344,61 @@ jQuery(document).ready(function ($) {
 
 });
 
+function updateTemplatePreviewImageElement(previewContainer, newImageUrl, spinnerWrapper) {
+	var imageElement = previewContainer.find("img").length ?
+					   previewContainer.find("img") :
+					   jQuery("<img>").appendTo(previewContainer);
 
+	imageElement.attr("src", newImageUrl)
+		.on("load", function() {
+			spinnerWrapper.hide();
+			previewContainer.find(".template-preview-missing-message, .compare-campaign-missing-preview").hide();
+			
+		})
+		.on("error", function() {
+			spinnerWrapper.hide();
+			alert("Failed to load image.");
+		});
+}
 
 //Global scope functions
 
-function loadCompareImagesAsync(imgElement) {
-	jQuery(imgElement).each(function () {
-		var $img = jQuery(this);
-		var imgSrc = $img.data("src");
-		var templateId = $img.data("templateid");
+function loadTemplatePreviewsAsync(wrapperElements) {
+	jQuery(wrapperElements).each(function () {
+		var wrapper = jQuery(this);
+		var imgElements = wrapper.find('img');
 
-		if (imgSrc) {
-			checkImageUrl(imgSrc, function(isValid) {
-				if (isValid) {
-					// If the image is valid, load it
-					jQuery("<img>")
-					.on("load", function () {
-						$img.attr("src", imgSrc).show();
-						$img.siblings(".wiztemplate-image-spinner").hide();
-					})
-					.attr("src", imgSrc);
-				} else {
-					// If the image is not valid, show the error message
-					$img.siblings(".wiztemplate-image-spinner").hide();
-					$img.parent().html("<div class='compare-campaign-missing-preview' style='padding: 20px; font-size: 12px; color: #343434;'>No template image available yet.<br/><button class='wiz-button green regenerate-compare-campaign-preview' data-templateid='" + templateId + "'><i class='fa-regular fa-file-image'></i>&nbsp;Generate Preview</button></div></div>");
-					
-				}
-			});
-		}
+		imgElements.each(function () {
+			var $img = jQuery(this);
+			var imgSrc = $img.data("src");
+			var templateId = $img.data("templateid");
+			var spinnerWrapper = $img.siblings(".wiztemplate-image-spinner");
+
+			if (imgSrc) {
+				checkImageUrl(imgSrc, function(isValid) {
+					if (isValid) {
+						updateTemplatePreviewImageElement(wrapper, imgSrc, spinnerWrapper);
+					} else {
+						displayTemplateErrors(wrapper, templateId, "Template image is invalid!");
+					}
+				});
+			} else {
+				displayTemplateErrors(wrapper, templateId, "No template image available yet.");
+			}
+		});
 	});
 }
+
+
+function displayTemplateErrors(wrapperElement, templateId, message) {
+	var errorMessageHtml = "<div class='compare-campaign-missing-preview' style='padding: 20px; font-size: 12px; color: #343434;'>" + 
+						   message +
+						   "<div class='wiztemplate-image-spinner hide'><i class='fa-solid fa-spin fa-spinner fa-3x'></i></div><br/><button class='wiz-button green regenerate-template-preview' data-templateid='" + templateId + "'>" +
+						   "<i class='fa-regular fa-file-image'></i>&nbsp;Generate Preview</button></div>";
+
+	jQuery(wrapperElement).html(errorMessageHtml);
+}
+
 
 
 function initialize_select2_for_template_search() {

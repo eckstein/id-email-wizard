@@ -2005,7 +2005,11 @@ h2.wizArticle-title {
 /* Template Images */
 .template-image-wrapper {
 	position: relative;
+	text-align: center;
 }
+	.template-image-wrapper img {
+		width: 100%;
+	}
 .template-image-spinner .fa-spinner {
 	font-size: 30px;
 	position: relative; 

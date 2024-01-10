@@ -816,9 +816,9 @@ function build_campaign_card_html( $setId, $campaignId, $postId, $asNew, $campai
 	$html .= "<div class='compare-campaign-details'>";
 
 	$html .= "<div title='Click to enlarge' class='compare-template-preview wiztemplate-preview template-image-wrapper' data-templateid='" . $templateId . "'>";
-	$html .= "<div class='wiztemplate-image-spinner'><div class='fa-solid fa-spin fa-spinner fa-3x'></div></div>";
+	$html .= "<div class='wiztemplate-image-spinner'><i class='fa-solid fa-spin fa-spinner fa-3x'></i></div>";
 	$html .= "<img data-templateid='" . $templateId . "' data-src='" . $templateImage . "' />";
-	$html .= "</div>"; // Close template preview
+	$html .= "</div>"; 
 
 
 	$html .= "<div class='compare-campaign-info'>";
