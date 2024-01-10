@@ -665,11 +665,20 @@ function build_campaign_card_html( $setId, $campaignId, $postId, $asNew, $campai
 	}
 
 	if ( ! $campaignTemplate ) {
-		return 'Template not found!';
+		$campaignTemplate['subject'] = 'Template not found!';
+		$campaignTemplate['preheaderText'] = 'Template not found!';
+		$campaignTemplate['fromName'] = 'Template not found!';
+		$campaignTemplate['fromEmail'] = 'Template not found!';
+
 	}
 
 	// Retrieve template image
-	$templateImage = $campaignTemplate['templateImage'];
+	$templateImage = false;
+	if (isset($campaignTemplate['templateImage']) && $campaignTemplate['templateImage']!= '') {
+		// Checks the first byte of an image for a valid type, or false if image invalid
+		$templateImage = $campaignTemplate['templateImage'] ? $campaignTemplate['templateImage'].'.jpg' : false;
+	}
+
 
 	$campaignMetricsSection = "";
 	if ( $campaignTemplate['messageMedium'] == 'Email' ) {
@@ -806,7 +815,7 @@ function build_campaign_card_html( $setId, $campaignId, $postId, $asNew, $campai
 
 	$html .= "<div class='compare-campaign-details'>";
 
-	$html .= "<div title='Click to enlarge' class='compare-template-preview wiztemplate-preview'>";
+	$html .= "<div title='Click to enlarge' class='compare-template-preview wiztemplate-preview template-image-wrapper' data-templateid='" . $templateId . "'>";
 	$html .= "<div class='wiztemplate-image-spinner'><div class='fa-solid fa-spin fa-spinner fa-3x'></div></div>";
 	$html .= "<img data-templateid='" . $templateId . "' data-src='" . $templateImage . "' />";
 	$html .= "</div>"; // Close template preview

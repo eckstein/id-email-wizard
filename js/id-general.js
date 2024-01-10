@@ -286,24 +286,7 @@ jQuery(document).ready(function ($) {
 		idemailwiz_do_ajax("idemailwiz_ajax_save_item_update", nonceValue, additionalData, successCallback, errorCallback);
 	});
 
-	function regenerateTemplatePreview(templateId, nonce, onSuccess) {
-		idemailwiz_do_ajax(
-			"regenerate_template_preview",
-			nonce,
-			{ templateIds: [templateId] },
-			function(response) {
-				if (response.success && response.data && response.data[templateId]) {
-					var newImageUrl = response.data[templateId] + "?t=" + new Date().getTime();
-					if (typeof onSuccess === 'function') {
-						onSuccess(newImageUrl);
-					}
-				}
-			},
-			function(xhr, status, error) {
-				console.error("Error regenerating preview:", error);
-			}
-		);
-	}
+	
 
 	
 	$(document).on("click", ".regenerate-preview", function() {
@@ -333,7 +316,12 @@ jQuery(document).ready(function ($) {
 	});
 
 
-	$(document).on("click", ".wiztemplate-preview", function () {
+	$(document).on("click", ".wiztemplate-preview", function (e) {
+		// Check if the clicked element or any of its parents have the specific class
+		if ($(e.target).closest('.regenerate-compare-campaign-preview').length) {
+			return false; // Do nothing if the clicked element is the specified class or a child of it
+		}
+
 		var image = $(this).find("img").clone();
 
 		// Create lightbox structure with close button
@@ -376,20 +364,26 @@ function loadCompareImagesAsync(imgElement) {
 		var templateId = $img.data("templateid");
 
 		if (imgSrc) {
-
-			jQuery("<img>")
-			.on("load", function () {
-				$img.attr("src", imgSrc).show();
-				$img.siblings(".wiztemplate-image-spinner").hide();
-			})
-			.attr("src", imgSrc);
-
-		} else {
-			$img.siblings(".wiztemplate-image-spinner").hide();
-			$img.parent().html("<div class='compare-campaign-missing-preview' style='padding: 20px; font-size: 12px; color: #343434;'>No template image available yet.<br/><button class='wiz-button green regenerate-compare-campaign-preview' data-templateid='" + templateId + "'><i class='fa-regular fa-file-image'></i>&nbsp;Generate Preview</button></div>");
+			checkImageUrl(imgSrc, function(isValid) {
+				if (isValid) {
+					// If the image is valid, load it
+					jQuery("<img>")
+					.on("load", function () {
+						$img.attr("src", imgSrc).show();
+						$img.siblings(".wiztemplate-image-spinner").hide();
+					})
+					.attr("src", imgSrc);
+				} else {
+					// If the image is not valid, show the error message
+					$img.siblings(".wiztemplate-image-spinner").hide();
+					$img.parent().html("<div class='compare-campaign-missing-preview' style='padding: 20px; font-size: 12px; color: #343434;'>No template image available yet.<br/><button class='wiz-button green regenerate-compare-campaign-preview' data-templateid='" + templateId + "'><i class='fa-regular fa-file-image'></i>&nbsp;Generate Preview</button></div></div>");
+					
+				}
+			});
 		}
 	});
 }
+
 
 function initialize_select2_for_template_search() {
 	jQuery("#live-template-search")
@@ -986,4 +980,33 @@ function fetchRollUpSummaryData(campaignIds, startDate, endDate, rollupSelector,
 	function getRollupError(response) {
 		console.log("Rollup metrics error: " + response);
 	}
+}
+
+function regenerateTemplatePreview(templateId, nonce, onSuccess) {
+	idemailwiz_do_ajax(
+		"regenerate_template_preview",
+		nonce,
+		{ templateIds: [templateId] },
+		function(response) {
+			if (response.success && response.data && response.data[templateId]) {
+				var newImageUrl = response.data[templateId] + "?t=" + new Date().getTime();
+				if (typeof onSuccess === 'function') {
+					onSuccess(newImageUrl);
+				}
+			}
+		},
+		function(xhr, status, error) {
+			console.error("Error regenerating preview:", error);
+		}
+	);
+}
+
+function checkImageUrl(url, callback) {
+	jQuery.get(url)
+		.done(function() {
+			callback(true); // Image is valid
+		})
+		.fail(function() {
+			callback(false); // Image is not valid
+		});
 }

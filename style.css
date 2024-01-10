@@ -2928,6 +2928,9 @@ color: #eee;
 .wiztemplate-preview {
 	cursor: pointer;
 }
+.wiztemplate-image-spinner.hide {
+	display: none;
+}
 .wiztemplate-image-spinner {
 	display: flex;
 	height: 90%;
@@ -2938,6 +2941,16 @@ color: #eee;
 .compare-template-preview img {
 	width: 100%;
 	height: auto;
+}
+.compare-campaign-missing-preview .wiztemplate-image-spinner {
+	margin-top: 20px;
+}
+.compare-campaign-missing-preview {
+	text-align: center;
+
+}
+.compare-campaign-missing-preview.wiz-button {
+	margin-top: 10px;
 }
 .compare-campaign-info {
 	height: 270px;
