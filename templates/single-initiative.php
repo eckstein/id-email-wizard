@@ -148,30 +148,30 @@
 										$readableStartAt = date( 'm/d/Y', $campaignStartStamp );
 										?>
 										<tr data-campaignid="<?php echo $campaign['id']; ?>">
-											<td class="campaignDate">
+											<td class="campaignDate ">
 												<?php echo $readableStartAt; ?>
 											</td>
 											<td class="campaignType">
 												<?php echo $wizCampaign['type']; ?>
 											</td>
-											<td class="campaignType">
+											<td class="messageMedium">
 												<?php echo $wizCampaign['messageMedium']; ?>
 											</td>
 											<td class="campaignName"><a
 													href="<?php echo get_bloginfo( 'wpurl' ); ?>/metrics/campaign/?id=<?php echo $campaign['id']; ?>">
 													<?php echo $campaign['name']; ?>
 												</a></td>
-											<td class="uniqueSends">
+											<td class="uniqueSends dtNumVal">
 												<?php echo number_format( $campaignMetrics['uniqueEmailSends'] ); ?>
 											</td>
-											<td class="uniqueOpens">
+											<td class="uniqueOpens dtNumVal">
 												<?php echo number_format( $campaignMetrics['uniqueEmailOpens'] ); ?>
 											</td>
 
 											<td class="openRate">
 												<?php echo number_format( $campaignMetrics['wizOpenRate'] * 1, '2' ); ?>%
 											</td>
-											<td class="uniqueClicks">
+											<td class="uniqueClicks dtNumVal">
 												<?php echo number_format( $campaignMetrics['uniqueEmailClicks'] ); ?>
 											</td>
 											<td class="ctr">
@@ -180,22 +180,22 @@
 											<td class="cto">
 												<?php echo number_format( $campaignMetrics['wizCto'] * 1, 2 ); ?>%
 											</td>
-											<td class="uniquePurchases">
+											<td class="uniquePurchases dtNumVal">
 												<?php echo number_format( $campaignMetrics['uniquePurchases'] ); ?>
 											</td>
-											<td class="campaignRevenue">
+											<td class="campaignRevenue dtNumVal">
 												<?php echo '$' . number_format( $campaignMetrics['revenue'] * 1, 2 ); ?>
 											</td>
 											<td class="cvr">
 												<?php echo number_format( $campaignMetrics['wizCvr'] * 1, 2 ); ?>%
 											</td>
-											<td class="uniqueUnsubs">
+											<td class="uniqueUnsubs dtNumVal">
 												<?php echo number_format( $campaignMetrics['uniqueUnsubscribes'] ); ?>
 											</td>
 											<td class="unsubRate">
 												<?php echo number_format( $campaignMetrics['wizUnsubRate'] * 1, 2 ); ?>%
 											</td>
-											<td class="unsubRate">
+											<td class="campaignId">
 												<?php echo $campaign['id'] ?>
 											</td>
 										</tr>

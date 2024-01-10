@@ -239,6 +239,11 @@ jQuery(document).ready(function ($) {
 					},
 					type: "num", // treat it as a number for sorting
 				},
+				
+				{
+				targets: "dtNumVal",
+				type: "num",
+				},
 			],
 			order: [
 				[0, "desc"], // sort by hidden fav column in ascending order
