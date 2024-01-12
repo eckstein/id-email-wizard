@@ -407,6 +407,9 @@ jQuery(document).ready(function ($) {
 
 		preview.find(".chunkWrap").click(function (e) {
 			//console.log("chunkWrap clicked");
+			if ($(this).hasClass("interactive")) {
+				return;
+			}
 			if ($(this).hasClass("showChunkCode")) {
 				$(this).closest(".chunkCode").show();
 			} 
@@ -478,3 +481,4 @@ jQuery(document).ready(function ($) {
 		});
 	};
 });
+
