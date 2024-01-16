@@ -68,7 +68,7 @@
 
 
 				<?php
-				if ( ! empty( $associated_campaign_ids ) ) {
+				if ( ! empty( $associated_campaign_ids ) ) { 
 				$metricRates = get_idwiz_metric_rates( $associated_campaign_ids );
 
 				echo get_idwiz_rollup_row( $metricRates );
