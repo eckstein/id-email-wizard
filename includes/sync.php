@@ -1031,15 +1031,17 @@ function idemailwiz_sync_campaigns($passedCampaigns = null) {
 			continue;
 		}
 
+		if ($campaign['campaignState'] == 'Aborted') {
+			//Skip aborted campaigns
+			continue;
+		}
+
 		// Get the latest startAt value from our DB for triggered campaigns
 		if ($campaign['type'] == 'Triggered') {
 			$latestStartAt = get_latest_triggered_startAt($campaign['id']);
 			if ($latestStartAt !== null) {
 				$campaign['startAt'] = $latestStartAt;
-			} else {
-				// Skip this campaign if not found in the wp_idemailwiz_triggered_sends database
-				continue;
-			}
+			} 
 		}
 
 		// Check for an existing campaign in the database
@@ -2224,7 +2226,7 @@ function idemailwiz_manual_export_request( $campaignId, $dataTypes = [], $startD
 				} else {
 					wiz_log( "Campaign $campaignId triggered $dataType data sync was successful." );
 				}
-				sleep( 1 );
+				sleep( 5 );
 			}
 		} else {
 			wiz_log( "Failed to find transients for campaignId: {$campaignId}." );
