@@ -68,10 +68,13 @@
 
 
 				<?php
+				if ( ! empty( $associated_campaign_ids ) ) {
 				$metricRates = get_idwiz_metric_rates( $associated_campaign_ids );
 
-
 				echo get_idwiz_rollup_row( $metricRates );
+				} else {
+					echo '<p>This initiative is not associated with any campaigns yet.</p>';
+				}
 
 
 				?>
@@ -80,6 +83,7 @@
 					<div class="wizcampaign-section inset template-timeline-wrapper">
 						<div class="template-timeline">
 							<?php
+							if (!empty($initCampaigns)) {
 							$campaignsAsc = array_reverse( $initCampaigns );
 							foreach ( $campaignsAsc as $campaign ) {
 								$template = get_idwiz_template( $campaign['templateId'] );
@@ -102,7 +106,8 @@
                                        ?>
                                     </div>
 								</div>
-							<?php } ?>
+							<?php } 
+							}?>
 						</div>
 					</div>
 
@@ -292,6 +297,7 @@
 				</div>
 
 				<?php
+				if ( ! empty( $associated_campaign_ids ) ) {
 				// Setup standard chart variables
 				$standardChartCampaignIds = $associated_campaign_ids;
 				$standardChartPurchases = $purchases;
@@ -302,6 +308,7 @@
 
 				$endDate = date( 'Y-m-d' );
 				include plugin_dir_path( __FILE__ ) . 'parts/standard-charts.php';
+				}
 				?>
 
 
