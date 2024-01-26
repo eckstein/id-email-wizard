@@ -37,17 +37,24 @@ if (isset($_GET['endDate']) && $_GET['endDate'] !== '') {
 $metrics = get_idwiz_metric( $campaign['id'] );
 $template = get_idwiz_template( $campaign['templateId'] );
 
+// Set the default timezone
+date_default_timezone_set('America/Los_Angeles');
+
+// Assuming $campaign['startAt'] and $campaign['endedAt'] are in milliseconds
+$campaignStartStamp = (int) ($campaign['startAt'] / 1000);
+$campaignEndStamp = (int) ($campaign['endedAt'] / 1000);
+
+$campaignStartAt = date('m/d/Y g:ia', $campaignStartStamp);
+$campaignEndedAt = date('g:ia', $campaignEndStamp);
+$campaignEndDateTime = date('m/d/Y \a\t g:ia', $campaignEndStamp);
 
 
-$campaignStartStamp = (int) ( $campaign['startAt'] / 1000 );
-$campaignStartAt = date( 'm/d/Y', $campaignStartStamp );
+// Create formatted end date and time
+$campaignEndDateTime = date('m/d/Y \a\t g:ia', $campaignEndStamp);
 
-$campaignEndStamp = (int) ( $campaign['endedAt'] / 1000 );
-$campaignEndedAt = date( 'g:ia', $campaignEndStamp );
+// Get timezone abbreviation from the start time
+$sendsTimezone = date('T', $campaignStartStamp);
 
-$campaignEndDateTime = date( 'm/d/Y \a\t g:ia', $campaignEndStamp );
-
-$sendsTimezone = date( 'T', $campaignStartStamp );
 
 
 

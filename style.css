@@ -206,11 +206,20 @@ a.wiz-button:hover {
 	position: sticky;
 	top: 0;
 	z-index: 10;
+	overflow:hidden;
 }
 #id-chunks-creator > .acf-fields .acf-fields .acf-tab-wrap {
 	position: sticky;
 	top: 46px;
 	z-index: 10;
+	overflow: hidden;
+}
+#id-chunks-creator > .acf-fields > .acf-tab-wrap li.active a {
+	background-color:#94c52a;
+	color: #fff;
+}
+.acf-color-picker .wp-picker-container.wp-picker-active {
+	right: 50%;
 }
 .acf-fields > .acf-field.acf-field--post-title label {
 	display: none;
@@ -219,11 +228,26 @@ a.wiz-button:hover {
 	font-size: 20px;
 }
 
-#builder-chunks {
+.acf-field[data-name="chunk_settings"] .acf-field {
+	text-align: center!important;
+}
+.acf-field[data-name="raw_html"] textarea,
+.acf-field[data-name="raw_css"] textarea {
+	background-color: #222;
+	color: #fff;
+	padding: 15px;
+}
+.acf-field-post-object .acf-input {
+	z-index: 900;
+}
+.gradient-direction-buttons .fa-rotate-by {
+	--fa-rotate-angle: 45deg;
 }
 .scrollSpace {
 	padding-top: 75vh;
 }
+
+
 #id-chunks-creator {
 	background-color: #fff;
 }
@@ -294,9 +318,20 @@ a.wiz-button:hover {
 
 .fullScreenButtons {
 	display: flex;
-	justify-content: space-between;
-	margin-bottom: 10px;
+	justify-content: flex-start;
+	gap: 10px;
+	margin-bottom: 20px;
+	padding-bottom: 10px;
+	align-items: center;
+	border-bottom: 1px solid #343434;
 }
+.fullScreenButtons #copyCode {
+	margin-right: 10px;
+}
+.fullScreenButtons #hideFullCode {
+	margin-left: auto;
+}
+
 
 .template-start-text {
 	background-color: #fff;
@@ -774,9 +809,13 @@ a.wiz-button:hover {
 .acf-hide-field > .acf-label {
 	display: none;
 }
-.acf-fields > .acf-field {
+.acf-hide-label > .acf-label {
+	display: none;
+}
+.acf-fields .acf-input .acf-field {
 	padding: 8px 10px !important;
 }
+
 #acf-_post_title {
 	font-size: 16px;
 	font-weight: bold;
@@ -806,9 +845,23 @@ a.wiz-button:hover {
 	color: #fff !important;
 	padding: 20px !important;
 }
-.acf-field.acf-field-color-picker .acf-label {
+
+.acf-fields .acf-input .acf-clone-fields .acf-field.no-padding
+{
+	padding: 0!important;
 }
-.acf-field.acf-field-color-picker {
+.acf-field-color-picker {
+	text-align: center;
+}
+.acf-field-color-picker .button.wp-color-result {
+	margin: 0!important;
+}
+.layout .snippet-object-links {
+	margin-top: 10px;
+	font-size: 12px;
+}
+.layout .snippet-object-links .snippet-object-link {
+	display: inline-block;
 }
 .acf-color-picker .wp-picker-container.wp-picker-active {
 	padding: 10px;
@@ -821,6 +874,13 @@ a.wiz-button:hover {
 	border: 1px solid #eee !important;
 	border-radius: 5px;
 	line-height: 1 !important;
+}
+.wp-picker-container .wp-color-result-text {
+	display: none;
+}
+.wp-picker-container .wp-color-result.button {
+	width: 60px;
+	height: 30px;
 }
 .acf-color-picker .wp-color-result.wp-picker-open {
 	border: 1px solid #eee;
@@ -842,6 +902,7 @@ a.wiz-button:hover {
 .acf-accordion-title,
 .acf-accordion-title label {
 	cursor: pointer !important;
+	text-align: left!important;
 }
 .acf-accordion-title label .dashicons {
 	margin-right: 10px;
@@ -853,6 +914,15 @@ a.wiz-button:hover {
 .acf-accordion .acf-fields,
 .acf-accordion .acf-field {
 	background-color: #f3f4f5 !important;
+}
+
+/* Remove padding from nested group fields in settings accordians */
+.wiz-chunk-settings .acf-field .acf-field {
+	padding: 0!important;
+}
+#id-chunks-creator > div.acf-fields.acf-form-fields.-top > div.acf-field.acf-field-flexible-content .acf-input.acf-accordion-content > div > div > div.acf-input {
+
+	width: 100%!important;
 }
 /*tinymce stuff*/
 .mce-container .mce-txt {
@@ -878,19 +948,19 @@ a.wiz-button:hover {
 .acf-field-group {
 	padding: 0 !important;
 }
-.acf-field-group .acf-label {
-	padding: 5px 10px 0 0 !important;
+.acf-field-group > .acf-label {
+	padding: 20px 10px 0 10px!important;
 }
 .acf-field-group .acf-fields {
 	border: 0 !important;
 }
 
 /*Generate HTML Styles*/
-#fullScreenCode {
+#fullScreenMode {
 	display: none;
 	position: fixed;
 	width: 1200px;
-	height: 800px;
+	height: calc(100% - 40px);
 	left: 50%;
 	margin-left: -600px;
 	top: 40px;
@@ -913,6 +983,29 @@ pre#generatedCode {
 	color: #eee;
 	line-height: 1.1;
 }
+.previewDisplay {
+	max-height: 80vh;
+	overflow-y: auto;
+}
+	.fullModeViewWrapper {
+		width: 800px;
+		margin: 0 auto;
+		overflow:hidden;
+		border-radius: 5px;
+		border: 1px solid #aaaaaa;
+	}
+	.fullModeViewWrapper.mobile {
+		width: 360px;
+		max-height: 600px;
+		border:6px solid #222222;
+		border-radius: 30px;
+		overflow-y: scroll;
+		scrollbar-width: none; /* For Firefox */
+		-ms-overflow-style: none; /* For Internet Explorer and Edge */
+	}
+	.fullModeViewWrapper.mobile::-webkit-scrollbar {
+		display: none; /* For Chrome, Safari, and Opera */
+	}
 
 .copyConfirm,
 .copySnippetConfirm {
@@ -1696,6 +1789,15 @@ h2.wizArticle-title {
 /* Dashboard Campaigns Table */
 #dashboard-campaigns td.campaignName {
 	white-space: nowrap;
+}
+
+
+/* Snippets */
+
+/* Single Snippet */
+.cm-s-wizTheme {
+	min-height: 300px;
+	height: auto;
 }
 
 /* Reports Pages */

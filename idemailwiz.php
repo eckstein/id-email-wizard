@@ -107,6 +107,7 @@ require_once(plugin_dir_path(__FILE__) . 'includes/databases.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/database-cleanup.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/initiatives.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/journeys.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/wizSnippets.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/comparisons.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/sync.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/manual-import.php');
@@ -115,6 +116,9 @@ require_once(plugin_dir_path(__FILE__) . 'includes/cUrl.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/wiz-rest.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/data-tables.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/charts.php');
+
+require_once(plugin_dir_path(__FILE__) . 'builder-v2/chunks.php');
+
 require_once(plugin_dir_path(__FILE__) . 'includes/wysiwyg.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/template-builder.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/chunk-helpers.php');
@@ -127,8 +131,8 @@ require_once(plugin_dir_path(__FILE__) . 'includes/google-sheets-api.php');
 
 
 // Register custom post types
-add_action('init', 'idemailwiz_create_template_post_types', 0);
-function idemailwiz_create_template_post_types()
+add_action('init', 'idwiz_register_custom_post_types', 0);
+function idwiz_register_custom_post_types()
 {
     $templateLabels = array(
         'name' => 'Templates',
@@ -295,20 +299,24 @@ function idemailwiz_create_template_post_types()
         'public' => true,
         'show_in_rest' => true,
         'menu_icon' => 'dashicons-schedule',
-        'supports' => array(
-            0 => 'title',
-            1 => 'editor',
-            2 => 'thumbnail',
-            3 => 'custom-fields',
-        ),
+        'supports' => ['title', 'editor', 'custom-fields', 'thumbnail'],
         'has_archive' => 'journeys',
-        'rewrite' => array(
-            'feeds' => false,
-        ),
+        'rewrite' => ['slug' => 'journey'],
         'delete_with_user' => false,
     )
     );
 
+    register_post_type('wysiwyg_snippet', [
+        'labels' => ['name' => __('Snippets'), 'singular_name' => __('Snippet')],
+        'public' => true,
+        'has_archive' => 'snippets',
+        'rewrite' => ['slug' => 'snippet'],
+        'supports' => ['title', 'editor', 'custom-fields'], 
+        'delete_with_user' => false,
+        'capability_type' => 'post',
+        'show_in_rest' => true,
+        'show_in_menu' => 'edit.php?post_type=idemailwiz_template',
+    ]);
 
 
 }
@@ -325,6 +333,7 @@ function idemailwiz_custom_archive_templates($tpl)
         $tpl = plugin_dir_path(__FILE__) . 'templates/archive-comparison.php';
     }
     return $tpl;
+
 }
 
 add_filter('archive_template', 'idemailwiz_custom_archive_templates');
@@ -427,6 +436,10 @@ function idemailwiz_template_chooser($template)
     if (get_post_type() == 'journey' && is_single()) {
         return dirname(__FILE__) . '/templates/single-journey.php';
     }
+    
+    if (get_post_type() == 'wysiwyg_snippet' && is_single()) {
+        return dirname(__FILE__) . '/templates/single-snippet.php';
+    }
 
     if (strpos($_SERVER['REQUEST_URI'], '/metrics/campaign') !== false) {
         return dirname(__FILE__) . '/templates/single-campaign.php';
@@ -436,6 +449,12 @@ function idemailwiz_template_chooser($template)
     if (strpos($_SERVER['REQUEST_URI'], '/journeys') !== false) {
         return dirname(__FILE__) . '/templates/journeys.php';
     }
+
+    if (strpos($_SERVER['REQUEST_URI'], '/snippets') !== false) {
+        return dirname(__FILE__) . '/templates/archive-snippet.php';
+    }
+
+    
 
 
     // If user-profile endpoint is accessed
@@ -597,6 +616,9 @@ function idemailwiz_enqueue_assets()
     wp_enqueue_style('font-awesome-6', plugin_dir_url(__FILE__) . 'vendors/Font Awesome/css/all.css', array());
     wp_enqueue_style('flatpickr', 'https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css', array());
 
+    wp_enqueue_style('code-mirror-css', plugin_dir_url(__FILE__) . 'vendors/codemirror-5.65.16/lib/codemirror.css', array());
+    wp_enqueue_style('code-mirror-theme-mbo', plugin_dir_url(__FILE__) . 'vendors/codemirror-5.65.16/theme/mbo.css', array());
+
 
 
     wp_enqueue_style('DataTablesCss', plugin_dir_url(__FILE__) . 'vendors/DataTables/datatables.css', array());
@@ -615,6 +637,13 @@ function idemailwiz_enqueue_assets()
         'id-general' => array('/js/id-general.js', array('jquery')),
         'template-editor' => array('/js/template-editor.js', array('jquery', 'id-general')),
         'template-actions' => array('/js/template-actions.js', array('jquery', 'id-general')),
+        'codemirror' => array('/vendors/codemirror-5.65.16/lib/codemirror.js', array('jquery')),
+        
+        'codemirror-mode-javascript' => array('/vendors/codemirror-5.65.16/mode/javascript/javascript.js', array('jquery', 'codemirror')),
+        'codemirror-mode-css' => array('/vendors/codemirror-5.65.16/mode/css/css.js', array('jquery', 'codemirror')),
+        'codemirror-mode-xml' => array('/vendors/codemirror-5.65.16/mode/xml/xml.js', array('jquery', 'codemirror')),
+        'codemirror-mode-html' => array('/vendors/codemirror-5.65.16/mode/htmlmixed/htmlmixed.js', array('jquery', 'codemirror-mode-css', 'codemirror-mode-javascript', 'codemirror-mode-xml')),
+        'wizSnippets' => array('/js/wizSnippets.js', array('jquery', 'id-general', 'codemirror')),
         'folder-actions' => array('/js/folder-actions.js', array('jquery', 'id-general')),
         'user-favorites' => array('/js/user-favorites.js', array('jquery', 'id-general')),
         'bulk-actions' => array('/js/bulk-actions.js', array('jquery', 'id-general', 'folder-actions', 'template-actions')),

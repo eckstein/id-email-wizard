@@ -10,6 +10,7 @@ function idemailwiz_create_databases() {
         createdAt BIGINT,
         updatedAt BIGINT,
         startAt BIGINT,
+        wizSentAt BIGINT,
         endedAt BIGINT,
         name VARCHAR(255),
         templateId INT,
@@ -935,7 +936,7 @@ function idwiz_populate_cohort( $cohort_type, $cohort_value_callback ) {
 
 	// Loop through each purchase
 	foreach ( $purchases as $purchase ) {
-		$accountNumber = $purchase['accountNumber'];
+		$accountNumber = $purchase['accountNumber'] ?? 0;
 		$orderId = $purchase['orderId'];
 		$purchaseDate = $purchase['purchaseDate'];
 		$purchaseMedium = $purchase['shoppingCartItems_utmMedium'];

@@ -51,14 +51,14 @@ jQuery(document).ready(function ($) {
 		if (layout.is(":visible")) {
 			// Recalculate positions to ensure they are up-to-date
 			var previewScrollPos = $(chunk).offset().top - 130;
-			preview.find("body, html").animate({ scrollTop: previewScrollPos }, 200);
-
 			var builder = $("#templateUI .left");
+
+			preview.find("body, html").animate({ scrollTop: previewScrollPos }, 100);			
 
 			// Make sure the builder element is present and visible before scrolling
 			if (builder.length > 0 && builder.is(":visible")) {
 				var scrollPosBuilder = layout.offset().top - builder.offset().top + builder.scrollTop() - 200;
-				builder.animate({ scrollTop: scrollPosBuilder }, 200);
+				builder.animate({ scrollTop: scrollPosBuilder }, 100);
 			} else {
 				console.log("Builder element not found or not visible");
 			}
@@ -68,18 +68,74 @@ jQuery(document).ready(function ($) {
 	}
 
 
+
+	// Function to update the TinyMCE background color
+	function updateTinyMceBackground(tinyMceEditor, color) {
+		tinyMceEditor.getBody().style.backgroundColor = color;
+	}
+
+	function setAcfBgColorForTinyMCE(tinyMceEditor, field) {
+		// Existing code to set the background color
+		var layoutElement = field.$el.closest('.layout').length ? field.$el.closest('.layout') : field.$el.parent();
+		var colorPicker = layoutElement.find('.chunkMainBgPicker input');
+		if (colorPicker.length) {
+			var color = colorPicker.val();
+			updateTinyMceBackground(tinyMceEditor, color);
+		}
+
+
+	}
+
+
+	// ACF action for WYSIWYG TinyMCE initialization
+	acf.addAction('wysiwyg_tinymce_init', function(ed, id, mceInit, field) {
+		setAcfBgColorForTinyMCE(ed, field);
+	});
+
+
+
+
+
+	// Function to handle color picker changes
+	function onColorPickerChange(colorPicker) {
+		var color = colorPicker.val();
+		var layoutElement = colorPicker.closest('.layout').length ? colorPicker.closest('.layout') : colorPicker.parent();
+        
+		// Find the TinyMCE iframe within the same layout or parent element
+		var tinyMceIframe = layoutElement.find('iframe').filter(function() {
+			return $(this).contents().find('.mce-content-body').length > 0;
+		});
+
+		if (tinyMceIframe.length) {
+			// Get the TinyMCE editor instance and update its background color
+			var editorId = tinyMceIframe.attr('id').split('_ifr')[0];
+			var editor = tinyMCE.get(editorId);
+			if (editor) {
+				updateTinyMceBackground(editor, color);
+			}
+		}
+	}
+
+	// Listen for changes on bg color picker inputs
+	$(document).on('change', '.chunkMainBgPicker input', function() {
+		onColorPickerChange($(this));
+	});
+
+
+
 	//When a new layout field is added
 	acf.addAction("append", function ($el) {
 		// Wait for 1 second and then simulate a click on the new layout
 		// This will auto-open the newly added field. Turned off for now since it's annoying
 		setTimeout(function () {
-			$el.find(".acf-fc-layout-handle").click().click();
+			//$el.find(".acf-fc-layout-handle").click().click();
 		}, 1000);
 
 		// Look within $el for .acf-fc-layout-handle elements and attach event handlers
 		$el.find(".acf-fc-layout-handle").on("click", function () {
 			idwiz_handle_layout_click($(this));
 		});
+
 	});
 
 	var initialLayoutOrder = [];
@@ -158,6 +214,7 @@ jQuery(document).ready(function ($) {
 		// Add active class to the clicked layout
 		if (layout.hasClass("-collapsed")) {
 			correspondingChunkWrap.addClass("active");
+			//initAcfBackgroundColors();
 		} 
 
 		if (!isChildLayout && layout.hasClass("-collapsed")) {
@@ -167,32 +224,27 @@ jQuery(document).ready(function ($) {
 
 		// Highlight the specific child element for child layouts
 		if (isChildLayout) {
-			var childIndex = layout.attr("data-id");
-			var inputName = layout.children("input").attr("name");
-			var nameParts = inputName ? inputName.split("][") : [];
-			var parentFieldId = null;
+			var childIndex = layout.attr("data-id"); // Get the data-id (row index) of the clicked layout
 
-			// Check if the nameParts array has the expected number of parts
-			if (nameParts.length > 2) {
-				var thirdBracketContent = nameParts[2]; // Content of the third set of brackets
-				parentFieldId = thirdBracketContent;
-			}
+			// Find the corresponding chunkWrap in the preview pane
+			var correspondingChunkWrap = previewPane.find('.chunkWrap[data-id="' + layoutDataId + '"]');
 
-			var correspondingChild = correspondingChunkWrap.find('[data-content-index="' + childIndex + '"][data-parent-field-id="' + parentFieldId + '"]');
-			correspondingChild.siblings().removeClass("active");
+			// Find the specific child element within the corresponding chunkWrap
+			var correspondingChild = correspondingChunkWrap.find('.child-chunkWrap[data-content-index="' + childIndex + '"]');
+
+			correspondingChild.siblings().removeClass("active"); // Remove active class from siblings
+
 			if (correspondingChild.length) {
-				if (correspondingChild.hasClass("active")) {
-					correspondingChild.removeClass("active");
-				} else {
-					correspondingChild.addClass("active");
-				}
+				correspondingChild.toggleClass("active"); // Toggle active class on the corresponding child
+				scrollPanes(previewPane, correspondingChild, layout); // Scroll to the corresponding child
 			} else {
 				console.log("No corresponding child found."); // Debug log
 			}
-			scrollPanes(previewPane, correspondingChild, layout);
+			//scrollPanes(previewPane, correspondingChild, layout);
 		}
-	}
 
+	}
+	
 	//Update preview on page load
 	$(function () {
 		// Check for the chunks creator, indicating we're on a template edit page
@@ -218,12 +270,12 @@ jQuery(document).ready(function ($) {
 		}
 
 		//check for separators toggle
-		var sepsToggle = $(".toggle-separators.active");
-		if (sepsToggle[0]) {
-			var showseps = true;
-		} else {
-			var showseps = false;
-		}
+		// var sepsToggle = $(".toggle-separators.active");
+		// if (sepsToggle[0]) {
+		// 	var showseps = true;
+		// } else {
+		// 	var showseps = false;
+		// }
 		var templateId = $("#templateUI").data("postid");
 		clearTimeout(timeoutId);
 		timeoutId = setTimeout(function () {
@@ -232,7 +284,7 @@ jQuery(document).ready(function ($) {
 			formData.append("action", "idemailwiz_build_template");
 			formData.append("security", idAjax_template_editor.nonce);
 			formData.append("mergetags", mergetags);
-			formData.append("showseps", showseps);
+			//formData.append("showseps", showseps);
 			formData.append("templateid", templateId);
 			formData.append("previewMode", previewMode);
 
@@ -267,37 +319,59 @@ jQuery(document).ready(function ($) {
 		idwiz_updatepreview();
 	});
 
-	//Retrieve, generate, and show the full template HTML
-	$("#showFullCode").on("click", function () {
+
+	$(".showFullMode").on("click", function () {
+		var mode = $(this).attr('data-preview-mode');
+
 		toggleOverlay(true);
+		$('body').css('overflow', 'hidden');
 		var templateId = $(this).data("postid");
 
 		var additionalData = {
 			template_id: templateId,
+			mode: mode
 		};
 
-		function successCallback(data) {
-			var codeBox = $("#generatedCode code");
-			codeBox.html(data);
-			hljs.highlightElement(codeBox[0]);
-			$("#fullScreenCode").show();
-			$("#generatedHTML").scrollTop(0);
+		idemailwiz_do_ajax("idemailwiz_generate_template_html", idAjax_template_editor.nonce, additionalData, getTemplateSuccess, getTemplateError, "html");
+
+		function getTemplateSuccess(data) {
+			if ($("#fullScreenMode").length === 0) {
+				generateTemplateEditorPopup(mode);
+			}
+
+			var container = $(".fullScreenModeInnerScroll .previewDisplay");
+        
+			if (mode === 'code') {
+				container.html('<pre><code>' + data + '</code></pre>');
+				hljs.highlightElement(container.find('code')[0]);
+			} else {
+				container.html(data); // Directly render HTML for preview
+			}
+
+			$("#fullScreenMode").show();
+			$(".fullScreenModeInnerScroll").scrollTop(0);
+			toggleOverlay(true);
+			
 		}
 
-		function errorCallback(xhr, status, error) {
-			// Handle the error here
+		function getTemplateError(xhr, status, error) {
+			console.log('Error retrieving or generating template HTML!');
 		}
-
-		idemailwiz_do_ajax("idemailwiz_generate_template_html", idAjax_template_editor.nonce, additionalData, successCallback, errorCallback, "html");
 	});
+
+	
+
 
 	//Close code popup
-	$("#hideFullCode").on("click", function () {
-		$("#fullScreenCode").hide();
+	$(document).on("click", "#hideFullCode", function() {
+		$("#fullScreenMode").hide();
 		toggleOverlay(false);
+		$('body').css('overflow', 'auto');
 	});
-	//Copy code in the popup
-	$("#copyCode").on("click", function () {
+
+	// Copy code in the popup
+	$(document).on("click", "#copyCode", function() {
+		var originalText = $(this).html(); // Store the original button text
 		var html = $("#generatedCode code").text();
 		var tempInput = document.createElement("textarea");
 		tempInput.style = "position: absolute; left: -1000px; top: -1000px";
@@ -306,11 +380,76 @@ jQuery(document).ready(function ($) {
 		tempInput.select();
 		document.execCommand("copy");
 		document.body.removeChild(tempInput);
-		$(this).text("Code copied!", function () {
-			setTimeout(function () {
-				$(this).text("Copy code");
-			}, 5000);
-		});
+
+		$(this).html("<i class='fa-solid fa-check'></i>&nbsp;Code copied!");
+
+		// Set a timeout to revert back to the original text after 5 seconds
+		setTimeout(() => {
+			$(this).html(originalText);
+		}, 5000);
+	});
+
+
+
+	$(document).on("click", "#fullModeDesktop", function() {
+		$(this).addClass('green');
+		$('#fullModeMobile').removeClass('green');
+		$('.fullModeViewWrapper').removeClass('mobile');
+		$('#fullModePreview > p').remove();
+	});
+	$(document).on("click", "#fullModeMobile", function() {
+		$(this).addClass('green');
+		$('#fullModeDesktop').removeClass('green');
+		$('.fullModeViewWrapper').addClass('mobile');
+		$('#fullModePreview').prepend('<p style="text-align: center;"><em>Use the mouse wheel or arrow keys to scroll</em></p>');
+	});
+
+
+	// Generate full-code popup
+	function generateTemplateEditorPopup(view = 'code') {
+		var popupHtml = `
+			<div id="fullScreenMode">
+				<div class="fullScreenButtons">`;
+			if (view == 'code') {
+			popupHtml += `
+					<div class="wiz-button green" id="copyCode"><i class="fa-regular fa-copy"></i>&nbsp;Copy Code</div>`;
+			} else {
+			popupHtml += `<div class="wiz-button green" id="fullModeDesktop"><i class="fa-solid fa-desktop"></i></div>
+					<div class="wiz-button" id="fullModeMobile"><i class="fa-solid fa-mobile-screen-button"></i></div>`;
+			}
+			popupHtml += `<button class="wiz-button" id="hideFullCode"><i class="fa-solid fa-circle-xmark fa-2x"></i></button>
+				</div>`;
+		if (view == 'code') {
+
+		popupHtml += `
+		<div id="generatedHTML" class="fullScreenModeInnerScroll">
+			<pre id="generatedCode">
+				<code class="language-html previewDisplay">
+					Code here.
+				</code>
+			</pre>
+		</div>`;
+		} else {
+		popupHtml += `
+		<div id="fullModePreview">
+			<div class="fullScreenModeInnerScroll">
+				<div class="previewDisplay">
+					Preview here.
+				</div>
+			</div>
+		</div>`;
+		}
+		popupHtml += `</div>`;
+		$("body").append(popupHtml);
+	}
+
+	// Hide code on click outside box
+	$(document).on("click", function(event) {
+		if (!$(event.target).closest("#fullScreenMode").length && $("#fullScreenMode").is(":visible")) {
+			$("#fullScreenMode").hide();
+			$('body').css({ overflow: 'auto' });
+			toggleOverlay(false);
+		}
 	});
 
 	//Save the template title when updated
@@ -350,24 +489,26 @@ jQuery(document).ready(function ($) {
 
 			
 
-			// Click the builder tab in case we're on a settings tabs
+			// Click the builder tab in case we're on a settings tab
 			$("#id-chunks-creator > .acf-fields > .acf-tab-group li:first-child").click();
 
-			var parentFieldId = $(this).closest(".child-chunkWrap").attr("data-parent-field-id");
-			var contentIndex = $(this).closest(".child-chunkWrap").attr("data-content-index");
+			var contentIndex = $(this).attr("data-content-index");
+			var parentFieldId = $(this).attr("data-parent-field-id");
 
-			attachedEditor = $("body")
-				.find(".layout")
-				.filter(function () {
-					var inputName = $(this).find("input").attr("name");
-					return inputName && inputName.includes(parentFieldId) && $(this).attr("data-id") === contentIndex;
-				});
+			// Find the parent field container
+			var parentField = $("body").find("[data-name='" + parentFieldId + "']");
+
+			// Within the parent, find the specific layout with matching data-id
+			attachedEditor = parentField.find(".layout").filter(function () {
+				return $(this).attr("data-id") === contentIndex;
+			});
 
 			var self = this; // Capture the context outside setTimeout
 
 			setTimeout(function () {
 				if (!attachedEditor.is(":visible")) {
-					var tabs = attachedEditor.closest(".acf-field").siblings(".acf-tab-wrap").find(".acf-tab-group li a");
+					
+					var tabs = $(parentField).siblings(".acf-tab-wrap").find (".acf-tab-button");
 					var found = false; // Variable to track if a matching tab is found
 
 					tabs.each(function (index, tab) {
@@ -407,12 +548,6 @@ jQuery(document).ready(function ($) {
 
 		preview.find(".chunkWrap").click(function (e) {
 			//console.log("chunkWrap clicked");
-			if ($(this).hasClass("interactive")) {
-				return;
-			}
-			if ($(this).hasClass("showChunkCode")) {
-				$(this).closest(".chunkCode").show();
-			} 
 			if ($(this).hasClass("child-chunkWrap")) {
 				e.stopPropagation();
 				return false;
@@ -439,10 +574,14 @@ jQuery(document).ready(function ($) {
 
 			$(this).addClass("active");
 
-			// Click the builder tab in case we're on a settings tabs
-			$(".acf-tab-group li:first-child").click();
+			var firstTab = $('#id-chunks-creator > .acf-fields > .acf-tab-wrap li:first-child a.acf-tab-button');
 
-			// Scroll to layout
+			// Click on the first tab
+			if (firstTab.length > 0) {
+				firstTab.trigger('click');
+			}
+
+			// Your existing scrolling function
 			scrollPanes(preview, this, attachedEditor);
 		});
 
@@ -469,8 +608,8 @@ jQuery(document).ready(function ($) {
 					var codeBox = $("body").find("#generatedCode code");
 					codeBox.html(html);
 					hljs.highlightElement(codeBox[0]);
-					$("body").find("#fullScreenCode").show();
-					$("body").find("#generatedHTML").scrollTop(0);
+					$("body").find("#fullScreenMode").show();
+					$("body").find(".fullScreenModeInnerScroll").scrollTop(0);
 				},
 				function (xhr, status, error) {
 					// Error Callback
@@ -480,5 +619,98 @@ jQuery(document).ready(function ($) {
 			);
 		});
 	};
+
+	$(document).on("click", ".new-snippet", function () {
+		Swal.fire({
+			title: "Create New Snippet",
+			input: "text",
+			inputPlaceholder: "Enter snippet title...",
+			showCancelButton: true,
+			cancelButtonText: "Cancel",
+			confirmButtonText: "Create",
+		}).then((result) => {
+			if (result.isConfirmed) {
+				const title = result.value;
+
+				idemailwiz_do_ajax(
+					"idemailwiz_create_new_snippet",
+					idAjax_template_editor.nonce,
+					{ postTitle: title },
+					function (success) {
+						//console.log(data);
+						var postUrl = idAjax_template_editor.site_url + "/?p=" + success.data.post_id;
+						window.open(postUrl, '_blank'); // Opens the link in a new tab
+						Swal.fire("Success!", "Snippet was created and opened in a new tab. Or <a href='"+postUrl+"'>click here to go there directly</a>.", "success");
+					},
+					function (error) {
+						console.log(error);
+						Swal.fire("Error", "An error occurred. Check the console for details.", "error");
+					}
+				);
+			}
+		});
+	});
+	
 });
+
+(function($){
+
+	// Function to update links
+	function updatePostObjectLinks(selectField) {
+		// Clear any existing link
+		selectField.closest('.acf-field-post-object').find('.post-object-link').remove();
+
+		// Get the selected option(s)
+		var selectedOptions = selectField.find('option:selected');
+
+		// If there's a selected option
+		if(selectedOptions.length){
+			var linkHtml = '<div class="snippet-object-links"><a href="#" class="new-snippet"><i class="fa-solid fa-circle-plus"></i>&nbsp;&nbsp;Create New Snippet</a><br/><br/>Edit: ';
+			// For single select fields
+			if(!selectField.attr('multiple')){
+				var postId = selectedOptions.val();
+				var postTitle = selectedOptions.text();
+				linkHtml += '<div class="snippet-object-link"><a href="?p='+postId+'" target="_blank">'+postTitle+'</a></div>';
+
+				// Append the link after the select2 container
+				selectField.closest('.acf-input').append(linkHtml);
+			}
+
+			// For multi-select fields
+			else{
+				var linksHTML = '<div class="post-object-links">';
+				selectedOptions.each(function(){
+					var postId = $(this).val();
+					var postTitle = $(this).text();
+					linksHTML += '<div class="snippet-object-link"><a href="?p='+postId+'" target="_blank">'+postTitle+'</a></div>';
+				});
+				linksHTML += '</div>';
+
+				// Append the links after the select2 container
+				selectField.closest('.acf-input').append(linksHTML);
+			}
+			linkHtml += '</div>';
+		}
+		
+	}
+
+	// When the document is ready
+	$(document).ready(function(){
+
+		// Update links on page load for each post object field within the 'html' layout of a flexible content field
+		$('.layout[data-layout="html"] .acf-field-post-object select').each(function(){
+			updatePostObjectLinks($(this));
+		});
+
+		// When the ACF field is changed
+		$('.layout[data-layout="html"] .acf-field-post-object select').on('change', function(){
+			updatePostObjectLinks($(this));
+		});
+
+	});
+
+})(jQuery);
+
+
+
 

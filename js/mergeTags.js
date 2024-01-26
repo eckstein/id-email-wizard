@@ -1,3 +1,38 @@
+tinymce.PluginManager.add('capitalize_button', function(editor) {
+	editor.addButton('capitalize_button', {
+		text: 'aA',
+		icon: false,
+		tooltip: 'Toggle Uppercase',
+		onclick: function() {
+			editor.undoManager.transact(function() {
+				var selectedNode = editor.selection.getNode();
+				var selectedContent = editor.selection.getContent({format: 'html'});
+
+				if (selectedNode.nodeName === 'SPAN' && selectedNode.style.textTransform === 'uppercase') {
+					// Remove the uppercase style
+					selectedNode.style.textTransform = '';
+					if (!selectedNode.getAttribute('style')) {
+						// If no other styles are left, unwrap the span tag
+						editor.selection.setContent(editor.dom.getOuterHTML(selectedNode.firstChild));
+					}
+				} else {
+					// Apply uppercase style
+					var content = '';
+					if (selectedNode.nodeName === 'SPAN') {
+						// Merge styles if already in a span
+						selectedNode.style.textTransform = 'uppercase';
+						content = editor.dom.getOuterHTML(selectedNode);
+					} else {
+						// Wrap the selected text in a span with the uppercase style
+						content = '<span style="text-transform: uppercase;">' + selectedContent + '</span>';
+					}
+					editor.selection.setContent(content);
+				}
+			});
+		}
+	});
+});
+
 
 tinymce.PluginManager.add('merge_tags_button', function(editor, url) {
   // Define the custom values for each menu item here

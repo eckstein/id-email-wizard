@@ -83,7 +83,7 @@ $colText .= '
 <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" align="center" style="width:100%;max-width:100%;">
 <tr>
     <td class="text responsive-text '.$textPadding.' '.$align.'-text '.$centerMobile.'" valign="middle" align="'.$align.'" style="'.$textPadding.' font-family:Poppins, sans-serif;color:'.$fontColor.' !important;text-decoration:none;">
-    '.idwiz_pReplace(wpautop($textContent)).'
+    '.wpautop($textContent).'
     </td>
 </tr>
 </table>

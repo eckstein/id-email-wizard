@@ -118,9 +118,9 @@ $activeTab = $_GET['view'] ?? 'Active';
                             $firstSendDate = 0;
                         }
                         ?>
-                        <tr data-initid="<?php echo get_the_ID(); ?>" class="<?php echo $isFavorite; ?>">
+                        <tr data-initid="<?php echo get_the_ID(); ?>" >
                             <td>
-                                <?php echo $isFavorite; ?>
+                                
                             </td>
                             <td>
                                 <a href="<?php echo get_the_permalink(); ?>">

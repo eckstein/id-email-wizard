@@ -156,7 +156,8 @@ jQuery(document).ready(function ($) {
 			const fromSender = messageType == "Transactional" ? config.TRANSACTIONAL_FROM_EMAIL : config.PROMOTIONAL_FROM_EMAIL;
 
 			const additionalData = {
-				template_id: postId
+				template_id: postId,
+				mode: 'code'
 			};
 
 			idemailwiz_do_ajax('idemailwiz_generate_template_html', idAjax_template_editor.nonce, additionalData, getHTMLsuccessCallback, getHTMLerrorCallback, 'html');

@@ -11,11 +11,21 @@
     <!-- Link to Google Fonts -->
     <link href="https://fonts.googleapis.com/css?family=Poppins:400,500" rel="stylesheet" />
     <title></title>
+
     <!--[if mso]>
     <style type="text/css">
     table {border-collapse:collapse;border:0;border-spacing:0;margin:0;}
     div, td {padding:0;}
     div {margin:0 !important;}
+    .desktop-only {
+        display: block; 
+    }
+    table.desktop-only {
+        display: table;
+    }
+    .mobile-only {
+        display: none;
+    }
     </style>
   <noscript>
     <xml>
@@ -25,6 +35,9 @@
     </xml>
   </noscript>
   <![endif]-->
+
+
+
     <style type="text/css">
         *,
         html,
@@ -32,28 +45,28 @@
             font-family: Poppins, sans-serif;
         }
 
-        @media screen and (max-width: 350px) {
-            .three-col .column {
-                max-width: 100% !important;
-            }
-        }
-
-        @media screen and (min-width: 351px) and (max-width: 460px) {
-            .three-col .column {
-                max-width: 50% !important;
-            }
-        }
-
+        /* Mobile Only Styles */
         @media screen and (max-width: 460px) {
+            .three-col .column {
+                max-width: 100% !important;;
+            }
+
             .two-col .column {
                 max-width: 100% !important;
+                display: block;
             }
 
             .two-col img {
                 width: 100% !important;
             }
+
+            .desktop-only {
+                display: none; /* Hide desktop-only content on mobile */
+            }
         }
 
+
+        /* Desktop Only Styles */
         @media screen and (min-width: 461px) {
             .three-col .column {
                 max-width: 33.3% !important;
@@ -61,23 +74,28 @@
 
             .two-col .column {
                 max-width: 50% !important;
+                display: table-cell;
             }
 
-            .sidebar .small {
-                max-width: 16% !important;
+            .desktop-only {
+                display: block; /* Ensure desktop-only content is visible */
             }
-
-            .sidebar .large {
-                max-width: 84% !important;
+            table.desktop-only {
+                display: table; /* Specifically for tables with desktop-only class */
+            }
+    
+            .mobile-only {
+                display: none; /* Hide mobile-only content on desktop */
             }
         }
+
     </style>
 </head>
 
 <body style="margin:0;padding:0;word-spacing:normal;background-color:#ffffff;">
     <div role="article" aria-roledescription="email" lang="en"
         style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;background-color:#ffffff;">
-        <table role="presentation" style="width:100%;border:0;border-spacing:0;">
+        <table role="presentation" style="width:100%;border:0;border-spacing:0;table-layout:fixed;">
             <tr>
                 <td align="center">
                     <!--[if mso]>
