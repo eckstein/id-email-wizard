@@ -21,7 +21,7 @@ global $wpdb;
 
 		<div class="wizcampaign-sections-row">
 			<div class="wizcampaign-section inset" id="campaign-monitor">
-				<h2>Campaign MonitorInc</h2>
+				<h2>Campaign Monitor</h2>
 				<?php
 				$triggeredDataArgs['fields'] = 'campaignId, startAt';
 				$triggeredDataArgs['startAt_start'] = date( 'Y-m-d', strtotime( '- 1 month' ) );
