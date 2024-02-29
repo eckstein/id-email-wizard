@@ -9,7 +9,7 @@ global $wpdb;
 	<header class="wizHeader">
 		<div class="wizHeaderInnerWrap">
 			<div class="wizHeader-left">
-				<h1 class="wizEntry-title" itemprop="name">Campaign Monitor</h1>
+				<h1 class="wizEntry-title" itemprop="name">Incoming Data Monitor</h1>
 			</div>
 			<div class="wizHeader-right">
 				<!-- Additional header actions if needed -->
@@ -21,7 +21,7 @@ global $wpdb;
 
 		<div class="wizcampaign-sections-row">
 			<div class="wizcampaign-section inset" id="campaign-monitor">
-				<h2>Incoming Data Monitor</h2>
+				<h2>Campaign MonitorInc</h2>
 				<?php
 				$triggeredDataArgs['fields'] = 'campaignId, startAt';
 				$triggeredDataArgs['startAt_start'] = date( 'Y-m-d', strtotime( '- 1 month' ) );
