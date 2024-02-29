@@ -1,67 +1,73 @@
 <style type="text/css">
-	.chunkWrap,
-	.child-chunkWrap {
-		position: relative;
-		cursor: pointer;
-    box-sizing: border-box;
+	.outer {
+		outline: dashed;
+		outline-width: 2px;
+		outline-color: #eeeeee;
 	}
-
-	.chunkWrap.hide-seps {
-		border: 0;
+	.editor-row-wrapper,
+	.editor-column-wrapper,
+	.editor-chunk-wrapper {
+		position: relative; /* Ensure stacking context */
+		z-index: 1; /* Base z-index */
 	}
-	.chunkWrap td {
-		color: #222 !important;
-	}
-
-	.chunkWrap.active {
-		outline: 2px solid #222222 !important;
-    outline-offset: -2px;
-	}
-	.child-chunkWrap.active {
-    outline: 2px solid #222222 !important;
-    outline-offset: -2px;
-	}
-
-	.chunkWrap:hover,
-	.child-chunkWrap:hover {
-    outline: 2px solid #63e4bd;
-    outline-offset: -2px;
-	}
-
-	.chunkWrap:hover .chunkOverlay {
-		display: block;
-	}
-	.chunkWrap.hiddenChunk {
-		border: 0 !important;
-	}
-	.chunkOverlay {
-		display: none;
+	
+	.editor-column-wrapper::before,
+	.editor-chunk-wrapper::before {
+		content: '';
 		position: absolute;
-		top: 5px;
-		right: 5px;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		pointer-events: none;
+		box-sizing: border-box;
+		opacity: 0; /* Hidden by default */
+		transition: opacity 0.3s ease-in-out, transform 0.3s ease; /* Smooth transitions for hover and animation */
 	}
-	.chunkOverlay .chunk-label {
+
+	.editor-column-wrapper::before {
+		border: 2px dashed #00f;
+		z-index: 2; /* Ensure it's above the row but below active/highlighted elements */
+	}
+
+	.editor-chunk-wrapper::before {
+		background-color: rgba(255, 255, 0, 0.5);
 		font-size: 12px;
-		padding: 5px;
-		background-color: rgba(0, 0, 0, 0.9);
-		color: #fff;
-		display: inline-block;
-		margin-right: 10px;
+		color: #000;
+		padding: 4px;
+		z-index: 3; /* Ensure it's on top for visibility */
 	}
-	.showChunkCode {
-		background-color: #000;
-		color: #fff;
-		border-radius: 0px;
-		padding: 5px 15px;
-		cursor: pointer;
-		border: 0;
+
+	/* Only show decorations on hover or when active */
+	.editor-column-wrapper:hover::before,
+	.editor-chunk-wrapper:hover::before,
+	.editor-column-wrapper.active::before,
+	.editor-chunk-wrapper.active::before {
+		opacity: 1; /* Make visible on hover/active */
 	}
-	.showChunkCode:hover {
-		background-color: #94d40a;
+
+	/* Subtle animation to draw attention to active elements */
+	.editor-column-wrapper.active::before,
+	.editor-chunk-wrapper.active::before {
+		animation: pulseAnimation 1.5s infinite;
 	}
+
+	/* Keyframes for the pulse effect */
+	@keyframes pulseAnimation {
+		0% { transform: scale(1); opacity: 1; }
+		50% { transform: scale(1.05); opacity: 0.7; }
+		100% { transform: scale(1); opacity: 1; }
+	}
+
+
+
 
 	.preview-scrollspace {
 		height: 100%;
 		background-color: #fff;
+	}
+
+	@media screen and (max-width: 460px) {
+
 	}
 </style>

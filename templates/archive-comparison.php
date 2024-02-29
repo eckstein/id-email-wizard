@@ -74,7 +74,7 @@ $activeTab = $_GET['view'] ?? 'Active';
                                 <?php echo $campaignSets['sets']['0']['setName'] ?? 'Campaign Set 1'; ?>
                             </td>
                             <td>
-                            <?php echo $campaignSets['sets']['0']['setName'] ?? 'Campaign Set 1'; ?>
+                            <?php echo $campaignSets['sets']['1']['setName'] ?? 'Campaign Set 2'; ?>
                             </td>
                             
                         </tr>

@@ -44,7 +44,7 @@ jQuery(document).ready(function ($) {
 			},
 			//serverSide: true,
 			order: [
-				[2, "asc"],
+				[2, "desc"],
 				[1, "desc"],
 			],
 			autoWidth: false,
@@ -324,16 +324,7 @@ jQuery(document).ready(function ($) {
 					searchBuilderType: "string",
 					visible: false
 				},
-				{
-					data: "message_medium",
-					name: "message_medium",
-					title: "Medium",
-					className: "idwiz_searchBuilder_enabled",
-					searchBuilderType: "string",
-					searchBuilder: {
-						defaultCondition: '='
-					},
-				},
+				
 				{
 					data: "experiment_ids",
 					name: "experiment_ids",
@@ -383,7 +374,7 @@ jQuery(document).ready(function ($) {
 				{
 					data: "wiz_delivery_rate",
 					name: "wiz_delivery_rate",
-					title: "Deliv. Rate",
+					title: "Delivery",
 					render: function (data) {
 						return parseFloat(data).toFixed(2) + "%";
 					},
@@ -403,7 +394,7 @@ jQuery(document).ready(function ($) {
 				{
 					data: "wiz_open_rate",
 					name: "wiz_open_rate",
-					title: "Open Rate",
+					title: "Opened",
 					render: function (data) {
 						return parseFloat(data).toFixed(2) + "%";
 					},
@@ -443,7 +434,7 @@ jQuery(document).ready(function ($) {
 				{
 					data: "unique_unsubscribes",
 					name: "unique_unsubscribes",
-					title: "Unsubs.",
+					title: "Unsubs",
 					type: "num",
 					render: function (data, type, row) {
 						return $.fn.dataTable.render.number(",", "").display(data);
@@ -455,7 +446,7 @@ jQuery(document).ready(function ($) {
 				{
 					data: "wiz_unsub_rate",
 					name: "wiz_unsub_rate",
-					title: "Unsub. Rate",
+					title: "Unsubed",
 					render: function (data) {
 						return parseFloat(data).toFixed(2) + "%";
 					},
@@ -497,12 +488,15 @@ jQuery(document).ready(function ($) {
 					data: "ga_revenue",
 					name: "ga_revenue",
 					title: "GA Revenue",
-					type: "num",
-					render: function (data) {
-						return "$" + parseFloat(data).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+					render: function (data, type) {
+						if (type === 'display') {
+							return "$" + parseFloat(data).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+						}
+						return data; // Return unformatted data for sorting/filtering
 					},
 					className: "idwiz_searchBuilder_enabled",
 					searchBuilderType: "num-fmt",
+					type: 'num', // Explicitly specify the type as numeric
 				},
 				{
 					data: "template_subject",
@@ -556,12 +550,14 @@ jQuery(document).ready(function ($) {
 					},
 				},
 				{
-					data: "campaign_labels",
-					name: "campaign_labels",
-					title: "Labels<div style='margin-right: 150px;'></div>",
-					type: "num",
+					data: "message_medium",
+					name: "message_medium",
+					title: "Medium",
 					className: "idwiz_searchBuilder_enabled",
 					searchBuilderType: "string",
+					searchBuilder: {
+						defaultCondition: '='
+					},
 				},
 				{
 					data: "campaign_id",
@@ -573,6 +569,7 @@ jQuery(document).ready(function ($) {
 						defaultCondition: '='
 					},
 				},
+				
 			];
 		}
 

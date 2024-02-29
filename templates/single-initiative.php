@@ -116,7 +116,7 @@
 				<div class="wizcampaign-sections-row">
 					<div id="initiative-campaigns-table" class="wizcampaign-section inset span4">
 
-						<table class="idemailwiz_table display idemailwiz-simple-table"
+						<table class="idemailwiz_table display idwiz-initiative-table"
 							id="idemailwiz_initiative_campaign_table" style="width: 100%; vertical-align: middle;"
 							valign="middle" width="100%"
 							data-campaignids='<?php echo json_encode( $associated_campaign_ids ); ?>'>

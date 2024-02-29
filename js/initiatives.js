@@ -473,14 +473,14 @@ jQuery(document).ready(function ($) {
 		}
 	}
 
-	if ($(".idemailwiz-simple-table").length) {
+	if ($(".idwiz-initiative-table").length) {
 		// Custom sorting for date format 'm/d/Y'
 		$.fn.dataTable.ext.type.order["date-mdy-pre"] = function (dateString) {
 			var dateParts = dateString.split("/");
 			return new Date(dateParts[2], dateParts[0] - 1, dateParts[1]).getTime(); // Month is 0-indexed
 		};
 
-		var idemailwiz_initiative_campaign_table = $(".idemailwiz-simple-table").DataTable({
+		var idemailwiz_initiative_campaign_table = $(".idwiz-initiative-table").DataTable({
 			dom: '<"#wiztable_top_wrapper"><"wiztable_toolbar" <"#wiztable_top_search" f><"#wiztable_top_dates">  B>rtp',
 			columnDefs: [
 				{ targets: "campaignDate", type: "date-mdy" },

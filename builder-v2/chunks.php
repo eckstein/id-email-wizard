@@ -1,51 +1,20 @@
 <?php
-function get_visibility_class_and_style( $chunk ) {
-	// Default visibility settings
-	$defaultVisibility = [ 'desktop_visibility' => 1, 'mobile_visibility' => 1 ];
-
-	// Extract visibility settings from the chunk
-	$visibility = $chunk['chunk_settings']['visibility'] ?? $defaultVisibility;
-	$desktopVisibility = $visibility['desktop_visibility'] ?? 1;
-	$mobileVisibility = $visibility['mobile_visibility'] ?? 1;
-
-	// Initialize class and inline style
-	$classes = [];
-	$inlineStyle = '';
-
-	// Determine classes and inline style based on visibility
-	if ( $desktopVisibility && !$mobileVisibility ) {
-		// Visible on desktop only
-		$classes[] = 'desktop-only';
-	} elseif ( !$desktopVisibility && $mobileVisibility ) {
-		// Visible on mobile only
-		$classes[] = 'mobile-only';
-		$inlineStyle = 'display: none;'; // Hide by default, shown on mobile
-	} elseif ( !$desktopVisibility && !$mobileVisibility ) {
-		// Hidden on all devices
-		$inlineStyle = 'display: none !important;';
-	}
-
-	// Join all classes into a single string
-	$class = implode(' ', $classes);
-
-	// Return the class and style as an associative array
-	return [ 
-		'class' => $class,
-		'inlineStyle' => $inlineStyle
-	];
-}
 
 
 
 
-function idwiz_get_spacer_chunk( $chunk ) {
-	$spacerHeight = $chunk['spacer_height'] ?? '20px';
 
-	$chunkSettings = $chunk['chunk_settings'];
+function idwiz_get_spacer_chunk( $chunk, $templateOptions ) {
+	//print_r($chunk);
 
-	$backgroundColorCss = generate_background_css( $chunkSettings['background_settings'] );
+	$chunkSettings = $chunk['settings'];
+	$chunkFields = $chunk['fields'];
 
-	$visibility = get_visibility_class_and_style( $chunk );
+	$spacerHeight = $chunkFields['spacer_height'] ?? '60px';
+
+	$backgroundColorCss = generate_background_css( $chunkSettings );
+
+	$visibility = get_visibility_class_and_style( $chunkSettings );
 
 	ob_start();
 	if ( $visibility['class'] == 'mobile-only' ) {
@@ -54,11 +23,11 @@ function idwiz_get_spacer_chunk( $chunk ) {
 
 	?>
 	<!--[if mso]>
-	<table class="spacer <?php echo $visibility['class']; ?>" role="presentation" width="100%" aria-hidden="true" style="table-layout:fixed; <?php echo $backgroundColorCss; ?> <?php echo $visibility['inlineStyle']; ?>">
+	<table class="spacer <?php echo $visibility['class']; ?>" role="presentation" width="100%" aria-hidden="true" style="table-layout:fixed; <?php echo $visibility['inlineStyle']; ?>">
 	<tr>
 	<td style="width:100%;text-align:center; <?php echo $backgroundColorCss; ?>" valign="middle">
 	<![endif]-->
-	<div class="spacer <?php echo $visibility['class']; ?>" style="<?php echo $visibility['inlineStyle']; ?>"
+	<div class="id-chunk id-spacer <?php echo $visibility['class']; ?>" style="<?php echo $visibility['inlineStyle']; ?>"
 		aria-hidden="true">
 		<div
 			style="line-height:<?php echo $spacerHeight; ?>;height:<?php echo $spacerHeight; ?>;mso-line-height-rule:exactly;<?php echo $backgroundColorCss; ?>">
@@ -77,37 +46,40 @@ function idwiz_get_spacer_chunk( $chunk ) {
 }
 
 
-function idwiz_get_button_chunk( $chunk ) {
-	//print_r($chunk);
-	$ctaText = $chunk['cta_text'] ?? 'Click here';
-	$ctaUrl = $chunk['cta_url'] ?? 'https://www.idtech.com';
+function idwiz_get_button_chunk( $chunk, $templateOptions ) {
+	$chunkSettings = $chunk['settings'];
+	$chunkFields = $chunk['fields'];
 
-	$chunkSettings = $chunk['chunk_settings'];
+	$chunkPadding = $chunkSettings['chunk_padding'] ?? '0px';
+
+	$ctaText = $chunkFields['button_text'] ?? 'Click here';
+	$ctaUrl = $chunkFields['button_link'] ?? 'https://www.idtech.com';
 
 
-	$backgroundColorCss = generate_background_css( $chunkSettings['background_settings'] );
+	$backgroundColorCss = generate_background_css( $chunkSettings );
 
-	$backgroundColor = $chunkSettings['background_settings']['background_color'];
+	$backgroundColor = $chunkSettings['background_color'] ?? 'transparent';
 
-	$textAlign = $chunkSettings['align_button']['text_align'] ?? 'center';
-	$btnBgColor = $chunkSettings['button_background_color'] ?? '#343434';
-	$textColor = $chunkSettings['text_color'] ?? '#fff';
+	$textAlign = $chunkFields['button_align'] ?? 'center';
+	$btnBgColor = $chunkFields['button_fill_color'] ?? '#343434';
+	$textColor = $chunkFields['button_text_color'] ?? '#fff';
 
 	$btnBorderCss = '';
-	$borderColor = $chunkSettings['border_color'];
-	$borderSize = $chunkSettings['border_size'] ?? 0;
+	$borderColor = $chunkFields['button_border_color'];
+	$borderSize = $chunkFields['button_border_size'] ?? 0;
 	if ( $borderColor ) {
 		if ( $borderSize > 0 ) {
-			$btnBorderCss = 'border: ' . $borderSize . 'px solid ' . $borderColor . ';';
+			$btnBorderCss = 'border: ' . $borderSize . ' solid ' . $borderColor . ';';
 		}
 	}
 
-	$borderRadius = $chunkSettings['border_radius'] ?? 3;
+	$borderRadius = $chunkFields['button_border_radius'] ?? "30px";
 	$msoBorderPerc = 5;
-	if ( $borderRadius >= 20 ) {
+	if ( floatval( $borderRadius ) >= 20 ) {
 		$msoBorderPerc = 50;
 	}
-	$horzPadding = $chunkSettings['horizontal_padding'] ?? 60;
+
+	$buttonPadding = $chunkFields['button_padding'] ?? "12px 60px";
 
 	// For MSO buttons, set the border to 2px solid the background color for dark mode on MSO
 	$vmlBorderColor = $backgroundColor;
@@ -125,7 +97,7 @@ function idwiz_get_button_chunk( $chunk ) {
 	$additionalWidth = ( $ctaTextLength > $charThreshold ) ? ( $ctaTextLength - $charThreshold ) * $additionalWidthPerChar : 0;
 	$buttonWidth = $baseWidth + $additionalWidth;
 
-	$visibility = get_visibility_class_and_style( $chunk );
+	$visibility = get_visibility_class_and_style( $chunkSettings );
 
 	//print_r( $chunkSettings );
 	ob_start();
@@ -135,28 +107,29 @@ function idwiz_get_button_chunk( $chunk ) {
 
 	?>
 
-	<table class="<?php echo $visibility['class']; ?>" role="presentation" table-layout="fixed"
+	<div class="id-chunk id-button <?php echo $visibility['class']; ?>"
 		style="width: 100%; border: 0; border-spacing: 0; <?php echo $visibility['inlineStyle']; ?> <?php echo $backgroundColorCss; ?>">
-		<tr>
-			<td
-				style="<?php echo $backgroundColorCss; ?> text-align: <?php echo $textAlign; ?>; font-family: Poppins, Arial, sans-serif;">
-				<!--[if mso]>
+		<table role="presentation" table-layout="fixed" style="width: 100%; <?php echo $backgroundColorCss; ?>">
+			<tr>
+				<td
+					style="<?php echo $backgroundColorCss; ?> padding: <?php echo $chunkPadding; ?>; border: 0!important; text-align: <?php echo $textAlign; ?>; font-family: Poppins, Arial, sans-serif; font-size: <?php echo $templateOptions['templateStyles']['template_font_size'] ?? '16px'; ?>">
+					<!--[if mso]>
 					<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="<?php echo $ctaUrl; ?>" style="height: 50px; v-text-anchor: middle; width: <?php echo $buttonWidth; ?>px;" arcsize="<?php echo $msoBorderPerc; ?>%" strokecolor="<?php echo $vmlBorderColor; ?>" strokeweight="<?php echo $vmlBorderWeight; ?>px" fillcolor="<?php echo $btnBgColor; ?>">
 						<w:anchorlock/>
-						<center class="id-button" style="mso-style-textfill-type:gradient; mso-style-textfill-fill-gradientfill-stoplist:"0 \<?php echo $textColor; ?> 0 100000\,100000 \<?php echo $textColor; ?> 0 100000";color: <?php echo $vmlBorderColor; ?> !important; font-family: Poppins, Arial, sans-serif; font-size: 22px!important; line-height: 20px;font-weight: bold;mso-text-raise: 10pt;"><?php echo $ctaText; ?></center>
+						<center class="id-button" style="mso-style-textfill-type:gradient; mso-style-textfill-fill-gradientfill-stoplist:"0 \<?php echo $textColor; ?> 0 100000\,100000 \<?php echo $textColor; ?> 0 100000";color: <?php echo $vmlBorderColor; ?> !important; font-family: Poppins, Arial, sans-serif; font-size: 1.1em!important; line-height: 1.6em;font-weight: bold;mso-text-raise: 10pt;"><?php echo $ctaText; ?></center>
 					</v:roundrect>
 				<![endif]-->
 
-				<!--[if !mso]> <!-->
-				<a href="<?php echo $ctaUrl; ?>" aria-label="<?php echo $ctaText; ?>" class="id-button"
-					style="font-size: 20px; line-height: 20px;text-align: center; background: <?php echo $btnBgColor; ?>; <?php echo $btnBorderCss; ?> text-decoration: none; padding-top: 12px; padding-bottom: 12px; padding-left:<?php echo $horzPadding; ?>px; padding-right: <?php echo $horzPadding; ?>px;color: <?php echo $textColor; ?> !important; border-radius: <?php echo $borderRadius; ?>px; display: inline-block; mso-padding-alt: 0; text-underline-color: #ffffff">
-					<?php echo $ctaText; ?>
-				</a>
-				<!-- <![endif]-->
-			</td>
-		</tr>
-	</table>
-
+					<!--[if !mso]> <!-->
+					<a href="<?php echo $ctaUrl; ?>" aria-label="<?php echo $ctaText; ?>" class="id-button"
+						style="font-size: <?php echo $chunk['fields']['button_font_size'] ?? '1.2em'; ?>; line-height: 1;text-align: center; font-weight: bold;background: <?php echo $btnBgColor; ?>; <?php echo $btnBorderCss; ?> text-decoration: none; padding:<?php echo $buttonPadding; ?>; color: <?php echo $textColor; ?> !important; border-radius: <?php echo $borderRadius; ?>; display: inline-block;">
+						<?php echo $ctaText; ?>
+					</a>
+					<!-- <![endif]-->
+				</td>
+			</tr>
+		</table>
+	</div>
 	<?php
 	if ( $visibility['class'] == 'mobile-only' ) {
 		echo '<!--<![endif]-->';
@@ -165,22 +138,23 @@ function idwiz_get_button_chunk( $chunk ) {
 }
 
 
-function idwiz_get_html_chunk( $chunk ) {
-	$chunkSettings = $chunk['chunk_settings'];
+function idwiz_get_snippet_chunk( $chunk, $templateOptions ) {
+	$chunkSettings = $chunk['settings'];
+	$chunkFields = $chunk['fields'];
 
-	$backgroundColorCss = generate_background_css( $chunkSettings['background_settings'] );
+	$backgroundColorCss = generate_background_css( $chunkSettings );
 
-	$fontCss = 'font-size: 18px;';
+	$fontCss = 'font-size: 1em; line-height: 1.5;';
 	$brandedFont = $chunkSettings['branded_font'] ?? 0;
 	if ( $brandedFont ) {
 		$fontCss = "font-family: Poppins, Helvetica, Arial, sans-serif;";
 	}
 
-	$visibility = get_visibility_class_and_style( $chunk );
-	$msoTableWrap = $chunkSettings['mso_table_wrap'] ?? 0;
+	$visibility = get_visibility_class_and_style( $chunkSettings );
+	$msoTableWrap = $chunkSettings['mso_table_wrap'] ?? false;
 
 	// Retrieve the post object from the 'snippet' ACF field
-	$snippetPostId = $chunk['snippet'];
+	$snippetPostId = $chunkFields['select_snippet'];
 
 	$shortcode = '[wiz_snippet id="' . $snippetPostId . '"]';
 	$snippetContent = do_shortcode( $shortcode );
@@ -192,12 +166,12 @@ function idwiz_get_html_chunk( $chunk ) {
 
 	if ( $msoTableWrap ) {
 		echo '<!--[if mso]>';
-		echo '<table class="id-html ' . esc_attr( $visibility['class'] ) . '" role="presentation" width="100%" style="table-layout:fixed; ' . esc_attr( $fontCss . $backgroundColorCss . $visibility['inlineStyle'] ) . '">';
+		echo '<table class="' . esc_attr( $visibility['class'] ) . '" role="presentation" width="100%" style="table-layout:fixed; ' . esc_attr( $fontCss . $backgroundColorCss . $visibility['inlineStyle'] ) . '">';
 		echo '<tr><td style="width:100%;text-align:center; ' . esc_attr( $backgroundColorCss ) . '" valign="middle">';
 		echo '<![endif]-->';
 	}
 
-	echo '<div class="id-html" style="' . esc_attr( $fontCss . $backgroundColorCss . $visibility['inlineStyle'] ) . '">';
+	echo '<div class="id-chunk id-snippet" style="' . esc_attr( $fontCss . $backgroundColorCss . $visibility['inlineStyle'] ) . '">';
 	echo $snippetContent;
 	echo '</div>';
 
@@ -215,183 +189,20 @@ function idwiz_get_html_chunk( $chunk ) {
 }
 
 
-function idwiz_get_two_column_chunk( $chunk, $forPreview = false ) {
-	ob_start();
-	//print_r( $chunk );
-	// Check if both columns exist
-	if ( ! isset( $chunk['column_1_content']['add_chunk'] ) || ! isset( $chunk['column_2_content']['add_chunk'] ) ) {
-		ob_end_clean();
-		return "Error: Both columns must be set.";
-	}
 
-	$chunkSettings = $chunk['chunk_settings'];
-	$chunkVertAlign = $chunkSettings['vertical_align']['vertical_align'] ?? 'top';
-	//print_r( $chunkVertAlign );
-	$chunkBackgroundColorCss = generate_background_css( $chunkSettings['background_settings'] );
+function idwiz_get_plain_text_chunk( $chunk, $templateOptions ) {
+	$templateStyles = $templateOptions['templateStyles'] ?? [];
 
-	$magicWrapCss = '';
-	$magicWrapAttr = '';
-	$magicWrap = $chunkSettings['magic_wrap'] ?? 0;
-	if ( $magicWrap ) {
-		$magicWrapCss = 'direction: rtl;';
-		$magicWrapAttr = 'dir="rtl"';
-	}
+	$chunkFields = $chunk['fields'];
+	$chunkSettings = $chunk['settings'];
 
-	$visibility = get_visibility_class_and_style( $chunk );
+	$visibility = get_visibility_class_and_style( $chunkSettings );
 
-	if ( $visibility['class'] == 'mobile-only' ) {
-		echo '<!--[if !mso]><!-->';
-	}
+	$backgroundColorCss = generate_background_css( $chunkSettings );
 
-	?>
-	<div class="two-col <?php echo $visibility['class']; ?>" <?php echo $magicWrapAttr; ?>
-		style="<?php echo $magicWrapCss; ?> font-size: 0;text-align: center; <?php echo $chunkBackgroundColorCss; ?> <?php echo $visibility['inlineStyle']; ?>">
-		<!--[if mso]> 
-	<table role="presentation" style="white-space:nowrap;width: 100%; border: 0; border-spacing: 0; border-collapse: collapse; <?php echo $chunkBackgroundColorCss; ?> <?php echo $visibility['inlineStyle']; ?>">
-	<tr> 
-	<td style="width:50%;" valign="<?php echo $chunkVertAlign; ?>" dir="ltr">
-	<![endif]-->
+	$chunkPadding = $chunkSettings['chunk_padding'] ?? '0px';
 
-		<div class="column" dir="ltr"
-			style="width: 100%; font-size: 1em; max-width: 400px; display: inline-block; direction:ltr; vertical-align: <?php echo $chunkVertAlign; ?>;">
-
-			<?php
-			if ( ! empty( $chunk['column_1_content']['add_chunk'] ) ) {
-				foreach ( $chunk['column_1_content']['add_chunk'] as $rowId => $rowContent ) {
-					echo idwiz_get_chunk_template( $rowContent, '2-col', 'column_1_content', $rowId, $forPreview );
-					?>
-					<?php
-				}
-			}
-			?>
-
-		</div>
-		<!--[if mso]></td><td style="width:50%;  direction:ltr;" valign="<?php echo $chunkVertAlign; ?>" dir="ltr"><![endif]-->
-		<div class="column" dir="ltr"
-			style="width: 100%; font-size: 1em; direction:ltr; max-width: 400px; display: inline-block;  vertical-align: <?php echo $chunkVertAlign; ?>;">
-
-			<?php
-			if ( ! empty( $chunk['column_2_content']['add_chunk'] ) ) {
-				foreach ( $chunk['column_2_content']['add_chunk'] as $rowId => $rowContent ) {
-					echo idwiz_get_chunk_template( $rowContent, '2-col', 'column_2_content', $rowId, $forPreview ); ?>
-					<?php
-				}
-			}
-			?>
-
-
-		</div>
-		<!--[if mso]> 
-	</td> 
-	</tr> 
-	</table> 
-	<![endif]-->
-	</div>
-	<?php
-	if ( $visibility['class'] == 'mobile-only' ) {
-		echo '<!--<![endif]-->';
-	}
-	return ob_get_clean();
-}
-
-
-
-function idwiz_get_three_column_chunk( $chunk, $forPreview = false ) {
-	//print_r( $chunk );
-
-
-	$chunkSettings = $chunk['chunk_settings'];
-
-	$chunkVertAlign = $chunkSettings['vertical_align']['vertical_align'] ?? 'top';
-
-	$chunkBackgroundColorCss = generate_background_css( $chunkSettings['background_settings'] );
-
-	$visibility = get_visibility_class_and_style( $chunk );
-
-	ob_start();
-	// Checking if all three columns exist
-	if ( ! isset( $chunk['column_1_content']['add_chunk'] ) || ! isset( $chunk['column_2_content']['add_chunk'] ) || ! isset( $chunk['column_3_content']['add_chunk'] ) ) {
-		ob_end_clean();
-		return "Error: All three columns must be set.";
-	}
-
-	if ( $visibility['class'] == 'mobile-only' ) {
-		echo '<!--[if !mso]><!-->';
-	}
-
-	?>
-	<div class="three-col <?php echo $visibility['class']; ?>?>"
-		style="text-align: center; font-size: 0;<?php echo $chunkBackgroundColorCss; ?> <?php echo $visibility['inlineStyle']; ?>">
-		<!--[if mso]> 
-	<table role="presentation" width="100%" style="white-space:nowrap;text-align:center; <?php echo $chunkBackgroundColorCss; ?> <?php echo $visibility['inlineStyle']; ?>"> 
-	<tr> 
-	<td style="width:266px;" valign="<?php echo $chunkVertAlign ?? 'top'; ?>"> 
-	<![endif]-->
-
-		<div class="column"
-			style="width: 100%; font-size: 1em; max-width: 266px; display: inline-block; vertical-align: <?php echo $chunkVertAlign ?? 'top'; ?>">
-			<?php
-			foreach ( $chunk['column_1_content']['add_chunk'] as $rowId => $rowContent ) {
-				echo idwiz_get_chunk_template( $rowContent, '3-col', 'column_1_content', $rowId, $forPreview ); ?>
-				<?php
-			}
-			?>
-		</div>
-		<!--[if mso]> 
-	</td> 
-	<td style="width:266px;" valign="<?php echo $chunkVertAlign ?? 'top'; ?>"> 
-	<![endif]-->
-		<div class="column"
-			style="width: 100%; font-size: 1em; max-width: 266px; display: inline-block;  vertical-align: <?php echo $chunkVertAlign ?? 'top'; ?>">
-			<?php
-			foreach ( $chunk['column_2_content']['add_chunk'] as $rowId => $rowContent ) {
-				echo idwiz_get_chunk_template( $rowContent, '3-col', 'column_2_content', $rowId, $forPreview ); ?>
-				<?php
-			}
-			?>
-		</div>
-		<!--[if mso]> 
-	</td> 
-	<td style="width:266px;" valign="<?php echo $chunkVertAlign ?? 'top'; ?>"> 
-	<![endif]-->
-		<div class="column"
-			style="width: 100%; font-size: 1em; max-width: 266px; display: inline-block;  vertical-align: <?php echo $chunkVertAlign ?? 'top'; ?>">
-			<?php
-			foreach ( $chunk['column_3_content']['add_chunk'] as $rowId => $rowContent ) {
-				echo idwiz_get_chunk_template( $rowContent, '3-col', 'column_3_content', $rowId, $forPreview ); ?>
-				<?php
-			}
-			?>
-		</div>
-		<!--[if mso]> 
-	</td> 
-	</tr> 
-	</table> 
-	<![endif]-->
-	</div>
-	<?php
-	if ( $visibility['class'] == 'mobile-only' ) {
-		echo '<!--<![endif]-->';
-	}
-	return ob_get_clean();
-}
-
-
-function idwiz_get_plain_text_chunk( $chunk ) {
-	//print_r($chunk);
-	$chunkSettings = $chunk['chunk_settings'];
-
-	$alignContent = $chunkSettings['align_content']['text_align'] ?? 'left';
-
-	$chunkPadding = $chunkSettings['padding']['chunk_padding'] ?? '10px';
-
-	$visibility = get_visibility_class_and_style( $chunk );
-
-	$textContent = $chunk['plain_text_content'] ?? 'Your content goes here!';
-
-
-	$backgroundColorCss = generate_background_css( $chunkSettings['background_settings'] );
-
+	$textContent = $chunkFields['plain_text_content'] ?? 'Your content goes here!';
 
 	$textContent = add_aria_label_to_links( $textContent );
 
@@ -408,14 +219,14 @@ function idwiz_get_plain_text_chunk( $chunk ) {
 		style="width:100%;border:0;border-spacing:0; <?php echo $visibility['inlineStyle']; ?> <?php echo $backgroundColorCss; ?>">
 		<tr>
 			
-			<td class="id-plain-text" style="<?php echo $backgroundColorCss; ?> font-family: Poppins, Arial, sans-serif!important; padding:<?php echo $chunkPadding; ?>;text-align:<?php echo $alignContent; ?>;">
+			<td class="id-plain-text" style="<?php echo $backgroundColorCss; ?> padding: <?php echo $chunkPadding; ?>; font-family: Poppins, Arial, sans-serif!important; font-size: <?php echo $templateStyles['font-styles']['template_font_size'] ?? '16px'; ?>;">
 			<![endif]-->
-	<div class="id-plain-text wrapper" style="<?php echo $backgroundColorCss; ?>  padding:<?php echo $chunkPadding; ?>;">
-		<div class="id-plain-text"
-			style="background:transparent;margin: 0 auto; max-width: 600px;font-size: 18px;font-family: Poppins, Arial, sans-serif!important; text-align:<?php echo $alignContent; ?>;">
-			<?php echo wpautop( $textContent ); ?>
-		</div>
+
+	<div class="id-chunk id-plain-text <?php echo $visibility['class']; ?>"
+		style="<?php echo $visibility['inlineStyle']; ?>; <?php echo $backgroundColorCss; ?> padding: <?php echo $chunkPadding; ?>; font-size: <?php echo $templateStyles['font-styles']['template_font_size'] ?? '16px'; ?>; border-top:1px solid transparent;">
+		<?php echo wpautop( stripslashes($textContent) ); ?>
 	</div>
+	
 	<!--[if mso]>
 			</td>
 			
@@ -432,6 +243,7 @@ function idwiz_get_plain_text_chunk( $chunk ) {
 	}
 	return ob_get_clean();
 }
+
 function add_aria_label_to_links( $html ) {
 	return preg_replace_callback(
 		'/<a\s+(.*?)>(.*?)<\/a>/is',
@@ -463,29 +275,35 @@ function add_aria_label_to_links( $html ) {
 
 
 
-function idwiz_get_image_chunk( $chunk, $variant = false ) {
-	$imageSrc = $chunk['image_src'] ?? '';
-	$imageLink = $chunk['image_link'] ?? '';
-	$imageAlt = $chunk['image_alt'] ?? '';
+function idwiz_get_image_chunk( $chunk, $templateOptions ) {
+	$chunkSettings = $chunk['settings'];
 
-	$chunkSettings = $chunk['chunk_settings'];
+	$visibility = get_visibility_class_and_style( $chunkSettings );
+
+	$chunkFields = $chunk['fields'];
+
+	$variant = $chunkSettings['image_context'] ?? '';
+
+	$templateWidth = $templateOptions['templateStyles']['body-and-background']['template_width'] ?? '648';
+
+	$imageSrc = $chunkFields['image_url'] ?? '';
+	$imageLink = $chunkFields['image_link'] ?? '';
+	$imageAlt = $chunkFields['image_alt'] ?? '';
 
 	// Default width for non-MSO clients
 	$defaultWidth = '100%';
 
 	// Specific widths for MSO clients based on variant
-	$msoWidth = '800'; // Default full width
-	if ( $variant == '2-col' ) {
-		$msoWidth = '400'; // Half width for 2 columns
-	} elseif ( $variant == '3-col' ) {
-		$msoWidth = '267'; // Third width for 3 columns
+	$msoWidth = $templateWidth; // Default full width
+	if ( $variant == 'two-col' ) {
+		$msoWidth = $templateWidth > 0 ? round( $templateWidth / 2, 0 ) : $templateWidth;
+	} elseif ( $variant == 'three-col' ) {
+		$msoWidth = $templateWidth > 0 ? round( $templateWidth / 3, 0 ) : $templateWidth;
 	}
 
-	$backgroundColorCss = generate_background_css( $chunkSettings['background_settings'] );
+	$backgroundColorCss = generate_background_css( $chunkSettings );
 
-	$visibility = get_visibility_class_and_style( $chunk );
-	
-	
+
 
 	ob_start();
 	if ( $visibility['class'] == 'mobile-only' ) {
@@ -499,18 +317,26 @@ function idwiz_get_image_chunk( $chunk, $variant = false ) {
 	// MSO conditional for Outlook
 	echo '<!--[if mso]>';
 	echo '<table role="presentation" style="width:100%;border:0;border-spacing:0;margin: 0;' . $visibility['inlineStyle'] . '"><tr><td style="font-size: 0; line-height: 0; ' . $backgroundColorCss . '">';
-	echo '<a href="' . $imageLink . '" ' . $ariaHidden . ' title="' . $imageAlt . '">';
-	echo '<img class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" width="' . $msoWidth . '" ' . $altAttribute . ' style="display: block; width:' . $msoWidth . 'px; height:auto;' . $visibility['inlineStyle'] . '" />';
-	echo '</a>';
+	if ( $imageLink ) {
+		echo '<a href="' . $imageLink . '" ' . $ariaHidden . ' title="' . $imageAlt . '" style="display: block;margin: 0; padding: 0; line-height: 0;font-size:0;text-decoration:none;">';
+	}
+	echo '<img class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" width="' . $msoWidth . '" ' . $altAttribute . ' style="width:' . $msoWidth . 'px; height:auto;' . $visibility['inlineStyle'] . '" />';
+	if ( $imageLink ) {
+		echo '</a>';
+	}
 	echo '</td></tr></table>';
 	echo '<![endif]-->';
 
 	// Non-MSO markup for other clients
 	echo '<!--[if !mso]> <!-->';
-	echo '<div class="id-image '.$visibility['class'].'" style="' . $backgroundColorCss . ' '.$visibility['inlineStyle'].'">';
-	echo '<a href="' . $imageLink . '" ' . $ariaHidden . ' title="' . $imageAlt . '">';
-	echo '<img ' . $altAttribute . ' class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" style="display: block; width:' . $defaultWidth . '; height:auto;' . $visibility['inlineStyle'] . '" />';
-	echo '</a>';
+	echo '<div class="id-chunk id-image ' . $visibility['class'] . '" style="' . $backgroundColorCss . ' ' . $visibility['inlineStyle'] . '">';
+	if ( $imageLink ) {
+		echo '<a href="' . $imageLink . '" ' . $ariaHidden . ' title="' . $imageAlt . '">';
+	}
+	echo '<img ' . $altAttribute . ' class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" style="width:' . $defaultWidth . '; height:auto;' . $visibility['inlineStyle'] . '" />';
+	if ( $imageLink ) {
+		echo '</a>';
+	}
 	echo '</div>';
 	echo '<!-- <![endif]-->';
 
@@ -522,18 +348,28 @@ function idwiz_get_image_chunk( $chunk, $variant = false ) {
 
 
 
-function idwiz_get_standard_header() {
+function idwiz_get_standard_header( $templateOptions ) {
+	$templateSettings = $templateOptions['templateSettings'];
+	$templateStyles = $templateOptions['templateStyles'];
+	$headerFooterSettings = $templateStyles['header-and-footer'];
+	$headerLogo = $headerFooterSettings['template_header_logo'] ?? '';
+	if ($headerLogo == 'manual') {
+		$headerLogo = $headerFooterSettings['template_header_logo_manual'] ?? '';
+	}
 	ob_start();
 	?>
 
-	<table role="presentation" style="width:100%;border:0;border-spacing:0;table-layout:fixed;font-size:0;">
+	<table role="presentation" style="width:100%;border:0;border-spacing:0;table-layout:fixed;font-size: 0;">
 		<tr>
 			<td style="font-size: 0;line-height:0;margin:0;">
 				<a href="https://www.idtech.com" style="margin:0; padding: 0;" aria-label="iD Tech Camps"
-					title="iD Tech Camps"><img
-						src="https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/id-grey-header-white-bg_1.jpg"
-						width="800" alt=""
-						style="min-width: 100%; width:800px; max-width:100%;height:auto;display: block; margin: 0!important;" /></a>
+					title="iD Tech Camps">
+				<img
+					src="<?php echo $headerLogo; ?>"
+					width="<?php echo $templateStyles['body-and-background']['template_width']; ?>" 
+					alt=""
+					style="width:<?php echo $templateStyles['body-and-background']['template_width']; ?>; max-width:100%;height:auto;display: block;" />
+				</a>
 			</td>
 		</tr>
 	</table>
@@ -542,16 +378,23 @@ function idwiz_get_standard_header() {
 	<?php
 	return ob_get_clean();
 }
-function idwiz_get_standard_footer( $showUnsub = true ) {
+function idwiz_get_standard_footer( $templateoptions, $showUnsub = true ) {
+	$templateSettings = $templateoptions['templateSettings'] ?? [];
+	$templateStyles = $templateoptions['templateStyles'] ?? [];
+	$footerBackground = $templateStyles['header-and-footer']['template_footer_color'] != 'rgba(0, 0, 0, 0)' ? $templateStyles['header-and-footer']['template_footer_color'] : 'transparent';
+	$footerTextColor = $templateStyles['header-and-footer']['template_footer_text_color'] ?? '#343434';
+	$templateLinkColor = $templateStyles['link-styles']['template_link_style_color'] ?? '#000000';
+	$footerLinkColor = $templateStyles['header-and-footer']['template_footer_link_color'] ?? $templateLinkColor ?? '#000000';
+
 	ob_start();
 	?>
 	<!--[if mso]> 
-	<table role="presentation" align="center" style="width:800px;table-layout:fixed;font-family:Poppins, Arial, sans-serif;"> 
+	<table role="presentation" align="center" style="width:<?php echo $templateStyles['body-and-background']['template_width']; ?>;table-layout:fixed;font-family:Poppins, Arial, sans-serif;"> 
 	<tr> 
-	<td style="background-color: #f4f4f4; padding: 20px 0 10px 0; font-size: 12px;font-family:Poppins, Arial, sans-serif; text-align: center;"> 
+	<td style="background-color: <?php echo $footerBackground; ?>; padding: 20px 0 10px 0; font-size: 12px;font-family:Poppins, Arial, sans-serif; text-align: center;"> 
 	<![endif]-->
 	<div
-		style="background-color: #f4f4f4; max-width: 800px; padding: 20px 0 10px 0; font-size: 12px;font-family:Poppins, Arial, sans-serif; text-align: center;">
+		style="background-color: <?php echo $footerBackground; ?>; max-width: <?php echo $templateStyles['body-and-background']['template_width']; ?>; padding: 20px 0 10px 0; font-size: 12px;font-family:Poppins, Arial, sans-serif; text-align: center;">
 
 		<span style="margin:0;font-family:Poppins,sans-serif;font-size:12px;line-height:16px;">
 			<a href="https://www.facebook.com/computercamps" title="iD Tech on Facebook"
@@ -567,20 +410,32 @@ function idwiz_get_standard_footer( $showUnsub = true ) {
 			<a href="https://www.instagram.com/idtech/" title="iD Tech on Instagram" aria-label="iD Tech on Instagram"><img
 					width="35" alt="iD Tech on Instagram" style="width: 35px;height: auto;"
 					src="https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/6b969394-7c4c-45c1-9079-7e98dddcbbb2.png" /></a></span>
-		<br /><br />
-		<strong>Contact Us:</strong><br />
-		1-888-709-8324<br />
-		+1-408-871-3700 (international)<br /><br />
+		<br />
+		<p
+			style="color:<?php echo $footerTextColor; ?>;margin:0;padding: 1em 0;font-family:Poppins,sans-serif;font-size:12px;line-height:16px;">
+			<strong>Contact Us:</strong><br />
+			1-888-709-8324<br />
+			+1-408-871-3700 (international)<br /><br />
 
-		<strong>Address:</strong> P.O. Box 111720, Campbell, CA 95011<br /><br />
+			<strong>Address:</strong> P.O. Box 111720, Campbell, CA 95011<br /><br />
 
-		Copyright © {{now format='yyyy'}} All rights reserved.
-		<br /><br />
+			Copyright © {{now format='yyyy'}} All rights reserved.
+		</p>
 		<?php if ( $showUnsub ) { ?>
-
+			<?php echo '{{#if userId}}'; ?>
 			<a href="{{hostedUnsubscribeUrl}}" aria-label="Manage Subscription Preferences"
-				title="Manage Subscription Preferences" style="color: #343434;">Manage
+				title="Manage Subscription Preferences" style="color: <?php echo $footerLinkColor; ?>;">Manage
 				preferences</a>
+			<br />
+			<?php echo '{{/if}}'; ?>
+
+			<a href="{{unsubscribeMessageTypeUrl}}" aria-label="Unsubscribe from emails like this"
+				title="Manage Subscription Preferences" style="color: <?php echo $footerLinkColor; ?>;">Unsubscribe from emails
+				like this</a>
+			<br />
+			<a href="{{unsubscribeUrl}}" aria-label="Unsubscribe from all marketing emails"
+				title="Manage Subscription Preferences" style="color: <?php echo $footerLinkColor; ?>;">Unsubscribe from all
+				marketing emails</a>
 			<br /><br />
 		<?php } ?>
 	</div>
@@ -593,18 +448,24 @@ function idwiz_get_standard_footer( $showUnsub = true ) {
 	return ob_get_clean();
 }
 
-function idwiz_get_fine_print_disclaimer( $finePrintDisclaimer ) {
+function idwiz_get_fine_print_disclaimer( $templateOptions ) {
+	//print_r($templateOptions);
+	$finePrintDisclaimer = $templateOptions['templateSettings']['message-settings']['fine_print_disclaimer'];
+	$templateStyles = $templateOptions['templateStyles'];
+	$footerBackground = $templateStyles['header-and-footer']['template_footer_color'] != 'rgba(0, 0, 0, 0)' ? $templateStyles['header-and-footer']['template_footer_color'] : 'transparent';
+	$footerTextColor = $templateStyles['header-and-footer']['template_footer_text_color'] ?? '#343434';
 	ob_start();
 	?>
 	<!--[if mso]> 
-	<table role="presentation" align="center" style="width:800px;table-layout:fixed;"> 
+	<table role="presentation" align="center" style="width:<?php echo $templateStyles['body-and-background']['template_width']; ?>;table-layout:fixed;"> 
 	<tr> 
-	<td style="background-color: #f4f4f4; padding-bottom: 20px; font-size: 12px;">
+	<td style="background-color: <?php echo $footerBackground; ?>; padding-bottom: 20px; font-size: 12px;">
 	<![endif]-->
-	<div style="background-color: #f4f4f4; width: 100%; max-width: 800px; padding-bottom: 20px; font-size: 12px;">
+	<div
+		style="background-color: <?php echo $footerBackground; ?>; width: 100%; max-width: <?php echo $templateStyles['body-and-background']['template_width']; ?>; padding-bottom: 20px; font-size: 12px;">
 		<?php
 		if ( $finePrintDisclaimer ) {
-			echo '<center style="font-size:12px !important;color:#444444;line-height:16px;">' . $finePrintDisclaimer . '</center>';
+			echo '<center style="font-size:12px !important;color:' . $footerTextColor . ';line-height:16px;padding-left: 20px; padding-right: 20px;">' . $finePrintDisclaimer . '</center>';
 		}
 		?>
 	</div>
@@ -617,24 +478,39 @@ function idwiz_get_fine_print_disclaimer( $finePrintDisclaimer ) {
 	return ob_get_clean();
 }
 
-function idwiz_get_email_top( $chunks, $templateSettings, $templateStyles, $emailSettings ) {
-	$bodyBackgroundSettings = $templateStyles['body_background'];
-	//print_r($chunks);
-	$bodyBackgroundCss = generate_background_css( $bodyBackgroundSettings );
+function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 
-	$linkColor = $templateStyles['link_color'] ?? '#1e73be';
-	$visitedColor = $templateStyles['visited_color'] ?? '#0066bf';
-	$underlineLinks = $templateStyles['underline_links'] ?? true;
-	if ( $underlineLinks ) {
-		$linkStyle = 'text-decoration: underline;';
-	} else {
-		$linkStyle = 'text-decoration: none;';
+	//error_log(print_r($templateSettings, true));
+	//error_log(print_r($templateStyles, true));
+	//error_log($bodyBackgroundCss);
+
+	//Font Styles
+	$templateFontSize = $templateStyles['font-styles']['template_font_size'] ?? '16px';
+	$templateLineHeight = $templateStyles['font-styles']['template_line_height'] ?? '1.5';
+
+	//Link Styles
+	$linkColor = $templateStyles['link-styles']['template_link_style_color'] ?? '#1e73be';
+	$visitedColor = $templateStyles['link-styles']['template_link_style_visited_color'] ?? $linkColor;
+
+	$underlinkLinks = $templateStyles['link-styles']['template_link_style_underline'] ?? false;
+	$boldLinks = $templateStyles['link-styles']['template_link_style_bold'] ?? false;
+	$italicLinks = $templateStyles['link-styles']['template_link_style_italic'] ?? false;
+
+	$linkStyles = '';
+	if ( $linkColor ) {
+		$linkStyles .= 'color: ' . $linkColor . ';';
 	}
-
-	$dtFontSize = $templateStyles['desktop_font_size'] ?? '1em';
-	$dtLineHeight = $templateStyles['desktop_line_height'] ?? '1.5em';
-	$mobFontSize = $templateStyles['mobile_font_size'] ?? '1.1em';
-	$mobLineHeight = $templateStyles['mobile_line_height'] ?? '1.6em';
+	if ( $underlinkLinks ) {
+		$linkStyles .= 'text-decoration: underline;';
+	} else {
+		$linkStyles .= 'text-decoration: none;';
+	}
+	if ( $boldLinks ) {
+		$linkStyles .= 'font-weight: bold;';
+	}
+	if ( $italicLinks ) {
+		$linkStyles .= 'font-style: italic;';
+	}
 
 	ob_start();
 	?>
@@ -646,15 +522,20 @@ function idwiz_get_email_top( $chunks, $templateSettings, $templateStyles, $emai
 
 	<head>
 		<meta charset="utf-8" />
+		<meta http-equiv="Content-Type" content="text/html charset=UTF-8" />
 		<meta name="viewport" content="width=device-width,initial-scale=1" />
 		<meta name="x-apple-disable-message-reformatting" />
-		
+		<meta name="color-scheme" content="light dark"> <meta name="supported-color-schemes" content="light dark">
+
 		<!--[if !mso]><!-->
 		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 		<!--<![endif]-->
 		<title>
-			<?php echo $emailSettings['subject_line']; ?>
+			<?php echo $templateSettings['subject_line'] ?? ''; ?>
 		</title>
+
+
+		<!-- The first style block will be removed by Yahoo! on android, so nothing here for that platform-->
 
 		<!--dedicated block for gmail (for non-interactive stuff)-->
 		<style type="text/css">
@@ -667,10 +548,37 @@ function idwiz_get_email_top( $chunks, $templateSettings, $templateStyles, $emai
 				line-height: inherit;
 			}
 		</style>
-		
+
 
 		<!-- Global styles for all clients that can read them-->
 		<style type="text/css">
+			/*Fix rendering issues with <p> and other elements*/
+			.ExternalClass,
+			.ExternalClass p,
+			.ExternalClass span,
+			.ExternalClass font,
+			.ExternalClass td,
+			.ExternalClass div {
+				line-height: 100%;
+			}
+
+			body {
+				font-size:
+					<?php echo $templateFontSize; ?>
+				;
+				line-height:
+					<?php echo $templateLineHeight; ?>
+				;
+				font-family: Poppins, Helvetica, Arial, sans-serif;
+			}
+
+			p {
+				margin: 0;
+				padding: 0 0 1em 0;
+			}
+
+
+
 			/*Prevent auto-blue links in Apple*/
 			a[x-apple-data-detectors] {
 				color: inherit !important;
@@ -691,90 +599,57 @@ function idwiz_get_email_top( $chunks, $templateSettings, $templateStyles, $emai
 				line-height: inherit !important;
 			}
 
-			/*Fix rendering issues with <p> elements*/
-			.ExternalClass,
-			.ExternalClass p,
-			.ExternalClass span,
-			.ExternalClass font,
-			.ExternalClass td,
-			.ExternalClass div {
-				line-height: 100%;
-			}
-
-			p {
-				margin: 0;
-				padding: 0;
-				margin: 1em 0;
-				font-size:
-					<?php echo $dtFontSize; ?>
-					!important;
-				line-height:
-					<?php echo $dtLineHeight; ?>
-					!important;
-			}
-
-			@media screen and (max-width: 460px) {
-				p {
-					font-size:
-						<?php echo $mobFontSize; ?>
-						!important;
-					line-height:
-						<?php echo $mobLineHeight; ?>
-						!important;
-				}
-			}
-
-			h1,
-			h2,
-			h3,
-			h4,
-			h5,
-			h6 {
-				line-height: 1.3;
-				font-weight: bold;
-			}
-
+			/* Desktop Headers */
 			h1 {
-				margin: .67em 0;
+				margin: 0 !important;
+				padding: 0 0 .67em 0;
 				font-size: 2em;
 				!important;
 			}
 
 			h2 {
-				margin: .83em 0;
+				margin: 0 !important;
+				padding: 0 0 .83em 0;
 				font-size: 1.5em;
 				!important;
 			}
 
 			h3 {
-				margin: 1em 0;
+				margin: 0 !important;
+				padding: 0 0 1em 0;
 				font-size: 1.17em;
 				!important;
 			}
 
 			h4 {
-				margin: 1.33em 0;
+				margin: 0 !important;
+				padding: 0 0 1.33em 0;
 				font-size: 1em;
 				!important;
 			}
 
 			h5 {
-				margin: 1.67em 0;
+				margin: 0 !important;
+				padding: 0 0 1.67em 0;
 				font-size: .83em;
 				!important;
 			}
 
 			h6 {
-				margin: 1.33em 0;
+				margin: 0 !important;
+				padding: 0 0 1.33em 0;
 				font-size: .67em;
 				!important;
 			}
 
 			a {
-				color:
-					<?php echo $linkColor; ?>
-				;
-				<?php echo $linkStyle; ?>
+
+				<?php echo $linkStyles; ?>
+			}
+
+			a:visited {
+
+				<?php echo $visitedColor ?>
 			}
 
 			a:hover {
@@ -786,10 +661,56 @@ function idwiz_get_email_top( $chunks, $templateSettings, $templateStyles, $emai
 			ul>li {
 				line-height: 1.5;
 			}
+
+			table,
+			td {
+				margin: 0;
+				padding: 0;
+				font-size: inherit;
+				line-height: inherit;
+				font-family: Poppins, Helvetica, Arial, sans-serif;
+			}
+
+			@media screen and (max-width: 460px) {
+
+				/* Mobile Headers */
+				h1 {
+					margin: 0 0 .83em 0;
+					font-size: 1.5em;
+					!important;
+				}
+
+				h2 {
+					margin: 0 0 .9em 0;
+					font-size: 1.3em;
+					!important;
+				}
+
+				h3 {
+					margin: 0 0 1em 0;
+					font-size: 1.17em;
+					!important;
+				}
+
+				h4 {
+					margin: 0 0 1.33em 0;
+					font-size: 1em;
+					!important;
+				}
+
+				h5 {
+					margin: 0 0 1.67em 0;
+					font-size: .83em;
+					!important;
+				}
+
+				h6 {
+					margin: 0 0 1.33em 0;
+					font-size: .67em;
+					!important;
+				}
+			}
 		</style>
-
-
-
 
 		<!-- MSO only styles-->
 		<!--[if mso]>
@@ -859,12 +780,14 @@ function idwiz_get_email_top( $chunks, $templateSettings, $templateStyles, $emai
 					max-width: 33.333% !important;
 					min-width: 33.333% !important;
 					display: inline-block;
+					text-align: left;
 				}
 
 				.two-col .column {
 					max-width: 50% !important;
 					min-width: 50% !important;
 					display: inline-block;
+					text-align: left;
 				}
 
 				.desktop-only {
@@ -882,7 +805,7 @@ function idwiz_get_email_top( $chunks, $templateSettings, $templateStyles, $emai
 				}
 			}
 
-			@media screen and (max-width: 600px) {
+			@media screen and (max-width: 648px) {
 				.three-col .column {
 					max-width: 100% !important;
 					min-width: 100% !important;
@@ -914,45 +837,14 @@ function idwiz_get_email_top( $chunks, $templateSettings, $templateStyles, $emai
 		<!--<![endif]-->
 
 
-		<?php if ( $templateSettings['include_interactive_css'] == 1 ) { ?>
-			<!-- For  Gmail, we dedicate a style block to hide interactive elements in case it removes <style> blocks it doesn't like-->
-			<style type="text/css">
-				u+.bodyClass .interactiveClick {
-					display: none !important
-				}
+		<?php if ( isset( $templateStyles['custom-styles']['additional_template_css'] ) ) { 
+			echo $templateStyles['custom-styles']['additional_template_css']; 
+		 } ?>
 
-				u+.bodyClass .interactiveReveal {
-					display: block;
-				}
-			</style>
-
-			<!-- For accessibility, we hide the input elements without the use of display: none to enable keyboard navigation-->
-			<style type="text/css">
-				.checkbox,
-				.radio {
-					Display: inline-block !important;
-					Opacity: 0;
-					Width: 0;
-					Height: 0;
-					Margin: 0 0 0 -9999px;
-					Float: left;
-					Position: absolute;
-					-webkit-appearance: none;
-				}
-
-				input:focus~.interactiveClick,
-				input:focus~.interactiveReveal {
-					outline: highlight auto 2px;
-					outline: -webkit-focus-ring-color: auto 5px;
-				}
-			</style>
-		<?php } ?>
-		<style type="text/css">
-			<?php
-			// Echo out any additional CSS block from snippets added to this template
-			echo get_snippet_css( $chunks );
-			?>
-		</style>
+		<?php
+		// Echo out any additional CSS block from snippets added to this template
+		echo get_snippet_css( $rows );
+		?>
 
 
 
@@ -960,11 +852,16 @@ function idwiz_get_email_top( $chunks, $templateSettings, $templateStyles, $emai
 	</head>
 
 	<title>
-		<?php echo $templateSettings['subject_link'] ?? ''; ?>
+		<?php echo $templateSettings['subject_line'] ?? ''; ?>
 	</title>
 
-	<body class="body" id="body"
-		style="margin: 0; padding: 0; word-spacing: normal; line-height: 1.5;<?php echo $bodyBackgroundCss; ?>;">
+	<?php
+	$templateWidth = $templateSettings['body-and-background']['template_width'] ?? 648;
+	$bodyBackgroundCss = generate_background_css( $templateStyles['body-and-background']['body-background'], 'body_background_' );
+	$pageBackgroundCss = generate_background_css( $templateStyles['body-and-background']['page-background'], 'page_background_' );
+	?>
+
+	<body class="body" id="body" style="margin: 0; padding: 0; word-spacing: normal;<?php echo $bodyBackgroundCss; ?>">
 		<div style="display: none">
 			&#8199;&#847; &#8199;&#847; &#8199;&#847; &#8199;&#847; &#8199;&#847; &#8199;&#847; &#8199;&#847; &#8199;&#847;
 			&#8199;&#847; &#8199;&#847; &#8199;&#847; &#8199;&#847; &#8199;&#847; &#8199;&#847; &#8199;&#847; &#8199;&#847;
@@ -997,16 +894,18 @@ function idwiz_get_email_top( $chunks, $templateSettings, $templateStyles, $emai
 			&shy; &shy; &shy; &shy; &shy; &shy; &shy; &shy; &shy; &shy; &shy; &shy; &shy; &nbsp;
 		</div>
 		<div role="article" aria-roledescription="email" lang="en"
-			style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; word-spacing:normal;">
-			<table role="presentation" style="width: 100%; border: 0; border-spacing: 0">
+			style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; word-spacing:normal;text-align: center;">
+			<table role="presentation" style="width: 100%; border: 0; border-spacing: 0;margin: 0 auto;"
+				class="email-wrapper">
 				<tr>
 					<td align="center">
 						<!--[if mso]> 
-												<table role="presentation" align="center" style="width:800px;"> 
-												<tr> 
-												<td style="padding:20px 0;"> 
-												<![endif]-->
-						<div class="outer" style="width: 96%; max-width: 800px; margin: 20px auto">
+							<table role="presentation" align="center" style="width:<?php echo $templateWidth ?>px;"> 
+							<tr> 
+							<td style="padding:20px 0; <?php echo $pageBackgroundCss; ?>"> 
+							<![endif]-->
+						<div class="outer"
+							style="width: 100%; max-width: <?php echo $templateWidth ?>px; margin: 20px auto; <?php echo $pageBackgroundCss; ?>">
 							<?php
 							return ob_get_clean();
 }
@@ -1032,91 +931,97 @@ function idwiz_get_email_bottom() {
 	return ob_get_clean();
 }
 
-function generate_background_css( $backgroundSettings ) {
-	$bg_type = $backgroundSettings['background_type'];
+function generate_background_css( $backgroundSettings, $prefix = '' ) {
+	$bg_type = $backgroundSettings[ $prefix . 'background-type' ] ?? 'none';
 	$css = [];
 
 	switch ( $bg_type ) {
 		case 'gradient':
-			$gradient_type = $backgroundSettings['gradient_type'];
-
-			// Constructing the gradient colors string with positions
-			$start_color = $backgroundSettings['start_color']['gradient_start'];
-			$start_color_position = $backgroundSettings['start_color']['position'] . '%';
-			$middle_color = $backgroundSettings['middle_color']['gradient_middle'];
-			$middle_color_position = $backgroundSettings['middle_color']['position'] . '%';
-			$end_color = $backgroundSettings['end_color']['gradient_end'];
-			$end_color_position = $backgroundSettings['end_color']['position'] . '%';
-
-			$gradient_colors = $start_color . ' ' . $start_color_position;
-			if ( ! empty( $middle_color ) ) {
-				$gradient_colors .= ', ' . $middle_color . ' ' . $middle_color_position;
-			}
-			$gradient_colors .= ', ' . $end_color . ' ' . $end_color_position;
-
-			// Determine gradient direction or shape and complete gradient definition
-			if ( $gradient_type === 'linear' ) {
-				$angle = ! empty( $backgroundSettings['gradient_angle'] ) ? $backgroundSettings['gradient_angle'] . 'deg' : null;
-				$direction_map = [ 'to-bottom' => 'to bottom', 'to-right' => 'to right', 'to-top-right' => 'to top right', 'to-bottom-right' => 'to bottom right' ];
-				$direction = $angle ? $angle : ( isset( $direction_map[ $backgroundSettings['gradient_direction'] ] ) ? $direction_map[ $backgroundSettings['gradient_direction'] ] : 'to top' );
-				$gradient_css = "linear-gradient($direction, $gradient_colors)";
-			} else { // radial gradient
-				$gradient_css = "radial-gradient(circle, $gradient_colors)";
-			}
+			$gradientStyles = json_decode( $backgroundSettings[ $prefix . 'gradient-styles' ], true );
 
 			// Fallback color logic
-			$fallback_color = $backgroundSettings['background_color'] === 'transparent' ? ( $start_color ?: '#fff' ) : $backgroundSettings['background_color'];
-
-			// Fallback gradient image and additional properties
-			$fallback_image = $backgroundSettings['gradient_image_fallback'];
-			$bg_size = $backgroundSettings['background_size'] ? $backgroundSettings['background_size'] : 'auto';
-			$bg_repeat = $backgroundSettings['repeat_background'] ? 'repeat' : 'no-repeat';
-			$limit_repeat = $backgroundSettings['limit_repeat'] ?? false;
-			$bg_repeat = $limit_repeat ? $limit_repeat : $bg_repeat;
-
-			// Add multiple background properties
+			$fallback_color = $backgroundSettings[ $prefix . 'background-color' ] ?? 'transparent';
 			$css[] = "background-color: $fallback_color;";
-			if ( $fallback_image ) {
-				$css[] = "background: url('$fallback_image') right center / $bg_size $bg_repeat;";
+
+			// Use the gradient style directly if it's provided in the correct format
+			if ( ! empty( $gradientStyles['style'] ) ) {
+				$gradient_css = $gradientStyles['style'];
+				$css[] = "background-image: $gradient_css;";
 			}
-			$css[] = "background: $gradient_css;"; // This remains as is
+
+			// Image fallback
+			if ( ! empty( $backgroundSettings[ $prefix . 'background-image-url' ] ) ) {
+				$image_url = $backgroundSettings[ $prefix . 'background-image-url' ];
+				$position = $backgroundSettings[ $prefix . 'background-image-position' ] ?? 'center';
+				$size = $backgroundSettings[ $prefix . 'background-image-size' ] ?? 'cover';
+
+				$css[] = "background-image: url('$image_url'), $gradient_css;";
+				$css[] = "background-position: $position;";
+				$css[] = "background-size: $size;";
+			}
 
 			break;
 
 		case 'image':
 			// Image properties
-			$image_url = $backgroundSettings['background_image'];
-			$position = $backgroundSettings['background_image_position'];
-			$bg_size = $backgroundSettings['background_size'] ? $backgroundSettings['background_size'] : 'auto';
-			$bg_repeat = $backgroundSettings['repeat_background'] ? 'repeat' : 'no-repeat';
-			$limit_repeat = $backgroundSettings['limit_repeat'] ?? false;
-			$bg_repeat = $limit_repeat ? $limit_repeat : $bg_repeat;
+			$image_url = $backgroundSettings[ $prefix . 'background-image-url' ];
+			$position = $backgroundSettings[ $prefix . 'background-image-position' ] ?? 'center';
+			$size = $backgroundSettings[ $prefix . 'background-image-size' ] ?? 'cover';
 
 			// Fallback color and additional properties
-			$fallback_color = $backgroundSettings['background_color'] ?: '#fff';
+			$fallback_color = $backgroundSettings['background-color'] ?? '#ffffff';
 
-
-			// Add multiple background attributes
 			$css[] = "background-color: $fallback_color;";
+			if ( $image_url ) {
+				$css[] = "background-image: url('$image_url');";
+				$css[] = "background-position: $position;";
+				$css[] = "background-size: $size;";
+			}
 
-			$css[] = "background: url('$image_url') $position / $bg_size $bg_repeat;";
+			// Background repeat
+			$bgRepeatY = $backgroundSettings[ $prefix . 'background-repeat-vertical' ] ?? false;
+			$bgRepeatX = $backgroundSettings[ $prefix . 'background-repeat-horizontal' ] ?? false;
+			if ( $bgRepeatY === true && $bgRepeatX === true ) {
+				$css[] = "background-repeat: repeat;";
+			} else if ( $bgRepeatY === true ) {
+				$css[] = "background-repeat: repeat-y;";
+			} else if ( $bgRepeatX === true ) {
+				$css[] = "background-repeat: repeat-x;";
+			} else {
+				$css[] = "background-repeat: no-repeat;";
+			}
 
 			break;
 
-
-		case 'color':
+		case 'solid':
 			// Solid color background
-			$css[] = "background-color: " . $backgroundSettings['background_color'] . "; background-image: linear-gradient(" . $backgroundSettings['background_color'] . "," . $backgroundSettings['background_color'] . ");";
+			$color = $backgroundSettings[ $prefix . 'background-color' ] ?? '#ffffff';
+			$css[] = "background-color: $color;";
+
 			break;
 
-		case 'transparent':
+		case 'none':
 			// Transparent background
-			$css[] = "background: transparent;";
+			$css[] = "background-color: transparent;";
 			break;
 	}
 
+	// Check for forced background color
+	$forceBackground = $backgroundSettings[ $prefix . 'force-background'] ?? false;
+
+	// If a background color is set and not transparent, force it using linear gradient
+	if ( $forceBackground == 'true'
+		&& $bg_type != 'none'
+		&& isset( $backgroundSettings[ $prefix . 'background-color' ] )
+		&& $backgroundSettings[ $prefix . 'background-color' ] != 'transparent' ) {
+		$css[] = "background-image: linear-gradient({$backgroundSettings[ $prefix . 'background-color' ]}, {$backgroundSettings[ $prefix . 'background-color' ]});";
+	}
+
+
+
 	return implode( " ", $css );
 }
+
 
 
 

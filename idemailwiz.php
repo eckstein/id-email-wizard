@@ -387,12 +387,15 @@ function idemailwiz_custom_rewrite_rule()
 
     // Add custom endpoints
     add_rewrite_endpoint('metrics/campaign', EP_ROOT);
-    add_rewrite_endpoint('build-template', EP_ROOT);
+    //add_rewrite_endpoint('build-template', EP_ROOT);
     add_rewrite_endpoint('build-template-v2', EP_ROOT);
     add_rewrite_endpoint('user-profile', EP_ROOT);
     add_rewrite_endpoint('settings', EP_ROOT);
     add_rewrite_endpoint('sync-station', EP_ROOT);
+    add_rewrite_endpoint('campaign-monitor', EP_ROOT);
     add_rewrite_endpoint('course-mapping', EP_ROOT);
+
+    add_rewrite_endpoint('endpoints/iterable-triggeredSend', EP_ROOT);
 }
 
 add_action('init', 'idemailwiz_custom_rewrite_rule', 10);
@@ -416,13 +419,7 @@ function idemailwiz_template_chooser($template)
     }
 
     if (get_post_type() == 'idemailwiz_template' && is_single()) {
-        $wizSettings = get_option('idemailwiz_settings');
-        $builderVersion = $wizSettings['wysiwyg_builder_version'];
-        if ($builderVersion == 'v2') {
-            return dirname(__FILE__) . '/templates/single-idemailwiz_template-v2.php';
-        } else {
-            return dirname(__FILE__) . '/templates/single-idemailwiz_template.php';
-        }
+        return dirname(__FILE__) . '/templates/single-idemailwiz_template-v2.php';
     }
 
     if (get_post_type() == 'idwiz_initiative' && is_single()) {
@@ -484,6 +481,26 @@ function idemailwiz_template_chooser($template)
         // Use the custom template if it exists
         if (!empty($syncStationTemplate)) {
             return $syncStationTemplate;
+        }
+    }
+
+    // If campaign monitor page endpoint is accessed
+    if (isset($wp_query->query_vars['campaign-monitor'])) {
+        $campaignMonitorTemplate = plugin_dir_path(__FILE__) . 'templates/campaign-monitor.php';
+
+        // Use the custom template if it exists
+        if (!empty($campaignMonitorTemplate)) {
+            return $campaignMonitorTemplate;
+        }
+    }
+
+    // If Iterable triggered send endpoint is accessed
+    if (isset($wp_query->query_vars['endpoints/iterable-triggeredSend'])) {
+        $endpointTriggeredSendTemplate = plugin_dir_path(__FILE__) . 'endpoints/iterable-triggeredSend.php';
+
+        // Use the custom template if it exists
+        if (!empty($endpointTriggeredSendTemplate)) {
+            return $endpointTriggeredSendTemplate;
         }
     }
 
@@ -587,7 +604,9 @@ function idemailwiz_enqueue_assets()
 {
 
     wp_enqueue_script('jquery');
+    wp_enqueue_script('jquery-ui');
     wp_enqueue_script('jquery-ui-sortable', null, array('jquery'));
+    wp_enqueue_script('jquery-ui-resizable', null, array('jquery','jquery-ui'));
 
 
     wp_enqueue_script('sweetalert2', 'https://cdn.jsdelivr.net/npm/sweetalert2@11', array(), '11.0', true);
@@ -606,18 +625,38 @@ function idemailwiz_enqueue_assets()
     // Enqueue the data labels plugin for Chart.js. Only dependent on Chart.js.
     wp_enqueue_script('charts-js-datalabels', 'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels', array('charts-js'), null, true);
 
+    //wp_enqueue_script('gradientGenerator', plugin_dir_url(__FILE__) . 'vendors/eckstein/gradientGenerator/gradientGeneratorFinal.js', array('jquery'), null, true);
+    wp_enqueue_script('gradx', plugin_dir_url(__FILE__) . 'vendors/gradx/gradX.js', array('jquery'), null, true);
+
 
     //wp_enqueue_script('DataTables', plugin_dir_url(__FILE__) . 'vendors/DataTables/datatables.min.js', array());
     wp_enqueue_script('DataTables', 'https://cdn.datatables.net/v/dt/jszip-3.10.1/dt-1.13.6/b-2.4.2/b-colvis-2.4.2/b-html5-2.4.2/cr-1.7.0/date-1.5.1/fc-4.3.0/fh-3.4.0/rr-1.4.1/sc-2.2.0/sb-1.5.0/sl-1.7.0/sr-1.3.0/datatables.min.js', array());
     wp_enqueue_script('DataTablesScrollResize', plugin_dir_url(__FILE__) . 'vendors/DataTables/ScrollResize/dataTables.scrollResize.min.js', array());
     wp_enqueue_script('DataTablesEllips', '//cdn.datatables.net/plug-ins/1.13.6/dataRender/ellipsis.js', array());
+
     wp_enqueue_script('flatpickr', 'https://cdn.jsdelivr.net/npm/flatpickr', array());
 
+    wp_enqueue_script('spectrum', plugin_dir_url(__FILE__) . 'vendors/spectrum/spectrum.js', array());
+
+    wp_enqueue_script('tinymce', 'https://cdn.tiny.cloud/1/qogjcr5qz9n4z7j78l00hfc535nb65l59n4ohtsap43i8sxo/tinymce/6/tinymce.min.js');
+
+
+    wp_enqueue_script('editable', plugin_dir_url(__FILE__) . 'vendors/tiny-edit-in-place/jquery.editable.min.js', array());
+
+    wp_enqueue_style('jquery-ui-css', 'https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css');
+
     wp_enqueue_style('font-awesome-6', plugin_dir_url(__FILE__) . 'vendors/Font Awesome/css/all.css', array());
+
     wp_enqueue_style('flatpickr', 'https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css', array());
+
+    wp_enqueue_style('spectrum-stylles', plugin_dir_url(__FILE__) . 'vendors/spectrum/spectrum.css', array());
 
     wp_enqueue_style('code-mirror-css', plugin_dir_url(__FILE__) . 'vendors/codemirror-5.65.16/lib/codemirror.css', array());
     wp_enqueue_style('code-mirror-theme-mbo', plugin_dir_url(__FILE__) . 'vendors/codemirror-5.65.16/theme/mbo.css', array());
+
+    //wp_enqueue_style('gradientGeneratorStyle', plugin_dir_url(__FILE__) . 'vendors/eckstein/gradientGenerator/gradientGeneratorFinal.css', array());
+    wp_enqueue_style('gradx-css', plugin_dir_url(__FILE__) . 'vendors/gradx/gradX.css', array());
+
 
 
 
@@ -635,7 +674,7 @@ function idemailwiz_enqueue_assets()
         'moment-js' => array('/js/libraries/moment.min.js', array()),
         'dt-date-col-sort' => array('/js/dt-date-col-sort.js', array('moment-js')),
         'id-general' => array('/js/id-general.js', array('jquery')),
-        'template-editor' => array('/js/template-editor.js', array('jquery', 'id-general')),
+        'template-editor' => array('/js/template-editor.js', array('jquery', 'id-general', 'jquery-ui-resizable', 'editable', 'spectrum', 'tinymce', 'gradx')),
         'template-actions' => array('/js/template-actions.js', array('jquery', 'id-general')),
         'codemirror' => array('/vendors/codemirror-5.65.16/lib/codemirror.js', array('jquery')),
         
@@ -665,7 +704,9 @@ function idemailwiz_enqueue_assets()
         array()
     );
 
+    $wizSettings = get_option( 'idemailwiz_settings' );
 
+    $iterableApiKey = $wizSettings['iterable_api_key'] ?? false;
 
     foreach ($scripts as $handle => $script) {
         wp_enqueue_script($handle, plugins_url($script[0], __FILE__), $script[1], '1.0.0', true);
@@ -681,6 +722,7 @@ function idemailwiz_enqueue_assets()
                 'plugin_url' => plugin_dir_url(__FILE__),
                 'site_url' => get_bloginfo('url'),
                 'current_user' => wp_get_current_user(),
+                'iterable_api_key' => $iterableApiKey
             )
         );
     }

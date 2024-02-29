@@ -27,6 +27,7 @@ function idemailwiz_create_databases() {
         suppressionListIds VARCHAR(255),
         type VARCHAR(20),
         initiativeLinks VARCHAR(255),
+		last_wiz_update DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY  (id)
     ) $charset_collate;";
 
@@ -172,6 +173,21 @@ function idemailwiz_create_databases() {
         wizSalt VARCHAR(255),
         INDEX wizId (wizId)
     ) $charset_collate;";
+
+
+	$wizTemplateTableName = $wpdb->prefix . 'wiz_templates';
+	$wizTemplate_sql = "CREATE TABLE IF NOT EXISTS $wizTemplateTableName (
+		id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+		post_id BIGINT UNSIGNED NOT NULL,
+		user_id BIGINT UNSIGNED NOT NULL,
+		template_data LONGTEXT NOT NULL,
+		template_html LONGTEXT NOT NULL,
+		template_data_draft LONGTEXT NOT NULL,
+		template_html_draft LONGTEXT NOT NULL,
+		PRIMARY KEY (id),
+		FOREIGN KEY (post_id) REFERENCES {$wpdb->prefix}posts(ID) ON DELETE CASCADE,
+		FOREIGN KEY (user_id) REFERENCES {$wpdb->prefix}users(ID)
+	) $charset_collate;";
 
 
 
@@ -407,6 +423,7 @@ function idemailwiz_create_databases() {
 	dbDelta( $triggered_skips_sql );
 	dbDelta( $triggered_complaints_sql );
 	dbDelta( $ga_campaign_rev_sql );
+	dbDelta( $wizTemplate_sql );
 	dbDelta( $template_sql );
 	dbDelta( $metrics_sql );
 	dbDelta( $experiments_sql );
@@ -474,6 +491,8 @@ function idemailwiz_create_view() {
  */
 function build_idwiz_query( $args, $table_name ) {
 	global $wpdb;
+
+	date_default_timezone_set('America/Los_Angeles');
 
 	$fields = isset( $args['fields'] ) ? $args['fields'] : '*';
 	if ( is_array( $fields ) ) {
@@ -668,30 +687,46 @@ function build_idwiz_query( $args, $table_name ) {
 }
 
 // Does the sql query for the main get_ functions based on the passed parameters
-function execute_idwiz_query( $sql, $batch_size = 20000 ) {
+function execute_idwiz_query( $sql, $args = [], $batch_size = 20000 ) {
 	global $wpdb;
-	$offset = 0;
 	$results = [];
 
-	do {
-		$current_batch_query = $sql . " LIMIT $offset, $batch_size";
-		$current_batch = $wpdb->get_results( $current_batch_query, ARRAY_A );
+	// Initialize offset and limit from $args if present, otherwise use defaults
+	$limit = isset($args['limit']) ? (int) $args['limit'] : $batch_size;
+	$offset = isset($args['offset']) ? (int) $args['offset'] : 0;
 
-		if ( $wpdb->last_error ) {
-			error_log( $wpdb->last_error );
+	// Adjust initial query only if 'limit' and 'offset' are not provided in $args
+	if (!isset($args['limit']) && !isset($args['offset'])) {
+		$sql .= " LIMIT $offset, $limit"; // Default pagination logic
+	}
+
+	do {
+		$current_batch = $wpdb->get_results($sql, ARRAY_A);
+
+		if ($wpdb->last_error) {
+			error_log($wpdb->last_error);
 			return false;
 		}
 
-		if ( $current_batch ) {
-			foreach ( $current_batch as $row ) {
-				$results[] = $row; // Push each row onto the results array
+		if (!empty($current_batch)) {
+			$results = array_merge($results, $current_batch); // Merge batch results into the main results array
+			$offset += $limit; // Prepare offset for the next batch
+
+			// Modify the SQL for the next batch if we're in control of pagination
+			if (!isset($args['limit']) && !isset($args['offset'])) {
+				// Recalculate LIMIT clause for the next batch
+				if (strpos($sql, 'LIMIT') !== false) {
+					$sql = preg_replace('/LIMIT\s+\d+\s*,\s*\d+$/i', "LIMIT $offset, $limit", $sql);
+				} else {
+					$sql .= " LIMIT $offset, $limit";
+				}
 			}
-			$offset += $batch_size;
 		}
-	} while ( count( $current_batch ) == $batch_size );
+	} while (!empty($current_batch) && count($current_batch) == $limit && !isset($args['limit']) && !isset($args['offset']));
 
 	return $results;
 }
+
 
 
 
@@ -699,35 +734,35 @@ function get_idwiz_campaigns( $args = [] ) {
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'idemailwiz_campaigns';
 	$sql = build_idwiz_query( $args, $table_name );
-	return execute_idwiz_query( $sql );
+	return execute_idwiz_query( $sql, $args );
 }
 
 function get_idwiz_templates( $args = [] ) {
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'idemailwiz_templates';
 	$sql = build_idwiz_query( $args, $table_name );
-	return execute_idwiz_query( $sql );
+	return execute_idwiz_query( $sql, $args );
 }
 
 function get_idwiz_purchases( $args = [] ) {
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'idemailwiz_purchases';
 	$sql = build_idwiz_query( $args, $table_name );
-	return execute_idwiz_query( $sql );
+	return execute_idwiz_query( $sql, $args );
 }
 
 function get_idwiz_metrics( $args = [] ) {
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'idemailwiz_metrics';
 	$sql = build_idwiz_query( $args, $table_name );
-	return execute_idwiz_query( $sql );
+	return execute_idwiz_query( $sql, $args );
 }
 
 function get_idwiz_experiments( $args = [] ) {
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'idemailwiz_experiments';
 	$sql = build_idwiz_query( $args, $table_name );
-	return execute_idwiz_query( $sql );
+	return execute_idwiz_query( $sql, $args );
 }
 
 function get_idwiz_campaign( $campaignID ) {
@@ -835,6 +870,7 @@ function get_idemailwiz_triggered_data( $database, $args = [], $batchSize = 2000
 		$where_clauses[] = "startAt <= %d";
 		$query_params[] = $timestampEnd;
 	}
+	
 
 	// Initialize results array
 	$allResults = [];

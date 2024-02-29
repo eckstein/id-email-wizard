@@ -30,6 +30,9 @@ function idwiz_get_campaign_table_view() {
 
     foreach ($results as &$row) {
         // Iterate through the results
+        if ($row['ga_revenue'] === null || !$row['ga_revenue']) {
+            $row['ga_revenue'] = '0';
+        }
         // Unserialize specific columns
         $checkSerialized = ['campaign_labels', 'experiment_ids'];  // Add more column names as needed
         foreach ($checkSerialized as $columnName) {

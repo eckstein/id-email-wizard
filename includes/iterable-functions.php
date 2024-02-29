@@ -20,20 +20,24 @@ function idemailwiz_get_template_data_for_iterable()
 
 	$post_id = $_POST['post_id'];
 
-	$emailSettings = get_field('email_settings', $post_id);
+	$wizTemplate = get_wizTemplate($post_id);
+
+	$messageSettings = $wizTemplate['templateOptions']['templateSettings']['message-settings'];
+
 	$current_user = wp_get_current_user();
 
 	$templateFields = array(
-		'preheader' => $emailSettings['preview_text'],
-		'fromName' => $emailSettings['from_name'],
-		'utmTerm' => $emailSettings['utm_term'],
+		'preheader' => $messageSettings['preview_text'] ?? '',
+		'fromName' => $messageSettings['from_name'] ?? 'iD Tech Camps',
+		'utmTerm' => $messageSettings['utm_term'] ?? '',
 	);
 	$reqTemplateFields = array(
 		'templateName' => get_the_title($post_id),
-		'emailSubject' => $emailSettings['subject_line'],
-		'messageType' => $emailSettings['email_type'],
-		'fromEmail' => 'info@idtechonline.com',
-		'replyToEmail' => 'info@idtechonline.com',
+		'emailSubject' =>  $messageSettings['subject_line']  ?? '',
+
+		'messageType' => $messageSettings['email_type'] ?? 'promotional',
+		'fromEmail' => $messageSettings['from_email'] ?? 'info@idtechonline.com',
+		'replyToEmail' => $messageSettings['reply_to'] ?? 'hello@idtechonline.com',
 		'createdBy' => $current_user->user_email,
 		'postId' => $post_id,
 	);
@@ -161,7 +165,6 @@ function update_template_after_sync()
 	wp_send_json($response);
 }
 add_action('wp_ajax_update_template_after_sync', 'update_template_after_sync');
-add_action('wp_ajax_nopriv_update_template_after_sync', 'update_template_after_sync');
 
 
 

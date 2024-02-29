@@ -24,104 +24,104 @@
 // }
 
 
-function wiz_log($message) {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'idemailwiz_wiz_log';
+function wiz_log( $message ) {
+	global $wpdb;
+	$table_name = $wpdb->prefix . 'idemailwiz_wiz_log';
 
-    // Prepare data for insertion
-    $data = array(
-        'timestamp' => microtime(true), // Unix timestamp with microseconds
-        'message'   => $message
-    );
+	// Prepare data for insertion
+	$data = array(
+		'timestamp' => microtime( true ), // Unix timestamp with microseconds
+		'message' => $message
+	);
 
-    // Insert data into the database
-    $insertLog = $wpdb->insert($table_name, $data);
-    return $insertLog;
+	// Insert data into the database
+	$insertLog = $wpdb->insert( $table_name, $data );
+	return $insertLog;
 }
 
 
-function get_wiz_log($limit = 1000, $startTimestamp = null, $endTimestamp = null) {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'idemailwiz_wiz_log';
+function get_wiz_log( $limit = 1000, $startTimestamp = null, $endTimestamp = null ) {
+	global $wpdb;
+	$table_name = $wpdb->prefix . 'idemailwiz_wiz_log';
 
-    // Prepare the query
-    $query = "SELECT * FROM $table_name";
+	// Prepare the query
+	$query = "SELECT * FROM $table_name";
 
-    // Add time range filters if provided
-    $conditions = [];
-    if ($startTimestamp) {
-        $conditions[] = $wpdb->prepare("timestamp >= %d", $startTimestamp);
-    }
-    if ($endTimestamp) {
-        $conditions[] = $wpdb->prepare("timestamp <= %d", $endTimestamp);
-    }
-    if (!empty($conditions)) {
-        $query .= " WHERE " . implode(" AND ", $conditions);
-    }
+	// Add time range filters if provided
+	$conditions = [];
+	if ( $startTimestamp ) {
+		$conditions[] = $wpdb->prepare( "timestamp >= %d", $startTimestamp );
+	}
+	if ( $endTimestamp ) {
+		$conditions[] = $wpdb->prepare( "timestamp <= %d", $endTimestamp );
+	}
+	if ( ! empty( $conditions ) ) {
+		$query .= " WHERE " . implode( " AND ", $conditions );
+	}
 
-    // Add order and limit
-    $query .= " ORDER BY timestamp DESC LIMIT %d";
+	// Add order and limit
+	$query .= " ORDER BY timestamp DESC LIMIT %d";
 
-    // Fetch log entries
-    $logs = $wpdb->get_results($wpdb->prepare($query, $limit), ARRAY_A);
+	// Fetch log entries
+	$logs = $wpdb->get_results( $wpdb->prepare( $query, $limit ), ARRAY_A );
 
-    // Format the output
-    $output = '';
-    if (!empty($logs)) {
-        foreach ($logs as $log) {
-            // Split the timestamp into seconds and microseconds
-            list($secs, $microsecs) = explode('.', $log['timestamp']);
-            $date = new DateTime("@$secs"); // @ symbol tells DateTime it's a Unix timestamp
-            $date->setTimeZone(new DateTimeZone('America/Los_Angeles')); // Adjust timezone as needed
+	// Format the output
+	$output = '';
+	if ( ! empty( $logs ) ) {
+		foreach ( $logs as $log ) {
+			// Split the timestamp into seconds and microseconds
+			list( $secs, $microsecs ) = explode( '.', $log['timestamp'] );
+			$date = new DateTime( "@$secs" ); // @ symbol tells DateTime it's a Unix timestamp
+			$date->setTimeZone( new DateTimeZone( 'America/Los_Angeles' ) ); // Adjust timezone as needed
 
-            // Format the date and append microseconds
-            $formattedDate = $date->format('m-d-Y g:ia') . sprintf('.%06d', $microsecs);
+			// Format the date and append microseconds
+			$formattedDate = $date->format( 'm-d-Y g:ia' ) . sprintf( '.%06d', $microsecs );
 
-            $output .= $formattedDate . " - " . $log['message'] . "\n";
-        }
-    } else {
-        $output = "Log is empty!";
-    }
+			$output .= $formattedDate . " - " . $log['message'] . "\n";
+		}
+	} else {
+		$output = "Log is empty!";
+	}
 
-    return $output;
+	return $output;
 
 }
 
-add_action('wp_ajax_refresh_wiz_log', 'refresh_wiz_log_callback');
+add_action( 'wp_ajax_refresh_wiz_log', 'refresh_wiz_log_callback' );
 
 function refresh_wiz_log_callback() {
-    check_ajax_referer('id-general', 'security');
+	check_ajax_referer( 'id-general', 'security' );
 
-    $logContent = get_wiz_log();
-    wp_send_json_success($logContent); // Send JSON response
+	$logContent = get_wiz_log();
+	wp_send_json_success( $logContent ); // Send JSON response
 }
 
 
 
-function ajax_to_wiz_log()
-{
+function ajax_to_wiz_log() {
 
-    // Bail early without valid nonce
-    if (
-        check_ajax_referer('data-tables', 'security', false) ||
-        check_ajax_referer('initiatives', 'security', false) ||
-        check_ajax_referer('wiz-metrics', 'security', false) ||
-        check_ajax_referer('id-general', 'security', false)
-    ) {
-        // Nonce is valid and belongs to one of the specified referers
-    } else {
-        // Invalid nonce or referer
-        wp_die('Invalid action or nonce');
-    }
+	// Bail early without valid nonce
+	if (
+		check_ajax_referer( 'data-tables', 'security', false ) ||
+		check_ajax_referer( 'initiatives', 'security', false ) ||
+		check_ajax_referer( 'wiz-metrics', 'security', false ) ||
+		check_ajax_referer( 'id-general', 'security', false )
+	) {
+		// Nonce is valid and belongs to one of the specified referers
+	} else {
+		// Invalid nonce or referer
+		wp_die( 'Invalid action or nonce' );
+	}
 
-    $logData = $_POST['log_data'] ?? '';
+	$logData = $_POST['log_data'] ?? '';
 
-    $writeToLog = wiz_log($logData);
+	$writeToLog = wiz_log( $logData );
 
-    if ($writeToLog === false) {
-        wp_send_json_error('Error writing to wiz log database');
-    } else {
-        wp_send_json_success($writeToLog);
-    }
+	if ( $writeToLog === false ) {
+		wp_send_json_error( 'Error writing to wiz log database' );
+	} else {
+		wp_send_json_success( $writeToLog );
+	}
 }
-add_action('wp_ajax_ajax_to_wiz_log', 'ajax_to_wiz_log');
+add_action( 'wp_ajax_ajax_to_wiz_log', 'ajax_to_wiz_log' );
+

@@ -353,7 +353,7 @@ function idemailwiz_simplify_templates_array( $template ) {
 
 function idemailwiz_fetch_experiments( $campaignIds = null ) {
 	$today = new DateTime();
-	$startFetchDate = $today->modify( '30 days' )->format( 'Y-m-d' );
+	$startFetchDate = $today->modify( '-30 days' )->format( 'Y-m-d' );
 
 	$fetchCampArgs = array(
 		'messageMedium' => 'Email',
@@ -1756,8 +1756,8 @@ function idwiz_export_and_store_jobs_to_transients( $metricType, $campaignTypes 
 	}
 
 	if ( ! $campaignIds || ( is_array( $campaignIds ) && empty( $campaignIds ) ) ) {
-		// if no campaign IDs are passed, get all Running triggered campaigns that have a send date in the last 10 days
-		$campaigns = get_idwiz_campaigns( [ 'type' => $campaignTypes, 'campaignState' => 'Running', 'startAt_start' => date( 'Y-m-d', strtotime( '-10 days' ) ), 'fields' => 'id', 'sortBy' => 'startAt', 'sort' => 'DESC' ] );
+		// if no campaign IDs are passed, get all Running triggered campaigns 
+		$campaigns = get_idwiz_campaigns( [ 'type' => $campaignTypes, 'campaignState' => 'Running', 'fields' => 'id', 'sortBy' => 'startAt', 'sort' => 'DESC' ] );
 	} else {
 		$campaigns = get_idwiz_campaigns( [ 'campaignIds' => $campaignIds, 'fields' => 'id', 'sortBy' => 'startAt', 'sort' => 'DESC' ] );
 	}
@@ -1766,20 +1766,25 @@ function idwiz_export_and_store_jobs_to_transients( $metricType, $campaignTypes 
 
 
 
-	// Prepare the API call to fetch data
+	// Set the timezone to Pacific Time (Los Angeles)
+	$timezone = new DateTimeZone('America/Los_Angeles');
+
+	// Example for setting the start date/time
 	if ( $exportStart ) {
-		$exportFetchStart = new DateTimeImmutable( $exportStart );
+		$exportFetchStart = new DateTimeImmutable( $exportStart, $timezone );
 	} else {
-		$wizSettings = get_option( 'idwemailwiz_settings' );
+		$wizSettings = get_option( 'idemailwiz_settings' );
 		$triggered_sync_length = $wizSettings['triggered_sync_length'] ?? 30;
-		$exportFetchStart = new DateTimeImmutable( '-' . $triggered_sync_length . ' days' );
+		$exportFetchStart = new DateTimeImmutable( '-' . $triggered_sync_length . ' days', $timezone );
 	}
 
+	$exportFetchEnd = false;
 	if ( $exportEnd ) {
-		$exportFetchEnd = new DateTimeImmutable( $exportEnd );
+		$exportFetchEnd = new DateTimeImmutable( $exportEnd, $timezone );
 	} else {
-		$exportFetchEnd = new DateTimeImmutable( 'now' );
+		//$exportFetchEnd = new DateTimeImmutable( 'now', $timezone );
 	}
+
 
 	$transientData = [ 'jobs' => [], 'lastUpdated' => '' ];
 	$countRetrieved = 0;
@@ -1792,13 +1797,18 @@ function idwiz_export_and_store_jobs_to_transients( $metricType, $campaignTypes 
 		if ( ! isset( $campaign['id'] ) ) {
 			continue;
 		}
+
+		$exportStartData = [];
+
+		if ($exportFetchEnd) {
+			$exportStartData['endDateTime'] = $exportFetchEnd->format( 'Y-m-d' );
+		}
 		$exportStartData = [ 
 			"outputFormat" => "application/x-json-stream",
 			"dataTypeName" => 'email' . ucfirst( $metricType ),
 			"delimiter" => ",",
 			"onlyFields" => "createdAt,userId,campaignId,templateId,messageId,email",
 			"startDateTime" => $exportFetchStart->format( 'Y-m-d' ),
-			"endDateTime" => $exportFetchEnd->format( 'Y-m-d' ),
 			"campaignId" => (int) $campaign['id']
 		];
 		try {
@@ -2107,12 +2117,15 @@ function idemailwiz_insert_exported_job_record( $record, $tableName ) {
 
 	if ( $exists ) {
 		// Update existing record
-		$where = [ 'messageId' => $record['messageId'] ];
-		$result = $wpdb->update( $tableName, $data, $where );
+		// $where = [ 'messageId' => $record['messageId'] ];
+		// $result = $wpdb->update( $tableName, $data, $where );
 
-		if ( $result !== false ) {
-			return 'updated';
-		}
+		// if ( $result !== false ) {
+		// 	return 'updated';
+		// }
+
+		// Skip existing records
+		return 'skipped';
 	} else {
 		// Insert new record
 		$result = $wpdb->insert( $tableName, $data );

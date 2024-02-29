@@ -342,6 +342,73 @@ jQuery(document).ready(function ($) {
 		});
 	});
 
+	if ($(".idwiz-campaign-monitor-table").length || $(".idwiz-purchase-monitor-table").length) {
+		$.fn.dataTable.moment("x");
+
+		var dtDom = '<"#wiztable_top_wrapper"><"wiztable_toolbar">rtp';
+
+		if ($(".idwiz-campaign-monitor-table").length) {
+			$(".idwiz-campaign-monitor-table").DataTable({
+				dom: dtDom,
+				pageLength: 50,
+				order: [
+					[1, "desc"],
+				],
+				columnDefs: [{
+					targets: 1, // Targeting the 2nd column
+					render: function(data, type, row) {
+						if (type === 'display' && data !== null && data !== '') {
+							// Assuming the data is in milliseconds
+							var date = new Date(parseInt(data * 1000));
+							return date.toLocaleString('en-US', {
+								month: 'numeric',
+								day: 'numeric',
+								year: 'numeric',
+								hour: '2-digit',
+								minute: '2-digit',
+							});
+						}
+						return data; // Return data as is for sorting and filtering
+					},
+					type: 'num', // Ensures that numeric sorting is applied
+				}]
+			});
+		}
+
+
+		
+
+		if ($(".idwiz-purchase-monitor-table").length) {
+			$(".idwiz-purchase-monitor-table").DataTable({
+				dom: dtDom,
+				pageLength: 25,
+				order: [
+					[0, "desc"],
+				],
+				columnDefs: [{
+					targets: 0, // Targeting the 2nd column
+					render: function(data, type, row) {
+						if (type === 'display' && data !== null && data !== '') {
+							// Assuming the data is in milliseconds
+							var date = new Date(parseInt(data * 1000));
+							return date.toLocaleString('en-US', {
+								month: 'numeric',
+								day: 'numeric',
+								year: 'numeric',
+								hour: '2-digit',
+								minute: '2-digit',
+							});
+						}
+						return data; // Return data as is for sorting and filtering
+					},
+					type: 'num', // Ensures that numeric sorting is applied
+				}]
+			});
+		}
+	}
+
+	
+
 });
 
 function updateTemplatePreviewImageElement(previewContainer, newImageUrl, spinnerWrapper) {
@@ -463,7 +530,7 @@ function setupCategoriesView() {
 // The callback functions can either be directly built in the function or can also take names of
 // callback functions which will get the data and error objects passed into them for use
 // This function can handle  calls that rely on await, or not
-function idemailwiz_do_ajax(actionFunctionName, nonceValue, additionalData, successCallback, errorCallback, dataType = "json") {
+function idemailwiz_do_ajax(actionFunctionName, nonceValue, additionalData, successCallback, errorCallback, dataType = "json", contentType = "application/x-www-form-urlencoded; charset=UTF-8") {
 	return new Promise((resolve, reject) => {
 		let defaultData = {
 			action: actionFunctionName,
@@ -479,6 +546,8 @@ function idemailwiz_do_ajax(actionFunctionName, nonceValue, additionalData, succ
 				type: "POST",
 				data: mergedData,
 				dataType: dataType,
+				contentType: contentType,
+				
 			})
 			.done((response) => {
 				if (successCallback) {
@@ -497,6 +566,9 @@ function idemailwiz_do_ajax(actionFunctionName, nonceValue, additionalData, succ
 			});
 	});
 }
+
+
+
 
 // Even more global function to reload and element, when passed one
 function wizReloadThing(selector) {
@@ -608,7 +680,13 @@ function handle_idwiz_sync_buttons(metricTypes, campaignIds, $button) {
 					title: "Success!",
 					text: "The sync sequence has finished successfully.",
 					icon: "success",
-				});
+					confirmButtonText: 'OK'
+				}).then((result) => {
+					if (result.isConfirmed) {
+						location.reload();
+					}
+				})
+
 			} else {
 				Swal.fire({
 					title: "Error!",
@@ -768,6 +846,7 @@ if (jQuery("#syncLogContent code").length) {
 		);
 	}, 3000);
 }
+
 
 // Manual sync form submission
 jQuery("#syncStationForm").on("submit", function (e) {

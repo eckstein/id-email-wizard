@@ -12,51 +12,63 @@ function update_journey_meta_on_acf_save( $post_id ) {
 	}
 	$field_key = $field['key'];
 
-	// Check if 'workflow_ids' field is being updated
-	if ( isset( $_POST['acf'][ $field_key ] ) ) {
-		$new_workflow_ids_raw = $_POST['acf'][ $field_key ];
-		if ( ! is_array( $new_workflow_ids_raw ) ) {
-			return;
+	// Check if this is being called in the context of an ACF save action with POST data
+	if ( isset( $_POST['acf'] ) ) {
+		// Check if 'workflow_ids' field is being updated
+		if ( isset( $_POST['acf'][ $field_key ] ) ) {
+			$new_workflow_ids_raw = $_POST['acf'][ $field_key ];
+			if ( ! is_array( $new_workflow_ids_raw ) ) {
+				return;
+			}
+
+			// Extract the values directly from each row's array
+			$new_workflow_ids = array_map( function ($item) {
+				return array_values( $item )[0]; // Extract the first value from each row's array
+			}, $new_workflow_ids_raw );
+
 		}
+	} else {
+		// For cron job or other contexts, fetch the 'workflow_ids' field value directly
+		$new_workflow_ids_raw = get_field('workflow_ids', $post_id, false); // false to get raw value
+		if ( is_array( $new_workflow_ids_raw ) ) {
+			$new_workflow_ids = array_map(function ($item) {
+				return $item; // Assuming the structure matches what's needed
+			}, $new_workflow_ids_raw);
+		}
+	}
 
-		// Extract the values directly from each row's array
-		$new_workflow_ids = array_map( function ($item) {
-			return array_values( $item )[0]; // Extract the first value from each row's array
-		}, $new_workflow_ids_raw );
+	$campaignIds = [];
+	$earliestSend = PHP_INT_MAX;
+	$latestSend = PHP_INT_MIN;
 
-		$campaignIds = [];
-		$earliestSend = PHP_INT_MAX;
-		$latestSend = PHP_INT_MIN;
+	// Process the new workflow IDs
+	foreach ( $new_workflow_ids as $workflowId ) {
+		$campaigns = get_idwiz_campaigns( [ 'workflowId' => $workflowId, 'fields' => [ 'id' ], 'sortBy' => 'startAt', 'sort' => 'ASC' ] );
+		foreach ( $campaigns as $campaign ) {
+			$campaignId = $campaign['id'];
+			$campaignIds[] = $campaignId;
 
-		// Process the new workflow IDs
-		foreach ( $new_workflow_ids as $workflowId ) {
-			$campaigns = get_idwiz_campaigns( [ 'workflowId' => $workflowId, 'fields' => [ 'id' ], 'sortBy' => 'startAt', 'sort' => 'ASC' ] );
-			foreach ( $campaigns as $campaign ) {
-				$campaignId = $campaign['id'];
-				$campaignIds[] = $campaignId;
-
-				$sends = get_idemailwiz_triggered_data( 'idemailwiz_triggered_sends', [ 'campaignIds' => [ $campaignId ] ] );
-				foreach ( $sends as $send ) {
-					$sendAt = $send['startAt'];
-					$earliestSend = min( $earliestSend, $sendAt );
-					$latestSend = max( $latestSend, $sendAt );
-				}
+			$sends = get_idemailwiz_triggered_data( 'idemailwiz_triggered_sends', [ 'campaignIds' => [ $campaignId ] ] );
+			foreach ( $sends as $send ) {
+				$sendAt = $send['startAt'];
+				$earliestSend = min( $earliestSend, $sendAt );
+				$latestSend = max( $latestSend, $sendAt );
 			}
 		}
-
-
-
-		// Check if valid sends were found before updating post meta
-		if ( $earliestSend != PHP_INT_MAX ) {
-			update_post_meta( $post_id, 'earliest_send', $earliestSend );
-		}
-		if ( $latestSend != PHP_INT_MIN ) {
-			update_post_meta( $post_id, 'latest_send', $latestSend );
-		}
-		update_post_meta( $post_id, 'journey_campaign_ids', $campaignIds );
-
-
 	}
+
+
+
+	// Check if valid sends were found before updating post meta
+	if ( $earliestSend != PHP_INT_MAX ) {
+		update_post_meta( $post_id, 'earliest_send', $earliestSend );
+	}
+	if ( $latestSend != PHP_INT_MIN ) {
+		update_post_meta( $post_id, 'latest_send', $latestSend );
+	}
+	update_post_meta( $post_id, 'journey_campaign_ids', $campaignIds );
+
+	
 }
 
 add_action( 'acf/save_post', 'update_journey_meta_on_acf_save', 5 );
@@ -203,11 +215,11 @@ function get_journey_campaign_single_metric_data( $campaignId, $dataType ) {
 
 function get_journey_total_send_days_to_show( $post_id, $startDate, $endDate ) {
 	$firstJourneySend = get_post_meta( $post_id, 'earliest_send', true );
-	$lastJourneySend = get_post_meta( $post_id, 'latest_send', true );
+	//$lastJourneySend = get_post_meta( $post_id, 'latest_send', true );
 
 	// Start and end dates
 	$firstSendObj = new DateTime( date( 'Y-m-d', $firstJourneySend / 1000 ) );
-	$lastSendObj = new DateTime( date( 'Y-m-d', $lastJourneySend / 1000 ) );
+	$lastSendObj = new DateTime( date( 'Y-m-d', strtotime($endDate))) ;
 
 	// Determine number of columns (days) we need to show
 	// Determine if the current startDate is after the firstSend date

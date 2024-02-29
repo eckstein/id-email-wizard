@@ -11,6 +11,7 @@
     ?>
 
     <form method="get" action="">
+        <div class="dashboard-date-range-form">
         <?php
         // Create hidden fields for each parameter to retain
         foreach ($parametersToRetain as $key => $value) {
@@ -23,5 +24,6 @@
         <?php if (!is_page('campaigns')) { ?>
             &nbsp;<input type="submit" class="wiz-button green" value="Apply">
         <?php } ?>
+        </div>
     </form>
 </div>
