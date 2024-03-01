@@ -237,6 +237,7 @@ function idemailwiz_fetch_templates( $campaignIds = null ) {
 	$templateAPIurls = [ 
 		'blastEmails' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=Email',
 		'triggeredEmails' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=Email',
+		'workflowEmails' => 'https://api.iterable.com/api/templates?templateType=Workflow&messageMedium=Email',
 		'blastSMS' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=SMS',
 		'triggeredSMS' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=SMS',
 	];
@@ -254,7 +255,7 @@ function idemailwiz_fetch_templates( $campaignIds = null ) {
 				}
 			}
 
-			usleep( 10000 );
+			//usleep( 10000 );
 		} catch (Exception $e) {
 			wiz_log( "Error during initial API call: " . $e->getMessage() );
 		}
