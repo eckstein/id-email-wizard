@@ -239,7 +239,7 @@ function idemailwiz_fetch_templates( $campaignIds = null ) {
 		'triggeredEmails' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=Email',
 		'workflowEmails' => 'https://api.iterable.com/api/templates?templateType=Workflow&messageMedium=Email',
 		'blastSMS' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=SMS',
-		'triggeredSMS' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=SMS',
+		'triggeredSMS' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=SMS', 
 	];
 
 	// Fetch templates from all four endpoints
