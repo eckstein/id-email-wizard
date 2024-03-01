@@ -8,6 +8,7 @@ function idwiz_get_spacer_chunk( $chunk, $templateOptions ) {
 	//print_r($chunk);
 
 	$chunkSettings = $chunk['settings'];
+	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
 	$chunkFields = $chunk['fields'];
 
 	$spacerHeight = $chunkFields['spacer_height'] ?? '60px';
@@ -27,7 +28,7 @@ function idwiz_get_spacer_chunk( $chunk, $templateOptions ) {
 	<tr>
 	<td style="width:100%;text-align:center; <?php echo $backgroundColorCss; ?>" valign="middle">
 	<![endif]-->
-	<div class="id-chunk id-spacer <?php echo $visibility['class']; ?>" style="<?php echo $visibility['inlineStyle']; ?>"
+	<div class="id-chunk id-spacer <?php echo $chunkClasses; ?> <?php echo $visibility['class']; ?>" style="<?php echo $visibility['inlineStyle']; ?>"
 		aria-hidden="true">
 		<div
 			style="line-height:<?php echo $spacerHeight; ?>;height:<?php echo $spacerHeight; ?>;mso-line-height-rule:exactly;<?php echo $backgroundColorCss; ?>">
@@ -51,6 +52,7 @@ function idwiz_get_button_chunk( $chunk, $templateOptions ) {
 	$chunkFields = $chunk['fields'];
 
 	$chunkPadding = $chunkSettings['chunk_padding'] ?? '0px';
+	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
 
 	$ctaText = $chunkFields['button_text'] ?? 'Click here';
 	$ctaUrl = $chunkFields['button_link'] ?? 'https://www.idtech.com';
@@ -107,7 +109,7 @@ function idwiz_get_button_chunk( $chunk, $templateOptions ) {
 
 	?>
 
-	<div class="id-chunk id-button <?php echo $visibility['class']; ?>"
+	<div class="id-chunk id-button <?php echo $chunkClasses; ?> <?php echo $visibility['class']; ?>"
 		style="width: 100%; border: 0; border-spacing: 0; <?php echo $visibility['inlineStyle']; ?> <?php echo $backgroundColorCss; ?>">
 		<table role="presentation" table-layout="fixed" style="width: 100%; <?php echo $backgroundColorCss; ?>">
 			<tr>
@@ -140,6 +142,7 @@ function idwiz_get_button_chunk( $chunk, $templateOptions ) {
 
 function idwiz_get_snippet_chunk( $chunk, $templateOptions ) {
 	$chunkSettings = $chunk['settings'];
+	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
 	$chunkFields = $chunk['fields'];
 
 	$backgroundColorCss = generate_background_css( $chunkSettings );
@@ -171,7 +174,7 @@ function idwiz_get_snippet_chunk( $chunk, $templateOptions ) {
 		echo '<![endif]-->';
 	}
 
-	echo '<div class="id-chunk id-snippet" style="' . esc_attr( $fontCss . $backgroundColorCss . $visibility['inlineStyle'] ) . '">';
+	echo '<div class="id-chunk id-snippet '.$chunkClasses.'" style="' . esc_attr( $fontCss . $backgroundColorCss . $visibility['inlineStyle'] ) . '">';
 	echo $snippetContent;
 	echo '</div>';
 
@@ -195,6 +198,8 @@ function idwiz_get_plain_text_chunk( $chunk, $templateOptions ) {
 
 	$chunkFields = $chunk['fields'];
 	$chunkSettings = $chunk['settings'];
+
+	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
 
 	$visibility = get_visibility_class_and_style( $chunkSettings );
 
@@ -222,7 +227,7 @@ function idwiz_get_plain_text_chunk( $chunk, $templateOptions ) {
 			<td class="id-plain-text" style="<?php echo $backgroundColorCss; ?> padding: <?php echo $chunkPadding; ?>; font-family: Poppins, Arial, sans-serif!important; font-size: <?php echo $templateStyles['font-styles']['template_font_size'] ?? '16px'; ?>;">
 			<![endif]-->
 
-	<div class="id-chunk id-plain-text <?php echo $visibility['class']; ?>"
+	<div class="id-chunk id-plain-text <?php echo $chunkClasses; ?> <?php echo $visibility['class']; ?>"
 		style="<?php echo $visibility['inlineStyle']; ?>; <?php echo $backgroundColorCss; ?> padding: <?php echo $chunkPadding; ?>; font-size: <?php echo $templateStyles['font-styles']['template_font_size'] ?? '16px'; ?>; border-top:1px solid transparent;">
 		<?php echo wpautop( stripslashes($textContent) ); ?>
 	</div>
@@ -283,6 +288,7 @@ function idwiz_get_image_chunk( $chunk, $templateOptions ) {
 	$chunkFields = $chunk['fields'];
 
 	$variant = $chunkSettings['image_context'] ?? '';
+	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
 
 	$templateWidth = $templateOptions['templateStyles']['body-and-background']['template_width'] ?? '648';
 
@@ -329,7 +335,7 @@ function idwiz_get_image_chunk( $chunk, $templateOptions ) {
 
 	// Non-MSO markup for other clients
 	echo '<!--[if !mso]> <!-->';
-	echo '<div class="id-chunk id-image ' . $visibility['class'] . '" style="' . $backgroundColorCss . ' ' . $visibility['inlineStyle'] . '">';
+	echo '<div class="id-chunk id-image ' .$chunkClasses.' '.$visibility['class'] . '" style="' . $backgroundColorCss . ' ' . $visibility['inlineStyle'] . '">';
 	if ( $imageLink ) {
 		echo '<a href="' . $imageLink . '" ' . $ariaHidden . ' title="' . $imageAlt . '">';
 	}

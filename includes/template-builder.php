@@ -387,6 +387,7 @@ function render_chunk_settings( $chunkType, $chunkData, $uniqueId ) {
 	echo "<h4>Chunk Content Settings</h4>";
 	echo "<div class='builder-field-group flex'>";
 	$chunkPadding = $chunkSettings['chunk_padding'] ?? '0px';
+	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
 
 	echo '<form id="' . $uniqueId . '-chunk-settings-form">';
 	switch ( $chunkType ) {
@@ -396,6 +397,8 @@ function render_chunk_settings( $chunkType, $chunkData, $uniqueId ) {
 			echo "<div class='builder-field-wrapper chunk-padding small-input'><label for='{$uniqueId}-chunk-padding'>Chunk Padding</label>";
 			echo "<input type='text' name='chunk_padding' id='{$uniqueId}-chunk-padding' value='{$chunkPadding}'>";
 			echo "</div>";
+
+			
 			break;
 
 
@@ -414,6 +417,10 @@ function render_chunk_settings( $chunkType, $chunkData, $uniqueId ) {
 			'No valid chunk type set!';
 			break;
 	}
+	echo "<div class='builder-field-wrapper chunk-classes'><label for='{$uniqueId}-chunk-classes'>Chunk Classes</label>";
+	echo "<input type='text' name='chunk_classes' id='{$uniqueId}-chunk-classes' value='{$chunkClasses}'>";
+	echo "</div>";
+	
 	echo "</form>"; // Close chunk-inner-content
 	echo "</div>"; // Close chunk-general-settings
 	echo "</div>"; // Close builder-field-group.flex 
