@@ -255,7 +255,7 @@ function idemailwiz_fetch_templates( $campaignIds = null ) {
 				}
 			}
 
-			//usleep( 10000 );
+			usleep( 1000 );
 		} catch (Exception $e) {
 			wiz_log( "Error during initial API call: " . $e->getMessage() );
 		}
