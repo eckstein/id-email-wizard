@@ -369,7 +369,7 @@ $wizTemplate = get_wizTemplate( $postId );
 								?>
 								<div class="builder-field-wrapper">
 									<label class="checkbox-toggle-label">Include Dark Mode Support Meta Tag</label>
-									<div class="wiz-checkbox-toggle">
+									<div class="wiz-checkbox-toggle"> 
 										<input type="checkbox" class="wiz-check-toggle"
 											id="template_styles_dark_mode_support" name="dark-mode-support" hidden <?php echo $includeDarkModeSupport ? 'checked' : ''; ?>>
 										<label for="template_styles_dark_mode_support"
@@ -378,7 +378,7 @@ $wizTemplate = get_wizTemplate( $postId );
 									</div>
 
 								</div>
-								
+
 								<?php
 								$customStyles = $templateStyles['custom-styles'] ?? [];
 								?>
