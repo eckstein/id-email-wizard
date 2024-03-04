@@ -1155,7 +1155,7 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 				$colValign = $column['settings']['valign'] ? strtolower($column['settings']['valign']) : 'top';
 
 				$colBackgroundCSS = generate_background_css( $column['settings'],'');
-				print_r($colBackgroundCSS);
+				//print_r($colBackgroundCSS);
 
 				$columnChunks = $column['chunks'];
 				$templateWidth = isset( $templateStyles['body-and-background']['template_width'] ) && $templateStyles['body-and-background']['template_width'] > 0 ? $templateStyles['body-and-background']['template_width'] : 648;
