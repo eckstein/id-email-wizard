@@ -365,14 +365,6 @@ $wizTemplate = get_wizTemplate( $postId );
 							<fieldset name="custom-styles" class="template-settings-tab-content"
 								id="template-styles-tab-custom-styles">
 								<?php
-								$customStyles = $templateStyles['custom-styles'] ?? [];
-								?>
-								<div class="builder-field-wrapper block">
-									<label for="template_styles_additional_css">Additional CSS</label>
-									<textarea id="template_styles_additional_css" name="additional_template_css"
-										class="builder-field"><?php echo $customStyles['additional_template_css'] ?? ''; ?></textarea>
-								</div>
-								<?php
 								$includeDarkModeSupport = $customStyles['dark-mode-support'] ?? false;
 								?>
 								<div class="builder-field-wrapper">
@@ -386,6 +378,16 @@ $wizTemplate = get_wizTemplate( $postId );
 									</div>
 
 								</div>
+								
+								<?php
+								$customStyles = $templateStyles['custom-styles'] ?? [];
+								?>
+								<div class="builder-field-wrapper block">
+									<label for="template_styles_additional_css">Additional CSS</label>
+									<textarea id="template_styles_additional_css" name="additional_template_css"
+										class="builder-field"><?php echo $customStyles['additional_template_css'] ?? ''; ?></textarea>
+								</div>
+								
 							</fieldset>
 
 						</form>
