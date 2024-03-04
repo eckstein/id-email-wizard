@@ -228,7 +228,7 @@ function idwiz_get_plain_text_chunk( $chunk, $templateOptions ) {
 			<![endif]-->
 
 	<div class="id-chunk id-plain-text <?php echo $chunkClasses; ?> <?php echo $visibility['class']; ?>"
-		style="<?php echo $visibility['inlineStyle']; ?>; <?php echo $backgroundColorCss; ?> padding: <?php echo $chunkPadding; ?>; font-size: <?php echo $templateStyles['font-styles']['template_font_size'] ?? '16px'; ?>; border-top:1px solid transparent;">
+		style="<?php echo $visibility['inlineStyle']; ?> <?php echo $backgroundColorCss; ?> padding: <?php echo $chunkPadding; ?>; font-size: <?php echo $templateStyles['font-styles']['template_font_size'] ?? '16px'; ?>; border:1px solid transparent;">
 		<?php echo wpautop( stripslashes($textContent) ); ?>
 	</div>
 	
@@ -326,7 +326,7 @@ function idwiz_get_image_chunk( $chunk, $templateOptions ) {
 	if ( $imageLink ) {
 		echo '<a href="' . $imageLink . '" ' . $ariaHidden . ' title="' . $imageAlt . '" style="display: block;margin: 0; padding: 0; line-height: 0;font-size:0;text-decoration:none;">';
 	}
-	echo '<img class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" width="' . $msoWidth . '" ' . $altAttribute . ' style="width:' . $msoWidth . 'px; height:auto;' . $visibility['inlineStyle'] . '" />';
+	echo '<img class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" width="' . $msoWidth . '" ' . $altAttribute . ' style="width:' . $msoWidth . 'px; max-width:' .$msoWidth.'px; height:auto;' . $visibility['inlineStyle'] . '" />';
 	if ( $imageLink ) {
 		echo '</a>';
 	}
@@ -533,9 +533,7 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 		<meta name="x-apple-disable-message-reformatting" />
 		<meta name="color-scheme" content="light dark"> <meta name="supported-color-schemes" content="light dark">
 
-		<!--[if !mso]><!-->
 		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-		<!--<![endif]-->
 		<title>
 			<?php echo $templateSettings['subject_line'] ?? ''; ?>
 		</title>
@@ -937,96 +935,6 @@ function idwiz_get_email_bottom() {
 	return ob_get_clean();
 }
 
-function generate_background_css( $backgroundSettings, $prefix = '' ) {
-	$bg_type = $backgroundSettings[ $prefix . 'background-type' ] ?? 'none';
-	$css = [];
-
-	switch ( $bg_type ) {
-		case 'gradient':
-			$gradientStyles = json_decode( $backgroundSettings[ $prefix . 'gradient-styles' ], true );
-
-			// Fallback color logic
-			$fallback_color = $backgroundSettings[ $prefix . 'background-color' ] ?? 'transparent';
-			$css[] = "background-color: $fallback_color;";
-
-			// Use the gradient style directly if it's provided in the correct format
-			if ( ! empty( $gradientStyles['style'] ) ) {
-				$gradient_css = $gradientStyles['style'];
-				$css[] = "background-image: $gradient_css;";
-			}
-
-			// Image fallback
-			if ( ! empty( $backgroundSettings[ $prefix . 'background-image-url' ] ) ) {
-				$image_url = $backgroundSettings[ $prefix . 'background-image-url' ];
-				$position = $backgroundSettings[ $prefix . 'background-image-position' ] ?? 'center';
-				$size = $backgroundSettings[ $prefix . 'background-image-size' ] ?? 'cover';
-
-				$css[] = "background-image: url('$image_url'), $gradient_css;";
-				$css[] = "background-position: $position;";
-				$css[] = "background-size: $size;";
-			}
-
-			break;
-
-		case 'image':
-			// Image properties
-			$image_url = $backgroundSettings[ $prefix . 'background-image-url' ];
-			$position = $backgroundSettings[ $prefix . 'background-image-position' ] ?? 'center';
-			$size = $backgroundSettings[ $prefix . 'background-image-size' ] ?? 'cover';
-
-			// Fallback color and additional properties
-			$fallback_color = $backgroundSettings['background-color'] ?? '#ffffff';
-
-			$css[] = "background-color: $fallback_color;";
-			if ( $image_url ) {
-				$css[] = "background-image: url('$image_url');";
-				$css[] = "background-position: $position;";
-				$css[] = "background-size: $size;";
-			}
-
-			// Background repeat
-			$bgRepeatY = $backgroundSettings[ $prefix . 'background-repeat-vertical' ] ?? false;
-			$bgRepeatX = $backgroundSettings[ $prefix . 'background-repeat-horizontal' ] ?? false;
-			if ( $bgRepeatY === true && $bgRepeatX === true ) {
-				$css[] = "background-repeat: repeat;";
-			} else if ( $bgRepeatY === true ) {
-				$css[] = "background-repeat: repeat-y;";
-			} else if ( $bgRepeatX === true ) {
-				$css[] = "background-repeat: repeat-x;";
-			} else {
-				$css[] = "background-repeat: no-repeat;";
-			}
-
-			break;
-
-		case 'solid':
-			// Solid color background
-			$color = $backgroundSettings[ $prefix . 'background-color' ] ?? '#ffffff';
-			$css[] = "background-color: $color;";
-
-			break;
-
-		case 'none':
-			// Transparent background
-			$css[] = "background-color: transparent;";
-			break;
-	}
-
-	// Check for forced background color
-	$forceBackground = $backgroundSettings[ $prefix . 'force-background'] ?? false;
-
-	// If a background color is set and not transparent, force it using linear gradient
-	if ( $forceBackground == 'true'
-		&& $bg_type != 'none'
-		&& isset( $backgroundSettings[ $prefix . 'background-color' ] )
-		&& $backgroundSettings[ $prefix . 'background-color' ] != 'transparent' ) {
-		$css[] = "background-image: linear-gradient({$backgroundSettings[ $prefix . 'background-color' ]}, {$backgroundSettings[ $prefix . 'background-color' ]});";
-	}
-
-
-
-	return implode( " ", $css );
-}
 
 
 

@@ -119,7 +119,7 @@ require_once(plugin_dir_path(__FILE__) . 'includes/charts.php');
 
 require_once(plugin_dir_path(__FILE__) . 'builder-v2/chunks.php');
 
-require_once(plugin_dir_path(__FILE__) . 'includes/wysiwyg.php');
+//require_once(plugin_dir_path(__FILE__) . 'includes/wysiwyg.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/template-builder.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/chunk-helpers.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/folder-tree.php');
@@ -674,7 +674,8 @@ function idemailwiz_enqueue_assets()
         'moment-js' => array('/js/libraries/moment.min.js', array()),
         'dt-date-col-sort' => array('/js/dt-date-col-sort.js', array('moment-js')),
         'id-general' => array('/js/id-general.js', array('jquery')),
-        'template-editor' => array('/js/template-editor.js', array('jquery', 'id-general', 'jquery-ui-resizable', 'editable', 'spectrum', 'tinymce', 'gradx')),
+        'mergeTags' => array('/js/mergeTags.js', array()),
+        'template-editor' => array('/js/template-editor.js', array('jquery', 'id-general', 'jquery-ui-resizable', 'editable', 'spectrum', 'tinymce', 'gradx', 'mergeTags')),
         'template-actions' => array('/js/template-actions.js', array('jquery', 'id-general')),
         'codemirror' => array('/vendors/codemirror-5.65.16/lib/codemirror.js', array('jquery')),
         

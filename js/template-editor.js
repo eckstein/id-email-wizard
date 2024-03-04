@@ -5,7 +5,6 @@ jQuery(document).ready(function ($) {
 
 	//Save the template title when updated
 	$(document).on("change", "#idwiz_templateTitle", function () {
-		console.log("changed");
 		var templateId = $(this).data("templateid");
 		var value = $(this).val();
 		$.ajax({
@@ -18,10 +17,10 @@ jQuery(document).ready(function ($) {
 				security: idAjax_template_editor.nonce,
 			},
 			success: function (result) {
-				console.log(result);
+				do_wiz_notif({message: result.data.message, duration: 3000});
 			},
 			error: function (xhr, status, error) {
-				console.log(error);
+				do_wiz_notif({message: error, duration: 3000});
 			},
 		});
 	});
@@ -129,150 +128,41 @@ jQuery(document).ready(function ($) {
 			});
 		}
 
-		
-
-		function isLight(color) {
-			// Convert hex to RGB
-			let r, g, b;
-			if (color.match(/^rgb/)) {
-				[r, g, b] = color.match(/\d+/g).map(Number);
-			} else {
-				// Convert hex to RGB
-				let hex = color.replace('#', '');
-				r = parseInt(hex.substring(0, 2), 16);
-				g = parseInt(hex.substring(2, 4), 16);
-				b = parseInt(hex.substring(4, 6), 16);
-			}
-    
-			// HSP equation from http://alienryderflex.com/hsp.html
-			let hsp = Math.sqrt(
-				0.299 * (r * r) +
-				0.587 * (g * g) +
-				0.114 * (b * b)
-			);
-			return hsp > 127.5;
-		}
-
-	
-		function toggleDarkMode(mode) {
-			var $previewFrame = $("#previewFrame");
-			var $previewHtml = $previewFrame.contents().find('html');
-			var $previewBody = $previewFrame.contents().find('body');
-
-			// Set body background to ensure visibility of inversion in partial mode
-			var bodyBgColor = $previewHtml.find('body').css('background-color');
-			if (!bodyBgColor || bodyBgColor === 'rgba(0, 0, 0, 0)' || bodyBgColor === 'transparent') {
-				$previewHtml.find('body').css('background-color', '#222222');
-			}
-
-			// Apply mode-specific adjustments
-			if (mode === "full") {
-				$previewBody.css('filter', 'invert(1) hue-rotate(180deg)');
-				// Counteract for images and SVGs
-				$previewBody.find('img, svg').css('filter', 'invert(1)');
-			} else if (mode === "partial") {
-				// Initially invert everything for partial mode
-				$previewHtml.find('body').css('filter', 'invert(1) hue-rotate(180deg)');
-				// Immediately counteract inversion for images and SVGs to maintain original appearance
-				$previewHtml.find('img, svg').css('filter', 'invert(1)');
-
-				// Selectively un-invert elements with a dark background
-				$previewHtml.find('a, span, div, table, td').each(function() {
-					var $el = $(this);
-					var bgColor = $el.css('background-color');
-	
-					// Check for a defined dark background color
-					if (bgColor && bgColor !== 'transparent' && bgColor !== 'rgba(0, 0, 0, 0)') {
-						if (!isLight(bgColor)) { // If background color is dark
-							// Un-invert to keep dark backgrounds and contained text as is
-							$el.css('filter', 'invert(1) hue-rotate(180deg)');
-							// For images and SVGs inside dark background elements, re-apply inversion
-							$el.find('img, svg').css('filter', ''); // Remove filter to go back to the dark mode inversion
-						} else {
-							//if background color is white, instead of inverting it, switch it to #222222 or rgb equiv
-							if (bgColor === 'rgb(255, 255, 255)' || bgColor === '#ffffff') {
-								$el.css('background-color', '#222222');
-								$el.css('filter', 'invert(1) hue-rotate(180deg)');
-							}
-						}
-					}
-				});
-			}
-
-		}
-
-
-
-		 // Toggle dropdown display
-		 $('.toggleDarkMode-dropdown').on('click', function(event) {
-			event.stopPropagation(); // Prevent propagation to document click handler
-			$(this).find('.wiz-tiny-dropdown').toggle();
-		});
-
-		// Handle dark mode options click
-		$('.wiz-tiny-dropdown-options').on('click', function(event) {
-			event.stopPropagation(); // Prevent triggering document click handler
-			var $dropdown = $(this).closest('.wiz-tiny-dropdown');
-			var $darkModeIcon = $(this).closest('.toggleDarkMode-dropdown');
-			$darkModeIcon.addClass('active');
-			$('.light-mode-reset').removeClass('active');
-			$dropdown.hide();
-			var $previewFrame = $("#previewFrame");
-			// Check if dark mode is already active before resetting the preview
-			if ($previewFrame.hasClass("darkmode")) {
-				idwiz_updatepreview(); // Reset preview to saved state before applying new mode
-
-				// Delay application of the new dark mode to allow preview reset to complete
-				setTimeout(function() {
-					var mode = $(this).hasClass('full-invert') ? "full" : "partial";
-					toggleDarkMode(mode);
-					// Add darkmode class when toggling dark mode on
-					$previewFrame.addClass("darkmode");
-				}.bind(this), 2000); //
-
-				$previewFrame.removeClass("darkmode");
-
-				
-			} else {
-				// Apply the selected dark mode directly if not previously active
-				var mode = $(this).hasClass('full-invert') ? "full" : "partial";
-				toggleDarkMode(mode);
-				$previewFrame.addClass("darkmode");
-			}
-
-			// Update active state visuals if needed
-			$('.wiz-tiny-dropdown-options').removeClass("active");
-			$(this).addClass("active");
-		});
-
-		// Handle light mode reset
-		$('.light-mode-reset').on('click', function() {
-			$(this).addClass('active');
-			var $previewFrame = $("#previewFrame");
-			// Only reset if dark mode is active
-			if ($previewFrame.hasClass("darkmode")) {
-				idwiz_updatepreview();
-				// Remove darkmode class after resetting
-				$previewFrame.removeClass("darkmode");
-				$('.toggleDarkMode-dropdown').removeClass('active');
-			}
-
-			// Ensure the dark mode is turned off visually
-			$('.wiz-tiny-dropdown-options').removeClass("active");
-		});
-
-		// Ensure the dropdown hides when clicking outside
-		$(document).mouseup(function(e) {
-			if (!$('.toggleDarkMode-dropdown').is(e.target) && $('.toggleDarkMode-dropdown').has(e.target).length === 0) {
-				$('.wiz-tiny-dropdown').hide();
-			}
-		});
-
 
 		$('#refreshPreview').on('click', function(e) {
 			e.preventDefault();
 			idwiz_updatepreview();
 		});
+
+		$('.light-mode-interface').on('click', function (e) {
+			e.preventDefault();
+			$(this).addClass('active');
+			$('.dark-mode-interface').removeClass('active');
+			$('.interface-transparency-toggle').removeClass('active');
+			$('#previewFrame').addClass('light-mode');
+			$('#previewFrame').removeClass('dark-mode');
+			$('#previewFrame').removeClass('transparent-mode');
+		});
+		$('.dark-mode-interface').on('click', function (e) {
+			e.preventDefault();
+			$(this).addClass('active');
+			$('.light-mode-interface').removeClass('active');
+			$('.interface-transparency-toggle').removeClass('active');
+			$('#previewFrame').addClass('dark-mode');
+			$('#previewFrame').removeClass('light-mode');
+			$('#previewFrame').removeClass('transparent-mode');
+		});
+		$('.interface-transparency-toggle').on('click', function (e) {
+			e.preventDefault();
+			$(this).toggleClass('active');
+			$('.light-mode-interface').removeClass('active');
+			$('.dark-mode-interface').removeClass('active');
+			$('#previewFrame').addClass('transparent-mode');
+			$('#previewFrame').removeClass('light-mode');
+			$('#previewFrame').removeClass('dark-mode');
+		});
+
+
 		
 		
 	}
@@ -316,8 +206,8 @@ jQuery(document).ready(function ($) {
 		idwiz_updatepreview();
 	});
 
-	// Click collapse/expade for row, column, and chunk headers
-	$(document).on('click', '.builder-row-header, .builder-column-header, .builder-chunk-header', function(e) {
+	// Click collapse/expand for row, column, and chunk headers
+	$(document).on('click', '.builder-row-header, .builder-column-header, .builder-chunk-header, .collapsed-message.show', function(e) {
 		toggleBuilderElementVis($(this), e);
 	});
 
@@ -327,22 +217,22 @@ jQuery(document).ready(function ($) {
 	});
 
 	// Duplicate row 
-	$(document).on('click', '.duplicate-row', function() {
-		var $row = $(this).closest('.builder-row');
-		duplicateElement($row, 'row-id');
-		saveTemplateToSession();
-		idwiz_updatepreview();
-		unsavedWysiwygChanges = true;
-	});
+	// $(document).on('click', '.duplicate-row', function() {
+	// 	var $row = $(this).closest('.builder-row');
+	// 	duplicateElement($row, 'row-id');
+	// 	saveTemplateToSession();
+	// 	idwiz_updatepreview();
+	// 	unsavedWysiwygChanges = true;
+	// });
 
 	// Duplicate chunk 
-	$(document).on('click', '.duplicate-chunk', function() {
-		var $chunk = $(this).closest('.builder-chunk');
-		duplicateElement($chunk, 'chunk-id');
-		saveTemplateToSession();
-		idwiz_updatepreview();
-		unsavedWysiwygChanges = true;
-	});
+	// $(document).on('click', '.duplicate-chunk', function() {
+	// 	var $chunk = $(this).closest('.builder-chunk');
+	// 	duplicateElement($chunk, 'chunk-id');
+	// 	saveTemplateToSession();
+	// 	idwiz_updatepreview();
+	// 	unsavedWysiwygChanges = true;
+	// });
 
 	// Remove row
 	$(document).on('click', '.remove-row', function() {
@@ -363,33 +253,46 @@ jQuery(document).ready(function ($) {
 		unsavedWysiwygChanges = true;
 	});
 
-	// Toggle visibility for desktop icon
-	$(document).on('click', '.show-on-desktop', function() {
-		// Read the current state directly from the data attribute
-		var currentState = $(this).attr('data-show-on-desktop') === 'true';
-		// Toggle the state
+	$(document).on('click', '.show-on-desktop, .show-on-mobile', function() {
+		var $this = $(this);
+		var isDesktopToggle = $this.hasClass('show-on-desktop');
+		var toggleType = isDesktopToggle ? 'show-on-desktop' : 'show-on-mobile';
+		var currentState = $this.attr('data-' + toggleType) !== 'false';
 		var newState = !currentState;
-		// Update the data attribute and class based on the new state
-		$(this).attr('data-show-on-desktop', newState.toString());
-		$(this).toggleClass('disabled', !newState); // Add 'disabled' class if newState is false
+
+		// Update the clicked toggle's state and visual indication
+		$this.attr('data-' + toggleType, newState.toString()).toggleClass('disabled', !newState);
+
+		var $builderChunk = $this.closest('.builder-chunk');
+		var $builderRow = $this.closest('.builder-row');
+
+		// Click is on a row setting
+		if ($builderRow.length && !$builderChunk.length) {
+			// Update all child chunks to match both row settings
+			// Ensure we're getting the most current state directly from the row toggles
+			var rowDesktopState = $builderRow.find('.show-on-desktop').attr('data-show-on-desktop') === 'true';
+			var rowMobileState = $builderRow.find('.show-on-mobile').attr('data-show-on-mobile') === 'true';
+
+			$builderRow.find('.builder-chunk .show-on-desktop')
+				.attr('data-show-on-desktop', rowDesktopState.toString())
+				.toggleClass('disabled', !rowDesktopState);
+			$builderRow.find('.builder-chunk .show-on-mobile')
+				.attr('data-show-on-mobile', rowMobileState.toString())
+				.toggleClass('disabled', !rowMobileState);
+		}
+		// Click is within a chunk
+		else if ($builderChunk.length) {
+			// Reset row's visibility toggles to default (true)
+			$builderRow.find('.builder-row-actions .show-on-desktop, .builder-row-actions .show-on-mobile')
+				.attr('data-show-on-desktop', 'true').removeClass('disabled')
+				.attr('data-show-on-mobile', 'true').removeClass('disabled');
+		}
+
 		saveTemplateToSession();
 		idwiz_updatepreview();
 		unsavedWysiwygChanges = true;
 	});
 
-	// Toggle visibility for mobile icon
-	$(document).on('click', '.show-on-mobile', function() {
-		// Read the current state directly from the data attribute
-		var currentState = $(this).attr('data-show-on-mobile') === 'true';
-		// Toggle the state
-		var newState = !currentState;
-		// Update the data attribute and class based on the new state
-		$(this).attr('data-show-on-mobile', newState.toString());
-		$(this).toggleClass('disabled', !newState); // Add 'disabled' class if newState is false
-		saveTemplateToSession();
-		idwiz_updatepreview();
-		unsavedWysiwygChanges = true;
-	});
 
 
 	// Magic wrap toggle
@@ -521,17 +424,97 @@ jQuery(document).ready(function ($) {
 		// If an optional jQuery element is provided, find TinyMCE instances within it; otherwise, use the global selector
 		var selector = $optionalElement ? '#' + $optionalElement.attr('id') + ' .wiz-wysiwyg' : '.wiz-wysiwyg';
 
+		tinymce.PluginManager.add('merge_tags_button', function(editor, url) {
+			const menuItems = 	idwizMergeMenuItemList();
+  
+			function generateMenuItems(items) {
+			  return items.map(function(item) {
+				return {
+				  type: 'menuitem',
+				  text: item.text,
+				  onAction: function() {
+					editor.insertContent(item.value);
+				  }
+				};
+			  });
+			}
+  
+			editor.ui.registry.addMenuButton('merge_tags_button', {
+			  text: 'Merge Tags',
+			  tooltip: 'Insert personalization',
+			  fetch: function(callback) {
+				const items = menuItems.map(item => ({
+				  type: 'nestedmenuitem',
+				  text: item.text,
+				  getSubmenuItems: () => generateMenuItems(item.items)
+				}));
+				callback(items);
+			  }
+			});
+		});
+
+		tinymce.PluginManager.add('theme_switcher', function(editor) {
+			editor.ui.registry.addToggleButton('theme_switcher', {
+				icon: 'contrast', // Ensure the icon name is correct. It might be lowercase.
+				onpostrender: function() {
+					// Add class to button
+					editor.ui.registry.get('theme_switcher').element.classList.add('theme-switcher');
+				},
+				onAction: function(api) {
+					const isActive = api.isActive();
+					api.setActive(!isActive); // Toggle the button's active state
+            
+					// Target the body of the editor's iframe document to change its background
+					const bodyStyle = editor.getBody().style; // This targets the content body directly
+					if (!isActive) { // If the button was not active, activate dark mode
+						bodyStyle.backgroundColor = '#222222';
+						// Store the state for later use, if needed
+					} else { // If the button was active, revert to light mode
+						bodyStyle.backgroundColor = '#FFFFFF';
+					}
+					saveTemplateToSession();
+				},
+				onSetup: function(api) {
+					// Retrieve the original textarea element that TinyMCE is based on
+					const originalTextarea = editor.getElement();
+					// Read the data-editor-mode attribute to determine the preferred mode
+					const editorMode = originalTextarea.getAttribute('data-editor-mode');
+    
+					// Determine if dark mode should be active based on the attribute's value
+					const isDarkMode = editorMode === 'dark';
+
+					// Set the toggle button's active state based on isDarkMode
+					api.setActive(isDarkMode);
+
+					// Apply the corresponding styles to the editor's body based on the mode
+					const bodyStyle = editor.getBody().style;
+					if (isDarkMode) {
+						// Apply Dark Mode styles
+						bodyStyle.backgroundColor = '#222222';
+					} else {
+						// Apply Light Mode styles (or simply don't change anything if these are the defaults)
+						bodyStyle.backgroundColor = '#FFFFFF';
+					}
+				}
+
+			});
+		});
+
+
 		tinymce.init({
 			selector: selector,
-			icons: 'small',
+			//icons: 'small',
 			height: 250,
 			toolbar: [
 				{ name: 'code', items: [ 'code'] },
+				{ name: 'merge_tags_button', items: [ 'merge_tags_button'] },
+				{ name: 'theme_switcher', items: [ 'theme_switcher'] },
 				{ name: 'styles', items: [ 'styles' ] }, 
 				{ name: 'formatting', items: [ 'fontsize', 'lineheight', 'forecolor', 'bold', 'italic', 'uppercase', 'removeformat'] },
 				{ name: 'alignment', items: [ 'alignleft', 'aligncenter', 'alignright' ] },
 				{ name: 'lists', items: [ 'bullist', 'numlist' ] },
 				{ name: 'link', items: [ 'link'] },
+				
 			],
 			toolbar_mode: 'scrolling',
 			block_formats: 'Paragraph=p; Heading 1=h1; Heading 2=h2; Heading 3=h3; Heading 4=h4; Heading 5=h5; Heading 6=h6;',
@@ -539,7 +522,7 @@ jQuery(document).ready(function ($) {
 			line_height_formats: '.8em 1em 1.1em 1.2em 1.3em 1.4em 1.5em 1.6em 1.7em 1.8em 1.9em 2em 2.5em',
 			elementpath: false,
 			menubar: false,
-			plugins: 'link code lists',
+			plugins: 'link code lists merge_tags_button theme_switcher',
 			setup: function(editor) {
 				editor.ui.registry.addButton('uppercase', {
 					text: 'aA',
@@ -549,28 +532,33 @@ jQuery(document).ready(function ($) {
 						editor.selection.setContent('<span style="text-transform: uppercase;">' + content + '</span>');
 					}
 				});
+				
 				editor.on('input', function() {
 					idwiz_updatepreview();
+					updateBuilderChunkTitle_debounced(editor);
 					unsavedWysiwygChanges = true;
 				});
 
 				// Before an action is added to the undo stack
 				editor.on('AddUndo', function(e) {
-					console.log('AddUndo event fired.', e);
+					//console.log('AddUndo event fired.', e);
 					idwiz_updatepreview();
+					updateBuilderChunkTitle_debounced(editor);
 					unsavedWysiwygChanges = true;
 				});
 
 				// When an undo action is performed
 				editor.on('Undo', function(e) {
-					console.log('Undo event fired.', e);
+					//console.log('Undo event fired.', e);
 					idwiz_updatepreview();
+					updateBuilderChunkTitle_debounced(editor);
 				});
 
 				// If you also need to hook into the redo action
 				editor.on('Redo', function(e) {
-					console.log('Redo event fired.', e);
+					//console.log('Redo event fired.', e);
 					idwiz_updatepreview();
+					updateBuilderChunkTitle_debounced(editor);
 				});
 			},
 			style_formats: [ // Define custom styles
@@ -588,10 +576,68 @@ jQuery(document).ready(function ($) {
 
 	}
 
+	function updateBuilderChunkTitle(editor) {
+		// Get the content from the editor, stripping HTML tags
+		let textContent = editor.getContent({ format: 'text' }).trim();
+
+		// Trim the text content to the first 32 characters
+		textContent = textContent.substring(0, 32);
+
+		// Find the closest .builder-chunk-title element and update its text
+		const editorElement = editor.getElement();
+		const builderChunkTitle = $(editorElement).closest('.builder-chunk').find('.builder-chunk-title');
+		if (builderChunkTitle.length) {
+			builderChunkTitle.text(textContent+'...');
+		}
+	}
+
+	const updateBuilderChunkTitle_debounced = wizDebounce(function(editor) {
+		updateBuilderChunkTitle(editor);
+	}, 1000);
+
+	function wizDebounce(func, wait) {
+		let timeout;
+		return function() {
+			const context = this, args = arguments;
+			clearTimeout(timeout);
+			timeout = setTimeout(function() {
+				func.apply(context, args);
+			}, wait);
+		};
+	}
+
+
+	 // Attach hover event handlers
+	 $(document).on('mouseenter','.image-chunk-preview-wrapper img', function(e) {
+		// Create the preview element if it doesn't exist
+		if ($('#chunk-image-preview').length === 0) {
+			$('body').append('<div id="chunk-image-preview" style="position: absolute; display: none;"><img src="" style="max-width: 200px; max-height: 200px;"></div>');
+		}
+
+		// Set the source of the preview image to the hovered image's src
+		$('#chunk-image-preview img').attr('src', $(this).attr('src'));
+
+		// Position and show the preview
+		$('#chunk-image-preview').css({
+			'display': 'block',
+			'left': e.pageX + 10, // Offset from cursor
+			'top': e.pageY + 10
+		});
+	}).on('mousemove','.image-chunk-preview-wrapper img', function(e) {
+		// Make the preview follow the mouse cursor
+		$('#chunk-image-preview').css({
+			'left': e.pageX + 10, // Offset from cursor
+			'top': e.pageY + 10
+		});
+	}).on('mouseleave','.image-chunk-preview-wrapper img', function() {
+		// Hide the preview when mouse leaves
+		$('#chunk-image-preview').hide();
+	});
+
 	
 	// Destroy and re-initialize TinyMCE on each .wiz-wysiwyg element with option element selection
 	function reinitTinyMCE($optionalElement = null) {
-		//console.log('reinitTinyMCE on ' + ($optionalElement ? $optionalElement.attr('class') : 'global'));
+		console.log('reinitTinyMCE on ' + ($optionalElement ? $optionalElement.attr('class') : 'global'));
 
 		// Determine the correct selector for the operation
 		var selector = $optionalElement ? $optionalElement.find('.wiz-wysiwyg') : '.wiz-wysiwyg';
@@ -638,7 +684,9 @@ jQuery(document).ready(function ($) {
 
 	function initializeColumnSortables(containerId = null) {
 		var containerSelector = containerId ? '#' + containerId + ' .builder-row-columns' : '.builder-row-columns';
-		initializeSortable(containerSelector, '.builder-column', '.builder-column-header', 'column-placeholder', { tolerance: 'pointer' });
+		initializeSortable(containerSelector, '.builder-column', '.builder-column-header', 'column-placeholder', { 
+			tolerance: 'pointer',
+		});
 	}
 
 	function initializeChunkSortables(containerId = null) {
@@ -649,10 +697,13 @@ jQuery(document).ready(function ($) {
 			dropOnEmpty: true,
 			receive: function(event, ui) {
 				reindexDataAttributes('chunk-id');
+				
+				
 
 				// Reinitialize TinyMCE for editors within the moved chunk
 				var $movedChunk = ui.item; // The jQuery object of the moved chunk
 				reinitTinyMCE($movedChunk);
+				
 
 			},
 			over: function(event, ui) {
@@ -674,6 +725,7 @@ jQuery(document).ready(function ($) {
 			handle: handleSelector,
 			placeholder: placeholderClass,
 			start: function(event, ui) {
+
 				var headerHeight = ui.item.find(handleSelector).outerHeight();
 				$('.' + placeholderClass, $container).css({
 					'min-height': headerHeight,
@@ -692,18 +744,23 @@ jQuery(document).ready(function ($) {
 			stop: function(event, ui) {
 				// Delay reinitialization to ensure the DOM has updated
 				setTimeout(function() {
+					// Reinitialize TinyMCE 
 					reinitTinyMCE(ui.item);
 				}, 100);
+				
 			},
 			update: function(event, ui) {
+				setTimeout(function() {
 				// Determine which attribute to reindex
 				var attributeToReindex = itemsSelector.includes('row') ? 'row-id' :
 										 itemsSelector.includes('column') ? 'column-id' :
 										 'chunk-id';
 				reindexDataAttributes(attributeToReindex, $container);
+				
 				idwiz_updatepreview();
 				unsavedWysiwygChanges = true;
 				console.log('unsaved changes: ' + unsavedWysiwygChanges);
+				},500);
 			}
 		}, additionalOptions));
 	}
@@ -735,15 +792,20 @@ jQuery(document).ready(function ($) {
 	}
 
 	
+
+	
 	// Toggle visibility function for rows, cols, and chunks
 	function toggleBuilderElementVis($header, e) {
+		if ($header.hasClass('collapsed-message')) {
+			$header = $header.closest('.builder-column').find('.builder-column-header');
+		}
 		// Prevent toggle if clicked within an excluded area
 		if ($(e.target).closest('.exclude-from-toggle').length || $(e.target).closest('input').length) {
 			return;
 		}
 
 		// Determine the context and corresponding classes
-		let $element, toggleClass, $toggleIcon;
+		let $element, toggleClass;
 		if ($header.hasClass('builder-row-header')) {
 			$element = $header.closest('.builder-row');
 			toggleClass = '.builder-row-content';
@@ -849,7 +911,7 @@ jQuery(document).ready(function ($) {
 
 
 	// Update all instances of an old unique ID string within an element to a new unique ID
-	function updateElementIds($element, oldIdWithPrefix, newUniqueString, isRow = false) {
+	function updateClonedWrapperIds($element, oldIdWithPrefix, newUniqueString, isRow = false) {
 		const prefix = isRow ? 'wiz-row-' : 'wiz-chunk-'; // Ensure prefix is non-numeric
 		const newIdWithPrefix = prefix + newUniqueString;
 
@@ -869,78 +931,12 @@ jQuery(document).ready(function ($) {
 					$this.attr(this.name, newValue);
 				}
 			});
+			
 		});
 	}
 
 
 
-	// Duplicate an element within the builder
-	function duplicateElement($element, dataAttributeName) {
-		var newUniqueId = generateUniqueId(); // Generate a new unique ID
-
-		var isRow = $element.hasClass('builder-row');
-
-		// Remove TinyMCE from original elements
-		$element.find('.wiz-wysiwyg').each(function() {
-			var editorId = $(this).attr('id');
-			tinymce.remove('#' + editorId); // Remove the TinyMCE instance
-		});
-
-		// Destroy Spectrum instances to prevent issues with IDs and event handlers
-		$element.find('.builder-colorpicker').each(function() {
-			if ($(this).spectrum("container")) {
-				$(this).spectrum("destroy");
-			}
-		});
-
-		// Clone the element and update IDs for the cloned element
-		var $clonedElement = $element.clone(true, true);
-		$clonedElement.insertAfter($element).addClass('newly-added');
-		setTimeout(() => $clonedElement.removeClass('newly-added'), 3000);
-
-		// Remove the cloned element's sortable data and events to detach it from the original sortable
-		$clonedElement.removeData("ui-sortable").removeData("sortable").off("sortstart sortupdate sortreceive");
-		
-		$clonedElement.find('.wiz-wysiwyg').each(function() {
-			// Generate a new unique ID for each .wiz-wysiwyg element
-			var uniqueTextareaId = generateUniqueId() + '-wiz-wysiwyg';
-			$(this).attr({
-				'id': uniqueTextareaId
-			});
-		});
-
-		// Force the dom to re-associate cloned radio inputs with their labels by re-setting the attributes
-		// TODO: Generalize this for radio/checkboxes overall instead of just the bg type selector
-		$clonedElement.find('input[type="radio"][name="background_type"]').each(function() {
-			var newId = $(this).attr('id');
-			$(this).next('label').attr('for', newId);
-		});
-		
-		
-		updateElementIds($clonedElement, $element.attr('id'), newUniqueId, isRow);
-
-		// Reinitialize TinyMCE and color picker on the original element
-		builder_init_tinymce($element);
-
-		initColorPickers($element);
-
-		
-		setTimeout(function() {
-			builder_init_tinymce($clonedElement);
-			reindexDataAttributes(dataAttributeName);
-			initializeChunkTabs($clonedElement);
-			initColorPickers($clonedElement);
-			initializeBackgroundTypeSelection($clonedElement);
-			if (isRow) {
-				// If it's a row, reinitialize sortables for the row and its children (columns and chunks)
-				reinitializeSortablesForCloned($element, $clonedElement, true, false);
-			} else if (isChunk) {
-				// If it's a chunk, reinitialize sortables for chunks within its column
-				reinitializeSortablesForCloned($element, $clonedElement, false, true);
-			}
-
-		}, 500);
-	}
 
 	// Reinitialize sortables for an element that has been cloned
 	function reinitializeSortablesForCloned($originalElement, $clonedElement) {
@@ -962,7 +958,7 @@ jQuery(document).ready(function ($) {
 		if ($clonedElement.hasClass('builder-row')) {
 			let $rowContainers = $('.builder-rows-wrapper'); // Assuming this is a common class for row containers
 			$rowContainers.each(function() {
-				console.log('Row container found');
+				
 				initializeRowSortables(); // Initialize for all row containers without needing an ID
 				initializeColumnSortables();
 				initializeChunkSortables();
@@ -974,7 +970,7 @@ jQuery(document).ready(function ($) {
 			// Find the row container of the cloned column to reinitialize column sortables within it
 			let $clonedRowContainer = $clonedElement.closest('.builder-rows-wrapper');
 			if ($clonedRowContainer.length) {
-				console.log('Column container found');
+				
 				initializeColumnSortables(); 
 				initializeChunkSortables();
 			}
@@ -985,7 +981,7 @@ jQuery(document).ready(function ($) {
 			// Find the column container of the cloned chunk to reinitialize chunk sortables within it
 			let $clonedColumnContainer = $clonedElement.closest('.builder-row-columns');
 			if ($clonedColumnContainer.length) {
-				console.log('Chunk container found');
+				
 				initializeChunkSortables(); // Reinitialize all chunks within the column container
 			}
 		}
@@ -1015,6 +1011,19 @@ jQuery(document).ready(function ($) {
 		});
 	}
 
+
+
+	
+	
+
+
+
+
+
+	
+
+
+
 	// Initialize background type selection in the background settings modual
 	function initializeBackgroundTypeSelection($context) {
 		$context = $context || $(document);
@@ -1034,15 +1043,15 @@ jQuery(document).ready(function ($) {
 			}
 			if (selectedType === 'image') {
 				container.find('.chunk-background-image-settings').show();
-				container.find('.chunk-background-color-settings .chunk-settings-section-title').text('Fallback Background Color');
+				container.find('.chunk-background-color-settings > label').text('Fallback Background Color');
 			} else if (selectedType === 'gradient') {
 				container.find('.chunk-background-image-settings, .chunk-background-gradient-settings').show();
-				container.find('.chunk-background-color-settings .chunk-settings-section-title').text('Fallback Background Color');
-				container.find('.chunk-background-image-settings .chunk-settings-section-title').text('Fallback Background Image');
+				container.find('.chunk-background-color-settings > label').text('Fallback Background Color');
+				container.find('.chunk-background-image-settings > label').text('Fallback Background Image');
 			} else {
 				// Reset to default texts or hide elements as needed
-				container.find('.chunk-background-image-settings .chunk-settings-section-title').text('Background Image URL');
-				container.find('.chunk-background-color-settings .chunk-settings-section-title').text('Background Color');
+				container.find('.chunk-background-image-settings > label').text('Background Image URL');
+				container.find('.chunk-background-color-settings > label').text('Background Color');
 			}
 		});
 
@@ -1091,8 +1100,9 @@ jQuery(document).ready(function ($) {
 
 			// Then initialize Spectrum
 			$(this).spectrum({
+				allowEmpty:true,
+				showInitial: true,
 				showInput: true,
-				allowEmpty: true,
 				showPalette: true,
 				palette: [
 					['#000000', '#343434', '#94c52a', '#f4f4f4', '#ffffff']
@@ -1115,11 +1125,8 @@ jQuery(document).ready(function ($) {
 
 	}
 
-
-	
-	// Add new row
-	$('.builder-new-row').on('click', function() {
-		const actionFunctionName = 'create_new_row';
+	// Add new blank row
+	$(document).on('click','.builder-new-row', function() {
 		const nonceValue = idAjax_template_editor.nonce;
 		const userId = idAjax_template_editor.current_user.ID;
 		const postId = idAjax_template_editor.currentPost.ID; 
@@ -1132,25 +1139,66 @@ jQuery(document).ready(function ($) {
 			row_above: lastRow.length ? lastRow.data('row-id') : false,
 		};
 
-		idemailwiz_do_ajax(actionFunctionName, nonceValue, additionalData, 
+		// Use the utility function to create a new row
+		createNewBuilderRow(nonceValue, additionalData);
+	});
+
+	$(document).on('click','.duplicate-row', function() {
+		const nonceValue = idAjax_template_editor.nonce;
+		const userId = idAjax_template_editor.current_user.ID;
+		const postId = idAjax_template_editor.currentPost.ID; 
+		const rowToDupe = $(this).closest('.builder-row');
+
+		// Prepare additional data for the row
+		const additionalData = {
+			post_id: postId,
+			user_id: userId,
+			row_to_dupe: rowToDupe.length ? rowToDupe.data('row-id') : false,
+			session_data: JSON.stringify(getTemplateFromSession()) // Ensure this is a string
+		};
+
+		// Use the utility function to create a new row
+		createNewBuilderRow(nonceValue, additionalData, $(this));
+	});
+
+	// Add new row
+	function createNewBuilderRow(nonceValue, additionalData, $clicked) {
+		idemailwiz_do_ajax('create_new_row', nonceValue, additionalData, 
 			function(response) { // Success callback
 				console.log('New row added:', response);
-				do_wiz_notif({'message': response.data.message, 'duration': 3000 });
+				do_wiz_notif({'message': response.data.message, 'duration': 3000});
 
 				// Append the new row HTML to the builder
 				if(response.data.html) {
-					$('.builder-rows-wrapper').append(response.data.html);
+					let $newRow = $(response.data.html).appendTo('.builder-rows-wrapper');
 					$('.blank-template-message').hide();
+					initializeEditable('.builder-row-title-text', '.edit-row-title', 'row-id');
+					initializeEditable('.builder-column-title-text', '.edit-column-title', 'column-id');
+					initColorPickers($newRow);
+
+					let $originalRow = $clicked.closest('.builder-row');
+
+					// Reinitialize sortables for the new row
+					reinitializeSortablesForCloned($originalRow, $newRow);
+
+					$newRow.addClass('newly-added');
+					setTimeout(function() {
+						$newRow.removeClass('newly-added');
+					}, 3000);
+
+
+					saveTemplateToSession();
+					idwiz_updatepreview();
+					unsavedWysiwygChanges = true;
 				}
-				saveTemplateToSession();
-				idwiz_updatepreview();
-				unsavedWysiwygChanges = true;
 			}, 
 			function(xhr, status, error) { // Error callback
 				console.error('Error adding new row:', error);
 			}
 		);
-	});
+	}
+
+
 
 	
 
@@ -1166,7 +1214,8 @@ jQuery(document).ready(function ($) {
 
 		// Only append columns popup if it does not already exist
 		if ($this.find('.column-selection-popup').length === 0) {
-			var currentColumnCount = $this.data('columns');
+			//var currentColumnCount = $this.data('columns');
+			var currentColumnCount = $this.closest('.builder-row').find('.builder-column.active').length;
 			var popupHtml = generateColumnSelectionPopup(currentColumnCount);
 			$this.append(popupHtml);
 		}
@@ -1263,6 +1312,11 @@ jQuery(document).ready(function ($) {
 
 					// Reinitialize TinyMCE for any new editors in the column
 					reinitTinyMCE($row);
+
+					initializeEditable('.builder-column-title-text', '.edit-column-title', 'column-id');
+
+					initColorPickers($row);
+
 				}
 			},
 			function(xhr, status, error) {
@@ -1284,7 +1338,7 @@ jQuery(document).ready(function ($) {
 			// When a layout option is chosen
 			var chunkType = $this.data('layout');
 			var addChunkTrigger = $this.closest('.add-chunk-wrapper').find('.add-chunk');
-			add_chunk_from_layout(chunkType, addChunkTrigger);
+			add_chunk_by_type(chunkType, addChunkTrigger);
 			$('.wiz-tiny-dropdown').hide(); // Hide menu after selection
 
 			
@@ -1292,7 +1346,7 @@ jQuery(document).ready(function ($) {
 		}
 	});
 
-	// Simplify hiding the layout choices when clicking outside
+	// Hide the layout choices when clicking outside
 	$(document).on('click', function(event) {
 		if (!$(event.target).closest('.add-chunk, .wiz-tiny-dropdown').length) {
 			$('.wiz-tiny-dropdown').hide();
@@ -1325,53 +1379,61 @@ jQuery(document).ready(function ($) {
 			collision: "fit flip"
 		});
 	}
-
-	// Add a chunk based on what layout option was chosen
-	function add_chunk_from_layout(chunkType, addChunkTrigger) {
+	$(document).on('click', '.duplicate-chunk', function() {
+		add_chunk_by_type($(this).closest('.builder-chunk').attr('data-chunk-type'), $(this), true);
+	});
+	// Add a chunk based on the passed type
+	function add_chunk_by_type(chunkType, addChunkTrigger, duplicate = false) {
 		
 		var row = addChunkTrigger.closest('.builder-row');
 		var column = addChunkTrigger.closest('.builder-column');
 		var rowId = row.data('row-id');
 		var columnId = column.data('column-id');
-		var thisChunk = addChunkTrigger.closest('.builder-chunk').data('chunk-id');
+		var thisChunk = addChunkTrigger.closest('.builder-chunk');
+		var chunkId = thisChunk.data('chunk-id');
 
 		idemailwiz_do_ajax('add_new_chunk', idAjax_template_editor.nonce, 
 			{
 				post_id: idAjax_template_editor.currentPost.ID,
 				row_id: rowId,
 				column_id: columnId,
-				chunk_before_id: thisChunk,
-				chunk_type: chunkType
+				chunk_before_id: chunkId,
+				chunk_type: chunkType,
+				duplicate: duplicate,
+				session_data: JSON.stringify(getTemplateFromSession())
 			},
 			function(response) {
 				if (response.data.html) {
         
 					var newChunk;
-					if (thisChunk !== undefined && thisChunk !== '') {
-						// Insert before the specified chunk
-						var targetChunk = $('.builder-column[data-column-id="'+columnId+'"] .builder-chunk[data-chunk-id="' + thisChunk + '"]');
-						newChunk = $(response.data.html).insertBefore(targetChunk);
+					if (chunkId !== undefined && chunkId !== '') {
+						// Insert after the specified chunk
+						//var targetChunk = $('.builder-row[data-row-id="'+rowId+'"] .builder-column[data-column-id="'+columnId+'"] .builder-chunk[data-chunk-id="' + thisChunk + '"]');
+						newChunk = $(response.data.html).insertAfter(thisChunk);
 					} else {
-						// No specific chunk to add before, insert after the last chunk in the column
+						// No specific chunk to add after, insert after the last chunk in the column
 						var lastChunk = column.find('.builder-chunk').last();
 						if (lastChunk.length > 0) {
 							newChunk = $(response.data.html).insertAfter(lastChunk);
 						} else {
-							// No specific chunk to add before, and no existing chunks in the column
+							// No specific chunk to add after, and no existing chunks in the column
 							var chunksWrapperBody = column.find('.builder-column-chunks-body');
-							newChunk = $(chunksWrapperBody).append(response.data.html);
+							var appendedContent = $(response.data.html); // Create a jQuery object from the HTML string
+							chunksWrapperBody.append(appendedContent); // Append the new content to the DOM
+							newChunk = appendedContent; // Now newChunk correctly references the newly added chunk
 						}
+						
 						
 					}
 
 
 					// Add 'newly-added' class to the new chunk
 					newChunk.addClass('newly-added');
-    
-					initializeChunkSortables();
 
 					// Reinitialize TinyMCE for any new editors in the column
 					reinitTinyMCE(newChunk);
+    
+					initializeChunkSortables();					
 
 					// Reinitialize tab functionality for the new chunk
 					initializeChunkTabs(newChunk);
@@ -1385,9 +1447,10 @@ jQuery(document).ready(function ($) {
 					}, 3000);
 
 					setTimeout(function() {
-						reindexDataAttributes('chunk-id');	
+						reindexDataAttributes('chunk-id');
 						
 					}, 500);
+
 
 					saveTemplateToSession();
 					idwiz_updatepreview();
@@ -1424,6 +1487,29 @@ jQuery(document).ready(function ($) {
 
 
 
+	$(document).on('click', '.colAlignToggle', function (e) {
+		e.stopPropagation();
+		var currentText = $(this).text();
+		if (currentText === 'Top') {
+			$(this).text('Middle');
+		} else if (currentText === 'Middle') {
+			$(this).text('Bottom');
+		} else {
+			$(this).text('Top');
+		}
+		saveTemplateToSession();
+		idwiz_updatepreview();
+		unsavedWysiwygChanges = true;
+	});
+
+	$(document).on('click', '.show-column-settings', function (e) {
+		e.stopPropagation();
+		var $column = $(this).closest('.builder-column');
+		var $columnSettings = $column.find('.builder-column-settings-row');
+		$columnSettings.slideToggle().toggleClass('open');
+	});
+
+	
 
 
 	
@@ -1486,19 +1572,51 @@ jQuery(document).ready(function ($) {
 	}
 
 
-
-
-	// Simplified to focus on processing chunks, leveraging collectFieldValues for the heavy lifting.
-	function processChunk($chunk) {
+	function processChunk($chunk, colCount) {
 		var chunk = {
-			id: $chunk.attr('id'),
+			//id: $chunk.attr('id'),
 			state: $chunk.hasClass('--expanded') ? 'expanded' : 'collapsed',
 			field_type: $chunk.data('chunk-type'),
+			editor_mode: 'light',
 			fields: {},
-			settings: {}
+			settings: {},
 		};
 		var $chunkFields = $chunk.find('.chunk-content');
 		var $chunkSettings = $chunk.find('.chunk-settings');
+
+		// Check for dark mode on chunk
+		if (chunk.field_type === 'text') {
+		var darkModeToggle = $('.tox-toolbar__group[title="theme_switcher"]');
+		if (darkModeToggle.length) {
+			if (darkModeToggle.find('.tox-tbtn--enabled').length) {
+				chunk.editor_mode = 'dark';
+			}
+		}
+		}
+
+		// Determine desktop/mobile visibility
+		var chunkDesktopVisibility = $chunk.find('.builder-chunk-header .show-on-desktop').attr('data-show-on-desktop');
+		var chunkMobileVisibility = $chunk.find('.builder-chunk-header .show-on-mobile').attr('data-show-on-mobile');
+
+		chunk.settings.desktop_visibility = chunkDesktopVisibility === 'false' ? 'false' : 'true';
+		chunk.settings.mobile_visibility = chunkMobileVisibility === 'false' ? 'false' : 'true';
+
+		// Set image context for exact pixel width on Outlook images
+		if ($chunk.data('chunk-type') === 'image') {
+			chunk.settings.image_context = '';
+			if (colCount === 2) {
+			chunk.settings.image_context = 'two-col';
+			} else if (colCount === 3) {
+				chunk.settings.image_context = 'three-col';
+			}
+		}
+
+		// For snippets, save both the value (ID) and the snippet name
+		if ($chunk.data('chunk-type') === 'snippet') {
+			var snippetName = $chunk.find('select[name="select_snippet"] option:selected').text();
+			chunk.fields.snippet_name = snippetName;
+		}
+
     
 		// Directly modify chunk.fields and chunk.settings without reassignment
 		collectFieldValues($chunkFields, chunk.fields);
@@ -1508,6 +1626,52 @@ jQuery(document).ready(function ($) {
 	}
 
 
+	// Update chunk preview headers when content fields are updated
+	
+	$(document).on('change','.builder-chunk[data-chunk-type="image"] input[name="image_url"]', function() {
+		updateBuilderChunkPreview('image', this);
+	});
+
+	$(document).on('change', '.builder-chunk[data-chunk-type="button"] input[name="button_text"]', function() {
+		updateBuilderChunkPreview('button', this);
+	});
+
+	$(document).on('change', '.builder-chunk[data-chunk-type="spacer"] input[name="spacer_height"]', function() {
+		updateBuilderChunkPreview('spacer', this);
+	});
+
+	$(document).on('change', '.builder-chunk[data-chunk-type="snippet"] select[name="select_snippet"]', function() {
+		updateBuilderChunkPreview('snippet', this);
+	});
+
+
+
+	function updateBuilderChunkPreview(chunkType, element) {
+		var $element = $(element);
+		var $closestChunk = $element.closest('.builder-chunk');
+  
+		switch (chunkType) {
+		  case 'image':
+			var imageUrl = $element.val();
+			$closestChunk.find('.image-chunk-preview-wrapper > img').attr('src', imageUrl);
+			break;
+		  case 'button':
+			var buttonText = $element.val();
+			$closestChunk.find('.button-chunk-preview-wrapper .wiz-button').text(buttonText);
+			break;
+		  case 'spacer':
+			var spacerHeight = $element.val();
+			$closestChunk.find('.spacer-chunk-preview-wrapper .spacer-height-display').text(spacerHeight);
+			break;
+		  case 'snippet':
+			var snippetText = $element.find('option:selected').text();
+			$closestChunk.find('.snippet-chunk-preview-wrapper .snippet-name-display').text(snippetText);
+			break;
+		  default:
+			console.warn('Unsupported chunk type:', chunkType);
+		}
+	  }
+	
 
 	// Goes through the DOM and gathers all the data needed to save to the JSON object
 	function gatherTemplateData() {
@@ -1552,6 +1716,8 @@ jQuery(document).ready(function ($) {
 
 			let builderColumns = $(this).find('.builder-column');
 
+			var columnCount = builderColumns.length;
+
 			// If magic wrap is on, we reverse the array of dom elements and save them criss-cross to the builder's columns
 			// By doing this, the columns in the builder and on the desktop preview will match order, but the mobile version will still magic wrap properly
 			if (rowColsMagicWrap === 'on') {
@@ -1566,24 +1732,35 @@ jQuery(document).ready(function ($) {
 				var $column = $(column);
 				var columnActivation = $column.hasClass('active') ? 'active' : 'inactive';
 				var columnState = $column.hasClass('--expanded') ? 'expanded' : 'collapsed';
+
+				//var columnValign = $column.find('.colAlignToggle').text();
 				
-				var column = { 
+				var buildColumn = { 
 					state: columnState,
 					title: $column.find('.builder-column-title-text').text(),
 					activation: columnActivation,
+					settings: {
+						valign: 'top',
+					},
 					chunks: []
 				};
 
-				
+				var $columnSettings = $column.find('.builder-column-settings');
+    
+				// Directly modify column.settings
+				collectFieldValues($columnSettings, buildColumn.settings);
 
 				$column.find('.builder-chunk').each(function() {
-					var chunk = processChunk($(this));
-					column.chunks.push(chunk);
+					var chunk = processChunk($(this), columnCount);
+
+					
+
+					buildColumn.chunks.push(chunk);
 				});
 
 
 
-				row.columns.push(column);
+				row.columns.push(buildColumn);
 			});
 
 			templateData.rows.push(row);
@@ -1695,17 +1872,34 @@ jQuery(document).ready(function ($) {
 				contentType: false,
 				success: function (previewHtml) {
 					var iframe = $("#previewFrame")[0];
-					var iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
-					iframeDocument.open();
-					iframeDocument.write(previewHtml);
-					iframeDocument.close();
-					addIframeEventHandlers(iframeDocument);
-					$('#templatePreview-status').fadeOut();
+
+					// Use the srcdoc attribute to set the HTML content directly
+					iframe.srcdoc = previewHtml;
+
+					// Note: There's no need to manually open or close the document
+					// or clear its content when using srcdoc.
+
+					// Add event handlers to the iframe once it's loaded
+					// This might need adjustments since srcdoc changes how and when content is loaded
+					$(iframe).on('load', function() {
+						addIframeEventHandlers(iframe.contentDocument || iframe.contentWindow.document);
+						$('#templatePreview-status').fadeOut();
+					});
 				},
 			});
+
+
 		}, 1000); // This timeout is how long to wait between update intervals (to avoid updating on every single update)
 	},500); // This timeout is to allow time for the template data to save before updating
 	}
+
+	//iframe context stuff
+	var addIframeEventHandlers;
+	addIframeEventHandlers = function (iframeDocument) {
+		var preview = $(iframeDocument);
+
+		
+	};
 
 	
 
@@ -1727,7 +1921,7 @@ jQuery(document).ready(function ($) {
 			};
 			sessionStorage.setItem('templateData', JSON.stringify(dataWithTimestamp));
 			do_wiz_notif({message: 'Template data saved to local session', duration: 5000});
-			console.log('Template data saved to session:', dataWithTimestamp);
+			//console.log('Template data saved to session:', dataWithTimestamp);
 		}, 1000); // Delay the execution by 500ms
 	}
 
@@ -1738,10 +1932,10 @@ jQuery(document).ready(function ($) {
 		if (storedData) {
 			var parsedData = JSON.parse(storedData);
 			var templateData = parsedData.data; // This is your actual template data
-			console.log('Retrieved template data from session:', templateData);
+			//console.log('Retrieved template data from session:', templateData);
 			return templateData;
 		} else {
-			console.log('No template data found in session.');
+			//console.log('No template data found in session.');
 			return null; // Or handle this case as needed
 		}
 	}
@@ -1858,13 +2052,13 @@ jQuery(document).ready(function ($) {
 			width: '800px',
 			didOpen: () => {
 				document.querySelectorAll('pre code').forEach((block) => {
-					hljs.highlightBlock(block);
+					hljs.highlightElement(block);
 				});
 			}
 		});
 	}
 
-	// Click handler separated from the action logic
+	// View json
 	$("#viewJson").on("click", function () {
 		var templateId = $(this).data("post-id");
 		var sessionData = getTemplateFromSession();
@@ -1914,7 +2108,7 @@ jQuery(document).ready(function ($) {
 	}
 
 	function getHtmlSuccess(data) {
-		console.log(data);
+		//console.log(data);
 
 		// Target the <code> element within #templateCode for the update
 		var codeElement = $('#templateCode').find('code');
@@ -1928,7 +2122,7 @@ jQuery(document).ready(function ($) {
 		codeElement.html(data.data.templateHtml);
 
 		// Reapply syntax highlighting to the new content
-		hljs.highlightBlock(codeElement.get(0));
+		hljs.highlightElement(codeElement.get(0));
 
 		do_wiz_notif({message: 'HTML code updated', duration: 3000});
 	}
@@ -1962,20 +2156,8 @@ jQuery(document).ready(function ($) {
 	});
 
 
-	//iframe context stuff
-	//Add event handlers to iframe on load
-	$("iframe#previewFrame").on("load", function () {
-		addIframeEventHandlers(this.contentDocument || this.contentWindow.document);
-	});
 
-	var addIframeEventHandlers;
-	addIframeEventHandlers = function (iframeDocument) {
-		var preview = $(iframeDocument);
-
-		
-	};
-
-
+	
 	
 
 

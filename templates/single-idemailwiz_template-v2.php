@@ -1,5 +1,4 @@
 <?php
-acf_form_head();
 get_header();
 
 $current_user = wp_get_current_user();
@@ -149,13 +148,12 @@ $wizTemplate = get_wizTemplate( $postId );
 						<div class="template-settings-tab" data-tab="template-styles-tab-text-and-links">
 							Text & Links
 						</div>
-
 						<div class="template-settings-tab" data-tab="template-styles-tab-custom-styles">
 							Custom Styles
 						</div>
 					</div>
 					<div class="template-settings-tabs-content">
-						<?php //print_r( $templateStyles );                           ?>
+						<?php //print_r( $templateStyles );                            ?>
 						<form id="template-styles-form">
 							<?php
 							$templateHeaderFooterStyles = $templateStyles['header-and-footer'] ?? [];
@@ -414,7 +412,7 @@ $wizTemplate = get_wizTemplate( $postId );
 								$showHeader = $templateSettings['template-settings']['show_id_header'] ?? true;
 								?>
 								<div class="builder-field-wrapper">
-									<label class="checkbox-toggle-label">Show iD Header</label>
+									<label class="checkbox-toggle-label">Show Header</label>
 									<div class="wiz-checkbox-toggle">
 										<input type="checkbox" class="wiz-check-toggle"
 											id="template_settings_show_id_header" name="show_id_header" hidden <?php echo $showHeader ? 'checked' : ''; ?>>
@@ -427,7 +425,7 @@ $wizTemplate = get_wizTemplate( $postId );
 
 								<div class="builder-field-wrapper">
 									<?php $showFooter = $templateSettings['template-settings']['show_id_footer'] ?? true; ?>
-									<label class="checkbox-toggle-label">Show iD Footer</label>
+									<label class="checkbox-toggle-label">Show Footer</label>
 									<div class="wiz-checkbox-toggle">
 										<input type="checkbox" class="wiz-check-toggle"
 											id="template_settings_show_id_footer" name="show_id_footer" hidden <?php echo $showFooter ? 'checked' : ''; ?>>
@@ -440,7 +438,7 @@ $wizTemplate = get_wizTemplate( $postId );
 
 								<div class="builder-field-wrapper">
 									<?php $showUnsub = $templateSettings['template-settings']['show_unsub'] ?? true; ?>
-									<label class="checkbox-toggle-label">Show Unsub Link</label>
+									<label class="checkbox-toggle-label">Show Unsub</label>
 									<div class="wiz-checkbox-toggle">
 										<input type="checkbox" class="wiz-check-toggle"
 											id="template_settings_show_unsub" name="show_unsub" hidden <?php echo $showUnsub ? 'checked' : ''; ?>>
@@ -454,7 +452,7 @@ $wizTemplate = get_wizTemplate( $postId );
 
 								<div class="builder-field-wrapper">
 									<?php $extUtms = $templateSettings['template-settings']['ext_utms'] ?? true; ?>
-									<label class="checkbox-toggle-label">External UTMs</label>
+									<label class="checkbox-toggle-label">Ext. UTMs</label>
 									<div class="wiz-checkbox-toggle">
 										<input type="checkbox" class="wiz-check-toggle" id="template_settings_ext_utms"
 											name="ext_utms" hidden <?php echo $extUtms ? 'checked' : ''; ?>>
@@ -546,31 +544,26 @@ $wizTemplate = get_wizTemplate( $postId );
 				// 	$fileStarClass = 'fa-regular';
 				// }
 				?>
-				<!-- <i title="Add/Remove Favorite" class="addRemoveFavorite <?php //echo $fileStarClass;                                                     ?> fa-star"
-					data-objecttype="Template" data-objectid="<?php //echo get_the_ID();                                                     ?>"></i> -->
+				<!-- <i title="Add/Remove Favorite" class="addRemoveFavorite <?php //echo $fileStarClass;                                                      ?> fa-star"
+					data-objecttype="Template" data-objectid="<?php //echo get_the_ID();                                                      ?>"></i> -->
 
-				<span class="templateActions-divider"></span>
+
 
 				<div id="templatePreviewIcons">
 					<i title="Desktop Preview" class="fas fa-desktop active" id="showDesktop"></i>
 					<i title="Mobile Preview" class="fas fa-mobile-alt" id="showMobile"></i>
 					<div id="preview_width_dragger"></div>
-					<i title="Reset to Light Mode" class="fa-solid fa-sun light-mode-reset active"></i>
-					<div class="toggleDarkMode-dropdown" title="View Dark Modes">
-						<i title="Toggle Dark Mode Options" class="fa-solid fa-moon"></i>
-						<div class="wiz-tiny-dropdown">
-							<div class="wiz-tiny-dropdown-options full-invert" title="Full Inversion">
-								<i class="fa-solid fa-circle-half-stroke"></i>&nbsp;&nbsp;Full Inversion
-							</div>
-							<div class="wiz-tiny-dropdown-options partial-invert" title="Partial Inversion">
-								<i class="fa-solid fa-circle-half-stroke"></i>&nbsp;&nbsp;Partial Inversion
-							</div>
-						</div>
+					<span class="templateActions-divider"></span>
+					<i title="White Background" class="fa-solid fa-sun light-mode-interface active"></i>
+					<i title="Dark Background" class="fa-solid fa-moon dark-mode-interface"></i>
+					<div title="Transparent Background"
+						class="interface-transparency-toggle transparent-mode-background">
 					</div>
-
+					<span class="templateActions-divider"></span>
 					<div title="Fill Merge Tags" class="fill-merge-tags" data-postid="<?php echo get_the_ID(); ?>">
 						&nbsp;<span style="font-size:.8em;">{{X}}</span>&nbsp;</div>
 				</div>
+
 
 				<button title="Refresh Preview" class="wiz-button green" id="refreshPreview"><i
 						class="fa-solid fa-rotate"></i>&nbsp;&nbsp;Refresh</button>
