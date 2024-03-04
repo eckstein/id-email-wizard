@@ -531,8 +531,12 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 		<meta http-equiv="Content-Type" content="text/html charset=UTF-8" />
 		<meta name="viewport" content="width=device-width,initial-scale=1" />
 		<meta name="x-apple-disable-message-reformatting" />
-		<meta name="color-scheme" content="light dark"> <meta name="supported-color-schemes" content="light dark">
-
+		<?php
+		$darkModeSupport = json_decode($templateStyles['custom-styles']['dark-mode-support'], true) ?? false;
+		if ($darkModeSupport === true) { ?>
+			<meta name="color-scheme" content="light dark">
+			<meta name="supported-color-schemes" content="light dark">
+		<?php } ?>
 		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 		<title>
 			<?php echo $templateSettings['subject_line'] ?? ''; ?>

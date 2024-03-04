@@ -372,6 +372,20 @@ $wizTemplate = get_wizTemplate( $postId );
 									<textarea id="template_styles_additional_css" name="additional_template_css"
 										class="builder-field"><?php echo $customStyles['additional_template_css'] ?? ''; ?></textarea>
 								</div>
+								<?php
+								$includeDarkModeSupport = $customStyles['dark-mode-support'] ?? false;
+								?>
+								<div class="builder-field-wrapper">
+									<label class="checkbox-toggle-label">Include Dark Mode Support Meta Tag</label>
+									<div class="wiz-checkbox-toggle">
+										<input type="checkbox" class="wiz-check-toggle"
+											id="template_styles_dark_mode_support" name="dark-mode-support" hidden <?php echo $includeDarkModeSupport ? 'checked' : ''; ?>>
+										<label for="template_styles_dark_mode_support"
+											class="checkbox-toggle-replace <?php echo $includeDarkModeSupport ? 'active' : ''; ?>"><i
+												class="<?php echo $includeDarkModeSupport ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
+									</div>
+
+								</div>
 							</fieldset>
 
 						</form>
