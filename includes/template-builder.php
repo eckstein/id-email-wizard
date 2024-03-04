@@ -1139,6 +1139,8 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 
 		$colsClass = $numActiveColumns > 1 ? ( $numActiveColumns == 2 ? 'two-col' : 'three-col' ) : '';
 		$displayTable = $numActiveColumns > 1 ? 'display: table;' : '';
+
+		
 	
 		$return .= "<div class='$colsClass' $magicRtl style='text-align: center; font-size: 0; width: 100%; background: transparent; ".$displayTable."'>";
 		$return .= "<!--[if mso]><table role='presentation' width='100%' style='white-space:nowrap;text-align:center; background: transparent;'><tr><![endif]-->";
@@ -1152,7 +1154,8 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 
 				$colValign = $column['settings']['valign'] ? strtolower($column['settings']['valign']) : 'top';
 
-				$colBackgroundCSS = generate_background_css( $column['settings']);
+				$colBackgroundCSS = generate_background_css( $column['settings'],'');
+				print_r($colBackgroundCSS);
 
 				$columnChunks = $column['chunks'];
 				$templateWidth = isset( $templateStyles['body-and-background']['template_width'] ) && $templateStyles['body-and-background']['template_width'] > 0 ? $templateStyles['body-and-background']['template_width'] : 648;
@@ -1254,8 +1257,8 @@ function generate_background_css( $backgroundSettings, $prefix = '' ) {
 		case 'image':
 			// Image properties
 			$image_url = $backgroundSettings[ $prefix . 'background-image-url' ];
-			$position = $backgroundSettings[ $prefix . 'background-image-position' ] ?? 'center';
-			$size = $backgroundSettings[ $prefix . 'background-image-size' ] ?? 'cover';
+			$position = $backgroundSettings[ $prefix . 'background-image-position' ] != '' ? $backgroundSettings[ $prefix . 'background-image-position' ] : 'center';
+			$size = $backgroundSettings[ $prefix . 'background-image-size' ] != '' ? $backgroundSettings[ $prefix . 'background-image-size' ] : 'cover';
 
 			// Fallback color and additional properties
 			$fallback_color = $backgroundSettings[ $prefix . 'background-color' ] ?? 'transparent';
@@ -1266,7 +1269,7 @@ function generate_background_css( $backgroundSettings, $prefix = '' ) {
 
 			$css[] = "background-color: $fallback_color;";
 			if ( $image_url ) {
-				$css[] = "background-image: url('$image_url');";
+				$css[] = "background-image: url($image_url);";
 				$css[] = "background-position: $position;";
 				$css[] = "background-size: $size;";
 			}
