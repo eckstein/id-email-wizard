@@ -205,12 +205,20 @@ function idwiz_get_plain_text_chunk( $chunk, $templateOptions ) {
 
 	$backgroundColorCss = generate_background_css( $chunkSettings );
 
+	$templateFontSize = $templateStyles['font-size']['template_font_size'] ?? '16px';
+
+	$baseTextColor = $chunkSettings['text_base_color'] ?? '#000000';
+
 	$chunkPadding = $chunkSettings['chunk_padding'] ?? '0px';
 
-	$textContent = $chunkFields['plain_text_content'] ?? 'Your content goes here!';
+	$pPadding = $chunkSettings['p_padding'] ?? true;
+	$pPaddingClass = $pPadding ? '' : 'noPpad';
+
+	// Note that padding for <p> elements is only set in <style> blocks, so inboxes with no <style> support will not have padding applied in either case.
+
+	$textContent = $chunkFields['plain_text_content'] ?? '<p>Your content goes here!</p>';
 
 	$textContent = add_aria_label_to_links( $textContent );
-
 
 	ob_start();
 	if ( $visibility['class'] == 'mobile-only' ) {
@@ -224,11 +232,11 @@ function idwiz_get_plain_text_chunk( $chunk, $templateOptions ) {
 		style="width:100%;border:0;border-spacing:0; <?php echo $visibility['inlineStyle']; ?> <?php echo $backgroundColorCss; ?>">
 		<tr>
 			
-			<td class="id-plain-text" style="<?php echo $backgroundColorCss; ?> padding: <?php echo $chunkPadding; ?>; font-family: Poppins, Arial, sans-serif!important; font-size: <?php echo $templateStyles['font-styles']['template_font_size'] ?? '16px'; ?>;">
+			<td class="id-plain-text" style="<?php echo $backgroundColorCss; ?> padding: <?php echo $chunkPadding; ?>; color: <?php echo $baseTextColor; ?>; font-family: Poppins, Arial, sans-serif!important; font-size: <?php echo $templateFontSize; ?>;">
 			<![endif]-->
 
-	<div class="id-chunk id-plain-text <?php echo $chunkClasses; ?> <?php echo $visibility['class']; ?>"
-		style="<?php echo $visibility['inlineStyle']; ?> <?php echo $backgroundColorCss; ?> padding: <?php echo $chunkPadding; ?>; font-size: <?php echo $templateStyles['font-styles']['template_font_size'] ?? '16px'; ?>; border:1px solid transparent;">
+	<div class="id-chunk id-plain-text <?php echo $chunkClasses; ?> <?php echo $pPaddingClass; ?> <?php echo $visibility['class']; ?>"
+		style="<?php echo $visibility['inlineStyle']; ?> <?php echo $backgroundColorCss; ?> color: <?php echo $baseTextColor; ?>; padding: <?php echo $chunkPadding; ?>; font-size: <?php echo $templateFontSize; ?>; border:1px solid transparent;">
 		<?php echo wpautop( stripslashes($textContent) ); ?>
 	</div>
 	
@@ -287,6 +295,13 @@ function idwiz_get_image_chunk( $chunk, $templateOptions ) {
 
 	$chunkFields = $chunk['fields'];
 
+	$chunkSettings = $chunk['settings'];
+
+	$chunkPadding = $chunk['settings']['chunk_padding'] ?? '';
+	
+	$chunkPaddingCss = $chunkPadding ? 'padding:'.$chunkPadding.';' : '';
+	$msoPaddingToMargin = $chunkPadding ? 'margin:'.$chunkPadding.';' : 'margin: 0;';
+
 	$variant = $chunkSettings['image_context'] ?? '';
 	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
 
@@ -322,11 +337,17 @@ function idwiz_get_image_chunk( $chunk, $templateOptions ) {
 
 	// MSO conditional for Outlook
 	echo '<!--[if mso]>';
-	echo '<table role="presentation" style="width:100%;border:0;border-spacing:0;margin: 0;' . $visibility['inlineStyle'] . '"><tr><td style="font-size: 0; line-height: 0; ' . $backgroundColorCss . '">';
+	echo '<table role="presentation" style="width:100%;border:0;border-spacing:0;margin: 0;' . $visibility['inlineStyle'] . '">
+		<tr>
+		<td style="font-size: 0; line-height: 0; ' . $backgroundColorCss . '">';
 	if ( $imageLink ) {
-		echo '<a href="' . $imageLink . '" ' . $ariaHidden . ' title="' . $imageAlt . '" style="display: block;margin: 0; padding: 0; line-height: 0;font-size:0;text-decoration:none;">';
-	}
-	echo '<img class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" width="' . $msoWidth . '" ' . $altAttribute . ' style="width:' . $msoWidth . 'px; max-width:' .$msoWidth.'px; height:auto;' . $visibility['inlineStyle'] . '" />';
+		echo '<a href="' . $imageLink . '" ' . $ariaHidden . ' title="' . $imageAlt . '" style="'.$msoPaddingToMargin.'display: block;padding: 0; line-height: 0;font-size:0;text-decoration:none;">';
+	} 
+
+	// If no link, add pointer-events: none to prevent click interaction
+	$pointerEventsCss = !$imageLink ? 'pointer-events: none;' : '';
+	
+	echo '<img class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" width="' . $msoWidth . '" ' . $altAttribute . ' style="'.$pointerEventsCss.'width:' . $msoWidth . 'px; max-width:' .$msoWidth.'px; height:auto;' . $visibility['inlineStyle'] . '" />';
 	if ( $imageLink ) {
 		echo '</a>';
 	}
@@ -335,11 +356,11 @@ function idwiz_get_image_chunk( $chunk, $templateOptions ) {
 
 	// Non-MSO markup for other clients
 	echo '<!--[if !mso]> <!-->';
-	echo '<div class="id-chunk id-image ' .$chunkClasses.' '.$visibility['class'] . '" style="' . $backgroundColorCss . ' ' . $visibility['inlineStyle'] . '">';
+	echo '<div class="id-chunk id-image ' .$chunkClasses.' '.$visibility['class'] . '" style="' . $backgroundColorCss . ' ' . $visibility['inlineStyle'] . $chunkPaddingCss . '">';
 	if ( $imageLink ) {
 		echo '<a href="' . $imageLink . '" ' . $ariaHidden . ' title="' . $imageAlt . '">';
 	}
-	echo '<img ' . $altAttribute . ' class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" style="width:' . $defaultWidth . '; height:auto;' . $visibility['inlineStyle'] . '" />';
+	echo '<img ' . $altAttribute . ' class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" style="'.$pointerEventsCss.'width:' . $defaultWidth . '; height:auto;' . $visibility['inlineStyle'] . '" />';
 	if ( $imageLink ) {
 		echo '</a>';
 	}
@@ -545,15 +566,49 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 
 		<!-- The first style block will be removed by Yahoo! on android, so nothing here for that platform-->
 
-		<!--dedicated block for gmail (for non-interactive stuff)-->
+		<!--dedicated block for gmail-->
 		<style type="text/css">
 			u+#body a {
 				color: inherit;
+				<?php if ($underlinkLinks) { ?>
+				text-decoration: underline;
+				<?php } else { ?>
 				text-decoration: none;
+				<?php } ?>
 				font-size: inherit;
 				font-family: inherit;
 				font-weight: inherit;
 				line-height: inherit;
+			}
+		</style>
+
+		<style type="text/css">
+			/*Prevent auto-blue links in Apple*/
+			a[x-apple-data-detectors] {
+				color: inherit !important;
+				<?php if ($underlinkLinks) { ?>
+				text-decoration: underline;
+				<?php } else { ?>
+				text-decoration: none;
+				<?php } ?>
+				font-size: inherit !important;
+				font-family: inherit !important;
+				font-weight: inherit !important;
+				line-height: inherit !important;
+			}
+
+			/*Prevent blue links in Samsung*/
+			#MessageViewBody a {
+				color: inherit !important;
+				<?php if ($underlinkLinks) { ?>
+				text-decoration: underline;
+				<?php } else { ?>
+				text-decoration: none;
+				<?php } ?>
+				font-size: inherit !important;
+				font-family: inherit !important;
+				font-weight: inherit !important;
+				line-height: inherit !important;
 			}
 		</style>
 
@@ -583,29 +638,12 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 			p {
 				margin: 0;
 				padding: 0 0 1em 0;
+				color: inherit;
 			}
-
-
-
-			/*Prevent auto-blue links in Apple*/
-			a[x-apple-data-detectors] {
-				color: inherit !important;
-				text-decoration: none !important;
-				font-size: inherit !important;
-				font-family: inherit !important;
-				font-weight: inherit !important;
-				line-height: inherit !important;
+			.noPpad p {
+				padding: 0!important;
 			}
-
-			/*Prevent blue links in Samsung*/
-			#MessageViewBody a {
-				color: inherit !important;
-				text-decoration: none !important;
-				font-size: inherit !important;
-				font-family: inherit !important;
-				font-weight: inherit !important;
-				line-height: inherit !important;
-			}
+			
 
 			/* Desktop Headers */
 			h1 {

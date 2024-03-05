@@ -332,7 +332,7 @@ function idwiz_fetch_base_templates() {
 		}
 	}
 
-	$final_html = '<div class="templateTabs">
+	$final_html = '<div class="swalTabs">
                      <ul>
                        <li><a href="#initiativeTemplates">Initiative Templates</a></li>
                        <li><a href="#layoutTemplates">Layout Templates</a></li>

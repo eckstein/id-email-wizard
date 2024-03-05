@@ -445,6 +445,11 @@ function generate_chunk_form_interface( $chunkType, $rowId, $columnId, $chunkId,
 		$isActive = $tab === $activeTab ? 'active' : '';
 		echo "<div class=\"chunk-tab $isActive\" data-target=\"#{$uniqueId}-chunk-{$tab}-container\">{$label}</div>";
 	}
+	echo '<div class="chunk-tabs-messages">';
+	if ( isset( $chunkData['settings']['text_base_color'] ) ) {
+	echo '<span class="chunk-base-font-color-message">Font color is set to <span class="chunk-base-font-color-display" style="background:'.$chunkData['settings']['text_base_color'].'"><span style="mix-blend-mode:screen;"><span class="inside-color" style="color: #fff; padding: 0 5px;">'. $chunkData['settings']['text_base_color']. '</span></span></span> in chunk settings.</span>';
+	}
+	echo '</div>';
 	echo '</div>';
 
 	// Content tab content
@@ -492,7 +497,7 @@ function render_chunk_settings( $chunkType, $chunkData, $uniqueId ) {
 	echo "<div class='chunk-inner-content'>";
 	//$typeLabel = ucfirst($chunkType);
 	echo "<div class='chunk-settings-section chunk-general-settings'>";
-	echo "<h4>Chunk Content Settings</h4>";
+	//echo "<h4>Chunk Content Settings</h4>";
 	echo "<div class='builder-field-group flex'>";
 	$chunkPadding = $chunkSettings['chunk_padding'] ?? '0px';
 	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
@@ -501,16 +506,30 @@ function render_chunk_settings( $chunkType, $chunkData, $uniqueId ) {
 	switch ( $chunkType ) {
 
 		case 'text':
+		$baseTextColor = $chunkSettings['text_base_color'] ?? '#000000';
+		echo "<div class='builder-field-wrapper base-text-color centered'><label for='{$uniqueId}-text-base-color'>Base Text Color</label>";
+		echo "<input class='builder-colorpicker' type='color' name='text_base_color' id='{$uniqueId}-text-base-color' data-color-value='{$baseTextColor}'>";
+		echo "</div>";
+		
+		$pPadding = $chunkSettings['p_padding'] ?? true;
+		$uniqueIdPpadding = $uniqueId . 'p_padding';
+		$pPaddingChecked = $pPadding ? 'checked' : '';
+		$pPaddingActive = $pPadding ? 'active' : '';
+		$npPaddingClass = $pPadding ? 'fa-solid' : 'fa-regular';
+
+		echo "<div class='builder-field-wrapper'>";
+		echo "<div class='wiz-checkbox-toggle'>";
+		echo "<label class='checkbox-toggle-label'>Pad ".htmlentities('<p>')."'s</label>";
+		echo "<input type='checkbox' class='wiz-check-toggle' id='$uniqueIdPpadding' name='p_padding' hidden $pPaddingChecked>";
+		echo "<label for='$uniqueIdPpadding' class='checkbox-toggle-replace $pPaddingActive'><i class='$npPaddingClass fa-2x fa-square-check'></i></label>"; 
+		echo "</div>";
+		echo "</div>";
+
 		case 'button':
+		case 'image':
 			echo "<div class='builder-field-wrapper chunk-padding small-input'><label for='{$uniqueId}-chunk-padding'>Chunk Padding</label>";
 			echo "<input type='text' name='chunk_padding' id='{$uniqueId}-chunk-padding' value='{$chunkPadding}'>";
 			echo "</div>";
-
-			
-			break;
-
-
-		case 'image':
 
 			break;
 

@@ -675,6 +675,7 @@ function idemailwiz_enqueue_assets()
         'dt-date-col-sort' => array('/js/dt-date-col-sort.js', array('moment-js')),
         'id-general' => array('/js/id-general.js', array('jquery')),
         'mergeTags' => array('/js/mergeTags.js', array()),
+        
         'template-editor' => array('/js/template-editor.js', array('jquery', 'id-general', 'jquery-ui-resizable', 'editable', 'spectrum', 'tinymce', 'gradx', 'mergeTags')),
         'template-actions' => array('/js/template-actions.js', array('jquery', 'id-general')),
         'codemirror' => array('/vendors/codemirror-5.65.16/lib/codemirror.js', array('jquery')),
@@ -696,6 +697,7 @@ function idemailwiz_enqueue_assets()
         'journeys' => array('/js/journeys.js', array('jquery', 'jquery-ui-sortable', 'id-general', 'wiz-charts', 'data-tables')),
         'dashboard' => array('/js/idwiz-dashboard.js', array('jquery', 'id-general', 'wiz-charts', 'data-tables')),
         'google-sheets-api' => array('/js/google-sheets-api.js', array('jquery', 'id-general')),
+        
 
     );
 

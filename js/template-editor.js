@@ -455,7 +455,7 @@ jQuery(document).ready(function ($) {
 
 		tinymce.PluginManager.add('theme_switcher', function(editor) {
 			editor.ui.registry.addToggleButton('theme_switcher', {
-				icon: 'contrast', // Ensure the icon name is correct. It might be lowercase.
+				icon: 'contrast', 
 				onpostrender: function() {
 					// Add class to button
 					editor.ui.registry.get('theme_switcher').element.classList.add('theme-switcher');
@@ -533,6 +533,39 @@ jQuery(document).ready(function ($) {
 					}
 				});
 				
+				editor.on('activate', function() {
+					var editorContainer = $(editor.getContainer());
+					var $baseColorInput = editorContainer.closest('.builder-chunk').find('input[name="text_base_color"]');
+					
+					var baseColor = $baseColorInput.attr('data-color-value');
+
+					// Set all elements inside the editor body to the base color
+					editor.getBody().style.color = baseColor;
+				});
+
+				editor.on('init', function() {
+					$(document).on('change.spectrum', 'input[name="text_base_color"]', function(e, tinycolor) {
+
+						var baseColor = tinycolor.toHexString();
+
+						// Check if the input is within the same .builder-chunk as this editor
+						var editorContainer = $(editor.getContainer());
+						var $parent = $(this).closest('.builder-chunk');
+						if ($parent.has(editorContainer).length) {
+							// Apply the base color to the editor's content
+							editor.getBody().style.color = baseColor;
+
+							// Add or updated message
+							if ($parent.find('.chunk-tabs-messages .chunk-base-font-color-message').length) {
+								$parent.find('.chunk-tabs-messages .chunk-base-font-color-message .chunk-base-font-color-display').css('background', baseColor);
+								$parent.find('.chunk-tabs-messages .chunk-base-font-color-message .inside-color').text(baseColor);
+							} else {
+								$parent.find('.chunk-tabs-messages').append('<span class="chunk-base-font-color-message">Font color is set to <span class="chunk-base-font-color-display" style="background:'+baseColor+'"><span style="mix-blend-mode: screen;"><span class="inside-color" style="color: #fff; padding: 0 5px;">' + baseColor + '</span></span></span> in chunk settings.</span>');
+							}
+						}
+					});
+				});
+
 				editor.on('input', function() {
 					idwiz_updatepreview();
 					updateBuilderChunkTitle_debounced(editor);
@@ -1108,7 +1141,7 @@ jQuery(document).ready(function ($) {
 					['#000000', '#343434', '#94c52a', '#f4f4f4', '#ffffff']
 				],
 				showAlpha: true,
-				preferredFormat: 'rgb'
+				preferredFormat: 'hex'
 			}).change(function (color) {
 				saveTemplateToSession();
 				idwiz_updatepreview();
@@ -1124,6 +1157,9 @@ jQuery(document).ready(function ($) {
 		});
 
 	}
+
+
+	
 
 	// Add new blank row
 	$(document).on('click','.builder-new-row', function() {
@@ -1517,7 +1553,7 @@ jQuery(document).ready(function ($) {
 	function getFieldValue($field) {
 		if ($field.hasClass('builder-colorpicker')) {
 			var color = $field.spectrum("get");
-			return color && typeof color.toRgbString === 'function' ? color.toRgbString() : '';
+			return color && typeof color.toHexString === 'function' ? color.toHexString() : '';
 		} else if ($field.hasClass('wiz-wysiwyg')) {
 			var editor = tinymce.get($field.attr('id'));
 			if (editor) {
@@ -1778,9 +1814,11 @@ jQuery(document).ready(function ($) {
 
 
 	// Saves the template data, a JSON object, (publish or draft) to the database
-	function saveTemplateData(saveType) {
-		var templateData = gatherTemplateData();
-		console.log('To save: Template data:', templateData);
+	function saveTemplateData(saveType, templateData = false) {
+		if (!templateData) {
+			var templateData = gatherTemplateData();
+		}
+		//console.log('To save: Template data:', templateData);
 		var formData = {
 			action: 'save_wiz_template_data',
 			security: idAjax_template_editor.nonce,
@@ -1794,9 +1832,9 @@ jQuery(document).ready(function ($) {
 			type: 'POST',
 			data: formData, 
 			success: function(response) {
-				console.log(response);
-				console.log('Template saved:', response.data.message);
-				console.log('Data saved:', response.data.templateData);
+				//console.log(response);
+				//console.log('Template saved:', response.data.message);
+				//console.log('Data saved:', response.data.templateData);
 				do_wiz_notif({message: response.data.message, duration: 5000});
 				idwiz_updatepreview();
 				unsavedWysiwygChanges = false;
@@ -2037,14 +2075,12 @@ jQuery(document).ready(function ($) {
 		}, 5000);
 	});
 
-
-	// Utility function to display JSON data
+	// Function to display JSON data in a Swal box
 	function displayJsonData(templateData) {
 		var jsonData = JSON.stringify(templateData, null, 2);
-
 		Swal.fire({
 			title: 'JSON Data',
-			html: `<pre style=""><code class="json">${escapeHtml(jsonData)}</code></pre>`,
+			html: `<pre><code class="json">${wizEscapeHtml(jsonData)}</code></pre>`,
 			customClass: {
 				popup: 'template-json-modal',
 				htmlContainer: 'template-json-pre-wrap'
@@ -2058,45 +2094,262 @@ jQuery(document).ready(function ($) {
 		});
 	}
 
-	// View json
-	$("#viewJson").on("click", function () {
-		var templateId = $(this).data("post-id");
+	// Function to fetch JSON data and display or export it
+	function getWizTemplateJson(templateId, callback) {
 		var sessionData = getTemplateFromSession();
-
 		if (sessionData) {
-			// Use session data if available
-			displayJsonData(sessionData);
+			callback(sessionData);
 		} else {
-			// Fallback to AJAX call if no session data
 			var additionalData = { template_id: templateId };
-			idemailwiz_do_ajax("get_wiztemplate_with_ajax", idAjax_template_editor.nonce, additionalData, getJsonSuccess, getJsonError, "json");
+			idemailwiz_do_ajax("get_wiztemplate_with_ajax", idAjax_template_editor.nonce, additionalData, 
+				function(data) { // Success callback
+					callback(data.data);
+				}, 
+				function(xhr, status, error) { // Error callback
+					console.error('Error retrieving or generating JSON for template');
+					Swal.fire({
+						icon: 'error',
+						title: 'Oops...',
+						text: 'Error retrieving or generating JSON for template!',
+					});
+				}, 
+				"json");
 		}
-	});
-
-	// Success callback for AJAX call
-	function getJsonSuccess(data) {
-		displayJsonData(data.data);
 	}
 
-	// Error callback for AJAX call
-	function getJsonError(xhr, status, error) {
-		console.log('Error retrieving or generating JSON for template');
+	// View JSON in popup
+	$("#viewJson").on("click", function () {
+		var templateId = $(this).data("post-id");
+		getWizTemplateJson(templateId, displayJsonData);
+	});
+
+	// Function to export JSON data
+	$("#exportJson").on("click", function () {
+		var templateId = $(this).data("post-id");
+		getWizTemplateJson(templateId, function(jsonData) {
+			var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonData, null, 2));
+			var downloadAnchorNode = document.createElement('a');
+			downloadAnchorNode.setAttribute("href", dataStr);
+			downloadAnchorNode.setAttribute("download", "template_data.json");
+			document.body.appendChild(downloadAnchorNode); // required for firefox
+			downloadAnchorNode.click();
+			downloadAnchorNode.remove();
+		});
+	});
+
+	$('#importJson').on('click', function () {
+		importWizTemplateJson();
+	});
+	function importWizTemplateJson() {
 		Swal.fire({
-			icon: 'error',
-			title: 'Oops...',
-			text: 'Error retrieving or generating JSON for template!',
+			title: 'Import JSON Data',
+			showCancelButton: true,
+			confirmButtonText: 'Import',
+			html: `
+				<div class="swalTabs">
+					<ul>
+						<li><a href="#pasteTab" class="active" data-tab="pasteTab">Paste JSON</a></li>
+						<li><a href="#uploadTab" data-tab="uploadTab">Upload File</a></li>
+					</ul>
+					<div id="pasteTab" style="display: block; height: 300px;">
+						<textarea id="jsonInput" rows="10" style="width: 100%; margin-top: 15px;"></textarea>
+					</div>
+					<div id="uploadTab" style="display: none; height: 300px;">
+						<div class="swal-file-upload">
+							<input type="file" id="jsonFileInput" name="jsonFile">
+							<label for="jsonFileInput" class="file-upload-label">Drag and drop a file here or click to select a file</label>
+						</div>
+					</div>
+
+				</div>
+			`,
+			focusConfirm: false,
+			preConfirm: () => {
+				const isPastedData = $('.swalTabs ul li a.active').attr('data-tab') === 'pasteTab';
+				return process_wiz_template_json_upload(isPastedData)
+				.then(sessionKey => {
+					// Optionally clear the session storage if it's no longer needed
+					sessionStorage.removeItem(sessionKey);
+
+					// Show a success message with Swal
+					Swal.fire({
+						title: 'Success!',
+						text: 'Your JSON data has been processed successfully.',
+						icon: 'success',
+						confirmButtonText: 'OK'
+					}).then((result) => {
+						if (result.value) {
+							// Refresh the page to reflect the changes
+							window.location.reload();
+						}
+					});
+				})
+				.catch(error => {
+					Swal.showValidationMessage(`Process failed: ${error.message}`);
+					// Returning a rejected promise prevents Swal from closing
+					return Promise.reject(error);
+					
+				});
+			},
+			didOpen: () => {
+				// Initialize the tab interface
+				document.querySelectorAll('.swalTabs ul li a').forEach((tab) => {
+					tab.addEventListener('click', (e) => {
+						e.preventDefault();
+						const tabId = tab.getAttribute('href').substring(1); // Get the ID without the '#'
+                    
+						// Deactivate all tabs and hide all tab content
+						document.querySelectorAll('.swalTabs ul li a').forEach(t => t.classList.remove('active'));
+						document.querySelectorAll('.swalTabs > div').forEach(content => content.style.display = 'none');
+                    
+						// Activate clicked tab and show its content
+						tab.classList.add('active');
+						document.getElementById(tabId).style.display = 'block';
+					});
+				});
+
+				// Trigger click on the first tab to show it by default
+				document.querySelector('.swalTabs ul li a').click();
+
+				$('#jsonFileInput').on('change', function() {
+					// Check if any files were selected
+					if (this.files && this.files.length > 0) {
+						var file = this.files[0];
+						var fileType = file.type;
+						var match = ['application/json', 'text/json'];
+
+						// Validate file type
+						if (match.indexOf(fileType) !== -1) {
+							// File is a JSON, update label text to show file name
+							$('.file-upload-label').text(file.name + " is ready to upload.")
+								.css('color', '#28a745'); // Optional: change label color
+            
+							$('.swal-file-upload').css({
+								'border-color': '#28a745', // Example: Change border color
+								'background-color': '#e2e6ea' // Lighten background
+							});
+						} else {
+							// File is not a JSON, show error and reset input
+							$('.file-upload-label').text("Invalid file type. Please select a .json file.")
+								.css('color', '#dc3545'); // Optional: change label color for error
+            
+							$('.swal-file-upload').css({
+								'border-color': '#dc3545', // Example: Change border color for error
+								'background-color': '#f8d7da' // Light background for error
+							});
+
+							// Reset the file input for another selection
+							$(this).val('');
+						}
+					} else {
+						// No file selected, reset to default state
+						resetUploadField();
+					}
+				});
+
+				// Function to reset the upload field to its default state
+				function resetUploadField() {
+					$('.file-upload-label').text("Drag and drop a file here or click to select a file")
+						.css('color', '#007bff');
+    
+					$('.swal-file-upload').css({
+						'border-color': '#007bff',
+						'background-color': '#f8f9fa'
+					});
+				}
+
+			}
 		});
 	}
 
-	// Function to escape HTML special characters to prevent XSS
-	function escapeHtml(unsafe) {
-		return unsafe
-			 .replace(/&/g, "&amp;")
-			 .replace(/</g, "&lt;")
-			 .replace(/>/g, "&gt;")
-			 .replace(/"/g, "&quot;")
-			 .replace(/'/g, "&#039;");
+
+	async function process_wiz_template_json_upload(isPastedData) {
+		async function processData(data) {
+			try {
+				const parsedData = JSON.parse(data);
+				// Await the validation result; this will throw an error if validation fails
+				await validateWizTemplateSchema(parsedData);
+
+				// If validation succeeds, proceed with saving the data
+				const timestamp = new Date().getTime();
+				const sessionKey = `uploadedJsonData_${timestamp}`;
+				sessionStorage.setItem(sessionKey, JSON.stringify(parsedData));
+
+				// Update template from JSON
+				saveTemplateData('publish', parsedData);
+        
+				// Return the session key or any other result as needed
+				return sessionKey;
+			} catch (error) {
+				// Handle or rethrow the error as appropriate
+				console.error(error);
+				throw error;
+			}
+		}
+
+		if (isPastedData) {
+			const pastedData = document.getElementById('jsonInput').value;
+			return processData(pastedData); // Return the promise
+		} else {
+			const file = document.getElementById('jsonFileInput').files[0];
+			if (file) {
+				return new Promise((resolve, reject) => {
+					const reader = new FileReader();
+					reader.onload = async (e) => {
+						try {
+							const fileData = e.target.result;
+							await processData(fileData);
+							resolve(); // Resolve the outer promise
+						} catch (error) {
+							reject(error); // Reject the outer promise
+						}
+					};
+					reader.onerror = (e) => {
+						reject(`Error reading file: ${e.target.error}`);
+					};
+					reader.readAsText(file);
+				});
+			} else {
+				return Promise.reject(new Error('No file selected.'));
+			}
+		}
 	}
+
+
+	
+	function validateWizTemplateSchema(parsedData) {
+		// Check if the main key 'templateOptions' exists
+		if (parsedData.hasOwnProperty('templateOptions')) {
+			// Check for 'templateSettings' and 'rows' keys within 'templateOptions'
+			if (parsedData.templateOptions.hasOwnProperty('templateSettings') &&
+				parsedData.templateOptions.hasOwnProperty('rows')) {
+				console.log("JSON structure is valid.");
+				return true;
+			} else {
+				console.error("JSON structure does not have the required 'templateSettings' and 'rows' keys.");
+				return false;
+			}
+		} else {
+			console.error("JSON structure does not have the 'templateOptions' key.");
+			return false;
+		}
+	}
+
+	
+
+
+
+
+	
+	// Utility function to safely escape HTML
+	function wizEscapeHtml(text) {
+		return text.replace(/&/g, "&amp;")
+				   .replace(/</g, "&lt;")
+				   .replace(/>/g, "&gt;")
+				   .replace(/"/g, "&quot;")
+				   .replace(/'/g, "&#039;");
+	}
+
 
 	
 	function refresh_template_html() {

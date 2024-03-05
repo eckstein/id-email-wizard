@@ -50,17 +50,17 @@ jQuery(document).ready(function ($) {
 			});
 
 			// Initialize the tab interface
-			$(".templateTabs ul li a").click(function (e) {
+			$(".swalTabs ul li a").click(function (e) {
 				e.preventDefault();
 				const tabId = $(this).attr("href").substring(1); // Get the ID without the '#'
-				$(".templateTabs ul li a").removeClass("active");
+				$(".swalTabs ul li a").removeClass("active");
 				$(this).addClass("active");
-				$(".templateTabs > div").hide(); // Hide all tabs
+				$(".swalTabs > div").hide(); // Hide all tabs
 				$("#" + tabId).css("display", "grid"); // Show the clicked tab
 			});
 
 			// Show the first tab by default
-			$(".templateTabs ul li a:first").trigger("click");
+			$(".swalTabs ul li a:first").trigger("click");
 		} else {
 			Swal.fire("Error", "Could not load templates", "error");
 		}

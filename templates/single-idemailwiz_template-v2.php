@@ -538,6 +538,10 @@ $wizTemplate = get_wizTemplate( $postId );
 							HTML</button>
 						<button id="viewJson" class="wiz-button green" data-post-id="<?php echo $postId ?>"><i
 								class="fa-solid fa-code"></i>&nbsp;&nbsp;View JSON</button>
+								<button id="exportJson" class="wiz-button green" data-post-id="<?php echo $postId ?>">
+								<i class="fa-solid fa-file-export"></i>&nbsp;&nbsp;Export JSON</button>
+						<button id="importJson" class="wiz-button green" data-post-id="<?php echo $postId ?>">
+						<i class="fa-solid fa-file-import"></i>&nbsp;&nbsp;Import JSON</button>
 					</div>
 					<pre
 						id="templateCode"><code><?php echo htmlspecialchars( generate_template_html( $wizTemplate, false ) ); ?></code></pre>

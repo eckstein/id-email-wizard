@@ -90,6 +90,9 @@ a.wiz-button:hover {
 	margin: 0 auto;
 }
 /* Checkbox Toggles */
+.wiz-checkbox-toggle {
+	text-align: center;
+}
 /* Basic structure and hiding the checkbox */
 .wizToggle-container {
 	display: flex;
@@ -206,13 +209,15 @@ a.wiz-button:hover {
 	display: flex;
 	justify-content: space-between;
 	align-items: flex-end;
-	margin-right: 20px;
 }
 .main-builder-header .main-builder-actions {
 	display: flex;
 	justify-content: flex-end;
 	gap: 10px;
 	padding: 5px 15px;
+}
+.main-builder-header .main-builder-actions .wiz-button {
+	font-size: 13px;
 }
 .builder-form-wrapper {
 	overflow-y:auto;
@@ -234,8 +239,11 @@ a.wiz-button:hover {
 }
 .builder-code-wrapper .builder-code-actions {
 	display: flex;
-	gap: 15px;
+	gap: 10px;
 	align-items: center;
+}
+.builder-code-wrapper .builder-code-actions .wiz-button {
+	font-size: 12px;
 }
 #builder-tab-code #templateCode {
 	height: 600px;
@@ -244,13 +252,13 @@ a.wiz-button:hover {
 }
 
 	.builder-tabs .builder-tab {
-		padding: 10px 20px 8px 20px;
+		padding: 10px 15px 8px 15px;
 		text-align: center;
 		background-color: #eee;
 		border: 1px solid #eee;
 		border-bottom: 2px solid #eee;
 		color: #666;
-		font-size: 14px;
+		font-size: 13px;
 		font-weight: 500;
 		cursor: pointer;
 	}
@@ -271,9 +279,7 @@ a.wiz-button:hover {
 	margin: 0 auto;
 }
 
-.builder-rows-wrapper {
-	padding-right: 15px;
-}
+
 .builder-row {
 	border: 1px solid #ddd;
 	margin: 10px 0;
@@ -753,6 +759,9 @@ a.wiz-button:hover {
 .builder-field-wrapper {
 	display: inline-block;
 }
+.builder-field-wrapper.centered {
+	text-align: center;
+}
 
 .builder-field-wrapper.block {
 	display: block;
@@ -920,6 +929,13 @@ a.wiz-button:hover {
 		color: #fff;
 		cursor: pointer;
 	}
+.chunk-tabs-messages {
+	margin-left: auto;
+	font-size: 12px;
+	padding-right: 10px;
+	font-style: italic;
+	align-self: center;
+}
 	
 .tab-content.chunk-content {
 	padding: 10px;
@@ -1023,6 +1039,8 @@ a.wiz-button:hover {
 .swal2-html-container #gradientPicker {
 	margin-bottom: 200px;
 }
+
+
 
 /* Template JSON modal */
 /* Widen the modal */
@@ -1549,46 +1567,8 @@ a.wiz-button:hover {
 	width: 100%; /* Ensures the grid takes the full width of its container */
 }
 
-.templateTabs ul {
-	list-style-type: none;
-	padding: 0;
-	margin: 0 0 30px 0;
-}
 
-.templateTabs ul li {
-	display: inline-block;
-	margin-right: 10px;
-}
-
-.templateTabs ul li a {
-	padding: 10px 20px;
-	display: inline-block;
-	text-decoration: none;
-	color: #333;
-	border: 1px solid #ccc;
-	border-radius: 4px;
-}
-
-.templateTabs ul li a.active {
-	background-color: #94d401;
-	color: #fff;
-}
-
-/* Hidden tab */
-.templateTabs > div.hidden {
-	visibility: hidden;
-	opacity: 0;
-	position: absolute;
-	z-index: -1;
-}
-
-/* Visible tab */
-.templateTabs > div.visible {
-	visibility: visible;
-	opacity: 1;
-	position: relative;
-	z-index: 1;
-}
+/* Swal styles */
 /* Style for individual template items */
 .startTemplate {
 	border: 1px solid #ccc;
@@ -1635,6 +1615,89 @@ a.wiz-button:hover {
 /* Style for the title */
 .startTemplate h4 {
 	margin: 8px 0;
+}
+
+
+.swalTabs ul {
+	list-style-type: none;
+	padding: 0;
+	margin: 0 0 30px 0;
+}
+
+.swalTabs ul li {
+	display: inline-block;
+	margin-right: 10px;
+}
+
+.swalTabs ul li a {
+	padding: 10px 20px;
+	display: inline-block;
+	text-decoration: none;
+	color: #333;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+}
+
+.swalTabs ul li a.active {
+	background-color: #94d401;
+	color: #fff;
+}
+
+/* Hidden tab */
+.swalTabs > div.hidden {
+	visibility: hidden;
+	opacity: 0;
+	position: absolute;
+	z-index: -1;
+}
+
+/* Visible tab */
+.swalTabs > div.visible {
+	visibility: visible;
+	opacity: 1;
+	position: relative;
+	z-index: 1;
+}
+
+/* Style for the swal file upload area */
+.swal-file-upload {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	border: 2px dashed #007bff;
+	border-radius: 5px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	padding: 15px;
+	box-sizing: border-box;
+	background-color: #f8f9fa;
+}
+
+.swal-file-upload input[type="file"] {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	top: 0;
+	left: 0;
+	opacity: 0;
+	cursor: pointer;
+}
+
+.file-upload-label {
+	pointer-events: none; /* Ignore pointer events on the label so the input can be clicked */
+	z-index: 0;
+	width: 100%;
+	padding: 15px;
+	box-sizing: border-box;
+	color: #007bff;
+	transition: color .3s ease-in-out;
+}
+
+.swal-file-upload:hover .file-upload-label,
+.swal-file-upload:focus-within .file-upload-label {
+	color: #0056b3;
 }
 
 
