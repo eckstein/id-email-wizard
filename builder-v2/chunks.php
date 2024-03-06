@@ -28,8 +28,8 @@ function idwiz_get_spacer_chunk( $chunk, $templateOptions ) {
 	<tr>
 	<td style="width:100%;text-align:center; <?php echo $backgroundColorCss; ?>" valign="middle">
 	<![endif]-->
-	<div class="id-chunk id-spacer <?php echo $chunkClasses; ?> <?php echo $visibility['class']; ?>" style="<?php echo $visibility['inlineStyle']; ?>"
-		aria-hidden="true">
+	<div class="id-chunk id-spacer <?php echo $chunkClasses; ?> <?php echo $visibility['class']; ?>"
+		style="<?php echo $visibility['inlineStyle']; ?>" aria-hidden="true">
 		<div
 			style="line-height:<?php echo $spacerHeight; ?>;height:<?php echo $spacerHeight; ?>;mso-line-height-rule:exactly;<?php echo $backgroundColorCss; ?>">
 			&nbsp;</div>
@@ -174,7 +174,7 @@ function idwiz_get_snippet_chunk( $chunk, $templateOptions ) {
 		echo '<![endif]-->';
 	}
 
-	echo '<div class="id-chunk id-snippet '.$chunkClasses.'" style="' . esc_attr( $fontCss . $backgroundColorCss . $visibility['inlineStyle'] ) . '">';
+	echo '<div class="id-chunk id-snippet ' . $chunkClasses . '" style="' . esc_attr( $fontCss . $backgroundColorCss . $visibility['inlineStyle'] ) . '">';
 	echo $snippetContent;
 	echo '</div>';
 
@@ -209,6 +209,18 @@ function idwiz_get_plain_text_chunk( $chunk, $templateOptions ) {
 
 	$baseTextColor = $chunkSettings['text_base_color'] ?? '#000000';
 
+	$gmailBlendDesktop = false;
+	if (isset($chunkSettings['force_white_text_on_desktop'])) {
+		$gmailBlendDesktop = json_decode($chunkSettings['force_white_text_on_desktop']);
+	}
+	$gmailBlendMobile = false;
+	if (isset($chunkSettings['force_white_text_on_desktop'])) {
+		$gmailBlendMobile = json_decode($chunkSettings['force_white_text_on_mobile']);
+	}
+
+	$gmailBlendDesktopClass = $gmailBlendDesktop ? 'desktop' : '';
+	$gmailBlendMobileClass = $gmailBlendMobile ? 'mobile' : '';
+
 	$chunkPadding = $chunkSettings['chunk_padding'] ?? '0px';
 
 	$pPadding = $chunkSettings['p_padding'] ?? true;
@@ -237,9 +249,19 @@ function idwiz_get_plain_text_chunk( $chunk, $templateOptions ) {
 
 	<div class="id-chunk id-plain-text <?php echo $chunkClasses; ?> <?php echo $pPaddingClass; ?> <?php echo $visibility['class']; ?>"
 		style="<?php echo $visibility['inlineStyle']; ?> <?php echo $backgroundColorCss; ?> color: <?php echo $baseTextColor; ?>; padding: <?php echo $chunkPadding; ?>; font-size: <?php echo $templateFontSize; ?>; border:1px solid transparent;">
-		<?php echo wpautop( stripslashes($textContent) ); ?>
+		<?php
+		if ( $gmailBlendDesktopClass || $gmailBlendMobileClass ) {
+			echo '<div class="gmail-blend-screen ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
+			echo '<div class="gmail-blend-difference ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
+		}
+		echo wpautop( stripslashes( $textContent ) );
+		if ( $gmailBlendDesktopClass || $gmailBlendMobileClass ) {
+			echo '</div>';
+			echo '</div>';
+		}
+		?>
 	</div>
-	
+
 	<!--[if mso]>
 			</td>
 			
@@ -298,9 +320,9 @@ function idwiz_get_image_chunk( $chunk, $templateOptions ) {
 	$chunkSettings = $chunk['settings'];
 
 	$chunkPadding = $chunk['settings']['chunk_padding'] ?? '';
-	
-	$chunkPaddingCss = $chunkPadding ? 'padding:'.$chunkPadding.';' : '';
-	$msoPaddingToMargin = $chunkPadding ? 'margin:'.$chunkPadding.';' : 'margin: 0;';
+
+	$chunkPaddingCss = $chunkPadding ? 'padding:' . $chunkPadding . ';' : '';
+	$msoPaddingToMargin = $chunkPadding ? 'margin:' . $chunkPadding . ';' : 'margin: 0;';
 
 	$variant = $chunkSettings['image_context'] ?? '';
 	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
@@ -341,13 +363,13 @@ function idwiz_get_image_chunk( $chunk, $templateOptions ) {
 		<tr>
 		<td style="font-size: 0; line-height: 0; ' . $backgroundColorCss . '">';
 	if ( $imageLink ) {
-		echo '<a href="' . $imageLink . '" ' . $ariaHidden . ' title="' . $imageAlt . '" style="'.$msoPaddingToMargin.'display: block;padding: 0; line-height: 0;font-size:0;text-decoration:none;">';
-	} 
+		echo '<a href="' . $imageLink . '" ' . $ariaHidden . ' class="id-image-link" title="' . $imageAlt . '" style="' . $msoPaddingToMargin . 'display: block;padding: 0; line-height: 0;font-size:0;text-decoration:none;">';
+	}
 
 	// If no link, add pointer-events: none to prevent click interaction
-	$pointerEventsCss = !$imageLink ? 'pointer-events: none;' : '';
-	
-	echo '<img class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" width="' . $msoWidth . '" ' . $altAttribute . ' style="'.$pointerEventsCss.'width:' . $msoWidth . 'px; max-width:' .$msoWidth.'px; height:auto;' . $visibility['inlineStyle'] . '" />';
+	$pointerEventsCss = ! $imageLink ? 'pointer-events: none;' : '';
+
+	echo '<img class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" width="' . $msoWidth . '" ' . $altAttribute . ' style="' . $pointerEventsCss . 'width:' . $msoWidth . 'px; max-width:' . $msoWidth . 'px; height:auto;' . $visibility['inlineStyle'] . '" />';
 	if ( $imageLink ) {
 		echo '</a>';
 	}
@@ -356,11 +378,11 @@ function idwiz_get_image_chunk( $chunk, $templateOptions ) {
 
 	// Non-MSO markup for other clients
 	echo '<!--[if !mso]> <!-->';
-	echo '<div class="id-chunk id-image ' .$chunkClasses.' '.$visibility['class'] . '" style="' . $backgroundColorCss . ' ' . $visibility['inlineStyle'] . $chunkPaddingCss . '">';
+	echo '<div class="id-chunk id-image ' . $chunkClasses . ' ' . $visibility['class'] . '" style="' . $backgroundColorCss . ' ' . $visibility['inlineStyle'] . $chunkPaddingCss . '">';
 	if ( $imageLink ) {
-		echo '<a href="' . $imageLink . '" ' . $ariaHidden . ' title="' . $imageAlt . '">';
+		echo '<a href="' . $imageLink . '" ' . $ariaHidden . ' class="id-image-link" title="' . $imageAlt . '">';
 	}
-	echo '<img ' . $altAttribute . ' class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" style="'.$pointerEventsCss.'width:' . $defaultWidth . '; height:auto;' . $visibility['inlineStyle'] . '" />';
+	echo '<img ' . $altAttribute . ' class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" style="' . $pointerEventsCss . 'width:' . $defaultWidth . '; height:auto;' . $visibility['inlineStyle'] . '" />';
 	if ( $imageLink ) {
 		echo '</a>';
 	}
@@ -380,7 +402,7 @@ function idwiz_get_standard_header( $templateOptions ) {
 	$templateStyles = $templateOptions['templateStyles'];
 	$headerFooterSettings = $templateStyles['header-and-footer'];
 	$headerLogo = $headerFooterSettings['template_header_logo'] ?? '';
-	if ($headerLogo == 'manual') {
+	if ( $headerLogo == 'manual' ) {
 		$headerLogo = $headerFooterSettings['template_header_logo_manual'] ?? '';
 	}
 	ob_start();
@@ -391,11 +413,9 @@ function idwiz_get_standard_header( $templateOptions ) {
 			<td style="font-size: 0;line-height:0;margin:0;">
 				<a href="https://www.idtech.com" style="margin:0; padding: 0;" aria-label="iD Tech Camps"
 					title="iD Tech Camps">
-				<img
-					src="<?php echo $headerLogo; ?>"
-					width="<?php echo $templateStyles['body-and-background']['template_width']; ?>" 
-					alt=""
-					style="width:<?php echo $templateStyles['body-and-background']['template_width']; ?>; max-width:100%;height:auto;display: block;" />
+					<img src="<?php echo $headerLogo; ?>"
+						width="<?php echo $templateStyles['body-and-background']['template_width']; ?>" alt=""
+						style="width:<?php echo $templateStyles['body-and-background']['template_width']; ?>; max-width:100%;height:auto;display: block;" />
 				</a>
 			</td>
 		</tr>
@@ -408,7 +428,7 @@ function idwiz_get_standard_header( $templateOptions ) {
 function idwiz_get_standard_footer( $templateoptions, $showUnsub = true ) {
 	$templateSettings = $templateoptions['templateSettings'] ?? [];
 	$templateStyles = $templateoptions['templateStyles'] ?? [];
-	$footerBackground = $templateStyles['header-and-footer']['template_footer_color'] != 'rgba(0, 0, 0, 0)' ? $templateStyles['header-and-footer']['template_footer_color'] : 'transparent';
+	$footerBackground = $templateStyles['header-and-footer']['template_footer_color'] ?? false;
 	$footerTextColor = $templateStyles['header-and-footer']['template_footer_text_color'] ?? '#343434';
 	$templateLinkColor = $templateStyles['link-styles']['template_link_style_color'] ?? '#000000';
 	$footerLinkColor = $templateStyles['header-and-footer']['template_footer_link_color'] ?? $templateLinkColor ?? '#000000';
@@ -517,20 +537,22 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 
 	//Link Styles
 	$linkColor = $templateStyles['link-styles']['template_link_style_color'] ?? '#1e73be';
-	$visitedColor = $templateStyles['link-styles']['template_link_style_visited_color'] ?? $linkColor;
+	$linkHoverColor = $templateStyles['link-styles']['template_link_style_hover_color'] ?? $linkColor;
 
-	$underlinkLinks = $templateStyles['link-styles']['template_link_style_underline'] ?? false;
-	$boldLinks = $templateStyles['link-styles']['template_link_style_bold'] ?? false;
-	$italicLinks = $templateStyles['link-styles']['template_link_style_italic'] ?? false;
+	$linkStyles = $templateStyles['link-styles'];
+	$underlineLinks = json_decode($linkStyles['underline']) ?? false;
+	$boldLinks = json_decode($linkStyles['bold']) ?? false;
+	$italicLinks = json_decode($linkStyles['italic']) ?? false;
+
 
 	$linkStyles = '';
 	if ( $linkColor ) {
 		$linkStyles .= 'color: ' . $linkColor . ';';
 	}
-	if ( $underlinkLinks ) {
-		$linkStyles .= 'text-decoration: underline;';
+	if ( $underlineLinks ) {
+		$linkStyles .= 'text-decoration: underline!important;';
 	} else {
-		$linkStyles .= 'text-decoration: none;';
+		$linkStyles .= 'text-decoration: none!important;';
 	}
 	if ( $boldLinks ) {
 		$linkStyles .= 'font-weight: bold;';
@@ -553,8 +575,8 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 		<meta name="viewport" content="width=device-width,initial-scale=1" />
 		<meta name="x-apple-disable-message-reformatting" />
 		<?php
-		$darkModeSupport = json_decode($templateStyles['custom-styles']['dark-mode-support'], true) ?? false;
-		if ($darkModeSupport === true) { ?>
+		$darkModeSupport = json_decode( $templateStyles['custom-styles']['dark-mode-support'], true ) ?? false;
+		if ( $darkModeSupport === true ) { ?>
 			<meta name="color-scheme" content="light dark">
 			<meta name="supported-color-schemes" content="light dark">
 		<?php } ?>
@@ -570,10 +592,10 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 		<style type="text/css">
 			u+#body a {
 				color: inherit;
-				<?php if ($underlinkLinks) { ?>
-				text-decoration: underline;
+				<?php if ( $underlineLinks ) { ?>
+					text-decoration: underline;
 				<?php } else { ?>
-				text-decoration: none;
+					text-decoration: none;
 				<?php } ?>
 				font-size: inherit;
 				font-family: inherit;
@@ -582,14 +604,52 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 			}
 		</style>
 
+		<?php
+		// add conditional css for gmail if a forced white text setting is active
+		$force_white_desktop = $templateStyles['custom-styles']['force_white_text_desktop'] ?? false;
+		$force_white_mobile = $templateStyles['custom-styles']['force_white_text_mobile'] ?? false;
+		if ( $force_white_desktop || $force_white_mobile ) { ?>
+			<style type="text/css">
+				<?php if ( $force_white_desktop ) : ?>
+					@media only screen and (min-width: 768px) {
+						u+.body .gmail-blend-screen.desktop {
+							background: #000;
+							mix-blend-mode: screen;
+						}
+
+						u+.body .gmail-blend-difference.desktop {
+							background-color: #000;
+							mix-blend-mode: difference;
+						}
+					}
+
+				<?php endif; ?>
+				<?php if ( $force_white_mobile ) : ?>
+					@media only screen and (max-width: 767px) {
+						u+.body .gmail-blend-screen.mobile {
+							background: #000;
+							mix-blend-mode: screen;
+						}
+
+						u+.body .gmail-blend-difference.mobile {
+							background-color: #000;
+							mix-blend-mode: difference;
+						}
+					}
+
+				<?php endif; ?>
+			</style>
+		<?php } ?>
+
+
 		<style type="text/css">
 			/*Prevent auto-blue links in Apple*/
 			a[x-apple-data-detectors] {
 				color: inherit !important;
-				<?php if ($underlinkLinks) { ?>
-				text-decoration: underline;
+				<?php if ( $underlineLinks ) { ?>
+					text-decoration: underline;
 				<?php } else { ?>
-				text-decoration: none;
+					text-decoration: none;
 				<?php } ?>
 				font-size: inherit !important;
 				font-family: inherit !important;
@@ -600,10 +660,10 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 			/*Prevent blue links in Samsung*/
 			#MessageViewBody a {
 				color: inherit !important;
-				<?php if ($underlinkLinks) { ?>
-				text-decoration: underline;
+				<?php if ( $underlineLinks ) { ?>
+					text-decoration: underline;
 				<?php } else { ?>
-				text-decoration: none;
+					text-decoration: none;
 				<?php } ?>
 				font-size: inherit !important;
 				font-family: inherit !important;
@@ -640,10 +700,11 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 				padding: 0 0 1em 0;
 				color: inherit;
 			}
+
 			.noPpad p {
-				padding: 0!important;
+				padding: 0 !important;
 			}
-			
+
 
 			/* Desktop Headers */
 			h1 {
@@ -692,16 +753,26 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 
 				<?php echo $linkStyles; ?>
 			}
-
 			a:visited {
-
-				<?php echo $visitedColor ?>
+				<?php echo $linkStyles; ?>
 			}
+
 
 			a:hover {
 				color:
-					<?php echo $visitedColor; ?>
-				;
+					<?php echo $linkHoverColor; ?>;
+			}
+			a.id-button {
+				text-decoration: none!important;
+				font-style: normal!important;
+				font-weight: bold;
+				color: inherit;
+			}
+			a.id-image-link {
+				color: transparent;
+				text-decoration: none!important;
+				line-height: 0;
+				font-size: 0;
 			}
 
 			ul>li {
@@ -883,9 +954,9 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 		<!--<![endif]-->
 
 
-		<?php if ( isset( $templateStyles['custom-styles']['additional_template_css'] ) ) { 
-			echo $templateStyles['custom-styles']['additional_template_css']; 
-		 } ?>
+		<?php if ( isset( $templateStyles['custom-styles']['additional_template_css'] ) ) {
+			echo $templateStyles['custom-styles']['additional_template_css'];
+		} ?>
 
 		<?php
 		// Echo out any additional CSS block from snippets added to this template

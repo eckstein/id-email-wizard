@@ -194,6 +194,9 @@ a.wiz-button:hover {
 #templateUI .right {
 	flex:1;
 	min-width: 400px;
+	display: flex;
+	flex-direction: column;
+
 }
 
 
@@ -221,7 +224,7 @@ a.wiz-button:hover {
 }
 .builder-form-wrapper {
 	overflow-y:auto;
-	max-height: 800px;
+	
 }
 
 .builder-tabs {
@@ -386,6 +389,9 @@ a.wiz-button:hover {
 	.builder-colorpicker + .sp-replacer {
 		border-radius: 4px;
 	}
+
+
+
 
 	#additional-template-styles {
 		min-height: 200px;
@@ -789,6 +795,7 @@ a.wiz-button:hover {
 	font-size: 12px;
 }
 
+
 /* Wrapper for each group of checkboxes or radios */
 .builder-checkbox-group, .builder-radio-group {
 	display: flex;
@@ -929,13 +936,7 @@ a.wiz-button:hover {
 		color: #fff;
 		cursor: pointer;
 	}
-.chunk-tabs-messages {
-	margin-left: auto;
-	font-size: 12px;
-	padding-right: 10px;
-	font-style: italic;
-	align-self: center;
-}
+
 	
 .tab-content.chunk-content {
 	padding: 10px;
@@ -1063,10 +1064,13 @@ a.wiz-button:hover {
 	background-color: #f4f4f4;
 	box-sizing: border-box !important;
 	font-family: Poppins, sans-serif !important;
+	width: 100%;
 	height: 100%;
 	display: flex;
 	justify-content: center;
 	position: relative;
+	overflow-y: auto;
+
 }
 	#templatePreview-status {
 		display: none;
@@ -1080,7 +1084,6 @@ a.wiz-button:hover {
 	}
 #previewFrame {
 	width: 100%;
-	min-height: 550px;
 	background-color: #fff;
 	color: #000;
 	overflow: hidden;

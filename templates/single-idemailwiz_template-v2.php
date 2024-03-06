@@ -342,20 +342,20 @@ $wizTemplate = get_wizTemplate( $postId );
 											<?php
 											$templateLinkColor = $linkStyles['template_link_style_color'] ?? '#0073dd';
 											?>
-											<label for="template_link_color">Link</label>
+											<label for="template_style_link_color">Link</label>
 											<input class="builder-colorpicker" type="color"
-												name="template_link_style_color" id="template_link_color"
+												name="template_link_style_color" id="template_style_link_color"
 												data-color-value="<?php echo $templateLinkColor; ?>">
 										</div>
 										<div class="builder-field-wrapper template-visited-link-color">
 											<?php
-											$templateVisitedLinkColor = $linkStyles['template_link_style_visited_color'] ?? '#0073dd';
+											$templateLinkHoverColor = $linkStyles['template_link_style_hover_color'] ?? $templateLinkColor;
 											?>
-											<label for="template_link_visited_color">Visited</label>
+											<label for="template_link_style_hover_color">Hover</label>
 											<input class="builder-colorpicker" type="color"
-												name="template_link_style_visited_color"
-												id="template_link_visited_color"
-												data-color-value="<?php echo $templateVisitedLinkColor; ?>">
+												name="template_link_style_hover_color"
+												id="template_link_style_hover_color"
+												data-color-value="<?php echo $templateLinkHoverColor; ?>">
 										</div>
 
 									</div>

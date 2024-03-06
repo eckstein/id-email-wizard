@@ -10,56 +10,14 @@
 		position: relative; /* Ensure stacking context */
 		z-index: 1; /* Base z-index */
 	}
+
+	.editor-row-wrapper.active,
+	.editor-column-wrapper.active,
+	.editor-chunk-wrapper.active {
+		outline: 1px solid yellow;
+	}
 	
-	.editor-column-wrapper::before,
-	.editor-chunk-wrapper::before {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		pointer-events: none;
-		box-sizing: border-box;
-		opacity: 0; /* Hidden by default */
-		transition: opacity 0.3s ease-in-out, transform 0.3s ease; /* Smooth transitions for hover and animation */
-	}
-
-	.editor-column-wrapper::before {
-		border: 2px dashed #00f;
-		z-index: 2; /* Ensure it's above the row but below active/highlighted elements */
-	}
-
-	.editor-chunk-wrapper::before {
-		background-color: rgba(255, 255, 0, 0.5);
-		font-size: 12px;
-		color: #000;
-		padding: 4px;
-		z-index: 3; /* Ensure it's on top for visibility */
-	}
-
-	/* Only show decorations on hover or when active */
-	.editor-column-wrapper:hover::before,
-	.editor-chunk-wrapper:hover::before,
-	.editor-column-wrapper.active::before,
-	.editor-chunk-wrapper.active::before {
-		opacity: 1; /* Make visible on hover/active */
-	}
-
-	/* Subtle animation to draw attention to active elements */
-	.editor-column-wrapper.active::before,
-	.editor-chunk-wrapper.active::before {
-		animation: pulseAnimation 1.5s infinite;
-	}
-
-	/* Keyframes for the pulse effect */
-	@keyframes pulseAnimation {
-		0% { transform: scale(1); opacity: 1; }
-		50% { transform: scale(1.05); opacity: 0.7; }
-		100% { transform: scale(1); opacity: 1; }
-	}
-
-
+	
 
 
 	.preview-scrollspace {
@@ -69,5 +27,13 @@
 
 	@media screen and (max-width: 460px) {
 
+	}
+
+	a {
+		color: inherit;
+		text-decoration: inherit;
+		font-size: inherit;
+		font-weight: inherit;
+		line-height: inherit;
 	}
 </style>

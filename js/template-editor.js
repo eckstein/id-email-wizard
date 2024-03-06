@@ -495,6 +495,8 @@ jQuery(document).ready(function ($) {
 						// Apply Light Mode styles (or simply don't change anything if these are the defaults)
 						bodyStyle.backgroundColor = '#FFFFFF';
 					}
+
+					
 				}
 
 			});
@@ -553,17 +555,53 @@ jQuery(document).ready(function ($) {
 						var $parent = $(this).closest('.builder-chunk');
 						if ($parent.has(editorContainer).length) {
 							// Apply the base color to the editor's content
-							editor.getBody().style.color = baseColor;
-
-							// Add or updated message
-							if ($parent.find('.chunk-tabs-messages .chunk-base-font-color-message').length) {
-								$parent.find('.chunk-tabs-messages .chunk-base-font-color-message .chunk-base-font-color-display').css('background', baseColor);
-								$parent.find('.chunk-tabs-messages .chunk-base-font-color-message .inside-color').text(baseColor);
-							} else {
-								$parent.find('.chunk-tabs-messages').append('<span class="chunk-base-font-color-message">Font color is set to <span class="chunk-base-font-color-display" style="background:'+baseColor+'"><span style="mix-blend-mode: screen;"><span class="inside-color" style="color: #fff; padding: 0 5px;">' + baseColor + '</span></span></span> in chunk settings.</span>');
-							}
+							editor.getBody().style.color = baseColor;	
 						}
+
+						
 					});
+					// Handle changes to link styles using a similar pattern
+					$(document).on('change.spectrum', '#template_style_link_color, #template_link_style_hover_color', function() {
+						// Apply the link and hover colors along with other styles
+						updateLinkStyles();
+					});
+
+					// Listen for changes to checkbox inputs for underline, italic, and bold styles
+					$(document).on('change', '#template_styles_underline_links, #template_styles_italic_links, #template_styles_bold_links', function() {
+						// Apply the link styles again as these inputs change
+						updateLinkStyles();
+					});
+
+					// Function to update link styles in the editor
+					function updateLinkStyles() {
+						var linkColor = $('#template_style_link_color').spectrum('get').toHexString();
+						var linkHoverColor = $('#template_link_style_hover_color').spectrum('get').toHexString();
+						var linkUnderline = $('#template_styles_underline_links').is(':checked') ? 'underline' : 'none';
+						var linkItalic = $('#template_styles_italic_links').is(':checked') ? 'italic' : 'normal';
+						var linkBold = $('#template_styles_bold_links').is(':checked') ? 'bold' : 'normal';
+
+						// Construct CSS rules
+						var style = `.mce-content-body a { color: ${linkColor}; text-decoration: ${linkUnderline}; font-style: ${linkItalic}; font-weight: ${linkBold}; }`;
+						style += `.mce-content-body a:hover { color: ${linkHoverColor}; }`;
+
+						// Apply styles by injecting a <style> tag into the editor's content
+						var doc = editor.getDoc();
+						var head = doc.head || doc.getElementsByTagName('head')[0];
+						var customStyleTag = doc.getElementById('customLinkStyles');
+
+						// If the style tag doesn't exist, create it and append it to <head>
+						if (!customStyleTag) {
+							customStyleTag = doc.createElement('style');
+							customStyleTag.id = 'customLinkStyles';
+							head.appendChild(customStyleTag);
+						}
+
+						// Set the style tag's contents
+						customStyleTag.innerHTML = style;
+					}
+
+					// Initial call to apply styles upon editor initialization
+					updateLinkStyles();
 				});
 
 				editor.on('input', function() {
@@ -824,7 +862,6 @@ jQuery(document).ready(function ($) {
 		initializeColumnSortables();
 	}
 
-	
 
 	
 	// Toggle visibility function for rows, cols, and chunks
@@ -928,7 +965,26 @@ jQuery(document).ready(function ($) {
 		});
 	}
 
-	
+	// Attach click event to the label that visually represents the checkbox
+	$(document).on('click', '.checkbox-toggle-replace', function(e) {
+		// Prevent the default label behavior to ensure our custom logic runs smoothly
+		e.preventDefault();
+
+		var $checkbox = $(this).prev('.wiz-check-toggle');
+		// Toggle the checkbox's checked property directly
+		$checkbox.prop('checked', !$checkbox.prop('checked')).trigger('change'); // Trigger change to ensure any other handlers are notified
+
+		// Now, update the visual state based on the checkbox's state
+		
+		var $icon = $(this).find('i');
+		if ($checkbox.prop('checked')) {
+			$icon.removeClass('fa-regular').addClass('fa-solid');
+			$(this).addClass('active');
+		} else {
+			$icon.removeClass('fa-solid').addClass('fa-regular');
+			$(this).removeClass('active');
+		}
+	});
 
 
 	// Generate a new unique string for the cloned element
@@ -1138,7 +1194,7 @@ jQuery(document).ready(function ($) {
 				showInput: true,
 				showPalette: true,
 				palette: [
-					['#000000', '#343434', '#94c52a', '#f4f4f4', '#ffffff']
+					['#000000', '#343434', '#94c52a', '#f4f4f4', '#ffffff', 'transparent']
 				],
 				showAlpha: true,
 				preferredFormat: 'hex'
@@ -1501,25 +1557,7 @@ jQuery(document).ready(function ($) {
 		);
 	};
 
-	 // Attach click event to the label that visually represents the checkbox
-	 $('.checkbox-toggle-replace').on('click', function(e) {
-		// Prevent the default label behavior to ensure our custom logic runs smoothly
-		e.preventDefault();
-
-		var $checkbox = $(this).prev('.wiz-check-toggle');
-		// Toggle the checkbox's checked property directly
-		$checkbox.prop('checked', !$checkbox.prop('checked')).trigger('change'); // Trigger change to ensure any other handlers are notified
-
-		// Now, update the visual state based on the checkbox's state
-		var $icon = $(this).find('i');
-		if ($checkbox.prop('checked')) {
-			$icon.removeClass('fa-regular').addClass('fa-solid');
-			$(this).addClass('active');
-		} else {
-			$icon.removeClass('fa-solid').addClass('fa-regular');
-			$(this).removeClass('active');
-		}
-	});
+	 
 
 
 
@@ -1553,7 +1591,16 @@ jQuery(document).ready(function ($) {
 	function getFieldValue($field) {
 		if ($field.hasClass('builder-colorpicker')) {
 			var color = $field.spectrum("get");
-			return color && typeof color.toHexString === 'function' ? color.toHexString() : '';
+
+			// Check if the color is transparent by evaluating the alpha value
+			if (color && color._a === 0) {
+				// If the color is transparent, return the string 'transparent'
+				return 'transparent';
+			} else {
+				// Otherwise, return the hex string of the color
+				return color && typeof color.toHexString === 'function' ? color.toHexString() : '';
+			}
+
 		} else if ($field.hasClass('wiz-wysiwyg')) {
 			var editor = tinymce.get($field.attr('id'));
 			if (editor) {
@@ -1714,10 +1761,27 @@ jQuery(document).ready(function ($) {
 		var templateData = {
 			templateOptions: {
 				templateSettings: {},
-				templateStyles: {}
+				templateStyles: {
+					'custom-styles': {} 
+				}
 			},
 			rows: []
 		};
+
+		// Look for any force white settings set to true and set a global setting if so
+		templateData.templateOptions.templateStyles['custom-styles']['force_white_text'] = false;
+
+		// Check if at least one of the checkboxes is checked
+		var force_white_text_desktop = $('.chunk-settings input[name="force_white_text_on_desktop"]').is(':checked');
+		var force_white_text_mobile = $('.chunk-settings input[name="force_white_text_on_mobile"]').is(':checked');
+
+		if (force_white_text_desktop) {
+			templateData.templateOptions.templateStyles['custom-styles'].force_white_text_desktop = true;
+		}
+		if (force_white_text_mobile) {
+			templateData.templateOptions.templateStyles['custom-styles'].force_white_text_mobile = true;
+		}
+
 		
 
 		// Collect settings and styles
@@ -1789,10 +1853,9 @@ jQuery(document).ready(function ($) {
 				$column.find('.builder-chunk').each(function() {
 					var chunk = processChunk($(this), columnCount);
 
-					
-
 					buildColumn.chunks.push(chunk);
 				});
+
 
 
 
@@ -1853,21 +1916,33 @@ jQuery(document).ready(function ($) {
 			idwiz_updatepreview(true);
 		}
 	});
+	
 
-	//update preview on form update
+
 	$("#builder").on("input change paste keydown", "input, select, textarea", function(e) {
+		// Assuming iframe is fully loaded before this code runs. Otherwise, ensure it's loaded.
+		var iframeDocument = $('#previewFrame').get(0).contentDocument || $('#previewFrame').get(0).contentWindow.document;
+    
+		// Make sure to access the scrolling element correctly based on standards
+		var scrollElement = iframeDocument.documentElement;
+
+		// Capture the current scroll position
+		var currentScrollPosition = $(scrollElement).scrollTop();
+		console.log("Current Scroll Position:", currentScrollPosition);
+
+
 		// Check for undo and redo key combinations
 		if (e.type === "keydown" && (e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'y' || e.key === 'Z' || e.key === 'Y')) {
 			// Debounce or delay to catch the result of undo/redo
 			setTimeout(function() {
 				saveTemplateToSession();
-				idwiz_updatepreview();
-				unsavedChanges = true; // Assuming unsavedChanges is the correct variable name
+				idwiz_updatepreview(false);
+				unsavedChanges = true;
 			}, 100);
 		} else if (e.type !== "keydown") {
-			// For input, change, and paste events, no need to delay
+			// For input, change, and paste events, directly update and restore position without delay
 			saveTemplateToSession();
-			idwiz_updatepreview();
+			idwiz_updatepreview(false);
 			unsavedChanges = true;
 		}
 	});
@@ -1875,31 +1950,36 @@ jQuery(document).ready(function ($) {
 
 
 
+	var previewRefreshTimeoutId;
+	var scrollRestoreTimeoutId; // For debouncing scroll restoration
 
-	var timeoutId;
 	// Update preview via AJAX, with optional use of session storage data
 	function idwiz_updatepreview(fromDatabase = false) {
+		var iframe = $("#previewFrame")[0];
+		var iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
+		var scrollElement = iframeDocument.documentElement;
+
+		// Capture the current scroll position
+		var currentScrollPosition = $(scrollElement).scrollTop();
+		//console.log("Current Scroll Position:", currentScrollPosition);
+
 		var templateId = $("#templateUI").data("postid");
 		saveTemplateToSession();
-		
-		setTimeout(function () {
-		clearTimeout(timeoutId);
+    
+		clearTimeout(previewRefreshTimeoutId); // Clear existing timeout to debounce updates
 		$('#templatePreview-status').fadeIn().text('Updating preview...');
-		timeoutId = setTimeout(function () {
+		previewRefreshTimeoutId = setTimeout(function () {
 			var sessionData = getTemplateFromSession();
 
 			refresh_template_html();
-			
+        
 			var formData = new FormData();
-
 			formData.append("action", "idemailwiz_build_template");
 			formData.append("security", idAjax_template_editor.nonce);
 			formData.append("templateid", templateId);
 
-			// If session data is available, include it in the AJAX request
 			if (sessionData && !fromDatabase) {
-				// Directly append the session-stored template data to formData
-				formData.append("template_data", JSON.stringify(sessionData)); // Ensure the data is a string
+				formData.append("template_data", JSON.stringify(sessionData));
 			}
 
 			$.ajax({
@@ -1909,27 +1989,25 @@ jQuery(document).ready(function ($) {
 				processData: false,
 				contentType: false,
 				success: function (previewHtml) {
-					var iframe = $("#previewFrame")[0];
-
-					// Use the srcdoc attribute to set the HTML content directly
 					iframe.srcdoc = previewHtml;
+					$('#templatePreview-status').fadeOut();
 
-					// Note: There's no need to manually open or close the document
-					// or clear its content when using srcdoc.
-
-					// Add event handlers to the iframe once it's loaded
-					// This might need adjustments since srcdoc changes how and when content is loaded
-					$(iframe).on('load', function() {
-						addIframeEventHandlers(iframe.contentDocument || iframe.contentWindow.document);
-						$('#templatePreview-status').fadeOut();
-					});
-				},
+					// Debounce the scroll restoration to align with update frequency
+					clearTimeout(scrollRestoreTimeoutId);
+					scrollRestoreTimeoutId = setTimeout(function() {
+						//console.log('Restoring scroll to:', currentScrollPosition);
+						var iframeWindow = iframe.contentWindow;
+						if (iframeWindow && typeof iframeWindow.scrollTo === 'function') {
+							iframeWindow.scrollTo(0, currentScrollPosition);
+						}
+					}, 100); // Scroll debounce
+				}
 			});
-
-
-		}, 1000); // This timeout is how long to wait between update intervals (to avoid updating on every single update)
-	},500); // This timeout is to allow time for the template data to save before updating
+		}, 1000); // Update debounce
 	}
+
+
+
 
 	//iframe context stuff
 	var addIframeEventHandlers;
