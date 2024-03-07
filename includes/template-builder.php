@@ -234,9 +234,9 @@ function generate_builder_row( $rowId, $rowData = [] ) {
 	$stackedClass = $columnsStacked ? 'fa-rotate-90' : '';
 	$html = '<div class="builder-row --' . $collapseState . '" id="' . $uniqueId . '" data-row-id="' . $rowId . '"  data-column-stacked="' . $columnsStacked . '">
 				<div class="builder-row-header">
-					<div class="builder-row-title"><div class="builder-row-title-number" data-row-id-display="' . $rowNumber . '">' . $rowNumber . '</div>
-					<div class="builder-row-title-text">' . $rowTitle . '</div>
-					<i class="fa-solid fa-pen-to-square edit-row-title exclude-from-toggle" data-row-id="' . $rowId . '"></i></div>
+					<div class="builder-row-title exclude-from-toggle"><div class="builder-row-title-number" data-row-id-display="' . $rowNumber . '">' . $rowNumber . '</div>
+					<div class="builder-row-title-text edit-row-title exclude-from-toggle" data-row-id="' . $rowId . '">' . $rowTitle . '</div>
+					</div>
 					<div class="builder-row-actions">
 						<div class="builder-row-actions-button exclude-from-toggle show-on-desktop ' . $desktopIconClass . '" data-show-on-desktop="' . $desktopVisibility . '">
 						<i class="fas fa-desktop"></i>
@@ -278,21 +278,21 @@ function generate_builder_column( $rowId, $columnData, $columnIndex ) {
 	$uniqueId = uniqid( 'wiz-column-' );
 
 	$columnNumber = $columnIndex + 1;
-	$collapsedState = $columnData['state'] ?? 'expanded';
+	//$collapsedState = $columnData['state'] ?? 'expanded';
 
 	$colValign = $columnData['settings']['valign'] ?? 'top';
 
 	$colBgSettings = $columnData['settings'] ?? [];
 
 	$colActiveClass = isset( $columnData['activation'] ) && $columnData['activation'] === 'inactive' ? 'inactive' : 'active';
-	$html = '<div class="builder-column ' . $colActiveClass . ' --' . $collapsedState . '" id="' . $uniqueId . '" data-column-id="' . $columnIndex . '">';
+	$html = '<div class="builder-column ' . $colActiveClass . '" id="' . $uniqueId . '" data-column-id="' . $columnIndex . '">';
 	$html .= '<div class="builder-column-header">';
 
 	$colTitle = $columnData['title'] ?? 'Column';
 
-	$html .= '<div class="builder-column-title"><div class="builder-column-title-number" data-column-id-display="' . $columnNumber . '">' . $columnNumber . '</div>';
-	$html .= '<div class="builder-column-title-text">' . $colTitle . '</div>';
-	$html .= '<i class="fa-solid fa-pen-to-square edit-column-title exclude-from-toggle" data-column-id="' . $columnIndex . '"></i></div>';
+	$html .= '<div class="builder-column-title exclude-from-toggle"><div class="builder-column-title-number" data-column-id-display="' . $columnNumber . '">' . $columnNumber . '</div>';
+	$html .= '<div class="builder-column-title-text edit-column-title exclude-from-toggle" data-column-id="' . $columnIndex . '">' . $colTitle . '</div>';
+	$html .= '</div>';
 
 	$html .= '<div class="builder-column-actions">';
 	$html .= '<div class="builder-column-actions-button show-column-settings">';
@@ -324,11 +324,11 @@ function generate_builder_column( $rowId, $columnData, $columnIndex ) {
 	$html .= '</div>'; // Close settings row
 
 
-	$collapsedMsgClass = 'hide';
-	if ( $collapsedState === 'collapsed' ) {
-		$collapsedMsgClass = 'show';
-	}
-	$html .= '<div class="collapsed-message ' . $collapsedMsgClass . '">Column is collapsed. Click here to show chunks.</div>';
+	// $collapsedMsgClass = 'hide';
+	// if ( $collapsedState === 'collapsed' ) {
+	// 	$collapsedMsgClass = 'show';
+	// }
+	// $html .= '<div class="collapsed-message ' . $collapsedMsgClass . '">Column is collapsed. Click here to show chunks.</div>';
 	$html .= '<div class="builder-column-chunks">';
 	$html .= '<div class="builder-column-chunks-body">'; // we need this extra wrapper to avoid slideup/slidedown from messing with our flex layout
 

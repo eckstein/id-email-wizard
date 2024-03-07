@@ -45,8 +45,8 @@ jQuery(document).ready(function ($) {
 		initializeChunkSortables();
 
 		// Initialize editable elements (row and columns names)
-		initializeEditable('.builder-row-title-text', '.edit-row-title', 'row-id');
-		initializeEditable('.builder-column-title-text', '.edit-column-title', 'column-id');
+		initializeEditable('.builder-row-title-text', 'row-id');
+		initializeEditable('.builder-column-title-text', 'column-id');
 
 		// Initialize chunk tabs (content and settings)
 		initializeChunkTabs();
@@ -207,7 +207,7 @@ jQuery(document).ready(function ($) {
 	});
 
 	// Click collapse/expand for row, column, and chunk headers
-	$(document).on('click', '.builder-row-header, .builder-column-header, .builder-chunk-header, .collapsed-message.show', function(e) {
+	$(document).on('click', '.builder-row-header, .builder-chunk-header, .collapsed-message.show', function(e) {
 		toggleBuilderElementVis($(this), e);
 	});
 
@@ -534,8 +534,9 @@ jQuery(document).ready(function ($) {
 						editor.selection.setContent('<span style="text-transform: uppercase;">' + content + '</span>');
 					}
 				});
-				
-				editor.on('activate', function() {
+
+				editor.on('init', function() {
+
 					var editorContainer = $(editor.getContainer());
 					var $baseColorInput = editorContainer.closest('.builder-chunk').find('input[name="text_base_color"]');
 					
@@ -543,9 +544,8 @@ jQuery(document).ready(function ($) {
 
 					// Set all elements inside the editor body to the base color
 					editor.getBody().style.color = baseColor;
-				});
 
-				editor.on('init', function() {
+
 					$(document).on('change.spectrum', 'input[name="text_base_color"]', function(e, tinycolor) {
 
 						var baseColor = tinycolor.toHexString();
@@ -557,6 +557,8 @@ jQuery(document).ready(function ($) {
 							// Apply the base color to the editor's content
 							editor.getBody().style.color = baseColor;	
 						}
+
+						// other init actions here,etc
 
 						
 					});
@@ -708,7 +710,7 @@ jQuery(document).ready(function ($) {
 	
 	// Destroy and re-initialize TinyMCE on each .wiz-wysiwyg element with option element selection
 	function reinitTinyMCE($optionalElement = null) {
-		console.log('reinitTinyMCE on ' + ($optionalElement ? $optionalElement.attr('class') : 'global'));
+		//console.log('reinitTinyMCE on ' + ($optionalElement ? $optionalElement.attr('class') : 'global'));
 
 		// Determine the correct selector for the operation
 		var selector = $optionalElement ? $optionalElement.find('.wiz-wysiwyg') : '.wiz-wysiwyg';
@@ -767,12 +769,11 @@ jQuery(document).ready(function ($) {
 			tolerance: 'pointer',
 			dropOnEmpty: true,
 			receive: function(event, ui) {
-				reindexDataAttributes('chunk-id');
-				
-				
+				reindexDataAttributes('chunk-id');	
 
 				// Reinitialize TinyMCE for editors within the moved chunk
 				var $movedChunk = ui.item; // The jQuery object of the moved chunk
+				//saveAllTinyMces($movedChunk);
 				reinitTinyMCE($movedChunk);
 				
 
@@ -879,9 +880,6 @@ jQuery(document).ready(function ($) {
 		if ($header.hasClass('builder-row-header')) {
 			$element = $header.closest('.builder-row');
 			toggleClass = '.builder-row-content';
-		} else if ($header.hasClass('builder-column-header')) {
-			$element = $header.closest('.builder-column');
-			toggleClass = '.builder-column-chunks';
 		} else if ($header.hasClass('builder-chunk-header')) {
 			$element = $header.closest('.builder-chunk');
 			toggleClass = '.builder-chunk-body';
@@ -933,37 +931,31 @@ jQuery(document).ready(function ($) {
 
 	// Utility function to initialize editable elements
 	
-	function initializeEditable(editableClass, triggerClass, dataAttributeName, $context) {
+	function initializeEditable(editableClass, dataAttributeName, $context) {
 		// Default to the whole document if no context is provided
 		$context = $context || $(document);
 
 		// Find editable elements within the specified context and initialize them
 		$context.find(editableClass).each(function() {
 			var $editable = $(this);
-			var id = $editable.closest('[data-' + dataAttributeName + ']').data(dataAttributeName);
-			var $trigger = $context.find(triggerClass + '[data-' + dataAttributeName + '="' + id + '"]');
+			// Assuming the data attribute is directly on the $editable element
+			var id = $editable.data(dataAttributeName);
 
-			// Initialize editable functionality here
+			// Initialize editable functionality here without the need for a separate trigger
 			$editable.editable({
-				trigger: $trigger,
-				action: 'click',
+				action: 'click', // Assuming 'click' activates editing
 				onSubmit: function(e) {
 					console.log('Saved text for ' + dataAttributeName + ' ' + id + ':', e.value);
 				}
 			});
-		});
 
-		// Since we're initializing within a context, we attach the click handler to the context rather than document
-		// This ensures the handler is attached to dynamically added elements within this context
-		$context.on('click', triggerClass, function() {
-			var id = $(this).data(dataAttributeName);
-			// Find the corresponding editable element within the context
-			var $editableText = $context.find(editableClass + '[data-' + dataAttributeName + '="' + id + '"]');
-
-			// Trigger the editable manually
-			$editableText.trigger('edit');
+			// Bind click event directly to the editable element to activate edit mode
+			$editable.on('click', function() {
+				$editable.editable('show');
+			});
 		});
 	}
+
 
 	// Attach click event to the label that visually represents the checkbox
 	$(document).on('click', '.checkbox-toggle-replace', function(e) {
@@ -1045,10 +1037,10 @@ jQuery(document).ready(function ($) {
 
 		// For rows
 		if ($clonedElement.hasClass('builder-row')) {
-			let $rowContainers = $('.builder-rows-wrapper'); // Assuming this is a common class for row containers
+			let $rowContainers = $('.builder-rows-wrapper'); 
 			$rowContainers.each(function() {
 				
-				initializeRowSortables(); // Initialize for all row containers without needing an ID
+				initializeRowSortables(); 
 				initializeColumnSortables();
 				initializeChunkSortables();
 			});
@@ -1264,8 +1256,8 @@ jQuery(document).ready(function ($) {
 				if(response.data.html) {
 					let $newRow = $(response.data.html).appendTo('.builder-rows-wrapper');
 					$('.blank-template-message').hide();
-					initializeEditable('.builder-row-title-text', '.edit-row-title', 'row-id');
-					initializeEditable('.builder-column-title-text', '.edit-column-title', 'column-id');
+					initializeEditable('.builder-row-title-text', 'row-id');
+					initializeEditable('.builder-column-title-text', 'column-id');
 					initColorPickers($newRow);
 
 					let $originalRow = $clicked.closest('.builder-row');
@@ -1278,6 +1270,8 @@ jQuery(document).ready(function ($) {
 						$newRow.removeClass('newly-added');
 					}, 3000);
 
+					// Reinitialize TinyMCE for the new row's chunks
+					reinitTinyMCE($newRow);
 
 					saveTemplateToSession();
 					idwiz_updatepreview();
@@ -1405,7 +1399,7 @@ jQuery(document).ready(function ($) {
 					// Reinitialize TinyMCE for any new editors in the column
 					reinitTinyMCE($row);
 
-					initializeEditable('.builder-column-title-text', '.edit-column-title', 'column-id');
+					initializeEditable('.builder-column-title-text', 'column-id');
 
 					initColorPickers($row);
 
@@ -1576,11 +1570,16 @@ jQuery(document).ready(function ($) {
 		unsavedWysiwygChanges = true;
 	});
 
-	$(document).on('click', '.show-column-settings', function (e) {
+	$(document).on('click', '.builder-column-header, .show-column-settings', function (e) {
 		e.stopPropagation();
+		// Prevent toggle if clicked within an excluded area
+		if ($(e.target).closest('.exclude-from-toggle').length || $(e.target).closest('input').length) {
+			return;
+		}
 		var $column = $(this).closest('.builder-column');
 		var $columnSettings = $column.find('.builder-column-settings-row');
 		$columnSettings.slideToggle().toggleClass('open');
+		
 	});
 
 	
@@ -1772,8 +1771,8 @@ jQuery(document).ready(function ($) {
 		templateData.templateOptions.templateStyles['custom-styles']['force_white_text'] = false;
 
 		// Check if at least one of the checkboxes is checked
-		var force_white_text_desktop = $('.chunk-settings input[name="force_white_text_on_desktop"]').is(':checked');
-		var force_white_text_mobile = $('.chunk-settings input[name="force_white_text_on_mobile"]').is(':checked');
+		var force_white_text_desktop = $('.chunk-settings input[name="force_white_text_on_desktop"]').is(':checked') || $('input[name="footer_force_white_text_on_desktop"]').is(':checked');
+		var force_white_text_mobile = $('.chunk-settings input[name="force_white_text_on_mobile"]').is(':checked') || $('input[name="footer_force_white_text_on_mobile"]').is(':checked');
 
 		if (force_white_text_desktop) {
 			templateData.templateOptions.templateStyles['custom-styles'].force_white_text_desktop = true;
@@ -1831,12 +1830,12 @@ jQuery(document).ready(function ($) {
 			$.each(builderColumns, function(index, column) {
 				var $column = $(column);
 				var columnActivation = $column.hasClass('active') ? 'active' : 'inactive';
-				var columnState = $column.hasClass('--expanded') ? 'expanded' : 'collapsed';
+				//var columnState = $column.hasClass('--expanded') ? 'expanded' : 'collapsed';
 
 				//var columnValign = $column.find('.colAlignToggle').text();
 				
 				var buildColumn = { 
-					state: columnState,
+					//state: columnState,
 					title: $column.find('.builder-column-title-text').text(),
 					activation: columnActivation,
 					settings: {

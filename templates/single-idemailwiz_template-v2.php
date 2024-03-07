@@ -153,7 +153,7 @@ $wizTemplate = get_wizTemplate( $postId );
 						</div>
 					</div>
 					<div class="template-settings-tabs-content">
-						<?php //print_r( $templateStyles );                            ?>
+						<?php //print_r( $templateStyles );                              ?>
 						<form id="template-styles-form">
 							<?php
 							$templateHeaderFooterStyles = $templateStyles['header-and-footer'] ?? [];
@@ -196,6 +196,7 @@ $wizTemplate = get_wizTemplate( $postId );
 											</option>
 										</select>
 									</div>
+									
 									<?php $showManualHeaderUrlField = $templateHeaderLogo != 'manual' ? 'hide' : ''; ?>
 									<div
 										class="builder-field-wrapper template-header-logo-manual <?php echo $showManualHeaderUrlField; ?>">
@@ -207,36 +208,82 @@ $wizTemplate = get_wizTemplate( $postId );
 											id="template_header_logo_manual" value="<?php echo $templateHeaderLogo; ?>">
 									</div>
 
+									<?php $headerPadding = $templateHeaderFooterStyles['header_padding'] ?? ''; ?>
+									<div class='builder-field-wrapper header-padding small-input'><label for='header-chunk-padding'>Header Padding</label>
+									<input type='text' name='header_padding' id='header-padding' value='<?php echo $headerPadding; ?>'>
+									</div>
+
 
 								</div>
 								<h5>Template Footer</h5>
+
+								<div class="builder-field-group flex">
+									<div class="builder-field-wrapper template-footer-text-color">
+										<?php
+										$templateFooterTextColor = $templateHeaderFooterStyles['template_footer_text_color'] ?? '#000';
+										?>
+										<label for="template_styles_footer_text_color">Text</label>
+										<input class="builder-colorpicker" type="color"
+											name="template_footer_text_color" id="template_styles_footer_text_color"
+											data-color-value="<?php echo $templateFooterTextColor; ?>">
+									</div>
+									<?php
+									$forceWhiteTextDevices = [ 
+										[ 'id' => "footer_" . "force-white-text-desktop",
+											'name' => 'footer_force_white_text_on_desktop', 'display' => 'desktop', 'value' => true, 'label'
+											=> '<i class="fa-solid fa-desktop"></i>' ],
+										[ 'id' => "footer_" . "force-white-text-mobile",
+											'name' => 'footer_force_white_text_on_mobile', 'display' => 'mobile', 'value' => true, 'label'
+											=> '<i class="fa-solid fa-mobile-screen-button"></i>' ]
+									];
+
+									$forceWhiteTextDesktop = $templateHeaderFooterStyles['footer_force_white_text_on_desktop'];
+									$forceWhiteTextMobile = $templateHeaderFooterStyles['footer_force_white_text_on_mobile'];
+
+									?>
+									<div
+										class='button-group-wrapper builder-field-wrapper chunk-force-white-text-devices'>
+										<label class='button-group-label'>Force Gmail white text on:</label>
+										<div class='button-group conditional checkbox'>
+											<?php foreach ( $forceWhiteTextDevices as $opt ) { ?>
+
+												<?php
+												$fieldID = $opt['id'];
+												$isChecked = isset( $templateHeaderFooterStyles[ $opt['name'] ] ) && $templateHeaderFooterStyles[ $opt['name'] ]  ? 'checked' : '';
+												?>
+
+												<input type='checkbox' id='<?php echo $fieldID; ?>'
+													name='<?php echo $opt['name']; ?>' value='<?php echo $opt['value']; ?>'
+													<?php echo $isChecked; ?>>
+												<label for='<?php echo $fieldID; ?>' class='button-label'
+													title='<?php echo $opt['display']; ?>'>
+													<?php echo $opt['label']; ?>
+												</label>
+
+											<?php } ?>
+										</div>
+									</div>
+
+
+									<div class="builder-field-wrapper template-footer-link-color">
+										<?php
+										$templateFooterLinkColor = $templateHeaderFooterStyles['template_footer_link_color'] ?? '#000';
+										?>
+										<label for="template_styles_footer_link_color">Links</label>
+										<input class="builder-colorpicker" type="color"
+											name="template_footer_link_color" id="template_styles_footer_link_color"
+											data-color-value="<?php echo $templateFooterLinkColor; ?>">
+									</div>
+								</div>
 								<div class="builder-field-group flex">
 									<div class="builder-field-wrapper template-footer-color">
 										<?php
 										$templateFooterColor = $templateHeaderFooterStyles['template_footer_color'] ?? 'transparent';
 										?>
 										<label for="template_styles_footer_color">Footer BG</label>
-										<input class="builder-colorpicker" type="color" name="template_footer_color"
-											id="template_styles_footer_color"
-											data-color-value="<?php echo $templateFooterColor; ?>">
-									</div>
-									<div class="builder-field-wrapper template-footer-text-color">
-										<?php
-										$templateFooterTextColor = $templateHeaderFooterStyles['template_footer_text_color'] ?? '#000';
-										?>
-										<label for="template_styles_footer_text_color">Footer Text</label>
-										<input class="builder-colorpicker" type="color"
-											name="template_footer_text_color" id="template_styles_footer_text_color"
-											data-color-value="<?php echo $templateFooterTextColor; ?>">
-									</div>
-									<div class="builder-field-wrapper template-footer-link-color">
-										<?php
-										$templateFooterLinkColor = $templateHeaderFooterStyles['template_footer_link_color'] ?? '#000';
-										?>
-										<label for="template_styles_footer_link_color">Footer Links</label>
-										<input class="builder-colorpicker" type="color"
-											name="template_footer_link_color" id="template_styles_footer_link_color"
-											data-color-value="<?php echo $templateFooterLinkColor; ?>">
+										<fieldset name="footer-background" id="template-footer-background">
+											<?php echo generateBackgroundSettingsModule( $templateHeaderFooterStyles['footer-background'] ?? [], '', false ); ?>
+										</fieldset>
 									</div>
 								</div>
 							</fieldset>
@@ -369,7 +416,7 @@ $wizTemplate = get_wizTemplate( $postId );
 								?>
 								<div class="builder-field-wrapper">
 									<label class="checkbox-toggle-label">Include Dark Mode Support Meta Tag</label>
-									<div class="wiz-checkbox-toggle"> 
+									<div class="wiz-checkbox-toggle">
 										<input type="checkbox" class="wiz-check-toggle"
 											id="template_styles_dark_mode_support" name="dark-mode-support" hidden <?php echo $includeDarkModeSupport ? 'checked' : ''; ?>>
 										<label for="template_styles_dark_mode_support"
@@ -387,7 +434,7 @@ $wizTemplate = get_wizTemplate( $postId );
 									<textarea id="template_styles_additional_css" name="additional_template_css"
 										class="builder-field"><?php echo $customStyles['additional_template_css'] ?? ''; ?></textarea>
 								</div>
-								
+
 							</fieldset>
 
 						</form>
@@ -538,10 +585,10 @@ $wizTemplate = get_wizTemplate( $postId );
 							HTML</button>
 						<button id="viewJson" class="wiz-button green" data-post-id="<?php echo $postId ?>"><i
 								class="fa-solid fa-code"></i>&nbsp;&nbsp;View JSON</button>
-								<button id="exportJson" class="wiz-button green" data-post-id="<?php echo $postId ?>">
-								<i class="fa-solid fa-file-export"></i>&nbsp;&nbsp;Export JSON</button>
+						<button id="exportJson" class="wiz-button green" data-post-id="<?php echo $postId ?>">
+							<i class="fa-solid fa-file-export"></i>&nbsp;&nbsp;Export JSON</button>
 						<button id="importJson" class="wiz-button green" data-post-id="<?php echo $postId ?>">
-						<i class="fa-solid fa-file-import"></i>&nbsp;&nbsp;Import JSON</button>
+							<i class="fa-solid fa-file-import"></i>&nbsp;&nbsp;Import JSON</button>
 					</div>
 					<pre
 						id="templateCode"><code><?php echo htmlspecialchars( generate_template_html( $wizTemplate, false ) ); ?></code></pre>
@@ -564,8 +611,8 @@ $wizTemplate = get_wizTemplate( $postId );
 				// 	$fileStarClass = 'fa-regular';
 				// }
 				?>
-				<!-- <i title="Add/Remove Favorite" class="addRemoveFavorite <?php //echo $fileStarClass;                                                      ?> fa-star"
-					data-objecttype="Template" data-objectid="<?php //echo get_the_ID();                                                      ?>"></i> -->
+				<!-- <i title="Add/Remove Favorite" class="addRemoveFavorite <?php //echo $fileStarClass;                                                        ?> fa-star"
+					data-objecttype="Template" data-objectid="<?php //echo get_the_ID();                                                        ?>"></i> -->
 
 
 

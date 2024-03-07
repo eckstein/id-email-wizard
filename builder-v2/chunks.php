@@ -221,6 +221,8 @@ function idwiz_get_plain_text_chunk( $chunk, $templateOptions ) {
 	$gmailBlendDesktopClass = $gmailBlendDesktop ? 'desktop' : '';
 	$gmailBlendMobileClass = $gmailBlendMobile ? 'mobile' : '';
 
+	
+
 	$chunkPadding = $chunkSettings['chunk_padding'] ?? '0px';
 
 	$pPadding = $chunkSettings['p_padding'] ?? true;
@@ -405,12 +407,13 @@ function idwiz_get_standard_header( $templateOptions ) {
 	if ( $headerLogo == 'manual' ) {
 		$headerLogo = $headerFooterSettings['template_header_logo_manual'] ?? '';
 	}
+	$headerPadding = $headerFooterSettings['header_padding'] ?? '0 0 20px 0';
 	ob_start();
 	?>
 
 	<table role="presentation" style="width:100%;border:0;border-spacing:0;table-layout:fixed;font-size: 0;">
 		<tr>
-			<td style="font-size: 0;line-height:0;margin:0;">
+			<td style="font-size: 0;line-height:0;margin:0;padding:<?php echo $headerPadding; ?>;">
 				<a href="https://www.idtech.com" style="margin:0; padding: 0;" aria-label="iD Tech Camps"
 					title="iD Tech Camps">
 					<img src="<?php echo $headerLogo; ?>"
@@ -428,8 +431,25 @@ function idwiz_get_standard_header( $templateOptions ) {
 function idwiz_get_standard_footer( $templateoptions, $showUnsub = true ) {
 	$templateSettings = $templateoptions['templateSettings'] ?? [];
 	$templateStyles = $templateoptions['templateStyles'] ?? [];
-	$footerBackground = $templateStyles['header-and-footer']['template_footer_color'] ?? false;
+	//$footerBackground = $templateStyles['header-and-footer']['template_footer_color'] ?? false;
+	$footerBackground = $templateStyles['header-and-footer']['footer-background'] ?? [];
+	$footerBackgroundCss = generate_background_css( $footerBackground );
 	$footerTextColor = $templateStyles['header-and-footer']['template_footer_text_color'] ?? '#343434';
+
+	$gmailBlendDesktop = false;
+	if (isset($templateStyles['header-and-footer']['footer_force_white_text_on_desktop'])) {
+		$gmailBlendDesktop = json_decode($templateStyles['header-and-footer']['footer_force_white_text_on_desktop']);
+	}
+	$gmailBlendMobile = false;
+	if (isset($templateStyles['header-and-footer']['footer_force_white_text_on_mobile'])) {
+		$gmailBlendMobile = json_decode($templateStyles['header-and-footer']['footer_force_white_text_on_mobile']);
+	}
+
+	$gmailBlendDesktopClass = $gmailBlendDesktop ? 'desktop' : '';
+	$gmailBlendMobileClass = $gmailBlendMobile ? 'mobile' : '';
+
+
+
 	$templateLinkColor = $templateStyles['link-styles']['template_link_style_color'] ?? '#000000';
 	$footerLinkColor = $templateStyles['header-and-footer']['template_footer_link_color'] ?? $templateLinkColor ?? '#000000';
 
@@ -438,10 +458,10 @@ function idwiz_get_standard_footer( $templateoptions, $showUnsub = true ) {
 	<!--[if mso]> 
 	<table role="presentation" align="center" style="width:<?php echo $templateStyles['body-and-background']['template_width']; ?>;table-layout:fixed;font-family:Poppins, Arial, sans-serif;"> 
 	<tr> 
-	<td style="background-color: <?php echo $footerBackground; ?>; padding: 20px 0 10px 0; font-size: 12px;font-family:Poppins, Arial, sans-serif; text-align: center;"> 
+	<td style="<?php echo $footerBackgroundCss; ?>; padding: 20px 0 10px 0; font-size: 12px;font-family:Poppins, Arial, sans-serif; text-align: center;"> 
 	<![endif]-->
 	<div
-		style="background-color: <?php echo $footerBackground; ?>; max-width: <?php echo $templateStyles['body-and-background']['template_width']; ?>; padding: 20px 0 10px 0; font-size: 12px;font-family:Poppins, Arial, sans-serif; text-align: center;">
+		style="<?php echo $footerBackgroundCss; ?>; max-width: <?php echo $templateStyles['body-and-background']['template_width']; ?>; padding: 20px 0 10px 0; font-size: 12px;font-family:Poppins, Arial, sans-serif; text-align: center;">
 
 		<span style="margin:0;font-family:Poppins,sans-serif;font-size:12px;line-height:16px;">
 			<a href="https://www.facebook.com/computercamps" title="iD Tech on Facebook"
@@ -458,6 +478,12 @@ function idwiz_get_standard_footer( $templateoptions, $showUnsub = true ) {
 					width="35" alt="iD Tech on Instagram" style="width: 35px;height: auto;"
 					src="https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/6b969394-7c4c-45c1-9079-7e98dddcbbb2.png" /></a></span>
 		<br />
+		<?php
+		if ( $gmailBlendDesktopClass || $gmailBlendMobileClass ) {
+			echo '<div class="gmail-blend-screen ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
+			echo '<div class="gmail-blend-difference ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
+		}
+		?>
 		<p
 			style="color:<?php echo $footerTextColor; ?>;margin:0;padding: 1em 0;font-family:Poppins,sans-serif;font-size:12px;line-height:16px;">
 			<strong>Contact Us:</strong><br />
@@ -468,6 +494,12 @@ function idwiz_get_standard_footer( $templateoptions, $showUnsub = true ) {
 
 			Copyright © {{now format='yyyy'}} All rights reserved.
 		</p>
+		<?php
+		if ( $gmailBlendDesktopClass || $gmailBlendMobileClass ) {
+			echo '</div>';
+			echo '</div>';
+		}
+		?>
 		<?php if ( $showUnsub ) { ?>
 			<?php echo '{{#if userId}}'; ?>
 			<a href="{{hostedUnsubscribeUrl}}" aria-label="Manage Subscription Preferences"
@@ -499,20 +531,41 @@ function idwiz_get_fine_print_disclaimer( $templateOptions ) {
 	//print_r($templateOptions);
 	$finePrintDisclaimer = $templateOptions['templateSettings']['message-settings']['fine_print_disclaimer'];
 	$templateStyles = $templateOptions['templateStyles'];
-	$footerBackground = $templateStyles['header-and-footer']['template_footer_color'] != 'rgba(0, 0, 0, 0)' ? $templateStyles['header-and-footer']['template_footer_color'] : 'transparent';
-	$footerTextColor = $templateStyles['header-and-footer']['template_footer_text_color'] ?? '#343434';
+	//$footerBackground = $templateStyles['header-and-footer']['template_footer_color'] != 'rgba(0, 0, 0, 0)' ? $templateStyles['header-and-footer']['template_footer_color'] : 'transparent';
+	$footerBackground = $templateStyles['header-and-footer']['footer-background'] ?? [];
+	$footerBackgroundCss = generate_background_css( $footerBackground );
+	$footerTextColor = $templateStyles['header-and-footer']['template_footer_text_color'] ?? '#ffffff';
+	$gmailBlendDesktop = false;
+	if (isset($templateStyles['header-and-footer']['footer_force_white_text_on_desktop'])) {
+		$gmailBlendDesktop = json_decode($templateStyles['header-and-footer']['footer_force_white_text_on_desktop']);
+	}
+	$gmailBlendMobile = false;
+	if (isset($templateStyles['header-and-footer']['footer_force_white_text_on_mobile'])) {
+		$gmailBlendMobile = json_decode($templateStyles['header-and-footer']['footer_force_white_text_on_mobile']);
+	}
+
+	$gmailBlendDesktopClass = $gmailBlendDesktop ? 'desktop' : '';
+	$gmailBlendMobileClass = $gmailBlendMobile ? 'mobile' : '';
 	ob_start();
 	?>
 	<!--[if mso]> 
 	<table role="presentation" align="center" style="width:<?php echo $templateStyles['body-and-background']['template_width']; ?>;table-layout:fixed;"> 
 	<tr> 
-	<td style="background-color: <?php echo $footerBackground; ?>; padding-bottom: 20px; font-size: 12px;">
+	<td style="<?php echo $footerBackgroundCss; ?> padding-bottom: 20px; font-size: 12px;">
 	<![endif]-->
 	<div
-		style="background-color: <?php echo $footerBackground; ?>; width: 100%; max-width: <?php echo $templateStyles['body-and-background']['template_width']; ?>; padding-bottom: 20px; font-size: 12px;">
+		style="<?php echo $footerBackgroundCss; ?> width: 100%; max-width: <?php echo $templateStyles['body-and-background']['template_width']; ?>; padding-bottom: 20px; font-size: 12px;">
 		<?php
 		if ( $finePrintDisclaimer ) {
+			if ( $gmailBlendDesktopClass || $gmailBlendMobileClass ) {
+				echo '<div class="gmail-blend-screen ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
+				echo '<div class="gmail-blend-difference ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
+			}
 			echo '<center style="font-size:12px !important;color:' . $footerTextColor . ';line-height:16px;padding-left: 20px; padding-right: 20px;">' . $finePrintDisclaimer . '</center>';
+			if ( $gmailBlendDesktopClass || $gmailBlendMobileClass ) {
+				echo '</div>';
+				echo '</div>';
+			}
 		}
 		?>
 	</div>
