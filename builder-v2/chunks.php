@@ -462,12 +462,7 @@ function idwiz_get_standard_footer( $templateoptions, $showUnsub = true ) {
 	<![endif]-->
 	<div
 		style="<?php echo $footerBackgroundCss; ?>; max-width: <?php echo $templateStyles['body-and-background']['template_width']; ?>; padding: 20px 0 10px 0; font-size: 12px;font-family:Poppins, Arial, sans-serif; text-align: center;">
-		<?php
-		if ( $gmailBlendDesktopClass || $gmailBlendMobileClass ) {
-			echo '<div class="gmail-blend-screen ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
-			echo '<div class="gmail-blend-difference ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
-		}
-		?>
+
 		<span style="margin:0;font-family:Poppins,sans-serif;font-size:12px;line-height:16px;">
 			<a href="https://www.facebook.com/computercamps" title="iD Tech on Facebook"
 				aria-label="iD Tech on Facebook"><img width="35" alt="iD Tech on Facebook" style="width: 35px;height: auto;"
@@ -483,7 +478,12 @@ function idwiz_get_standard_footer( $templateoptions, $showUnsub = true ) {
 					width="35" alt="iD Tech on Instagram" style="width: 35px;height: auto;"
 					src="https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/6b969394-7c4c-45c1-9079-7e98dddcbbb2.png" /></a></span>
 		<br />
-		
+		<?php
+		if ( $gmailBlendDesktopClass || $gmailBlendMobileClass ) {
+			echo '<div class="gmail-blend-screen ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
+			echo '<div class="gmail-blend-difference ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
+		}
+		?>
 		<p
 			style="color:<?php echo $footerTextColor; ?>;margin:0;padding: 1em 0;font-family:Poppins,sans-serif;font-size:12px;line-height:16px;">
 			<strong>Contact Us:</strong><br />
@@ -494,12 +494,7 @@ function idwiz_get_standard_footer( $templateoptions, $showUnsub = true ) {
 
 			Copyright © {{now format='yyyy'}} All rights reserved.
 		</p>
-		<?php
-		if ( $gmailBlendDesktopClass || $gmailBlendMobileClass ) {
-			echo '</div>';
-			echo '</div>';
-		}
-		?>
+		
 		<?php if ( $showUnsub ) { ?>
 			<?php echo '{{#if userId}}'; ?>
 			<a href="{{hostedUnsubscribeUrl}}" aria-label="Manage Subscription Preferences"
@@ -517,6 +512,12 @@ function idwiz_get_standard_footer( $templateoptions, $showUnsub = true ) {
 				marketing emails</a>
 			<br /><br />
 		<?php } ?>
+		<?php
+		if ( $gmailBlendDesktopClass || $gmailBlendMobileClass ) {
+			echo '</div>';
+			echo '</div>';
+		}
+		?>
 	</div>
 	<!--[if mso]> 
 	</td>
