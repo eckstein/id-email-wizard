@@ -1031,7 +1031,7 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 	$pageBackgroundCss = generate_background_css( $templateStyles['body-and-background']['page-background'], 'page_background_' );
 	?>
 
-	<body class="body" id="body" style="margin: 0; padding: 0; word-spacing: normal;<?php echo $bodyBackgroundCss; ?>">
+	<body class="body" id="body" style="margin: 0; padding: 0; word-spacing: normal;">
 		<div style="display: none">
 			&#8199;&#847; &#8199;&#847; &#8199;&#847; &#8199;&#847; &#8199;&#847; &#8199;&#847; &#8199;&#847; &#8199;&#847;
 			&#8199;&#847; &#8199;&#847; &#8199;&#847; &#8199;&#847; &#8199;&#847; &#8199;&#847; &#8199;&#847; &#8199;&#847;
@@ -1065,7 +1065,7 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 		</div>
 		<div role="article" aria-roledescription="email" lang="en"
 			style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; word-spacing:normal;text-align: center;">
-			<table role="presentation" style="width: 100%; border: 0; border-spacing: 0;margin: 0 auto;"
+			<table role="presentation" style="width: 100%; border: 0; border-spacing: 0;margin: 0 auto; <?php echo $bodyBackgroundCss; ?>" 
 				class="email-wrapper">
 				<tr>
 					<td align="center">
