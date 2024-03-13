@@ -39,7 +39,7 @@ function idemailwiz_build_template() {
 		$templateData = json_decode( stripslashes( $_POST['template_data'] ), true );
 	} else {
 		// Fallback to fetching template data from the database
-		$templateData = get_wizTemplate( $templateId );
+		$templateData = get_wiztemplate( $templateId );
 	}
 
 	include dirname( plugin_dir_path( __FILE__ ) ) . '/builder-v2/preview-pane.php';
@@ -54,25 +54,39 @@ function get_wiztemplate_with_ajax() {
 		wp_send_json_error( [ 'message' => 'No post ID provided' ] );
 		return;
 	}
-	$templateData = get_wiztemplate( $postId );
+	$templateData = get_wiztemplate( $postId);
 	wp_send_json_success( $templateData );
 }
 
-function get_wiztemplate( $postId, $status = 'publish' ) {
+function get_wiztemplate( $postId) {
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'wiz_templates';
-	$column = 'template_data';
-	if ( $status == 'draft' ) {
-		$column = 'template_data_draft';
-	}
 
+	// Fetch the entire template data from the database
 	$templateDataJSON = $wpdb->get_var( $wpdb->prepare(
-		"SELECT $column FROM $table_name WHERE post_id = %d",
+		"SELECT template_data FROM $table_name WHERE post_id = %d",
 		$postId
 	) );
 
-	return json_decode( $templateDataJSON, true ); // Decode JSON string into an associative array
+	// Decode JSON string into an associative array
+	$templateData = json_decode( $templateDataJSON, true );
+
+	return $templateData;
 }
+
+function get_wiztemplate_object($postId) {
+	global $wpdb;
+	$table_name = $wpdb->prefix . 'wiz_templates';
+	// Fetch the entire template data from the database
+	$templateObject = $wpdb->get_row( $wpdb->prepare(
+		"SELECT * FROM $table_name WHERE post_id = %d",
+		$postId
+	), ARRAY_A );
+
+	return $templateObject;
+}
+
+
 
 add_action( 'wp_ajax_idemailwiz_save_template_title', 'idemailwiz_save_template_title' );
 function idemailwiz_save_template_title() {
@@ -88,7 +102,7 @@ function idemailwiz_save_template_title() {
 		wp_send_json_error( [ 'message' => 'Invalid template ID or template title' ] );
 		return;
 	}
-	$updateTitle = wp_update_post( [ 'ID' => $templateId, 'post_title' => $templateTitle ] );
+	$updateTitle = wp_update_post( [ 'ID' => $templateId, 'post_title' => $templateTitle, 'post_name' => sanitize_title($templateTitle) ] );
 	if ( $updateTitle ) {
 		wp_send_json_success( [ 'message' => 'Template title updated successfully' ] );
 	} else {
@@ -124,7 +138,7 @@ function handle_create_new_row() {
 	}
 
 	// Get existing data (for duplicating) if passed
-	$publishedTemplateData = get_wizTemplate( $post_id );
+	$publishedTemplateData = get_wiztemplate( $post_id );
 	// Check for passed session data and use that, if present
 	$sessionTemplateData = isset( $_POST['session_data'] ) && $_POST['session_data'] ? json_decode( stripslashes( $_POST['session_data'] ), true ) : [];
 	$templateData = $sessionTemplateData ?: $publishedTemplateData;
@@ -165,7 +179,7 @@ function handle_add_new_chunk() {
 
 	if ( isset( $_POST['duplicate'] ) ) {
 		// Get existing data (for duplicating) if passed
-		$publishedTemplateData = get_wizTemplate( $post_id );
+		$publishedTemplateData = get_wiztemplate( $post_id );
 		// Check for passed session data and use that, if present
 		$sessionTemplateData = isset( $_POST['session_data'] ) && $_POST['session_data'] ? json_decode( stripslashes( $_POST['session_data'] ), true ) : [];
 		$templateData = $sessionTemplateData ?: $publishedTemplateData;
@@ -481,7 +495,7 @@ function generate_chunk_form_interface( $chunkType, $rowId, $columnId, $chunkId,
 function render_chunk_code( $chunkData, $uniqueId ) {
 	$currentTemplate = get_the_ID();
 	$wizTemplate = get_wiztemplate( $currentTemplate );
-	$chunkTemplate = idwiz_get_chunk_template( $chunkData, $wizTemplate['templateOptions'] );
+	$chunkTemplate = idwiz_get_chunk_template( $chunkData, $wizTemplate['template_options'] );
 	echo '<div class="chunk-html-code">';
 	//echo '<textarea name="chunk_html" id="'.$uniqueId.'-chunk-html" style="display: none;">'.htmlspecialchars($chunkTemplate).'</textarea>';
 	echo '<pre><code>' . htmlspecialchars( $chunkTemplate ) . '</code></pre>';
@@ -585,11 +599,11 @@ function show_specific_chunk_settings( $chunkData, $uniqueId, $settings ) {
 				echo "<input class='builder-colorpicker' type='color' name='text_base_color' id='{$uniqueId}-text-base-color' data-color-value='{$baseTextColor}'>";
 				echo "</div>";
 				break;
-			
+
 			case 'force_white_text_devices':
 				$forceWhiteTextDevices = [ 
-					[ 'id' => $uniqueId . 'force-white-text-desktop', 'name'=>'force_white_text_on_desktop', 'display'=>'desktop','value' => true, 'label' => '<i class="fa-solid fa-desktop"></i>' ],
-					[ 'id' => $uniqueId . 'force-white-text-mobile', 'name'=>'force_white_text_on_mobile', 'display'=>'mobile','value' => true, 'label' => '<i class="fa-solid fa-mobile-screen-button"></i>' ]
+					[ 'id' => $uniqueId . 'force-white-text-desktop', 'name' => 'force_white_text_on_desktop', 'display' => 'desktop', 'value' => true, 'label' => '<i class="fa-solid fa-desktop"></i>' ],
+					[ 'id' => $uniqueId . 'force-white-text-mobile', 'name' => 'force_white_text_on_mobile', 'display' => 'mobile', 'value' => true, 'label' => '<i class="fa-solid fa-mobile-screen-button"></i>' ]
 				];
 
 				echo "<div class='button-group-wrapper builder-field-wrapper chunk-force-white-text-devices'>";
@@ -960,11 +974,10 @@ function prepare_wiztemplate_for_save() {
 
 	$postId = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : null;
 	$userId = get_current_user_id();
-	$saveType = $_POST['save_type'] ?? 'draft';
 	$templateData = isset( $_POST['template_data'] ) ? json_decode( stripslashes( $_POST['template_data'] ), true ) : '';
 
 	// Save the template data
-	save_template_data( $postId, $userId, $templateData, $saveType === 'draft' );
+	save_template_data( $postId, $userId, $templateData);
 
 	wp_send_json_success( [ 'message' => 'Template saved successfully', 'templateData' => $templateData ] );
 }
@@ -972,11 +985,9 @@ function prepare_wiztemplate_for_save() {
 
 
 // Save the template data from the ajax call
-function save_template_data( $postId, $userId, $templateData, $isDraft = false ) {
+function save_template_data( $postId, $userId, $templateData ) {
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'wiz_templates';
-
-	$dataFieldName = $isDraft ? 'template_data_draft' : 'template_data';
 
 	// Ensure templateData is a JSON string
 	if ( is_array( $templateData ) ) {
@@ -987,7 +998,7 @@ function save_template_data( $postId, $userId, $templateData, $isDraft = false )
 	$data = [ 
 		'last_updated' => date( 'Y-m-d H:i:s' ),
 		'post_id' => $postId,
-		$dataFieldName => $templateData
+		'template_data' => $templateData
 	];
 
 	// Check for an existing record
@@ -1000,7 +1011,7 @@ function save_template_data( $postId, $userId, $templateData, $isDraft = false )
 		$wpdb->insert( $table_name, $data );
 	}
 
-	// Optional: Check for and log any database errors
+	// Check for and log any database errors
 	if ( ! empty( $wpdb->last_error ) ) {
 		error_log( "WordPress database error: " . $wpdb->last_error );
 	}
@@ -1098,7 +1109,7 @@ function generate_template_for_preview() {
 		$templateData = $sessionData;
 	} else {
 		// Otherwise, fetch the template data from the database
-		$templateData = get_wizTemplate( $templateId );
+		$templateData = get_wiztemplate( $templateId );
 	}
 
 	// Generate the template HTML based on the data
@@ -1147,7 +1158,7 @@ function generate_template_html_from_ajax() {
 		$templateData = $sessionData;
 	} else {
 		// Otherwise, fetch the template data from the database
-		$templateData = get_wizTemplate( $templateId );
+		$templateData = get_wiztemplate( $templateId );
 	}
 	$templateHtml = generate_template_html( $templateData, false );
 
@@ -1159,17 +1170,17 @@ function generate_template_html_from_ajax() {
 }
 function generate_template_html( $templateData, $forEditor = false ) {
 	$rows = $templateData['rows'] ?? [];
-	$templateOptions = $templateData['templateOptions'] ?? [];
-	$templateSettings = $templateOptions['templateSettings'] ?? [];
-	$templateStyles = $templateOptions['templateStyles'] ?? [];
+	$templateOptions = $templateData['template_options'] ?? [];
+	$message_settings = $templateOptions['message_settings'] ?? [];
+	$templateStyles = $templateOptions['template_styles'] ?? [];
 
 	$return = '';
 
 	// Email top
-	$return .= idwiz_get_email_top( $templateSettings, $templateStyles, $rows );
+	$return .= idwiz_get_email_top( $message_settings, $templateStyles, $rows );
 
 	// iD Logo Header
-	$showIdHeader = $templateSettings['template-settings']['show_id_header'] ?? true;
+	$showIdHeader = $templateStyles['header-and-footer']['show_id_header'] ?? true;
 	if ( $showIdHeader ) {
 		$return .= idwiz_get_standard_header( $templateOptions );
 	}
@@ -1178,18 +1189,18 @@ function generate_template_html( $templateData, $forEditor = false ) {
 	$return .= renderTemplateRows( $templateData, $forEditor );
 
 	// Email Footer
-	if ( $templateSettings['template-settings']['show_id_footer'] !== false ) {
+	if ( $templateStyles['header-and-footer']['show_id_footer'] !== false ) {
 
 		// Show unsub link in footer (or not)
 		$showUnsub = true;
-		if ( $templateSettings['template-settings']['show_unsub'] != true ) {
+		if ( $templateStyles['header-and-footer']['show_unsub'] != true ) {
 			$showUnsub = false;
 		}
 		$return .= idwiz_get_standard_footer( $templateOptions, $showUnsub );
 	}
 
 	// Fine print/disclaimer
-	if ( ! empty( $templateSettings['message-settings']['fine_print_disclaimer'] ) ) {
+	if ( ! empty( $message_settings['fine_print_disclaimer'] ) ) {
 		$return .= idwiz_get_fine_print_disclaimer( $templateOptions );
 	}
 
@@ -1200,7 +1211,7 @@ function generate_template_html( $templateData, $forEditor = false ) {
 }
 
 function renderTemplateRows( $templateData, $isEditor = false ) {
-	$templateStyles = $templateData['templateOptions']['templateStyles'];
+	$templateStyles = $templateData['template_options']['template_styles'];
 	$rows = $templateData['rows'];
 	$return = '';
 
@@ -1265,7 +1276,7 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 						$return .= "<div class='editor-chunk-wrapper' data-chunk-index='{$chunkIndex}' style='position: relative;'>";
 					}
 
-					$chunkHtml = idwiz_get_chunk_template( $chunk, $templateData['templateOptions'] );
+					$chunkHtml = idwiz_get_chunk_template( $chunk, $templateData['template_options'] );
 					$return .= $chunkHtml;
 
 					if ( $isEditor ) {
@@ -1403,3 +1414,16 @@ function generate_background_css( $backgroundSettings, $prefix = '' ) {
 
 	return implode( " ", $css );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

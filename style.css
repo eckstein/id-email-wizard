@@ -939,6 +939,7 @@ a.wiz-button:hover {
 
 .checkbox-toggle-label {
 	max-width: 100px;
+	text-align: center;
 }
 
 /* Builder Chunk Form Field Layouts */
@@ -1187,6 +1188,29 @@ a.wiz-button:hover {
 }
 .template-settings-tab-content.active {
 	display: block;
+}
+
+.template-settings .builder-field-wrapper {
+	margin-bottom: 10px;
+}
+
+.variations-ui .variation-wrapper {
+	display: flex;
+	gap: 15px;
+	align-items: center;
+	padding: 15px;
+	border: 1px solid #eee;
+	border-radius: 4px;
+	margin-bottom: 15px;
+}
+.variations-ui .remove-variation {
+	font-weight: bold;
+	text-align:center;
+	margin-left: auto;
+	cursor: pointer;
+}
+.variations-ui .remove-variation:hover {
+	color: red;
 }
 /* Edit Template, Template Actions */
 

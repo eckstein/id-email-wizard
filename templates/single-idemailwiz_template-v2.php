@@ -1,10 +1,14 @@
 <?php
 get_header();
+$postId = get_the_ID();
+$wizTemplate = get_wiztemplate( $postId);
+$wizTemplateObject = get_wiztemplate_object($postId);
 
 $current_user = wp_get_current_user();
 $userId = $current_user->ID;
-$itTemplateId = get_post_meta( get_the_ID(), 'itTemplateId', true ) ?? '';
-$postId = get_the_ID();
+// $itTemplateId = get_post_meta( $postId, 'itTemplateId', true ) ?? '';
+$itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_template_id'] ?? '';
+
 ?>
 <header class="wizHeader">
 	<div class="wizHeaderInnerWrap">
@@ -12,18 +16,18 @@ $postId = get_the_ID();
 			<h1 id="single-template-title" class="wizEntry-title" title="<?php echo get_the_title(); ?>"
 				itemprop="name">
 				<input type="text" name="templateTitle" id="idwiz_templateTitle"
-					data-templateid="<?php echo get_the_ID(); ?>"
-					value="<?php echo get_the_title( get_the_ID() ); ?>" />
+					data-templateid="<?php echo $postId; ?>"
+					value="<?php echo get_the_title( $postId ); ?>" />
 			</h1>
 			<div class="wizEntry-meta">
 				<strong>WizTemplate</strong>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
 				<span class="iDbreadcrumb">Located in:
-					<?php echo display_template_folder_hierarchy( get_the_ID() ); ?>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
+					<?php echo display_template_folder_hierarchy( $postId ); ?>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
 
 					<?php
 					$campaignSent = '';
 					if ( $itTemplateId ) {
-						$lastIterableSync = get_post_meta( get_the_ID(), 'lastIterableSync', true ) ?? '<em>an unknown date and time.</em>';
+						$lastIterableSync = get_post_meta( $postId, 'lastIterableSync', true ) ?? '<em>an unknown date and time.</em>';
 						echo 'Last synced to Iterable template <a target="_blank" href="https://app.iterable.com/templates/editor?templateId=' . $itTemplateId . '">' . $itTemplateId . '</a> on ' . $lastIterableSync;
 						// check for wiz template to see if the campaign has been sent
 						$wizDbTemplate = get_idwiz_template( (int) $itTemplateId );
@@ -42,6 +46,8 @@ $postId = get_the_ID();
 				</span>
 
 			</div>
+		
+
 		</div>
 		<div class="wizHeader-right">
 			<div class="wizHeader-actions">
@@ -52,15 +58,15 @@ $postId = get_the_ID();
 					<i class="fa fa-plus"></i>&nbsp;&nbsp;New Template
 				</div>
 				<div title="Duplicate Template" class="wiz-button green duplicate-template"
-					data-postid="<?php echo get_the_ID(); ?>">
+					data-postid="<?php echo $postId; ?>">
 					<i class="fa-solid fa-copy"></i>&nbsp;&nbsp;Duplicate
 				</div>
 				<div title="Move Template" class="wiz-button green moveTemplate"
-					data-postid="<?php echo get_the_ID(); ?>">
+					data-postid="<?php echo $postId; ?>">
 					<i class="fa-solid fa-folder-tree"></i>&nbsp;&nbsp;Move
 				</div>
 				<div title="Delete Template" class="wiz-button red delete-template"
-					data-postid="<?php echo get_the_ID(); ?>">
+					data-postid="<?php echo $postId; ?>">
 					<i class="fa-solid fa-trash"></i>&nbsp;&nbsp;Trash
 				</div>
 			</div>
@@ -68,12 +74,12 @@ $postId = get_the_ID();
 	</div>
 </header>
 <?php
-$wizTemplate = get_wizTemplate( $postId );
+
 //  echo '<pre style="color: white; max-height: 200px; overflow-y:auto;">';
 //  print_r( $wizTemplate );
 //  echo '</pre>';
 ?>
-<div id="templateUI" class="entry-content two-col-wrap" data-postid="<?php echo get_the_ID(); ?>"
+<div id="templateUI" class="entry-content two-col-wrap" data-postid="<?php echo $postId; ?>"
 	data-iterableid="<?php echo $itTemplateId; ?>" data-campaignsent="<?php echo $campaignSent; ?>"
 	itemprop="mainContentOfPage">
 
@@ -81,24 +87,24 @@ $wizTemplate = get_wizTemplate( $postId );
 		<div id="builder">
 			<div class="main-builder-header">
 				<div id="main-builder-tabs" class="builder-tabs">
-					<div class="builder-tab --active" data-tab="builder-tab-chunks"><i
+					<div class="builder-tab --active" data-tab="builder-tab-chunks" title="Content chunks"><i
 							class="fa-solid fa-puzzle-piece"></i>&nbsp;&nbsp;Chunks</div>
-					<div class="builder-tab" data-tab="builder-tab-styles"><i
+					<div class="builder-tab" data-tab="builder-tab-styles" title="Template Styles"><i
 							class="fa-solid fa-brush"></i>&nbsp;&nbsp;Styles</div>
-					<div class="builder-tab" data-tab="builder-tab-settings"><i
-							class="fa-solid fa-sliders"></i>&nbsp;&nbsp;Settings</div>
-					<div class="builder-tab" data-tab="builder-tab-code"><i
-							class="fa-solid fa-code"></i>&nbsp;&nbsp;Code</div>
+					<div class="builder-tab" data-tab="builder-tab-message-settings" title="Message settings"><i
+							class="fa-solid fa-envelope"></i>&nbsp;&nbsp;Options</div>
+					<div class="builder-tab" data-tab="builder-tab-code"><i class="fa-solid fa-code"
+							title="Code & JSON"></i></div>
+					<div class="builder-tab" data-tab="builder-tab-settings" title="Template Settings"><i
+							class="fa-solid fa-gear"></i></div>
 
 				</div>
 				<div class="main-builder-actions">
 					<button title="Sync to Iterable" class="wiz-button" id="sendToIterable"
-						data-postid="<?php echo get_the_id(); ?>"><img style="width: 20px; height: 20px;"
+						data-postid="<?php echo $postId; ?>"><img style="width: 20px; height: 20px;"
 							src="https://idemailwiz.com/wp-content/uploads/2023/10/Iterable_square_logo-e1677898367554.png" />&nbsp;&nbsp;
 						Sync</button>
 
-					<button for="wiz-template-form" class="wiz-button blue" id="save-draft"><i
-							class="fa-regular fa-floppy-disk"></i>&nbsp;&nbsp;Save Draft</button>
 					<button for="wiz-template-form" class="wiz-button green" id="save-template"><i
 							class="fa-regular fa-floppy-disk"></i>&nbsp;&nbsp;Save</button>
 
@@ -130,10 +136,10 @@ $wizTemplate = get_wizTemplate( $postId );
 			</div>
 
 			<?php
-			$templateOptions = $wizTemplate['templateOptions'] ?? [];
-			$templateSettings = $templateOptions['templateSettings'] ?? [];
+			$templateOptions = $wizTemplate['template_options'] ?? [];
+			$templateSettings = $templateOptions['message_settings'] ?? [];
 			//print_r( $templateOptions );
-			$templateStyles = $templateOptions['templateStyles'] ?? [];
+			$templateStyles = $templateOptions['template_styles'] ?? [];
 			?>
 
 			<div class="builder-tab-content" id="builder-tab-styles">
@@ -153,7 +159,7 @@ $wizTemplate = get_wizTemplate( $postId );
 						</div>
 					</div>
 					<div class="template-settings-tabs-content">
-						<?php //print_r( $templateStyles );                              ?>
+						<?php //print_r( $templateStyles );                                              ?>
 						<form id="template-styles-form">
 							<?php
 							$templateHeaderFooterStyles = $templateStyles['header-and-footer'] ?? [];
@@ -162,6 +168,20 @@ $wizTemplate = get_wizTemplate( $postId );
 								id="template-styles-tab-header-and-footer">
 								<h5>Template Header</h5>
 								<div class="builder-field-group flex">
+									<?php
+									$showHeader = $templateSettings['template_styles']['header-and-footer']['show_id_header'] ?? true;
+									?>
+									<div class="builder-field-wrapper">
+										<label class="checkbox-toggle-label">Show Header</label>
+										<div class="wiz-checkbox-toggle">
+											<input type="checkbox" class="wiz-check-toggle"
+												id="template_settings_show_id_header" name="show_id_header" hidden <?php echo $showHeader ? 'checked' : ''; ?>>
+											<label for="template_settings_show_id_header"
+												class="checkbox-toggle-replace <?php echo $showHeader ? 'active' : ''; ?>"><i
+													class="<?php echo $showHeader ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
+										</div>
+
+									</div>
 									<div class="builder-field-wrapper template-header-logo">
 										<?php
 										$templateHeaderLogo = $templateHeaderFooterStyles['template_header_logo'] ?? '';
@@ -196,7 +216,7 @@ $wizTemplate = get_wizTemplate( $postId );
 											</option>
 										</select>
 									</div>
-									
+
 									<?php $showManualHeaderUrlField = $templateHeaderLogo != 'manual' ? 'hide' : ''; ?>
 									<div
 										class="builder-field-wrapper template-header-logo-manual <?php echo $showManualHeaderUrlField; ?>">
@@ -209,8 +229,10 @@ $wizTemplate = get_wizTemplate( $postId );
 									</div>
 
 									<?php $headerPadding = $templateHeaderFooterStyles['header_padding'] ?? ''; ?>
-									<div class='builder-field-wrapper header-padding small-input'><label for='header-chunk-padding'>Header Padding</label>
-									<input type='text' name='header_padding' id='header-padding' value='<?php echo $headerPadding; ?>'>
+									<div class='builder-field-wrapper header-padding small-input'><label
+											for='header-chunk-padding'>Header Padding</label>
+										<input type='text' name='header_padding' id='header-padding'
+											value='<?php echo $headerPadding; ?>'>
 									</div>
 
 
@@ -218,7 +240,31 @@ $wizTemplate = get_wizTemplate( $postId );
 								<h5>Template Footer</h5>
 
 								<div class="builder-field-group flex">
-									<div class="builder-field-wrapper template-footer-text-color">
+									<div class="builder-field-wrapper centered">
+										<?php $showFooter = $templateSettings['template_styles']['header-and-footer']['show_id_footer'] ?? true; ?>
+										<label class="checkbox-toggle-label">Show Footer</label>
+										<div class="wiz-checkbox-toggle">
+											<input type="checkbox" class="wiz-check-toggle"
+												id="template_settings_show_id_footer" name="show_id_footer" hidden <?php echo $showFooter ? 'checked' : ''; ?>>
+											<label for="template_settings_show_id_footer"
+												class="checkbox-toggle-replace <?php echo $showFooter ? 'active' : ''; ?>"><i
+													class="<?php echo $showFooter ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
+										</div>
+
+									</div>
+									<div class="builder-field-wrapper centered">
+										<?php $showUnsub = $templateSettings['template_styles']['header-and-footer']['show_unsub'] ?? true; ?>
+										<label class="checkbox-toggle-label">Show Unsub</label>
+										<div class="wiz-checkbox-toggle">
+											<input type="checkbox" class="wiz-check-toggle"
+												id="template_settings_show_unsub" name="show_unsub" hidden <?php echo $showUnsub ? 'checked' : ''; ?>>
+											<label for="template_settings_show_unsub"
+												class="checkbox-toggle-replace <?php echo $showUnsub ? 'active' : ''; ?>"><i
+													class="<?php echo $showUnsub ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
+										</div>
+
+									</div>
+									<div class="builder-field-wrapper template-footer-text-color centered">
 										<?php
 										$templateFooterTextColor = $templateHeaderFooterStyles['template_footer_text_color'] ?? '#000';
 										?>
@@ -226,6 +272,15 @@ $wizTemplate = get_wizTemplate( $postId );
 										<input class="builder-colorpicker" type="color"
 											name="template_footer_text_color" id="template_styles_footer_text_color"
 											data-color-value="<?php echo $templateFooterTextColor; ?>">
+									</div>
+									<div class="builder-field-wrapper template-footer-link-color centered">
+										<?php
+										$templateFooterLinkColor = $templateHeaderFooterStyles['template_footer_link_color'] ?? '#000';
+										?>
+										<label for="template_styles_footer_link_color">Links</label>
+										<input class="builder-colorpicker" type="color"
+											name="template_footer_link_color" id="template_styles_footer_link_color"
+											data-color-value="<?php echo $templateFooterLinkColor; ?>">
 									</div>
 									<?php
 									$forceWhiteTextDevices = [ 
@@ -241,6 +296,7 @@ $wizTemplate = get_wizTemplate( $postId );
 									$forceWhiteTextMobile = $templateHeaderFooterStyles['footer_force_white_text_on_mobile'];
 
 									?>
+
 									<div
 										class='button-group-wrapper builder-field-wrapper chunk-force-white-text-devices'>
 										<label class='button-group-label'>Force Gmail white text on:</label>
@@ -249,7 +305,7 @@ $wizTemplate = get_wizTemplate( $postId );
 
 												<?php
 												$fieldID = $opt['id'];
-												$isChecked = isset( $templateHeaderFooterStyles[ $opt['name'] ] ) && $templateHeaderFooterStyles[ $opt['name'] ]  ? 'checked' : '';
+												$isChecked = isset( $templateHeaderFooterStyles[ $opt['name'] ] ) && $templateHeaderFooterStyles[ $opt['name'] ] ? 'checked' : '';
 												?>
 
 												<input type='checkbox' id='<?php echo $fieldID; ?>'
@@ -265,15 +321,7 @@ $wizTemplate = get_wizTemplate( $postId );
 									</div>
 
 
-									<div class="builder-field-wrapper template-footer-link-color">
-										<?php
-										$templateFooterLinkColor = $templateHeaderFooterStyles['template_footer_link_color'] ?? '#000';
-										?>
-										<label for="template_styles_footer_link_color">Links</label>
-										<input class="builder-colorpicker" type="color"
-											name="template_footer_link_color" id="template_styles_footer_link_color"
-											data-color-value="<?php echo $templateFooterLinkColor; ?>">
-									</div>
+
 								</div>
 								<div class="builder-field-group flex">
 									<div class="builder-field-wrapper template-footer-color">
@@ -385,16 +433,16 @@ $wizTemplate = get_wizTemplate( $postId );
 											</div>
 										</div>
 
-										<div class="builder-field-wrapper template-link-color">
+										<div class="builder-field-wrapper template-link-color centered">
 											<?php
 											$templateLinkColor = $linkStyles['template_link_style_color'] ?? '#0073dd';
 											?>
-											<label for="template_style_link_color">Link</label>
+											<label for="template_style_link_color">Links</label>
 											<input class="builder-colorpicker" type="color"
 												name="template_link_style_color" id="template_style_link_color"
 												data-color-value="<?php echo $templateLinkColor; ?>">
 										</div>
-										<div class="builder-field-wrapper template-visited-link-color">
+										<div class="builder-field-wrapper template-visited-link-color centered">
 											<?php
 											$templateLinkHoverColor = $linkStyles['template_link_style_hover_color'] ?? $templateLinkColor;
 											?>
@@ -406,6 +454,9 @@ $wizTemplate = get_wizTemplate( $postId );
 										</div>
 
 									</div>
+								</fieldset>
+								<fieldset name="external-utms">
+
 								</fieldset>
 							</div>
 
@@ -441,136 +492,84 @@ $wizTemplate = get_wizTemplate( $postId );
 					</div>
 				</div>
 			</div>
-			<div class="builder-tab-content" id="builder-tab-settings">
+			<div class="builder-tab-content" id="builder-tab-message-settings">
 				<!-- Template Settings Section -->
 				<div class="template-settings">
 					<form id="template-settings-form">
-						<fieldset name="template-settings">
-							<?php
-							$email_type = $templateSettings['template-settings']['email_type'] ?? 'promotional';
-							?>
-							<div class="builder-field-group">
-								<div class="builder-field-wrapper">
-									<label>Email Channel</label>
-									<div class="button-group radio">
-										<div class="builder-field-wrapper">
-											<input type="radio" id="template_settings_email_type_promotional"
-												name="email_type" value="promotional" hidden <?php echo $email_type == 'promotional' ? 'checked' : ''; ?>>
-											<label for="template_settings_email_type_promotional"
-												class="button-label"><i class="fa-solid fa-bullhorn"></i>
-												Promotional</label>
-										</div>
-										<div class="builder-field-wrapper">
-											<input type="radio" id="template_settings_email_type_transactional"
-												name="email_type" value="transactional" hidden <?php echo $email_type == 'transactional' ? 'checked' : ''; ?>>
-											<label for="template_settings_email_type_transactional"
-												class="button-label"><i class="fa-solid fa-file-invoice-dollar"></i>
-												Transactional</label>
-										</div>
+						<?php
+						$email_type = $templateSettings['email_type'] ?? 'promotional';
+						?>
+						<div class="builder-field-group">
+							<div class="builder-field-wrapper">
+								<label>Email Channel</label>
+								<div class="button-group radio">
+									<div class="builder-field-wrapper">
+										<input type="radio" id="template_settings_email_type_promotional"
+											name="email_type" value="promotional" hidden <?php echo $email_type == 'promotional' ? 'checked' : ''; ?>>
+										<label for="template_settings_email_type_promotional" class="button-label"><i
+												class="fa-solid fa-bullhorn"></i>
+											Promotional</label>
+									</div>
+									<div class="builder-field-wrapper">
+										<input type="radio" id="template_settings_email_type_transactional"
+											name="email_type" value="transactional" hidden <?php echo $email_type == 'transactional' ? 'checked' : ''; ?>>
+										<label for="template_settings_email_type_transactional" class="button-label"><i
+												class="fa-solid fa-file-invoice-dollar"></i>
+											Transactional</label>
 									</div>
 								</div>
 							</div>
-							<div class="builder-field-group flex">
-								<?php
-								$showHeader = $templateSettings['template-settings']['show_id_header'] ?? true;
-								?>
-								<div class="builder-field-wrapper">
-									<label class="checkbox-toggle-label">Show Header</label>
-									<div class="wiz-checkbox-toggle">
-										<input type="checkbox" class="wiz-check-toggle"
-											id="template_settings_show_id_header" name="show_id_header" hidden <?php echo $showHeader ? 'checked' : ''; ?>>
-										<label for="template_settings_show_id_header"
-											class="checkbox-toggle-replace <?php echo $showHeader ? 'active' : ''; ?>"><i
-												class="<?php echo $showHeader ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
-									</div>
+						</div>
 
-								</div>
+						<div class="builder-field-wrapper block">
+							<label for="template_settings_subject_line">Subject Line</label>
+							<input type="text" id="template_settings_subject_line" name="subject_line"
+								class="builder-field" value="<?php echo $templateSettings['subject_line'] ?? ''; ?>">
+						</div>
 
-								<div class="builder-field-wrapper">
-									<?php $showFooter = $templateSettings['template-settings']['show_id_footer'] ?? true; ?>
-									<label class="checkbox-toggle-label">Show Footer</label>
-									<div class="wiz-checkbox-toggle">
-										<input type="checkbox" class="wiz-check-toggle"
-											id="template_settings_show_id_footer" name="show_id_footer" hidden <?php echo $showFooter ? 'checked' : ''; ?>>
-										<label for="template_settings_show_id_footer"
-											class="checkbox-toggle-replace <?php echo $showFooter ? 'active' : ''; ?>"><i
-												class="<?php echo $showFooter ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
-									</div>
+						<div class="builder-field-wrapper block">
+							<label for="template_settings_preview_text">Preview Text</label>
+							<input type="text" id="template_settings_preview_text" name="preview_text"
+								class="builder-field" value="<?php echo $templateSettings['preview_text'] ?? ''; ?>">
+						</div>
 
-								</div>
+						<div class="builder-field-wrapper block">
+							<label for="template_settings_from_name">From Name</label>
+							<input type="text" id="template_settings_from_name" name="from_name" class="builder-field"
+								value="<?php echo $templateSettings['from_name'] ?? 'iD Tech Camps'; ?>">
+						</div>
 
-								<div class="builder-field-wrapper">
-									<?php $showUnsub = $templateSettings['template-settings']['show_unsub'] ?? true; ?>
-									<label class="checkbox-toggle-label">Show Unsub</label>
-									<div class="wiz-checkbox-toggle">
-										<input type="checkbox" class="wiz-check-toggle"
-											id="template_settings_show_unsub" name="show_unsub" hidden <?php echo $showUnsub ? 'checked' : ''; ?>>
-										<label for="template_settings_show_unsub"
-											class="checkbox-toggle-replace <?php echo $showUnsub ? 'active' : ''; ?>"><i
-												class="<?php echo $showUnsub ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
-									</div>
+						<div class="builder-field-wrapper block">
+							<label for="template_settings_reply_to">Reply To</label>
+							<input type="email" id="template_settings_reply_to" name="reply_to" class="builder-field"
+								value="<?php echo $templateSettings['reply_to'] ?? 'hello@idtech.com'; ?>">
+						</div>
 
-								</div>
-
-
-								<div class="builder-field-wrapper">
-									<?php $extUtms = $templateSettings['template-settings']['ext_utms'] ?? true; ?>
-									<label class="checkbox-toggle-label">Ext. UTMs</label>
-									<div class="wiz-checkbox-toggle">
-										<input type="checkbox" class="wiz-check-toggle" id="template_settings_ext_utms"
-											name="ext_utms" hidden <?php echo $extUtms ? 'checked' : ''; ?>>
-										<label for="template_settings_ext_utms"
-											class="checkbox-toggle-replace <?php echo $extUtms ? 'active' : ''; ?>"><i
-												class="<?php echo $extUtms ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
-									</div>
-
-								</div>
-
-								<div class="builder-field-wrapper">
-									<label for="template_settings_ext_utm_string">External UTM String</label>
-									<input type="text" id="template_settings_ext_utm_string" name="ext_utm_string"
-										class="builder-field"
-										value="<?php echo $templateSettings['template-settings']['ext_utm_string'] ?? ''; ?>">
-								</div>
-							</div>
-						</fieldset>
-						<fieldset name="message-settings">
-
-							<div class="builder-field-wrapper block">
-								<label for="template_settings_subject_line">Subject Line</label>
-								<input type="text" id="template_settings_subject_line" name="subject_line"
-									class="builder-field"
-									value="<?php echo $templateSettings['message-settings']['subject_line'] ?? ''; ?>">
+						<div class="builder-field-wrapper block">
+							<label for="template_settings_fine_print_disclaimer">Fine Print/Disclaimer</label>
+							<textarea id="template_settings_fine_print_disclaimer" name="fine_print_disclaimer"
+								class="builder-field"><?php echo $templateSettings['fine_print_disclaimer'] ?? ''; ?></textarea>
+						</div>
+						<div class="builder-field-wrapper">
+							<?php $extUtms = $templateSettings['template_styles']['header-and-footer']['ext_utms'] ?? true; ?>
+							<label class="checkbox-toggle-label">Ext. UTMs</label>
+							<div class="wiz-checkbox-toggle">
+								<input type="checkbox" class="wiz-check-toggle" id="template_settings_ext_utms"
+									name="ext_utms" hidden <?php echo $extUtms ? 'checked' : ''; ?>>
+								<label for="template_settings_ext_utms"
+									class="checkbox-toggle-replace <?php echo $extUtms ? 'active' : ''; ?>"><i
+										class="<?php echo $extUtms ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
 							</div>
 
-							<div class="builder-field-wrapper block">
-								<label for="template_settings_preview_text">Preview Text</label>
-								<input type="text" id="template_settings_preview_text" name="preview_text"
-									class="builder-field"
-									value="<?php echo $templateSettings['message-settings']['preview_text'] ?? ''; ?>">
-							</div>
+						</div>
 
-							<div class="builder-field-wrapper block">
-								<label for="template_settings_from_name">From Name</label>
-								<input type="text" id="template_settings_from_name" name="from_name"
-									class="builder-field"
-									value="<?php echo $templateSettings['message-settings']['from_name'] ?? 'iD Tech Camps'; ?>">
-							</div>
+						<div class="builder-field-wrapper">
+							<label for="template_settings_ext_utm_string">External UTM String</label>
+							<input type="text" id="template_settings_ext_utm_string" name="ext_utm_string"
+								class="builder-field"
+								value="<?php echo $templateSettings['template_styles']['header-and-footer']['ext_utm_string'] ?? ''; ?>">
+						</div>
 
-							<div class="builder-field-wrapper block">
-								<label for="template_settings_reply_to">Reply To</label>
-								<input type="email" id="template_settings_reply_to" name="reply_to"
-									class="builder-field"
-									value="<?php echo $templateSettings['message-settings']['reply_to'] ?? 'hello@idtech.com'; ?>">
-							</div>
-
-							<div class="builder-field-wrapper block">
-								<label for="template_settings_fine_print_disclaimer">Fine Print/Disclaimer</label>
-								<textarea id="template_settings_fine_print_disclaimer" name="fine_print_disclaimer"
-									class="builder-field"><?php echo $templateSettings['message-settings']['fine_print_disclaimer'] ?? ''; ?></textarea>
-							</div>
-
-						</fieldset>
 
 
 						<!-- Email Settings Section -->
@@ -594,6 +593,77 @@ $wizTemplate = get_wizTemplate( $postId );
 						id="templateCode"><code><?php echo htmlspecialchars( generate_template_html( $wizTemplate, false ) ); ?></code></pre>
 				</div>
 			</div>
+			<div class="builder-tab-content" id="builder-tab-settings">
+				<div class="builder-field-group">
+					<h4>Sync Settings</h4>
+					<fieldset name="iterable-sync">
+						<h5>Iterable Sync</h5>
+						<div class="builder-field-wrapper block">
+							<label for="iterable_template_id">Iterable Template Id</label>
+							<input type="text" id="iterable_template_id" name="iterable_template_id"
+								class="builder-field"
+								value="<?php echo $templateOptions['template_settings']['iterable-sync']['iterable_template_id'] ?? ''; ?>">
+						</div>
+
+					</fieldset>
+				</div>
+				<div class="builder-field-group">
+					<h4>Interface Settings</h4>
+					<fieldset name="interface-settings">
+						<div class="builder-field-wrapper centered">
+							<label class="checkbox-toggle-label">Save Collapse States</label>
+							<div class="wiz-checkbox-toggle">
+								<?php $saveCollapseStates = $templateOptions['template_settings']['interface-settings']['save_collapse_states'] ?? true; ?>
+								<input type="checkbox" class="wiz-check-toggle"
+									id="builder_settings_save_collapse_states" name="save_collapse_states" hidden <?php echo $saveCollapseStates ? 'checked' : ''; ?>>
+								<label for="builder_settings_save_collapse_states"
+									class="checkbox-toggle-replace <?php echo $saveCollapseStates ? 'active' : ''; ?>"><i
+										class="<?php echo $saveCollapseStates ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
+							</div>
+
+						</div>
+						<div class="builder-field-wrapper centered">
+							<label class="checkbox-toggle-label">Auto-Collapse Rows</label>
+							<div class="wiz-checkbox-toggle">
+								<?php $autoCollapseRows = $templateOptions['template_settings']['interface-settings']['auto_collapse_rows'] ?? false; ?>
+								<input type="checkbox" class="wiz-check-toggle" id="builder_settings_auto_collapse_rows"
+									name="auto_collapse_rows" hidden <?php echo $autoCollapseRows ? 'checked' : ''; ?>>
+								<label for="builder_settings_auto_collapse_rows"
+									class="checkbox-toggle-replace <?php echo $autoCollapseRows ? 'active' : ''; ?>"><i
+										class="<?php echo $autoCollapseRows ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
+							</div>
+
+						</div>
+						<div class="builder-field-wrapper centered">
+							<label class="checkbox-toggle-label">Auto-Collapse chunks (within rows)</label>
+							<div class="wiz-checkbox-toggle">
+								<?php $autoCollapsechunks = $templateOptions['template_settings']['interface-settings']['auto_collapse_chunks_within_rows'] ?? false; ?>
+								<input type="checkbox" class="wiz-check-toggle"
+									id="builder_settings_auto_collapse_chunks_within_rows"
+									name="auto_collapse_chunks_within_rows" hidden <?php echo $autoCollapsechunks ? 'checked' : ''; ?>>
+								<label for="builder_settings_auto_collapse_chunks_within_rows"
+									class="checkbox-toggle-replace <?php echo $autoCollapsechunks ? 'active' : ''; ?>"><i
+										class="<?php echo $autoCollapsechunks ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
+							</div>
+
+						</div>
+						<div class="builder-field-wrapper centered">
+							<label class="checkbox-toggle-label">Auto-Collapse chunks</label>
+							<div class="wiz-checkbox-toggle">
+								<?php $autoCollapsechunks = $templateOptions['template_settings']['interface-settings']['auto_collapse_chunks'] ?? false; ?>
+								<input type="checkbox" class="wiz-check-toggle"
+									id="builder_settings_auto_collapse_chunks" name="auto_collapse_chunks" hidden <?php echo $autoCollapsechunks ? 'checked' : ''; ?>>
+								<label for="builder_settings_auto_collapse_chunks"
+									class="checkbox-toggle-replace <?php echo $autoCollapsechunks ? 'active' : ''; ?>"><i
+										class="<?php echo $autoCollapsechunks ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
+							</div>
+
+						</div>
+					</fieldset>
+				</div>
+			</div>
+			
+
 		</div>
 
 	</div>
@@ -605,14 +675,14 @@ $wizTemplate = get_wizTemplate( $postId );
 
 			<div class="innerWrap">
 				<?php
-				// if ( is_user_favorite( get_the_ID(), 'Template' ) ) {
+				// if ( is_user_favorite( $postId, 'Template' ) ) {
 				// 	$fileStarClass = 'fa-solid';
 				// } else {
 				// 	$fileStarClass = 'fa-regular';
 				// }
 				?>
-				<!-- <i title="Add/Remove Favorite" class="addRemoveFavorite <?php //echo $fileStarClass;                                                        ?> fa-star"
-					data-objecttype="Template" data-objectid="<?php //echo get_the_ID();                                                        ?>"></i> -->
+				<!-- <i title="Add/Remove Favorite" class="addRemoveFavorite <?php //echo $fileStarClass;                                                                        ?> fa-star"
+					data-objecttype="Template" data-objectid="<?php //echo $postId;                                                                        ?>"></i> -->
 
 
 
@@ -627,7 +697,7 @@ $wizTemplate = get_wizTemplate( $postId );
 						class="interface-transparency-toggle transparent-mode-background">
 					</div>
 					<span class="templateActions-divider"></span>
-					<div title="Fill Merge Tags" class="fill-merge-tags" data-postid="<?php echo get_the_ID(); ?>">
+					<div title="Fill Merge Tags" class="fill-merge-tags" data-postid="<?php echo $postId; ?>">
 						&nbsp;<span style="font-size:.8em;">{{X}}</span>&nbsp;</div>
 				</div>
 
@@ -635,7 +705,7 @@ $wizTemplate = get_wizTemplate( $postId );
 				<button title="Refresh Preview" class="wiz-button green" id="refreshPreview"><i
 						class="fa-solid fa-rotate"></i>&nbsp;&nbsp;Refresh</button>
 				<button title="Show Preview Pane" class="wiz-button green show-preview" id="showFullPreview"
-					data-preview-mode="preview" data-postid="<?php echo get_the_id(); ?>"><i
+					data-preview-mode="preview" data-postid="<?php echo $postId; ?>"><i
 						class="fa-solid fa-eye"></i>&nbsp;&nbsp;Full Preview</button>
 			</div>
 		</div>
@@ -643,7 +713,7 @@ $wizTemplate = get_wizTemplate( $postId );
 			<div id="templatePreview-status">
 
 			</div>
-			<iframe id="previewFrame" src="<?php echo home_url( 'build-template-v2/' . get_the_ID() ); ?>"></iframe>
+			<iframe id="previewFrame" src="<?php echo home_url( 'build-template-v2/' . $postId ); ?>"></iframe>
 		</div>
 
 	</div>

@@ -7,10 +7,20 @@ jQuery(document).ready(function ($) {
 		PROMOTIONAL_FROM_EMAIL: "info@idtechonline.com",
 		API_KEY: idAjax_iterable_actions.iterable_api_key,
 	};
-	var existingTemplateId = $('#templateUI').data('iterableid');
+	//var existingTemplateId = $('#templateUI').data('iterableid');
+	var existingTemplateId = $('#iterable_template_id').val();
 
 	// Main click event handler
 	$("#sendToIterable").on("click", function () {
+		// Directly check sessionStorage here
+		if (sessionStorage.getItem('unsavedChanges') === 'true') {
+			return Swal.fire({
+				html: 'Save your changes before syncing!',
+				icon: "error"
+			}).then(() => {
+				toggleOverlay(false);
+			});
+		}
 		const post_id = $(this).data("postid");
 		toggleOverlay(true);
 
@@ -50,7 +60,7 @@ jQuery(document).ready(function ($) {
 	// Success handling function for getting template data
 	function handleTemplateDataSuccess(data) {
 		//console.log(data);
-		var existingTemplateId = $('#templateUI').data('iterableid');
+		var existingTemplateId = $('#iterable_template_id').val();
 		
 		const fieldsToList = Object.entries(data.fields)
 			.filter(([key]) => key !== "postId")
@@ -83,10 +93,14 @@ jQuery(document).ready(function ($) {
 			inputValue: existingTemplateId,
 			inputPlaceholder: 'Leave blank to create new base template'
 		}).then((result) => {
+			existingTemplateId = result.value;
+			if (!existingTemplateId) {
+				existingTemplateId = 'new';
+			}
 			if (result.isConfirmed) {
 				$.post(idAjax.ajaxurl, {
 					action: "check_duplicate_itTemplateId",
-					template_id: result.value,
+					template_id: existingTemplateId,
 					post_id: data.fields.postId
 				})
 				.done(dupCheckData => {
@@ -109,13 +123,19 @@ jQuery(document).ready(function ($) {
 
 	// Function to handle success of template sync
 	function handleTemplateUpdateSuccess(templateId) {
+		$('#iterable_template_id').val(templateId).change();
+		$('#iterable_template_id').attr('data-auto-publish', 'true');
 		Swal.fire({
 			title: "Sync complete",
 			html: `Sync was successful!<br/><a style="text-decoration:underline;" href="https://app.iterable.com/templates/editor?templateId=${templateId}" target="_blank">Click here to go to Iterable template</a>.`,
 			showConfirmButton: true,
 		}).then(() => {
-			var currentUrl = window.location.href;
-			window.location.href = currentUrl;
+			// Update the input field with the new template ID
+			toggleOverlay(false);
+
+			// Reload the page to reflect changes (if necessary)
+			//var currentUrl = window.location.href;
+			//window.location.href = currentUrl;
 		});
 	}
 
@@ -170,7 +190,7 @@ jQuery(document).ready(function ($) {
 				let templateHtml = $('<div/>').html(rawHtml).text();
 				
 
-				console.log(templateHtml);
+				//console.log(templateHtml);
 
 				// Replace curly quotes with straight quotes
 				templateHtml = templateHtml.replace(/[\u201C\u201D]/g, '"');

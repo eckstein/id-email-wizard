@@ -5,7 +5,7 @@ jQuery(document).ready(function ($) {
 	});
 
 	//Click event for deleting a single template
-	$(".delete-template").click(async function (e) {
+	$(document).on('click', ".delete-template", async function (e) {
 		const post_id = $(this).attr("data-postid");
 		id_delete_templates([post_id]);
 	});
@@ -17,7 +17,7 @@ jQuery(document).ready(function ($) {
 	});
 
 	//Ajax duplicate a template
-	$(".duplicate-template").on('click', function (e) {
+	$(document).on("click", ".duplicate-template", function () {
 		var post_id = $(this).attr("data-postid");
 		var fromBase = $(this).attr("data-frombase");
 		if (fromBase) {
@@ -55,7 +55,7 @@ jQuery(document).ready(function ($) {
 						confirmButtonText: 'Continue <i class="fa fa-arrow-right"></i>',
 					}).then((whereToGo) => {
 						if (whereToGo.value == 1) {
-							window.location.href = response.newURL;
+							window.location.href = response.data.newURL;
 						} else {
 							const isTemplateArchive = window.location.href.indexOf("/templates/") > -1;
 							if (isTemplateArchive) {
@@ -121,16 +121,27 @@ function id_move_template(templateIDs) {
 			};
 
 			const generateFoldersSuccess = function (response) {
-				console.log(JSON.stringify(response, null, 2));
+				//console.log(JSON.stringify(response, null, 2));
+				// Append the options received from the AJAX response
 				jQuery("#moveToFolder").append(response.data.options);
+				// Initialize Select2 on the dropdown
+				jQuery("#moveToFolder").select2({
+					dropdownParent: jQuery('.swal2-container'), // Ensures dropdown is displayed above modal
+					width: '100%', // Ensures Select2 dropdown matches the parent width
+					// Additional Select2 options can be added here as needed
+				});
 			};
+
+			const generateFoldersError = function (response) {
+				console.error("Error generating folders", response);
+			}
 
 			idemailwiz_do_ajax(
 				"id_generate_folders_select_ajax",
 				idAjax_template_actions.nonce,
 				generateFoldersData,
 				generateFoldersSuccess,
-				null // No error callback specified
+				generateFoldersError
 			);
 		},
 	}).then(function (result) {
@@ -146,17 +157,28 @@ function id_move_template(templateIDs) {
 				Swal.fire({
 					title: "Template Moved!",
 					icon: "success",
-				}).then(function () {
-					window.location.href = response.data.newFolderLink;
+				}).then(function(result) {
+					//refresh the page
+					window.location.reload();
 				});
 			};
+
+			const moveTemplateFailure = function (response) {
+				Swal.fire({
+					title: "Error moving template",
+					icon: "error",
+				}).then(function() {
+					//refresh the page
+					window.location.reload();
+				});
+			}
 
 			idemailwiz_do_ajax(
 				"id_move_template",
 				idAjax_template_actions.nonce,
 				moveTemplateData,
 				moveTemplateSuccess,
-				null // No error callback specified
+				moveTemplateFailure
 			);
 		}
 	});
@@ -173,7 +195,7 @@ async function id_delete_templates(post_ids) {
 	}
 	const { isConfirmed } = await Swal.fire({
 		title: "Delete " + msgText + "?",
-		text: "Once deleted, templates can be restored from the trash, but they will be permanently removed from any user favorites and disconnected from any Iterable connections. If present, the templates within Iterable will not be deleted.",
+		text: "Trashed templates can be restored later, but deleting will un-link the template from Iterable and remove the template for all user's favorites.",
 		icon: "warning",
 		showCancelButton: true,
 		iconColor: "#dc3545",
@@ -269,4 +291,54 @@ async function id_restore_templates(templateIDs) {
 			jQuery.refreshUIelement("#bulkActionsSelect");
 		});
 	}
+}
+
+// New template trigger
+jQuery(document).on("click", ".show-new-template-ui", function() {
+	showCreateTemplateModal();
+});
+
+function showCreateTemplateModal() {
+	Swal.fire({
+		title: "Create New Template",
+		input: "text",
+		inputLabel: "Enter a template title",
+		inputPlaceholder: "e.g., 0555 | Formers | Camp is awesome!",
+		icon: "info",
+		confirmButtonText: "Create Template",
+		showCancelButton: true,
+		cancelButtonText: "Cancel",
+		preConfirm: (templateTitle) => {
+			if (!templateTitle.trim()) {
+				Swal.showValidationMessage("Please enter a title for the new template.");
+				return false;
+			}
+			return templateTitle.trim();
+		}
+	}).then((result) => {
+		if (result.isConfirmed && result.value) {
+			const templateTitle = result.value;
+			createTemplate(templateTitle);
+		}
+	});
+}
+
+function createTemplate(templateTitle) {
+	idemailwiz_do_ajax(
+		"create_new_wiz_template", // This should be the action name for creating the template
+		idAjax_template_actions.nonce,
+		{ template_title: templateTitle }, // Data to be sent to the server
+		function(response) {
+			if (response.success && response.data.newURL) {
+				window.location.href = response.data.newURL; // Redirect to the new template
+			} else {
+				// Handle failure to create template
+				Swal.fire("Error", "Could not create template", "error");
+			}
+		},
+		function(error) {
+			// Handle AJAX request failure
+			Swal.fire("Error", "An error occurred while creating the template", "error");
+		}
+	);
 }

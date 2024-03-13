@@ -114,7 +114,7 @@ function idwiz_get_button_chunk( $chunk, $templateOptions ) {
 		<table role="presentation" table-layout="fixed" style="width: 100%; <?php echo $backgroundColorCss; ?>">
 			<tr>
 				<td
-					style="<?php echo $backgroundColorCss; ?> padding: <?php echo $chunkPadding; ?>; border: 0!important; text-align: <?php echo $textAlign; ?>; font-family: Poppins, Arial, sans-serif; font-size: <?php echo $templateOptions['templateStyles']['template_font_size'] ?? '16px'; ?>">
+					style="<?php echo $backgroundColorCss; ?> padding: <?php echo $chunkPadding; ?>; border: 0!important; text-align: <?php echo $textAlign; ?>; font-family: Poppins, Arial, sans-serif; font-size: <?php echo $templateOptions['template_styles']['template_font_size'] ?? '16px'; ?>">
 					<!--[if mso]>
 					<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="<?php echo $ctaUrl; ?>" style="height: 50px; v-text-anchor: middle; width: <?php echo $buttonWidth; ?>px;" arcsize="<?php echo $msoBorderPerc; ?>%" strokecolor="<?php echo $vmlBorderColor; ?>" strokeweight="<?php echo $vmlBorderWeight; ?>px" fillcolor="<?php echo $btnBgColor; ?>">
 						<w:anchorlock/>
@@ -194,10 +194,10 @@ function idwiz_get_snippet_chunk( $chunk, $templateOptions ) {
 
 
 function idwiz_get_plain_text_chunk( $chunk, $templateOptions ) {
-	$templateStyles = $templateOptions['templateStyles'] ?? [];
+	$templateStyles = $templateOptions['template_styles'] ?? [];
 
-	$chunkFields = $chunk['fields'];
-	$chunkSettings = $chunk['settings'];
+	$chunkFields = $chunk['fields'] ?? [];
+	$chunkSettings = $chunk['settings'] ?? [];
 
 	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
 
@@ -329,7 +329,7 @@ function idwiz_get_image_chunk( $chunk, $templateOptions ) {
 	$variant = $chunkSettings['image_context'] ?? '';
 	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
 
-	$templateWidth = $templateOptions['templateStyles']['body-and-background']['template_width'] ?? '648';
+	$templateWidth = $templateOptions['template_styles']['body-and-background']['template_width'] ?? '648';
 
 	$imageSrc = $chunkFields['image_url'] ?? '';
 	$imageLink = $chunkFields['image_link'] ?? '';
@@ -400,8 +400,7 @@ function idwiz_get_image_chunk( $chunk, $templateOptions ) {
 
 
 function idwiz_get_standard_header( $templateOptions ) {
-	$templateSettings = $templateOptions['templateSettings'];
-	$templateStyles = $templateOptions['templateStyles'];
+	$templateStyles = $templateOptions['template_styles'];
 	$headerFooterSettings = $templateStyles['header-and-footer'];
 	$headerLogo = $headerFooterSettings['template_header_logo'] ?? '';
 	if ( $headerLogo == 'manual' ) {
@@ -429,8 +428,8 @@ function idwiz_get_standard_header( $templateOptions ) {
 	return ob_get_clean();
 }
 function idwiz_get_standard_footer( $templateoptions, $showUnsub = true ) {
-	$templateSettings = $templateoptions['templateSettings'] ?? [];
-	$templateStyles = $templateoptions['templateStyles'] ?? [];
+	$templateSettings = $templateoptions['message_settings'] ?? [];
+	$templateStyles = $templateoptions['template_styles'] ?? [];
 	//$footerBackground = $templateStyles['header-and-footer']['template_footer_color'] ?? false;
 	$footerBackground = $templateStyles['header-and-footer']['footer-background'] ?? [];
 	$footerBackgroundCss = generate_background_css( $footerBackground );
@@ -530,8 +529,8 @@ function idwiz_get_standard_footer( $templateoptions, $showUnsub = true ) {
 
 function idwiz_get_fine_print_disclaimer( $templateOptions ) {
 	//print_r($templateOptions);
-	$finePrintDisclaimer = $templateOptions['templateSettings']['message-settings']['fine_print_disclaimer'];
-	$templateStyles = $templateOptions['templateStyles'];
+	$finePrintDisclaimer = $templateOptions['message_settings']['fine_print_disclaimer'];
+	$templateStyles = $templateOptions['template_styles'];
 	//$footerBackground = $templateStyles['header-and-footer']['template_footer_color'] != 'rgba(0, 0, 0, 0)' ? $templateStyles['header-and-footer']['template_footer_color'] : 'transparent';
 	$footerBackground = $templateStyles['header-and-footer']['footer-background'] ?? [];
 	$footerBackgroundCss = generate_background_css( $footerBackground );

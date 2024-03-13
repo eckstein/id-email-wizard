@@ -129,6 +129,13 @@ require_once(plugin_dir_path(__FILE__) . 'includes/iterable-functions.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/google-sheets-api.php');
 
 
+add_filter('post_type_link', 'custom_template_permalink', 10, 2);
+function custom_template_permalink($post_link, $post) {
+    if ($post->post_type === 'idemailwiz_template') {
+        return home_url("/template/{$post->ID}/" . $post->post_name . '/');
+    }
+    return $post_link;
+}
 
 // Register custom post types
 add_action('init', 'idwiz_register_custom_post_types', 0);
@@ -145,10 +152,13 @@ function idwiz_register_custom_post_types()
         'public' => true,
         'has_archive' => true,
         'supports' => array('title', 'editor', 'thumbnail', 'custom-fields'),
-        'show_in_rest' => true,
-        // This is required if you want to use this post type with Gutenberg
-
+        'show_in_rest' => true, // This is required if you want to use this post type with Gutenberg
+        'rewrite' => array(
+            'slug' => 'template', // This is the base slug for your templates
+            'with_front' => false, // This ensures that the slug is exactly what you specify, not prepended with a front base
+        ),
     );
+
 
     register_post_type('idemailwiz_template', $templateArgs);
 
@@ -575,13 +585,14 @@ function redirect_to_proper_url()
 {
     global $post;
     //Redirect any weird/wrong template URLs to the proper/current URL (handles cases where the slug changed but an old link was used)
-    if (is_singular('idemailwiz_template')) {
-        $post_slug = $post->post_name;
-        if (isset($_SERVER['REQUEST_URI']) && $_SERVER['REQUEST_URI'] != "/template/{$post->ID}/{$post_slug}/") {
-            wp_redirect(home_url("/template/{$post->ID}/{$post_slug}/"), 301);
-            exit;
-        }
-    }
+    // if (is_singular('idemailwiz_template')) {
+    //     $post_slug = $post->post_name;
+    //     if ( isset( $_SERVER['REQUEST_URI'] ) && $_SERVER['REQUEST_URI'] != "/template/{$post->ID}/{$post_slug}/" ) {
+	// 		wp_redirect( home_url( "/template/{$post->ID}/{$post_slug}/" ) . $_SERVER['QUERY_STRING'], 301 );
+	// 		exit;
+	// 	}
+
+    // }
     //If someone lands on /templates, redirect them to /templates/all
     if (isset($_SERVER['REQUEST_URI']) && trim($_SERVER['REQUEST_URI'], '/') == 'templates') {
         wp_redirect(site_url('/templates/all'), 301);
@@ -688,7 +699,7 @@ function idemailwiz_enqueue_assets()
         'folder-actions' => array('/js/folder-actions.js', array('jquery', 'id-general')),
         'user-favorites' => array('/js/user-favorites.js', array('jquery', 'id-general')),
         'bulk-actions' => array('/js/bulk-actions.js', array('jquery', 'id-general', 'folder-actions', 'template-actions')),
-        'iterable-actions' => array('/js/iterable-actions.js', array('jquery', 'id-general', 'bulk-actions')),
+        'iterable-actions' => array('/js/iterable-actions.js', array('jquery', 'id-general', 'bulk-actions', 'template-editor')),
         'data-tables' => array('/js/data-tables.js', array('jquery', 'id-general')),
         'wiz-charts' => array('/js/wiz-charts.js', array('jquery', 'id-general', 'charts-js')),
         'wiz-metrics' => array('/js/metrics.js', array('jquery', 'id-general', 'wiz-charts', 'data-tables')),

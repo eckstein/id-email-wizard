@@ -20,9 +20,11 @@ function idemailwiz_get_template_data_for_iterable()
 
 	$post_id = $_POST['post_id'];
 
-	$wizTemplate = get_wizTemplate($post_id);
+	$wizTemplate = get_wiztemplate($post_id);
 
-	$messageSettings = $wizTemplate['templateOptions']['templateSettings']['message-settings'];
+	$iterableSyncSettings = $wizTemplate['template_settings']['iterable-sync'];
+
+	$messageSettings = $wizTemplate['template_options']['message_settings'];
 
 	$current_user = wp_get_current_user();
 
@@ -60,7 +62,8 @@ function idemailwiz_get_template_data_for_iterable()
 		);
 
 		// Iterable template ID
-		$templateId = $_POST['template_id'] ?? false;
+		//$templateId = $_POST['template_id'] ?? false;
+		$templateId = $iterableSyncSettings['iterable_template_id'];
 
 		if ($templateId) {
 			// Get wiz campaign based on templateId
@@ -89,40 +92,54 @@ function idemailwiz_get_template_data_for_iterable()
 }
 add_action('wp_ajax_idemailwiz_get_template_data_for_iterable', 'idemailwiz_get_template_data_for_iterable');
 
-function check_duplicate_itTemplateId()
-{
-	// Iterable template ID
+function check_duplicate_itTemplateId() {
+	// Iterable template ID from POST request
 	$templateId = $_POST['template_id'] ?? false;
-	// WizTemplate post ID
+	// WizTemplate post ID from POST request
 	$post_id = $_POST['post_id'] ?? false;
 
-	if ($templateId) {
-		// Check for existing itTemplateId
+	if ($post_id) {
+		// Fetch all wizTemplate posts
 		$args = array(
-			'post_type' => 'idemailwiz_template',
-			'meta_key' => 'itTemplateId',
-			'meta_value' => (int) $templateId,
-			'post__not_in' => array($post_id),
-			'posts_per_page' => 1
+			'post_type' => 'idemailwiz_template', // Ensure this is your correct custom post type
+			'posts_per_page' => -1, // Consider limiting this if you have many posts
+			'post__not_in' => array($post_id), // Exclude the current post 
+			//TODO: This won't work when we need to look at variations from the same post
 		);
 
-		$existingTemplates = get_posts($args);
+		$wizTemplates = get_posts($args);
+		foreach ($wizTemplates as $wizTemplate) {
+			// Get the wizTemplate data
+			$wizData = get_wiztemplate($wizTemplate->ID);
+			$wizTemplateControlId = $wizData['template_options']['template_settings']['iterable-sync']['iterable_template_id'] ?? false;
+			//TODO: also look for variations template IDs
 
-		if (!empty($existingTemplates)) {
-			$existingTemplateId = $existingTemplates[0]->ID;
-			$response = array(
-				'status' => 'error',
-				'message' => "The template ID you entered is already synced to template <a href='" . get_edit_post_link($existingTemplateId) . "'>" . $existingTemplateId . "</a>"
-			);
-			wp_send_json($response);
-			return; // Exit function
-		} else {
-			wp_send_json(array('status' => 'success'));
-			return; // Exit function
+			if ($wizTemplateControlId && $wizTemplateControlId == $templateId) {
+				// Duplicate found
+				$response = array(
+					'status' => 'error',
+					'message' => "The template ID you entered is already synced to template <a href='" . get_edit_post_link($wizTemplate->ID) . "'>" . $wizTemplate->ID . "</a>"
+				);
+				wp_send_json($response);
+				return; // Exit function
+			}
 		}
+
+		// If no duplicates are found
+		wp_send_json(array('status' => 'success'));
+		return; // Exit function
+	} else {
+		if ($templateId == 'new') {
+			wp_send_json(array('status' => 'success'));
+			return;
+		}
+		// Handle case where necessary POST data is not set
+		wp_send_json(array('status' => 'error', 'message' => 'Missing template ID or post ID.'));
+		return; // Exit function
 	}
 }
 add_action('wp_ajax_check_duplicate_itTemplateId', 'check_duplicate_itTemplateId');
+
 
 
 function update_template_after_sync()
@@ -135,20 +152,6 @@ function update_template_after_sync()
 	$post_id = $_POST['post_id'];
 	$template_id = $_POST['template_id'];
 
-	//check for existing itTemplateId
-	if (get_post_meta($post_id, 'itTemplateId', true)) {
-		//delete old template_id from post meta if it exists
-		delete_post_meta($post_id, 'itTemplateId');
-	}
-
-	//add new template_id to post meta
-	update_post_meta($post_id, 'itTemplateId', $template_id);
-
-	//add last updated date/time to post meta
-	$dateTime = new DateTime('now', new DateTimeZone('America/Los_Angeles'));
-	$formattedDateTime = $dateTime->format('n/j/Y \a\t g:ia');
-	update_post_meta($post_id, 'lastIterableSync', $formattedDateTime);
-
 	// Update the custom database table
 	$wpdb->update(
 		$wpdb->prefix . 'idemailwiz_templates',
@@ -160,7 +163,7 @@ function update_template_after_sync()
 
 	$response = array(
 		'status' => 'success',
-		'message' => 'itTemplateId updated in post meta and template database!',
+		'message' => 'itTemplateId added to template database!',
 	);
 	wp_send_json($response);
 }

@@ -20,10 +20,21 @@ global $wpdb;
         </div>
     </header>
     <div class="entry-content" itemprop="mainContentOfPage">
-        <pre><code><?php //print_r(idemailwiz_process_jobids([1149112], 'open')); ?></code></pre>
-        <pre><code><?php //idemailwiz_sync_triggered_metric_from_transient('send'); ?></code></pre>
+<?php
+        function generatePixelArtGrid($numberOfPixels) {
+            $htmlOutput = '<div class="pixel-art-grid">';
+            for ($i = 1; $i <= $numberOfPixels; $i++) {
+                $htmlOutput .= '<input type="checkbox" id="pixel' . $i . '" class="pixel-checkbox" /><label for="pixel' . $i . '" class="pixel-label"></label>';
+            }
+            $htmlOutput .= '</div>';
+            return $htmlOutput;
+        }
 
-        <?php //updateDatabaseFromCSV('https://localhost/wp-content/uploads/2024/01/wiz-purchase-non-email-12-31-23.csv', 'idemailwiz_purchases'); ?>
+        // Example usage
+        $gridSize = 400; // Specify the total number of pixels in the grid
+        echo htmlspecialchars(generatePixelArtGrid($gridSize));
+
+        ?>
 
 
     </div>

@@ -1,94 +1,5 @@
 <?php
-function duplicate_email_template( $post_id, $returnPHP=false ) {
-    // Get the current post that we're duplicating
-    $post = get_post( $post_id );
-	
-    // Duplicate the post
-    $duplicate = array(
-        'post_title'     => $post->post_title.' (copy)',
-        'post_content'   => $post->post_content,
-        'post_status'    => 'publish',
-        'post_type'      => 'idemailwiz_template',
-        'post_author'    => $post->post_author,
-    );
-    $dupedID = wp_insert_post( $duplicate );
-	if (is_wp_error($dupedID)) {
-		return $dupedID->get_error_message();
-	}
-	
-	
-	
-    // Duplicate the post's custom fields
-    $meta_keys = get_post_custom_keys( $post_id );
-    if ( ! empty( $meta_keys ) ) {
-        foreach ( $meta_keys as $key ) {
-            //don't duplicate the iterable template ID value
-            if ($key != 'itTemplateId') {
-                $meta_values = get_post_custom_values( $key, $post_id );
-                foreach ( $meta_values as $value ) {
-                    $dupeMeta = add_post_meta( $dupedID, $key, maybe_unserialize( $value ) );
-					if (is_wp_error($dupeMeta)) {
-						return $dupeMeta->get_error_message();
-					}
-                }
-            }
-        }
-    }
 
-    // Duplicate the post's ACF fields
-    if ( function_exists( 'acf_get_field_groups' ) ) {
-        $field_groups = acf_get_field_groups( array( 'post_id' => $post_id ) );
-        if ( ! empty( $field_groups ) ) {
-            foreach ( $field_groups as $field_group ) {
-                $fields = acf_get_fields( $field_group );
-                if ( ! empty( $fields ) ) {
-                    foreach ( $fields as $field ) {
-                        $value = get_field( $field['name'], $post_id );
-                        update_field( $field['key'], $value, $dupedID );
-                    }
-                }
-            }
-        }
-    }
-	
-	
-    
-	//Set the copied templates folders (folders) to the duped ones
-	//IMPORTANT: we're doing this later because it doesn't seem to work earlier in the code
-
-	$folders = wp_get_object_terms( $post_id, 'idemailwiz_folder');
-	if (is_wp_error($folders)) {
-		return $folders->get_error_message();
-	}
-
-	// If no folders, set folder to 1 as fallback (root)
-	if ( empty( $folders ) ) {
-			$folderIDs = array();
-		foreach ($folders as $folder) {
-			$folderIDs[] = $folder->term_id;
-		}
-	}
-	if (empty($folderIDs)) {
-		$options = get_option('idemailwiz_settings');
-		$folderIDs = array((int) $options['folder_base']);
-	}
-	$setTemplateTerms = wp_set_object_terms( $dupedID, $folderIDs, 'idemailwiz_folder' );
-	if (is_wp_error($setTemplateTerms)) {
-		return $setTemplateTerms->get_error_message();
-	}
-	
-	
-    $return = array();
-	$return['success'] = true;
-	$return['newTemplate'] = $dupedID;
-	$return['newURL'] = get_the_permalink($dupedID);
-    
-	if (!$returnPHP) {
-		wp_send_json($return);
-	} else {
-		return $return;
-	}
-}
 
 /**
  * Restore a post by ID from the trash.
@@ -97,32 +8,32 @@ function duplicate_email_template( $post_id, $returnPHP=false ) {
  * @return bool Whether the post was successfully restored.
  */
 function id_restore_template( $post_id ) {
-    $post = get_post( $post_id );
+	$post = get_post( $post_id );
 
-    if ( ! $post ) {
-        $return = 'Template not found!';
-    }
+	if ( ! $post ) {
+		$return = 'Template not found!';
+	}
 
-    if ( 'trash' !== $post->post_status ) {
-        $return = 'This template is not trashed!';
-    }
-	
-    $untrashTemplate =  wp_untrash_post( $post_id );
-	if (is_wp_error($untrashTemplate)) {
+	if ( 'trash' !== $post->post_status ) {
+		$return = 'This template is not trashed!';
+	}
+
+	$untrashTemplate = wp_untrash_post( $post_id );
+	if ( is_wp_error( $untrashTemplate ) ) {
 		$return = $untrashTemplate->get_error_message();
 	} else {
 		$return = true;
 	}
-	
-	$republishTemplate = wp_publish_post($post_id);
-	if (is_wp_error($republishTemplate)) {
+
+	$republishTemplate = wp_publish_post( $post_id );
+	if ( is_wp_error( $republishTemplate ) ) {
 		$return = $republishTemplate->get_error_message();
 	} else {
 		$return = true;
 	}
-	
+
 	return $return;
-	
+
 }
 
 //ajax requests for template actions
@@ -130,59 +41,52 @@ function id_restore_template( $post_id ) {
 function id_ajax_template_actions() {
 
 	//check nonce
-    if (!check_ajax_referer( 'template-actions', 'security', false)) {
-		check_ajax_referer( 'id-general', 'security');
+	if ( ! check_ajax_referer( 'template-actions', 'security', false ) ) {
+		check_ajax_referer( 'id-general', 'security' );
 	}
-	
-	
+
+
 
 
 	//get global options
-	$options = get_option('idemailwiz_settings');
+	$options = get_option( 'idemailwiz_settings' );
 	$trashTerm = $options['folder_trash'];
-	if (!isset($options['folder_trash'])){
-		wp_send_json(array('success'=>false, 'actionResponse'=>'Trash folder term was not found!'));
+	if ( ! isset( $options['folder_trash'] ) ) {
+		wp_send_json( array( 'success' => false, 'actionResponse' => 'Trash folder term was not found!' ) );
 		die();
 	}
 
 	$action = $_POST['template_action'];
 	$post_id = $_POST['post_id'];
-	if (!$post_id || !$action) {
-		wp_send_json(false);
+	if ( ! $post_id || ! $action ) {
+		wp_send_json( false );
 	}
 	$doAction = false;
 	$actionResponse = '';
-	switch ($action) {
-        case 'delete':			
-			$currentFolder = wp_get_post_terms($post_id,'idemailwiz_folder',array('fields'=>'ids'));
-			if (is_wp_error($currentFolder)) {
-				wp_send_json(array('success'=>false, 'actionResponse'=>$currentFolder->get_error_message()));
+	switch ( $action ) {
+		case 'delete':
+			$currentFolder = wp_get_post_terms( $post_id, 'idemailwiz_folder', array( 'fields' => 'ids' ) );
+			if ( is_wp_error( $currentFolder ) ) {
+				wp_send_json( array( 'success' => false, 'actionResponse' => $currentFolder->get_error_message() ) );
 				die();
 			}
-			
+
 			//Put this template in the trashed folder term
-			if (!is_wp_error($trashTerm)) {
-				$setDeleteTerms = wp_set_post_terms($post_id, array_merge(array( (int) $trashTerm ),$currentFolder), 'idemailwiz_folder', false );
-				if (is_wp_error($setDeleteTerms)) {
-					wp_send_json(array('success'=>false, 'actionResponse'=>$setDeleteTerms->get_error_message()));
+			if ( ! is_wp_error( $trashTerm ) ) {
+				$setDeleteTerms = wp_set_post_terms( $post_id, array_merge( array( (int) $trashTerm ), $currentFolder ), 'idemailwiz_folder', false );
+				if ( is_wp_error( $setDeleteTerms ) ) {
+					wp_send_json( array( 'success' => false, 'actionResponse' => $setDeleteTerms->get_error_message() ) );
 					die();
 				}
 			} else {
-				wp_send_json(array('success'=>false, 'actionResponse'=>$trashTerm->get_error_message()));
+				wp_send_json( array( 'success' => false, 'actionResponse' => $trashTerm->get_error_message() ) );
 				die();
 			}
-			
+
 			//Trash it
-			$trashPost = wp_trash_post($post_id);
-			if (is_wp_error($trashPost)) {
-				wp_send_json(array('success'=>false, 'actionResponse'=>$trashPost->get_error_message()));
-				die();
-			}
-			
-			//delete iterable template id if present
-			$deletedIterableMeta = delete_post_meta($post_id, 'itTemplateId');
-			if (is_wp_error($deletedIterableMeta)) {
-				wp_send_json(array('success'=>false, 'actionResponse'=>$deletedIterableMeta->get_error_message()));
+			$trashPost = wp_trash_post( $post_id );
+			if ( is_wp_error( $trashPost ) ) {
+				wp_send_json( array( 'success' => false, 'actionResponse' => $trashPost->get_error_message() ) );
 				die();
 			}
 
@@ -190,14 +94,14 @@ function id_ajax_template_actions() {
 			$users = get_users();
 
 			// Loop through the users
-			foreach ($users as $user) {
-				$favorites = get_user_meta($user->ID, 'idwiz_favorite_templates', true);
+			foreach ( $users as $user ) {
+				$favorites = get_user_meta( $user->ID, 'idwiz_favorite_templates', true );
 
 				// If the template is in the user's favorites, remove it
-				if (is_array($favorites) && in_array($post_id, $favorites)) {
-					$key = array_search($post_id, $favorites);
-					unset($favorites[$key]);
-					update_user_meta($user->ID, 'idwiz_favorite_templates', $favorites);
+				if ( is_array( $favorites ) && in_array( $post_id, $favorites ) ) {
+					$key = array_search( $post_id, $favorites );
+					unset( $favorites[ $key ] );
+					update_user_meta( $user->ID, 'idwiz_favorite_templates', $favorites );
 				}
 			}
 
@@ -207,96 +111,203 @@ function id_ajax_template_actions() {
 
 		case 'restore':
 			//Removed trashed term
-			if (!is_wp_error($trashTerm)) {
-				$restoreTrashedTemplate = id_restore_template($post_id);
-				if ($restoreTrashedTemplate === true) {
-					wp_send_json(array('success'=>false, 'actionResponse'=>$restoreTrashedTemplate));
+			if ( ! is_wp_error( $trashTerm ) ) {
+				$restoreTrashedTemplate = id_restore_template( $post_id );
+				if ( $restoreTrashedTemplate === true ) {
+					wp_send_json( array( 'success' => false, 'actionResponse' => $restoreTrashedTemplate ) );
 					die();
 				}
 			} else {
-				wp_send_json(array('success'=>false, 'actionResponse'=>$trashTerm->get_error_message()));
+				wp_send_json( array( 'success' => false, 'actionResponse' => $trashTerm->get_error_message() ) );
 				die();
 			}
-			wp_remove_object_terms($post_id, $trashTerm, 'idemailwiz_folder');
+			wp_remove_object_terms( $post_id, $trashTerm, 'idemailwiz_folder' );
 			//wp_set_post_terms( $post_id, array( 1 ), 'idemailwiz_folder', false );
 			$doAction = true;
 			$actionResponse = $post_id;
-            break;
-        case 'create_from_template':
-            $template_title = $_POST['template_title'];
-			$actionResponse = duplicate_email_template($post_id, true);//we set the 2nd parameter to true to return a php-friendly result
-			if (isset($actionResponse['success']) && $actionResponse['success'] == true) {
-				$dID = $actionResponse['newTemplate'];
-			} else {
-				wp_send_json(array('success'=>false, 'actionResponse'=>$actionResponse));
-				die();
-			}
-			
-			// Update the post title and slug
-			$slug = sanitize_title($template_title); // Generate a slug from the post title
-			$unique_slug = wp_unique_post_slug($slug, $post_id, get_post_status($post_id), 'idemailwiz_template', 0); // Generate a unique slug
-			
-			$post_data = array(
-				'ID' => $dID,
-				'post_title' => $template_title,
-				'post_name' => $unique_slug,
-			);
-			$updateTemplate = wp_update_post($post_data);
-			if (is_wp_error($updateTemplate)) {
-				wp_send_json(array('success'=>false, 'actionResponse'=>$updateTemplate->get_error_message()));
-				die();
-			}
-			
-			//get our new permalink
-			$actionResponse['newURL'] = get_the_permalink($dID);
-			
-			//update the folder to the root
-			// Get the current folder terms for the post
-			$current_folders = wp_get_post_terms($dID, 'idemailwiz_folder');
-			$options = get_option('idemailwiz_settings');
-			$folderRootTerm = $options['folder_base'];
-			
-			// Set the terms to the new folder
-			$setFolders = wp_set_post_terms($dID, array($folderRootTerm), 'idemailwiz_folder');
-			if (is_wp_error($setFolders)) {
-				wp_send_json(array('success'=>false, 'actionResponse'=>$setFolders->get_error_message()));
-				die();
-			}
+			break;
 
-			// Remove the post from all other categories
-			foreach ($current_folders as $folder) {	
-				$folder_id = $folder->term_id;
-				if (is_wp_error($folderRootTerm)) {
-						wp_send_json(array('success'=>false, 'actionResponse'=>$folderRootTerm->get_error_message()));
-						die();
-					}
-				if ($folder_id != (int)$folderRootTerm) {
-					$removeFromFolders = wp_remove_object_terms($dID, $folder_id, 'idemailwiz_folder');
-					if (is_wp_error($removeFromFolders)) {
-						wp_send_json(array('success'=>false, 'actionResponse'=>$removeFromFolders->get_error_message()));
-						die();
-					}
-				}
-			}
-			
-			$doAction = true;
-            break;
 		case 'duplicate':
-			$duplicateTemplate = duplicate_email_template($post_id);//returns new post id
-			if (isset($duplicateTemplate['success']) && $duplicateTemplate['success'] == true) {
+			$duplicateTemplate = duplicate_wiz_template( $post_id );//returns new post id
+			if ( isset( $duplicateTemplate['success'] ) && $duplicateTemplate['success'] == true ) {
 				$doAction = true;
 			}
 			break;
-        default:
-            // code to handle any other actions
-    }
-	
-    // return a response
+		default:
+		// code to handle any other actions
+	}
+
+	// return a response
 	//wp_send_json automatically calls die();
-    wp_send_json(array('success'=>$doAction, 'actionResponse'=>$actionResponse));
+	wp_send_json( array( 'success' => $doAction, 'actionResponse' => $actionResponse ) );
 }
-add_action('wp_ajax_id_ajax_template_actions', 'id_ajax_template_actions');
-add_action('wp_ajax_nopriv_id_ajax_template_actions', 'id_ajax_template_actions');
+add_action( 'wp_ajax_id_ajax_template_actions', 'id_ajax_template_actions' );
+add_action( 'wp_ajax_nopriv_id_ajax_template_actions', 'id_ajax_template_actions' );
+
+// Create a new template
+add_action( 'wp_ajax_create_new_wiz_template', 'create_new_wiz_template' );
+
+function create_new_wiz_template() {
+	global $wpdb; // Access to the WordPress database object
+
+	// Verify nonce here (if not done elsewhere in your code)
+	if ( ! wp_verify_nonce( $_POST['security'], 'template-actions' ) ) {
+		wp_send_json_error( 'Nonce verification failed' );
+		die();
+	}
+
+	// Sanitize and validate the template title
+	if ( empty( $_POST['template_title'] ) ) {
+		wp_send_json_error( 'Template title is required' );
+		die();
+	}
+	$template_title = sanitize_text_field( $_POST['template_title'] );
+
+	// Create new post of type 'idemailwiz_template'
+	$post_data = array(
+		'post_title' => $template_title,
+		'post_status' => 'publish', // or 'draft' if you don't want it published immediately
+		'post_type' => 'idemailwiz_template',
+		'post_author' => get_current_user_id(), // Set the author to the current user
+	);
+
+	$post_id = wp_insert_post( $post_data );
+
+	// Check for errors
+	if ( is_wp_error( $post_id ) ) {
+		wp_send_json_error( $post_id->get_error_message() );
+		die();
+	}
+
+	// Set the post terms (folders)
+	$options = get_option( 'idemailwiz_settings' );
+	$folderRootTerm = $options['folder_base'] ?? '';
+	if ( ! empty( $folderRootTerm ) ) {
+		wp_set_post_terms( $post_id, array( $folderRootTerm ), 'idemailwiz_folder' );
+	}
+
+	$createDBrow = create_wiz_template_db_row( $post_id );
+
+
+	// If everything was successful, send back the new post's URL
+	if ( $post_id && $createDBrow ) {
+		$new_url = get_permalink( $post_id );
+		wp_send_json_success( array( 'newURL' => $new_url ) );
+	} else {
+		wp_send_json_error( array( 'message' => 'Failed to create new template' ) );
+	}
+	die();
+}
+
+function create_wiz_template_db_row( $post_id ) {
+	global $wpdb;
+	// Insert into custom database table
+	$success = $wpdb->insert(
+		$wpdb->prefix . 'wiz_templates',
+		array(
+			'last_updated' => current_time( 'mysql' ), // Use WordPress current time function
+			'post_id' => $post_id,
+			'user_id' => get_current_user_id(),
+			'template_data' => json_encode( [ 'templateOptions' => [] ] )
+		),
+		array(
+			'%s',
+			'%d',
+			'%d',
+			'%s'
+		)
+	);
+
+	// Check if insert was successful
+	if ( ! $success ) {
+		return false;
+	}
+
+	return true;
+}
+
+
+function duplicate_wiz_template($post_id, $returnPHP = false) {
+	global $wpdb; // Make sure you have access to the WordPress database object
+	
+	// Get the current post that we're duplicating
+	$post = get_post($post_id);
+	$wizTemplateObject = get_wiztemplate_object($post_id); // Assuming this function returns the custom data for the template
+	
+	// Duplicate the post
+	$duplicate = array(
+		'post_title' => '(copy) ' . $post->post_title,
+		'post_content' => $post->post_content,
+		'post_status' => 'publish',
+		'post_type' => 'idemailwiz_template',
+		'post_author' => $post->post_author,
+	);
+	$dupedID = wp_insert_post($duplicate);
+	
+	if (is_wp_error($dupedID)) {
+		return $dupedID->get_error_message();
+	}
+	
+	// Duplicate the folders
+	$folders = wp_get_object_terms($post_id, 'idemailwiz_folder');
+	if (is_wp_error($folders)) {
+		return $folders->get_error_message();
+	}
+		
+	$folderIDs = empty($folders) ? [] : wp_list_pluck($folders, 'term_id');
+	if (empty($folderIDs)) {
+		$options = get_option('idemailwiz_settings');
+		$folderIDs = array((int) $options['folder_base']);
+	}
+	$setTemplateTerms = wp_set_object_terms($dupedID, $folderIDs, 'idemailwiz_folder');
+	if (is_wp_error($setTemplateTerms)) {
+		return $setTemplateTerms->get_error_message();
+	}
+	
+	// Duplicate the custom database row
+	$wizTemplateRow = $wpdb->get_row($wpdb->prepare(
+		"SELECT * FROM {$wpdb->prefix}wiz_templates WHERE post_id = %d",
+		$post_id
+	), ARRAY_A);
+	
+	if ($wizTemplateRow) {
+		// Clear out the template_data_draft template_html_draft columns
+		$wizTemplateRow['template_data_draft'] = json_encode([]);
+		$wizTemplateRow['template_html_draft'] = '';
+
+		// Unpack the JSON in the template_data column
+		$templateData = json_decode( $wizTemplateRow['template_data'], true );
+
+		// Remove the iterable_template_id value
+		unset( $templateData['template_options']['template_settings']['iterable-sync']['iterable_template_id'] );
+
+		// Re-encode the JSON and save back to the column
+		$wizTemplateRow['template_data'] = json_encode( $templateData );
+
+		// Update the post_id to the ID of the new duplicated post
+		$wizTemplateRow['post_id'] = $dupedID;
+		// Remove the ID from the row to ensure a new row is inserted
+		unset($wizTemplateRow['id']);
+		// Update the last_updated to the current time
+		$wizTemplateRow['last_updated'] = current_time('mysql');
+	
+		$inserted = $wpdb->insert("{$wpdb->prefix}wiz_templates", $wizTemplateRow);
+	
+		if (!$inserted) {
+			return "Failed to duplicate the template data in the custom database.";
+		}
+	} else {
+		return "Original template data not found in the custom database.";
+	}
+	
+	$return = array(
+		'success' => true,
+		'newTemplate' => $dupedID,
+		'newURL' => get_the_permalink($dupedID),
+	);
+	wp_send_json_success($return);
+}	
+
 
 // Delete a folder and move its contents to where the user specified
 function id_delete_folder() {
@@ -304,103 +315,103 @@ function id_delete_folder() {
 	check_ajax_referer( 'folder-actions', 'security' );
 
 
-    $folder_ids = $_POST['this_folder']; // Can be an array
-    $new_folder_id = (int) $_POST['move_into'];
+	$folder_ids = $_POST['this_folder']; // Can be an array
+	$new_folder_id = (int) $_POST['move_into'];
 
-    // Loop through folders
-    foreach ($folder_ids as $folder_id) {
-        // Get the folder object for the folder to be deleted
-        $folder = get_term($folder_id, 'idemailwiz_folder');
+	// Loop through folders
+	foreach ( $folder_ids as $folder_id ) {
+		// Get the folder object for the folder to be deleted
+		$folder = get_term( $folder_id, 'idemailwiz_folder' );
 
-        // Check if the folder exists
-        if (!$folder) {
-            $error_message = 'folder does not exist.';
-            wp_send_json_error(array('error' => $error_message));
-            return;
-        }
-		
-		
-
-        // Get the templates that are in this folder
-        $templates = get_posts(array(
-			'tax_query' => array(
-				array(
-				  'taxonomy' => 'idemailwiz_folder',
-				  'field' => 'term_id', 
-				  'terms' => $folder_id, 
-				  'include_children' => false
-				)
-			  ),
-            'numberposts' => -1
-        ));
-        // Loop through the templates and move them to the new folder
-        foreach ($templates as $template) {
-			$moveTemplates = wp_set_post_terms($template->ID, array($new_folder_id), 'idemailwiz_folder', true);
-			if ($moveTemplates instanceof WP_Error) {
-				$error_message = $moveTemplates->get_error_message();
-				wp_send_json_error(array('Move templates error' => $error_message));
-				return;
-			}
-        }
-
-        // Get child folders
-        $child_folders = get_terms(array(
-			'taxonomy' => 'idemailwiz_folder',
-            'child_of' => $folder_id,
-			'hide_empty' => false
-        ));	
-		if ($child_folders instanceof WP_Error) {
-			$error_message = $child_folders->get_error_message();
-			wp_send_json_error(array('Get terms error' => $error_message));
+		// Check if the folder exists
+		if ( ! $folder ) {
+			$error_message = 'folder does not exist.';
+			wp_send_json_error( array( 'error' => $error_message ) );
 			return;
 		}
-        // Loop through child folders and move them to the new folder
-		foreach ($child_folders as $child_folder) {
+
+
+
+		// Get the templates that are in this folder
+		$templates = get_posts( array(
+			'tax_query' => array(
+				array(
+					'taxonomy' => 'idemailwiz_folder',
+					'field' => 'term_id',
+					'terms' => $folder_id,
+					'include_children' => false
+				)
+			),
+			'numberposts' => -1
+		) );
+		// Loop through the templates and move them to the new folder
+		foreach ( $templates as $template ) {
+			$moveTemplates = wp_set_post_terms( $template->ID, array( $new_folder_id ), 'idemailwiz_folder', true );
+			if ( $moveTemplates instanceof WP_Error ) {
+				$error_message = $moveTemplates->get_error_message();
+				wp_send_json_error( array( 'Move templates error' => $error_message ) );
+				return;
+			}
+		}
+
+		// Get child folders
+		$child_folders = get_terms( array(
+			'taxonomy' => 'idemailwiz_folder',
+			'child_of' => $folder_id,
+			'hide_empty' => false
+		) );
+		if ( $child_folders instanceof WP_Error ) {
+			$error_message = $child_folders->get_error_message();
+			wp_send_json_error( array( 'Get terms error' => $error_message ) );
+			return;
+		}
+		// Loop through child folders and move them to the new folder
+		foreach ( $child_folders as $child_folder ) {
 			// Use 'parent' field to set the parent of the term
 			$args = array(
 				'parent' => $new_folder_id
 			);
 
-			$updateTerm = wp_update_term($child_folder->term_id, 'idemailwiz_folder', $args);
-			if ($updateTerm instanceof WP_Error) {
+			$updateTerm = wp_update_term( $child_folder->term_id, 'idemailwiz_folder', $args );
+			if ( $updateTerm instanceof WP_Error ) {
 				$error_message = $updateTerm->get_error_message();
-				wp_send_json_error(array('Move children error' => $error_message));
+				wp_send_json_error( array( 'Move children error' => $error_message ) );
 				return;
-			} 
+			}
 		}
 
-        // Get all users
-        $users = get_users();
+		// Get all users
+		$users = get_users();
 
-        // Loop through the users
-        foreach ($users as $user) {
-            $favorites = get_user_meta($user->ID, 'idwiz_favorite_folders', true);
+		// Loop through the users
+		foreach ( $users as $user ) {
+			$favorites = get_user_meta( $user->ID, 'idwiz_favorite_folders', true );
 
-            // If the folder is in the user's favorites, remove it
-            if (is_array($favorites) && in_array($folder_id, $favorites)) {
-                $key = array_search($folder_id, $favorites);
-                unset($favorites[$key]);
-                update_user_meta($user->ID, 'idwiz_favorite_folders', $favorites);
-            }
-        }
-		
+			// If the folder is in the user's favorites, remove it
+			if ( is_array( $favorites ) && in_array( $folder_id, $favorites ) ) {
+				$key = array_search( $folder_id, $favorites );
+				unset( $favorites[ $key ] );
+				update_user_meta( $user->ID, 'idwiz_favorite_folders', $favorites );
+			}
+		}
+
 		// Delete the folder
-        $deleteTerm = wp_delete_term($folder_id, 'idemailwiz_folder');
-        if ($deleteTerm instanceof WP_Error) {
-            $error_message = $deleteTerm->get_error_message();
-            wp_send_json_error(array('Delete error' => $error_message));
-            return;
-        }    
-    }
+		$deleteTerm = wp_delete_term( $folder_id, 'idemailwiz_folder' );
+		if ( $deleteTerm instanceof WP_Error ) {
+			$error_message = $deleteTerm->get_error_message();
+			wp_send_json_error( array( 'Delete error' => $error_message ) );
+			return;
+		}
+	}
 
-    // Send success response with additional data
-    wp_send_json_success(array(
-        'newFolderLink' => get_term_link($new_folder_id, 'idemailwiz_folder'),
-    ));
+	// Send success response with additional data
+	wp_send_json_success( array(
+		'newFolderLink' => get_term_link( $new_folder_id, 'idemailwiz_folder' ),
+	) );
 }
 
-add_action('wp_ajax_id_delete_folder', 'id_delete_folder');
-add_action('wp_ajax_nopriv_id_delete_folder', 'id_delete_folder');
+add_action( 'wp_ajax_id_delete_folder', 'id_delete_folder' );
+add_action( 'wp_ajax_nopriv_id_delete_folder', 'id_delete_folder' );
 
 
 
@@ -409,86 +420,86 @@ add_action('wp_ajax_nopriv_id_delete_folder', 'id_delete_folder');
 //Add a new folder to the folder tree
 function id_add_new_folder() {
 	//check nonce
-    check_ajax_referer( 'folder-actions', 'security' );
-	
+	check_ajax_referer( 'folder-actions', 'security' );
+
 	$folder_name = sanitize_text_field( $_POST['folder_name'] );
 	$parent_folder = $_POST['parent_folder'];
-	
-    $response = wp_insert_term( $folder_name, 'idemailwiz_folder', array('parent'=>$parent_folder)); 
-	
-    wp_send_json_success( $response );
-    wp_die();
+
+	$response = wp_insert_term( $folder_name, 'idemailwiz_folder', array( 'parent' => $parent_folder ) );
+
+	wp_send_json_success( $response );
+	wp_die();
 }
-add_action('wp_ajax_id_add_new_folder', 'id_add_new_folder');
-add_action('wp_ajax_nopriv_id_add_new_folder', 'id_add_new_folder');
+add_action( 'wp_ajax_id_add_new_folder', 'id_add_new_folder' );
+add_action( 'wp_ajax_nopriv_id_add_new_folder', 'id_add_new_folder' );
 
 //Move a template to another folder
 function id_move_template() {
 	//check nonce
-    check_ajax_referer( 'template-actions', 'security' );
-	
+	check_ajax_referer( 'template-actions', 'security' );
+
 	// Set the post ID and the new folder ID
 	$thisTemplate = $_POST['this_template'];
-	
-	foreach ($thisTemplate as $template) {
+
+	foreach ( $thisTemplate as $template ) {
 		$moveInto = (int) $_POST['move_into'];
 
 		// Assign the post a new folder and remove previous ones
-		$setfolders = wp_set_post_terms($template, array($moveInto), 'idemailwiz_folder');
+		$setfolders = wp_set_post_terms( $template, array( $moveInto ), 'idemailwiz_folder' );
 	}
 
 	// Get the new folder's link
-	$newfolderLink = get_term_link($moveInto, 'idemailwiz_folder');
+	$newfolderLink = get_term_link( $moveInto, 'idemailwiz_folder' );
 
 	$return = array(
 		'moveTemplate' => $setfolders,
 		'newFolderLink' => $newfolderLink,
 	);
-	
-	
+
+
 	wp_send_json_success( $return ); // respond is an array including term id and term taxonomy id
 	wp_die();
 }
 
-add_action('wp_ajax_id_move_template', 'id_move_template');
-add_action('wp_ajax_nopriv_id_move_template', 'id_move_template');
+add_action( 'wp_ajax_id_move_template', 'id_move_template' );
+add_action( 'wp_ajax_nopriv_id_move_template', 'id_move_template' );
 
 
 //Move a folder to another folder
 function id_move_folder() {
 	//check nonce
-    check_ajax_referer( 'folder-actions', 'security' );
-	
-    $thisFolder = $_POST['this_folder'];
-    $moveInto = (int) $_POST['move_into'];
-	
-    foreach ($thisFolder as $folder) {
-        $moveFolder = wp_update_term($folder, 'idemailwiz_folder', array(
-            'parent' => $moveInto,
-        ));
-        // Check for any errors
-        if (is_wp_error($moveFolder)) {
-            $return = array(
-                'error' => $moveFolder->get_error_message(), // Get the error message
-            );
-            wp_send_json_error($return); // Send the error message in the response
-            wp_die();
-        }
-    }
+	check_ajax_referer( 'folder-actions', 'security' );
 
-    // Get the new parent folder's link
-    $newParentLink = get_term_link($moveInto, 'idemailwiz_folder');
+	$thisFolder = $_POST['this_folder'];
+	$moveInto = (int) $_POST['move_into'];
 
-    // Use the new parent's link instead of the moved folder's link
-    $return = array(
-        'moveCat' => $moveFolder,
-        'newFolderLink' => $newParentLink,
-    );
-    wp_send_json_success($return); // respond is an array including term id and term taxonomy id
-    wp_die();
+	foreach ( $thisFolder as $folder ) {
+		$moveFolder = wp_update_term( $folder, 'idemailwiz_folder', array(
+			'parent' => $moveInto,
+		) );
+		// Check for any errors
+		if ( is_wp_error( $moveFolder ) ) {
+			$return = array(
+				'error' => $moveFolder->get_error_message(), // Get the error message
+			);
+			wp_send_json_error( $return ); // Send the error message in the response
+			wp_die();
+		}
+	}
+
+	// Get the new parent folder's link
+	$newParentLink = get_term_link( $moveInto, 'idemailwiz_folder' );
+
+	// Use the new parent's link instead of the moved folder's link
+	$return = array(
+		'moveCat' => $moveFolder,
+		'newFolderLink' => $newParentLink,
+	);
+	wp_send_json_success( $return ); // respond is an array including term id and term taxonomy id
+	wp_die();
 }
 
 
-add_action('wp_ajax_id_move_folder', 'id_move_folder');
-add_action('wp_ajax_nopriv_id_move_folder', 'id_move_folder');
+add_action( 'wp_ajax_id_move_folder', 'id_move_folder' );
+add_action( 'wp_ajax_nopriv_id_move_folder', 'id_move_folder' );
 

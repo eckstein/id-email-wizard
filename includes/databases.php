@@ -182,8 +182,6 @@ function idemailwiz_create_databases() {
 		user_id BIGINT UNSIGNED NOT NULL,
 		template_data LONGTEXT NOT NULL,
 		template_html LONGTEXT NOT NULL,
-		template_data_draft LONGTEXT NOT NULL,
-		template_html_draft LONGTEXT NOT NULL,
 		PRIMARY KEY (id),
 		FOREIGN KEY (post_id) REFERENCES {$wpdb->prefix}posts(ID) ON DELETE CASCADE,
 		FOREIGN KEY (user_id) REFERENCES {$wpdb->prefix}users(ID)

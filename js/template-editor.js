@@ -1,34 +1,11 @@
-// Default to no unsaved changes
-let unsavedWysiwygChanges = false;
-
 jQuery(document).ready(function ($) {
-
-	//Save the template title when updated
-	$(document).on("change", "#idwiz_templateTitle", function () {
-		var templateId = $(this).data("templateid");
-		var value = $(this).val();
-		$.ajax({
-			type: "POST",
-			url: idAjax.ajaxurl,
-			data: {
-				action: "idemailwiz_save_template_title",
-				template_id: templateId,
-				template_title: value,
-				security: idAjax_template_editor.nonce,
-			},
-			success: function (result) {
-				do_wiz_notif({message: result.data.message, duration: 3000});
-			},
-			error: function (xhr, status, error) {
-				do_wiz_notif({message: error, duration: 3000});
-			},
-		});
-	});
 
 	// Only attach the onbeforeunload handler if #builder exists
 	if ($('#builder').length) {
+		// Start a new session to track unsaved changes
+		sessionStorage.setItem('unsavedChanges', 'false');
 		window.onbeforeunload = function(e) {
-			if (unsavedWysiwygChanges) {
+			if (sessionStorage.getItem('unsavedChanges') === 'true') {
 				// For modern browsers, a standard message will be shown, not this custom message.
 				e.returnValue = 'You have unsaved changes!';
 				return e.returnValue;
@@ -161,16 +138,37 @@ jQuery(document).ready(function ($) {
 			$('#previewFrame').removeClass('light-mode');
 			$('#previewFrame').removeClass('dark-mode');
 		});
-
-
-		
 		
 	}
+
+
 
 	
 
 
 	// Click events
+
+	//Save the template title when updated
+	$(document).on("change", "#idwiz_templateTitle", function () {
+		var templateId = $(this).data("templateid");
+		var value = $(this).val();
+		$.ajax({
+			type: "POST",
+			url: idAjax.ajaxurl,
+			data: {
+				action: "idemailwiz_save_template_title",
+				template_id: templateId,
+				template_title: value,
+				security: idAjax_template_editor.nonce,
+			},
+			success: function (result) {
+				do_wiz_notif({message: result.data.message, duration: 3000});
+			},
+			error: function (xhr, status, error) {
+				do_wiz_notif({message: error, duration: 3000});
+			},
+		});
+	});
 	
 	// Main UI tabs 
 	$(document).on('click', '.builder-tab', function() {
@@ -194,15 +192,7 @@ jQuery(document).ready(function ($) {
 	$('#save-template').on('click', function(e) {
 		e.preventDefault();
 		saveTemplateToSession();
-		saveTemplateData('publish');
-		idwiz_updatepreview();
-	});
-
-	// Save draft button
-	$('#save-draft').on('click', function(e) {
-		e.preventDefault();
-		saveTemplateToSession();
-		saveTemplateData('draft');
+		saveTemplateData();
 		idwiz_updatepreview();
 	});
 
@@ -216,23 +206,6 @@ jQuery(document).ready(function ($) {
 		initGradientPicker(this);
 	});
 
-	// Duplicate row 
-	// $(document).on('click', '.duplicate-row', function() {
-	// 	var $row = $(this).closest('.builder-row');
-	// 	duplicateElement($row, 'row-id');
-	// 	saveTemplateToSession();
-	// 	idwiz_updatepreview();
-	// 	unsavedWysiwygChanges = true;
-	// });
-
-	// Duplicate chunk 
-	// $(document).on('click', '.duplicate-chunk', function() {
-	// 	var $chunk = $(this).closest('.builder-chunk');
-	// 	duplicateElement($chunk, 'chunk-id');
-	// 	saveTemplateToSession();
-	// 	idwiz_updatepreview();
-	// 	unsavedWysiwygChanges = true;
-	// });
 
 	// Remove row
 	$(document).on('click', '.remove-row', function() {
@@ -242,7 +215,7 @@ jQuery(document).ready(function ($) {
 		$(this).closest('.builder-row').remove();
 		saveTemplateToSession();
 		idwiz_updatepreview();
-		unsavedWysiwygChanges = true;
+		sessionStorage.setItem('unsavedChanges', 'true');
 	});
 
 	// Remove chunk
@@ -250,7 +223,7 @@ jQuery(document).ready(function ($) {
 		$(this).closest('.builder-chunk').remove();
 		saveTemplateToSession();
 		idwiz_updatepreview();
-		unsavedWysiwygChanges = true;
+		sessionStorage.setItem('unsavedChanges', 'true');
 	});
 
 	$(document).on('click', '.show-on-desktop, .show-on-mobile', function() {
@@ -290,7 +263,7 @@ jQuery(document).ready(function ($) {
 
 		saveTemplateToSession();
 		idwiz_updatepreview();
-		unsavedWysiwygChanges = true;
+		sessionStorage.setItem('unsavedChanges', 'true');
 	});
 
 
@@ -303,7 +276,7 @@ jQuery(document).ready(function ($) {
 		} else {
 			$(this).attr('data-magic-wrap', 'off');
 		}
-		unsavedWysiwygChanges = true;
+		sessionStorage.setItem('unsavedChanges', 'true');
 		saveTemplateToSession();
 		idwiz_updatepreview();
 	});
@@ -609,7 +582,8 @@ jQuery(document).ready(function ($) {
 				editor.on('input', function() {
 					idwiz_updatepreview();
 					updateBuilderChunkTitle_debounced(editor);
-					unsavedWysiwygChanges = true;
+					sessionStorage.setItem('unsavedChanges', 'true');
+					
 				});
 
 				// Before an action is added to the undo stack
@@ -617,7 +591,7 @@ jQuery(document).ready(function ($) {
 					//console.log('AddUndo event fired.', e);
 					idwiz_updatepreview();
 					updateBuilderChunkTitle_debounced(editor);
-					unsavedWysiwygChanges = true;
+					//sessionStorage.setItem('unsavedChanges', 'true'); // leave this off otherwise it will trigger always true
 				});
 
 				// When an undo action is performed
@@ -830,8 +804,8 @@ jQuery(document).ready(function ($) {
 				reindexDataAttributes(attributeToReindex, $container);
 				
 				idwiz_updatepreview();
-				unsavedWysiwygChanges = true;
-				console.log('unsaved changes: ' + unsavedWysiwygChanges);
+				sessionStorage.setItem('unsavedChanges', 'true');
+				
 				},500);
 			}
 		}, additionalOptions));
@@ -870,12 +844,11 @@ jQuery(document).ready(function ($) {
 		if ($header.hasClass('collapsed-message')) {
 			$header = $header.closest('.builder-column').find('.builder-column-header');
 		}
-		// Prevent toggle if clicked within an excluded area
+
 		if ($(e.target).closest('.exclude-from-toggle').length || $(e.target).closest('input').length) {
 			return;
 		}
 
-		// Determine the context and corresponding classes
 		let $element, toggleClass;
 		if ($header.hasClass('builder-row-header')) {
 			$element = $header.closest('.builder-row');
@@ -885,6 +858,24 @@ jQuery(document).ready(function ($) {
 			toggleClass = '.builder-chunk-body';
 		} else {
 			return; // Not a valid toggle target
+		}
+
+		const isRow = $header.hasClass('builder-row-header');
+		const isChunk = $header.hasClass('builder-chunk-header');
+		const autoCollapseRows = $('#builder-tab-settings input[name="auto_collapse_rows"]').is(':checked');
+		const autoCollapseChunks = $('#builder-tab-settings input[name="auto_collapse_chunks"]').is(':checked');
+		const autoCollapseChunksWithinRows = $('#builder-tab-settings input[name="auto_collapse_chunks_within_rows"]').is(':checked');
+
+		// Auto-collapse logic
+		if (isRow && autoCollapseRows) {
+			$('.builder-row.--expanded').not($element).each(function() {
+				collapseBuilderElementVis($(this), '.builder-row-content');
+			});
+		} else if (isChunk && (autoCollapseChunks || (autoCollapseChunksWithinRows && $element.closest('.builder-row').hasClass('--expanded')))) {
+			const $siblings = autoCollapseChunksWithinRows && isChunk ? $element.closest('.builder-row').find('.builder-chunk.--expanded') : $('.builder-chunk.--expanded');
+			$siblings.not($element).each(function() {
+				collapseBuilderElementVis($(this), '.builder-chunk-body');
+			});
 		}
 
 		// Toggle visibility
@@ -929,6 +920,9 @@ jQuery(document).ready(function ($) {
 		}, 500);
 	}
 
+
+
+
 	// Utility function to initialize editable elements
 	
 	function initializeEditable(editableClass, dataAttributeName, $context) {
@@ -964,7 +958,7 @@ jQuery(document).ready(function ($) {
 
 		var $checkbox = $(this).prev('.wiz-check-toggle');
 		// Toggle the checkbox's checked property directly
-		$checkbox.prop('checked', !$checkbox.prop('checked')).trigger('change'); // Trigger change to ensure any other handlers are notified
+		$checkbox.prop('checked', !$checkbox.prop('checked')).change();
 
 		// Now, update the visual state based on the checkbox's state
 		
@@ -976,45 +970,17 @@ jQuery(document).ready(function ($) {
 			$icon.removeClass('fa-solid').addClass('fa-regular');
 			$(this).removeClass('active');
 		}
+
+		
+	});
+
+	// Update preview when .button-group field change is triggered
+	$(document).on('change','.button-group *',function() {
+		saveTemplateToSession();
+		idwiz_updatepreview();
 	});
 
 
-	// Generate a new unique string for the cloned element
-	function generateUniqueId(prefix = 'wizid', moreEntropy = false) {
-		const timestamp = new Date().getTime() / 1000;
-		const mainPart = parseInt(timestamp, 10).toString(16); // Convert timestamp to hexadecimal
-		const randomPart = moreEntropy 
-			? '-' + (Math.random() * 100000000 + 10000000).toString(16) 
-			: Math.random().toString(16).slice(2, 10);
-
-		return prefix + mainPart + randomPart;
-	}
-
-
-	// Update all instances of an old unique ID string within an element to a new unique ID
-	function updateClonedWrapperIds($element, oldIdWithPrefix, newUniqueString, isRow = false) {
-		const prefix = isRow ? 'wiz-row-' : 'wiz-chunk-'; // Ensure prefix is non-numeric
-		const newIdWithPrefix = prefix + newUniqueString;
-
-		$element.add($element.find('*')).each(function() {
-			var $this = $(this);
-
-			// Update the ID attribute if present
-			if (this.id && this.id.includes(oldIdWithPrefix)) {
-				var newId = this.id.replace(oldIdWithPrefix, newIdWithPrefix);
-				$this.attr('id', newId);
-			}
-
-			// Update other attributes that may contain IDs or references to IDs
-			$.each(this.attributes, function() {
-				if (this.value.includes(oldIdWithPrefix)) {
-					var newValue = this.value.replace(oldIdWithPrefix, newIdWithPrefix);
-					$this.attr(this.name, newValue);
-				}
-			});
-			
-		});
-	}
 
 
 
@@ -1275,7 +1241,7 @@ jQuery(document).ready(function ($) {
 
 					saveTemplateToSession();
 					idwiz_updatepreview();
-					unsavedWysiwygChanges = true;
+					sessionStorage.setItem('unsavedChanges', 'true');
 				}
 			}, 
 			function(xhr, status, error) { // Error callback
@@ -1367,7 +1333,7 @@ jQuery(document).ready(function ($) {
 
 		saveTemplateToSession();
 		idwiz_updatepreview();
-		unsavedWysiwygChanges = true;
+		sessionStorage.setItem('unsavedChanges', 'true');
 	}
 
 	function updateOrCreateColumns($row, selectedColumns, currentColumnCount) {
@@ -1540,7 +1506,7 @@ jQuery(document).ready(function ($) {
 
 					saveTemplateToSession();
 					idwiz_updatepreview();
-					unsavedWysiwygChanges = true;
+					sessionStorage.setItem('unsavedChanges', 'true');
 				}
 			},
 
@@ -1567,7 +1533,7 @@ jQuery(document).ready(function ($) {
 		}
 		saveTemplateToSession();
 		idwiz_updatepreview();
-		unsavedWysiwygChanges = true;
+		sessionStorage.setItem('unsavedChanges', 'true');
 	});
 
 	$(document).on('click', '.builder-column-header, .show-column-settings', function (e) {
@@ -1663,6 +1629,14 @@ jQuery(document).ready(function ($) {
 			fields: {},
 			settings: {},
 		};
+
+		var saveCollapseStates = $('#builder-tab-settings input[name="save_collapse_states"]').is(':checked');
+		if (saveCollapseStates) {
+			chunk.state = $(this).hasClass('--expanded') ? 'expanded' : 'collapsed';
+		} else {
+			chunk.state = 'collapsed';
+		}
+
 		var $chunkFields = $chunk.find('.chunk-content');
 		var $chunkSettings = $chunk.find('.chunk-settings');
 
@@ -1755,42 +1729,50 @@ jQuery(document).ready(function ($) {
 	  }
 	
 
+
 	// Goes through the DOM and gathers all the data needed to save to the JSON object
 	function gatherTemplateData() {
 		var templateData = {
-			templateOptions: {
-				templateSettings: {},
-				templateStyles: {
+			template_name: $('#idwiz_templateTitle').val(),
+			last_updated: new Date().toISOString(),
+			template_options: {
+				message_settings: {},
+				template_styles: {
 					'custom-styles': {} 
-				}
+				},
+				template_settings: {}
 			},
-			rows: []
+			rows: [],
 		};
 
 		// Look for any force white settings set to true and set a global setting if so
-		templateData.templateOptions.templateStyles['custom-styles']['force_white_text'] = false;
+		templateData.template_options.template_styles['custom-styles']['force_white_text'] = false;
 
 		// Check if at least one of the checkboxes is checked
 		var force_white_text_desktop = $('.chunk-settings input[name="force_white_text_on_desktop"]').is(':checked') || $('input[name="footer_force_white_text_on_desktop"]').is(':checked');
 		var force_white_text_mobile = $('.chunk-settings input[name="force_white_text_on_mobile"]').is(':checked') || $('input[name="footer_force_white_text_on_mobile"]').is(':checked');
 
 		if (force_white_text_desktop) {
-			templateData.templateOptions.templateStyles['custom-styles'].force_white_text_desktop = true;
+			templateData.template_options.template_styles['custom-styles'].force_white_text_desktop = true;
 		}
 		if (force_white_text_mobile) {
-			templateData.templateOptions.templateStyles['custom-styles'].force_white_text_mobile = true;
+			templateData.template_options.template_styles['custom-styles'].force_white_text_mobile = true;
 		}
 
 		
 
-		// Collect settings and styles
-		collectFieldValues($('#builder-tab-settings'), templateData.templateOptions.templateSettings);
-		collectFieldValues($('#builder-tab-styles'), templateData.templateOptions.templateStyles);
+		// Collect message settings and styles
+		collectFieldValues($('#builder-tab-message-settings'), templateData.template_options.message_settings);
+		collectFieldValues($('#builder-tab-styles'), templateData.template_options.template_styles);
+
+		// Collect settings
+		collectFieldValues($('#builder-tab-settings'), templateData.template_options.template_settings);
+	
+
 
 		// Collect row data
 		$('#builder .builder-row').each(function() {
-			
-
+		
 			var row = { 
 				columns: [],
 				state: $(this).hasClass('--expanded') ? 'expanded' : 'collapsed',
@@ -1800,6 +1782,15 @@ jQuery(document).ready(function ($) {
 				mobile_visibility: 'true',
 				magic_wrap: 'off',
 			};
+
+			// Determine row state first by user settings and then UI
+			// If state saving is off, we collapse everything on next page load
+			var saveCollapseStates = $('#builder-tab-settings input[name="save_collapse_states"]').is(':checked');
+			if (saveCollapseStates) {
+				row.state = $(this).hasClass('--expanded') ? 'expanded' : 'collapsed';
+			} else {
+				row.state = 'collapsed';
+			}
 
 			// Determine desktop/mobile visibility
 			var rowDesktopVisibility = $(this).find('.builder-row-header .show-on-desktop').attr('data-show-on-desktop');
@@ -1864,8 +1855,6 @@ jQuery(document).ready(function ($) {
 			templateData.rows.push(row);
 		});
 
-
-		//console.log('Template data:', templateData);
 		return templateData;
 	}
 
@@ -1876,7 +1865,7 @@ jQuery(document).ready(function ($) {
 
 
 	// Saves the template data, a JSON object, (publish or draft) to the database
-	function saveTemplateData(saveType, templateData = false) {
+	function saveTemplateData(templateData = false) {
 		if (!templateData) {
 			var templateData = gatherTemplateData();
 		}
@@ -1885,7 +1874,6 @@ jQuery(document).ready(function ($) {
 			action: 'save_wiz_template_data',
 			security: idAjax_template_editor.nonce,
 			post_id: idAjax_template_editor.currentPost.ID,
-			save_type: saveType,
 			template_data: JSON.stringify(templateData) 
 		};
 
@@ -1899,7 +1887,7 @@ jQuery(document).ready(function ($) {
 				//console.log('Data saved:', response.data.templateData);
 				do_wiz_notif({message: response.data.message, duration: 5000});
 				idwiz_updatepreview();
-				unsavedWysiwygChanges = false;
+				sessionStorage.setItem('unsavedChanges', 'false');
 			},
 			error: function(xhr, status, error) {
 				console.error('Error saving template:', error);
@@ -1915,95 +1903,61 @@ jQuery(document).ready(function ($) {
 			idwiz_updatepreview(true);
 		}
 	});
-	
 
 
-	$("#builder").on("input change paste keydown", "input, select, textarea", function(e) {
-		// Assuming iframe is fully loaded before this code runs. Otherwise, ensure it's loaded.
-		var iframeDocument = $('#previewFrame').get(0).contentDocument || $('#previewFrame').get(0).contentWindow.document;
-    
-		// Make sure to access the scrolling element correctly based on standards
-		var scrollElement = iframeDocument.documentElement;
-
-		// Capture the current scroll position
-		var currentScrollPosition = $(scrollElement).scrollTop();
-		console.log("Current Scroll Position:", currentScrollPosition);
-
-
-		// Check for undo and redo key combinations
-		if (e.type === "keydown" && (e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'y' || e.key === 'Z' || e.key === 'Y')) {
-			// Debounce or delay to catch the result of undo/redo
-			setTimeout(function() {
-				saveTemplateToSession();
-				idwiz_updatepreview(false);
-				unsavedChanges = true;
-			}, 100);
-		} else if (e.type !== "keydown") {
-			// For input, change, and paste events, directly update and restore position without delay
-			saveTemplateToSession();
-			idwiz_updatepreview(false);
-			unsavedChanges = true;
-		}
-	});
 
 
 
 
 	var previewRefreshTimeoutId;
-	var scrollRestoreTimeoutId; // For debouncing scroll restoration
 
 	// Update preview via AJAX, with optional use of session storage data
 	function idwiz_updatepreview(fromDatabase = false) {
 		var iframe = $("#previewFrame")[0];
-		var iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
-		var scrollElement = iframeDocument.documentElement;
-
-		// Capture the current scroll position
-		var currentScrollPosition = $(scrollElement).scrollTop();
-		//console.log("Current Scroll Position:", currentScrollPosition);
-
 		var templateId = $("#templateUI").data("postid");
 		saveTemplateToSession();
-    
-		clearTimeout(previewRefreshTimeoutId); // Clear existing timeout to debounce updates
+		clearTimeout(previewRefreshTimeoutId);
+  
+		// Get the current scroll position of the iframe
+		var currentScrollPosition = {
+		  x: iframe.contentWindow.pageXOffset,
+		  y: iframe.contentWindow.pageYOffset
+		};
+  
 		$('#templatePreview-status').fadeIn().text('Updating preview...');
 		previewRefreshTimeoutId = setTimeout(function () {
-			var sessionData = getTemplateFromSession();
-
-			refresh_template_html();
-        
-			var formData = new FormData();
-			formData.append("action", "idemailwiz_build_template");
-			formData.append("security", idAjax_template_editor.nonce);
-			formData.append("templateid", templateId);
-
-			if (sessionData && !fromDatabase) {
-				formData.append("template_data", JSON.stringify(sessionData));
+		  var sessionData = getTemplateFromSession();
+		  refresh_template_html();
+		  var formData = new FormData();
+		  formData.append("action", "idemailwiz_build_template");
+		  formData.append("security", idAjax_template_editor.nonce);
+		  formData.append("templateid", templateId);
+		  if (sessionData && !fromDatabase) {
+			formData.append("template_data", JSON.stringify(sessionData));
+		  }
+  
+		  $.ajax({
+			url: idAjax.ajaxurl,
+			type: "POST",
+			data: formData,
+			processData: false,
+			contentType: false,
+			success: function (previewHtml) {
+			  // Update the iframe's content directly
+			  var iframeDocument = iframe.contentWindow.document;
+			  iframeDocument.open();
+			  iframeDocument.write(previewHtml);
+			  iframeDocument.close();
+  
+			  // Set the scroll position of the iframe after the new content has loaded
+			  iframe.contentWindow.onload = function () {
+				iframe.contentWindow.scrollTo(currentScrollPosition.x, currentScrollPosition.y);
+				$('#templatePreview-status').fadeOut();
+			  };
 			}
-
-			$.ajax({
-				url: idAjax.ajaxurl,
-				type: "POST",
-				data: formData,
-				processData: false,
-				contentType: false,
-				success: function (previewHtml) {
-					iframe.srcdoc = previewHtml;
-					$('#templatePreview-status').fadeOut();
-
-					// Debounce the scroll restoration to align with update frequency
-					clearTimeout(scrollRestoreTimeoutId);
-					scrollRestoreTimeoutId = setTimeout(function() {
-						//console.log('Restoring scroll to:', currentScrollPosition);
-						var iframeWindow = iframe.contentWindow;
-						if (iframeWindow && typeof iframeWindow.scrollTo === 'function') {
-							iframeWindow.scrollTo(0, currentScrollPosition);
-						}
-					}, 100); // Scroll debounce
-				}
-			});
+		  });
 		}, 1000); // Update debounce
-	}
+	  }
 
 
 
@@ -2353,7 +2307,7 @@ jQuery(document).ready(function ($) {
 				sessionStorage.setItem(sessionKey, JSON.stringify(parsedData));
 
 				// Update template from JSON
-				saveTemplateData('publish', parsedData);
+				saveTemplateData(parsedData);
         
 				// Return the session key or any other result as needed
 				return sessionKey;
@@ -2395,19 +2349,19 @@ jQuery(document).ready(function ($) {
 
 	
 	function validateWizTemplateSchema(parsedData) {
-		// Check if the main key 'templateOptions' exists
-		if (parsedData.hasOwnProperty('templateOptions')) {
-			// Check for 'templateSettings' and 'rows' keys within 'templateOptions'
-			if (parsedData.templateOptions.hasOwnProperty('templateSettings') &&
-				parsedData.templateOptions.hasOwnProperty('rows')) {
+		// Check if the main key 'template_options' exists
+		if (parsedData.hasOwnProperty('template_options')) {
+			// Check for 'message_settings' and 'rows' keys within 'template_options'
+			if (parsedData.template_options.hasOwnProperty('message_settings') &&
+				parsedData.template_options.hasOwnProperty('rows')) {
 				console.log("JSON structure is valid.");
 				return true;
 			} else {
-				console.error("JSON structure does not have the required 'templateSettings' and 'rows' keys.");
+				console.error("JSON structure does not have the required 'message_settings' and 'rows' keys.");
 				return false;
 			}
 		} else {
-			console.error("JSON structure does not have the 'templateOptions' key.");
+			console.error("JSON structure does not have the 'template_options' key.");
 			return false;
 		}
 	}
@@ -2485,6 +2439,23 @@ jQuery(document).ready(function ($) {
 		}
 	});
 
+
+	// Auto-publish template when Iterable template ID is changed with data attribute
+	$('#iterable_template_id').on('change', function() {
+		var $this = $(this);
+		setTimeout(function() {
+		// Ensure that the function only proceeds if the auto-publish attribute is true
+		if ($this.attr('data-auto-publish') === 'true') {
+			// Call the publish function
+			saveTemplateData();
+
+			// Optionally, reset the data attribute to prevent unintended republishing
+			$this.attr('data-auto-publish', 'false');
+        
+			console.log('auto-published template');
+		}
+	},1000);
+	});
 
 
 	
