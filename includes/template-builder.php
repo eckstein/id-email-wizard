@@ -1180,8 +1180,13 @@ function generate_template_html( $templateData, $forEditor = false ) {
 	$return .= idwiz_get_email_top( $message_settings, $templateStyles, $rows );
 
 	// iD Logo Header
-	$showIdHeader = $templateStyles['header-and-footer']['show_id_header'] ?? true;
-	if ( $showIdHeader ) {
+	$showIdHeader = json_decode($templateStyles['header-and-footer']['show_id_header']) ?? true;
+	if ( $showIdHeader != false) {
+		
+	}
+
+	$showIdHeader = true;
+	if ( json_decode($templateStyles['header-and-footer']['show_id_header']) != false ) {
 		$return .= idwiz_get_standard_header( $templateOptions );
 	}
 
@@ -1193,7 +1198,7 @@ function generate_template_html( $templateData, $forEditor = false ) {
 
 		// Show unsub link in footer (or not)
 		$showUnsub = true;
-		if ( $templateStyles['header-and-footer']['show_unsub'] != true ) {
+		if ( json_decode($templateStyles['header-and-footer']['show_unsub']) != true ) {
 			$showUnsub = false;
 		}
 		$return .= idwiz_get_standard_footer( $templateOptions, $showUnsub );
