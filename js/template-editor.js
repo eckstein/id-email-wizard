@@ -383,6 +383,8 @@ jQuery(document).ready(function ($) {
 				var gradientObj = JSON.parse(gradientData);
 				// Apply the gradient style directly
 				$(this).css('background', gradientObj.style);
+				saveTemplateToSession();
+				idwiz_updatepreview();
 			} catch (e) {
 				console.error("Error parsing gradient data: ", e);
 			}
@@ -970,6 +972,9 @@ jQuery(document).ready(function ($) {
 			$icon.removeClass('fa-solid').addClass('fa-regular');
 			$(this).removeClass('active');
 		}
+
+		saveTemplateToSession();
+		idwiz_updatepreview();
 
 		
 	});
