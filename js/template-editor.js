@@ -983,11 +983,12 @@ jQuery(document).ready(function ($) {
 		saveTemplateToSession();
 		idwiz_updatepreview();
 	});
-	
+
 	// Update preview when .button-group field change is triggered
 	$(document).on('change','.button-group *',function() {
 		saveTemplateToSession();
 		idwiz_updatepreview();
+		sessionStorage.setItem('unsavedChanges', 'true');
 	});
 
 
