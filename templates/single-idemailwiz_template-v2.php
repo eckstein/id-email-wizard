@@ -169,7 +169,7 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 								<h5>Template Header</h5>
 								<div class="builder-field-group flex">
 									<?php
-									$showHeader = $templateSettings['template_styles']['header-and-footer']['show_id_header'] ?? true;
+									$showHeader = $templateHeaderFooterStyles['show_id_header'] ?? true;
 									?>
 									<div class="builder-field-wrapper">
 										<label class="checkbox-toggle-label">Show Header</label>
