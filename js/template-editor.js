@@ -493,6 +493,8 @@ jQuery(document).ready(function ($) {
 				{ name: 'link', items: [ 'link'] },
 				
 			],
+			valid_elements: '*[*]',
+			verify_html: false,
 			toolbar_mode: 'scrolling',
 			block_formats: 'Paragraph=p; Heading 1=h1; Heading 2=h2; Heading 3=h3; Heading 4=h4; Heading 5=h5; Heading 6=h6;',
 			font_size_formats: '.8em 1em 1.1em 1.2em 1.3em 1.4em 1.5em 1.6em 1.7em 1.8em 1.9em 2em 2.5em',
