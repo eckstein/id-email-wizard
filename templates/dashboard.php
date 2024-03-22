@@ -39,6 +39,8 @@ if (isset($_GET['startDate']) && $_GET['startDate'] !== '' && isset($_GET['endDa
 
 $startDateTime = new DateTime($startDate);
 
+
+
 if (isset($_GET['view']) && $_GET['view'] === 'FY') {
     $fyProjections = get_field('fy_' . $endYear . '_projections', 'options');
     $displayGoal = 0;
@@ -73,6 +75,9 @@ $gaRevenue = [];
 // Fetch all campaigns
 $allCampaigns = get_idwiz_campaigns(['startAt_start' => $startDate, 'startAt_end' => $endDate]);
 
+// Fetch all purchases
+$allPurchases = get_idwiz_purchases( [ 'startAt_start' => $startDate, 'startAt_end' => $endDate ] );
+
 // Categorize campaigns into Blast and Triggered
 $blastCampaigns = [];
 $triggeredCampaigns = [];
@@ -90,8 +95,6 @@ foreach ($allCampaigns as $campaign) {
     $campaignMap[$campaign['id']] = $campaign;
 }
 
-// Fetch all purchases
-$allPurchases = get_idwiz_purchases(['startAt_start' => $startDate, 'startAt_end' => $endDate]);
 
 // Categorize purchases based on campaign type
 $blastPurchases = [];

@@ -702,7 +702,7 @@ jQuery(document).ready(function ($) {
 				editor.remove();
 			}
 
-			// It's crucial to clear any TinyMCE-related data attributes that might interfere with reinitialization
+			// Clear any TinyMCE-related data attributes that might interfere with reinitialization
 			$(this).removeAttr('data-mce-id').removeAttr('data-id');
 		});
 

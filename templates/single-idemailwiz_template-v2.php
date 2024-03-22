@@ -551,7 +551,7 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 								class="builder-field"><?php echo $templateSettings['fine_print_disclaimer'] ?? ''; ?></textarea>
 						</div>
 						<div class="builder-field-wrapper">
-							<?php $extUtms = $templateSettings['template_styles']['header-and-footer']['ext_utms'] ?? true; ?>
+							<?php $extUtms = $templateSettings['ext_utms'] ?? true; ?>
 							<label class="checkbox-toggle-label">Ext. UTMs</label>
 							<div class="wiz-checkbox-toggle">
 								<input type="checkbox" class="wiz-check-toggle" id="template_settings_ext_utms"
@@ -567,7 +567,7 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 							<label for="template_settings_ext_utm_string">External UTM String</label>
 							<input type="text" id="template_settings_ext_utm_string" name="ext_utm_string"
 								class="builder-field"
-								value="<?php echo $templateSettings['template_styles']['header-and-footer']['ext_utm_string'] ?? ''; ?>">
+								value="<?php echo $templateSettings['ext_utm_string'] ?? ''; ?>">
 						</div>
 
 
