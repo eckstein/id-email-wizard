@@ -233,15 +233,13 @@ function idemailwiz_fetch_campaigns( $campaignIds = null ) {
 function idemailwiz_fetch_templates( $campaignIds = null ) {
 	$allTemplates = [];
 
-	$tomorrow = date( 'Y-m-d', strtotime( '+1 day' ) );
-
 	// Initialize URLs for fetching templates of different types and mediums
 	$templateAPIurls = [ 
-		'blastEmails' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=Email&endDateTime='. $tomorrow,
-		'triggeredEmails' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=Email&endDateTime=' . $tomorrow,
-		'workflowEmails' => 'https://api.iterable.com/api/templates?templateType=Workflow&messageMedium=Email&endDateTime=' . $tomorrow,
-		'blastSMS' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=SMS&endDateTime=' . $tomorrow,
-		'triggeredSMS' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=SMS&endDateTime=' . $tomorrow, 
+		'blastEmails' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=Email&endDateTime=',
+		'triggeredEmails' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=Email',
+		'workflowEmails' => 'https://api.iterable.com/api/templates?templateType=Workflow&messageMedium=Email',
+		'blastSMS' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=SMS',
+		'triggeredSMS' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=SMS', 
 	];
 
 	// Fetch templates from all four endpoints
@@ -265,8 +263,15 @@ function idemailwiz_fetch_templates( $campaignIds = null ) {
 
 	// Fetch the detailed templates for all fetched templates
 	$urlsToFetch = [];
-	foreach ( $allTemplates as $template ) {
-		$templateId = $template['templateId'];
+
+	$allTemplateIds = array_column( $allTemplates, 'templateId' );
+
+	$existingTemplateIds = array_column(get_idwiz_templates(['fields'=>'templateId']), 'templateId');
+
+	// combine and de-dupe ID array
+	$allTemplateIdsToFetch = array_unique( array_merge( $allTemplateIds, $existingTemplateIds ) );
+
+	foreach ( $allTemplateIdsToFetch as $templateId ) {
 
 		// Try email endpoint first, and if it fails, fall back to SMS
 		$emailEndpoint = "https://api.iterable.com/api/templates/email/get?templateId=$templateId";
@@ -275,7 +280,7 @@ function idemailwiz_fetch_templates( $campaignIds = null ) {
 		$urlsToFetch[] = $emailEndpoint;
 		$urlsToFetch[] = $smsEndpoint;
 	}
-
+	//$fetchedTemplates = [];
 	try {
 		$multiResponses = idemailwiz_iterable_curl_multi_call( $urlsToFetch );
 		$fetchedTemplates = [];
@@ -287,15 +292,12 @@ function idemailwiz_fetch_templates( $campaignIds = null ) {
 			}
 		}
 
-		// Replace the original templates with the fetched ones
-		$allTemplates = $fetchedTemplates;
-
 		usleep( 10000 );
 	} catch (Exception $e) {
 		wiz_log( "Error during multi cURL request: " . $e->getMessage() );
 	}
 
-	return $allTemplates;
+	return $fetchedTemplates;
 }
 
 
