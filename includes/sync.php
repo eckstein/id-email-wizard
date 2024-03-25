@@ -234,12 +234,12 @@ function idemailwiz_fetch_templates( $campaignIds = null ) {
 	$allTemplates = [];
 
 	if ($campaignIds) {
-		$templateIds = get_idwiz_templates( [ 'campaignIds' => $campaignIds, 'fields' => 'templateId' ] );
+		$templateIds = array_column(get_idwiz_templates( [ 'campaignIds' => $campaignIds, 'fields' => 'templateId' ] ), 'templateId');
 	} else {
 
 		// Initialize URLs for fetching templates of different types and mediums
 		$templateAPIurls = [ 
-			'blastEmails' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=Email&endDateTime=',
+			'blastEmails' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=Email',
 			'triggeredEmails' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=Email',
 			'workflowEmails' => 'https://api.iterable.com/api/templates?templateType=Workflow&messageMedium=Email',
 			'blastSMS' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=SMS',
