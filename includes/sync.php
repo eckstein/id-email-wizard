@@ -233,13 +233,15 @@ function idemailwiz_fetch_campaigns( $campaignIds = null ) {
 function idemailwiz_fetch_templates( $campaignIds = null ) {
 	$allTemplates = [];
 
+	$tomorrow = date( 'Y-m-d', strtotime( '+1 day' ) );
+
 	// Initialize URLs for fetching templates of different types and mediums
 	$templateAPIurls = [ 
-		'blastEmails' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=Email',
-		'triggeredEmails' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=Email',
-		'workflowEmails' => 'https://api.iterable.com/api/templates?templateType=Workflow&messageMedium=Email',
-		'blastSMS' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=SMS',
-		'triggeredSMS' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=SMS', 
+		'blastEmails' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=Email&endDateTime='. $tomorrow,
+		'triggeredEmails' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=Email&endDateTime=' . $tomorrow,
+		'workflowEmails' => 'https://api.iterable.com/api/templates?templateType=Workflow&messageMedium=Email&endDateTime=' . $tomorrow,
+		'blastSMS' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=SMS&endDateTime=' . $tomorrow,
+		'triggeredSMS' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=SMS&endDateTime=' . $tomorrow, 
 	];
 
 	// Fetch templates from all four endpoints
