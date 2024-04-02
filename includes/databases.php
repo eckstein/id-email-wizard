@@ -621,12 +621,13 @@ function build_idwiz_query( $args, $table_name ) {
 				//$value = sanitize_text_field($value); // Sanitize the input
 				$dt = DateTime::createFromFormat( 'Y-m-d', $value ); // Create a DateTime object
 				if ( $dt ) {
+					$dt->setTime( 23, 59, 59 ); // Set time to the end of the day
 					if ( $dateKey === 'purchaseDate' ) {
 						// If it's a purchase date, format as 'Y-m-d'
 						$formattedValue = $dt->format( 'Y-m-d' );
 					} else {
 						// For other dates, adjust the format
-						$formattedValue = $dt->getTimestamp() * 1000; // stored as timestamps
+						$formattedValue = $dt->getTimestamp() * 1000; // Adjusted for timestamps in milliseconds
 					}
 					$sql .= $wpdb->prepare( " AND $dateKey <= %s", $formattedValue );
 				} else {
