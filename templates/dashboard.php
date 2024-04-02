@@ -1,43 +1,47 @@
 <?php get_header();
 
 // Initialize date variables
-date_default_timezone_set('UTC');
+date_default_timezone_set( 'UTC' );
 $startDate = '';
 $endDate = '';
 $wizMonth = '';
 $wizYear = '';
 
 // Check if startDate and endDate are provided
-if (isset($_GET['startDate']) && $_GET['startDate'] !== '' && isset($_GET['endDate']) && $_GET['endDate'] !== '') {
-    $startDate = $_GET['startDate'];
-    $endDate = $_GET['endDate'];
+if ( isset( $_GET['startDate'] ) && $_GET['startDate'] !== '' && isset( $_GET['endDate'] ) && $_GET['endDate'] !== '' ) {
+	$startDate = $_GET['startDate'];
+	$endDate = $_GET['endDate'];
 
-    // Derive month and year from startDate
-    $startDateTime = new DateTime($startDate);
-    $wizMonth = $startDateTime->format('m');
-    $wizYear = $startDateTime->format('Y');
-} elseif (isset($_GET['view']) && $_GET['view'] === 'FY') {
-    $currentDate = new DateTime();
-    $currentYear = $currentDate->format('Y');
-    $currentMonthAndDay = $currentDate->format('m-d');
+	// Derive month and year from startDate
+	$startDateTime = new DateTime( $startDate, new DateTimeZone( 'UTC' ) );
+	$startDateTime->setTimezone( new DateTimeZone( 'America/Los_Angeles' ) );
+	$wizMonth = $startDateTime->format( 'm' );
+	$wizYear = $startDateTime->format( 'Y' );
+} elseif ( isset( $_GET['view'] ) && $_GET['view'] === 'FY' ) {
+	$currentDate = new DateTime( 'now', new DateTimeZone( 'UTC' ) );
+	$currentDate->setTimezone( new DateTimeZone( 'America/Los_Angeles' ) );
+	$currentYear = $currentDate->format( 'Y' );
+	$currentMonthAndDay = $currentDate->format( 'm-d' );
 
-    $startYear = ($currentMonthAndDay >= '11-01') ? $currentYear : $currentYear - 1;
-    $endYear = $startYear + 1;
+	$startYear = ( $currentMonthAndDay >= '11-01' ) ? $currentYear : $currentYear - 1;
+	$endYear = $startYear + 1;
 
-    $startDate = "{$startYear}-11-01";
-    $endDate = "{$endYear}-10-31";
+	$startDate = "{$startYear}-11-01";
+	$endDate = "{$endYear}-10-31";
 
 } else {
-    // Default to current month if no parameters are provided
-    $startDate = date("Y-m-01");
-    $endDate = date("Y-m-t");
+	// Default to current month if no parameters are provided
+	$currentDate = new DateTime( 'now', new DateTimeZone( 'UTC' ) );
+	$currentDate->setTimezone( new DateTimeZone( 'America/Los_Angeles' ) );
+	$startDate = $currentDate->format( 'Y-m-01' );
+	$endDate = $currentDate->format( 'Y-m-t' );
 
-
-    $wizMonth = date("m");
-    $wizYear = date("Y");
+	$wizMonth = $currentDate->format( 'm' );
+	$wizYear = $currentDate->format( 'Y' );
 }
 
-$startDateTime = new DateTime($startDate);
+$startDateTime = new DateTime( $startDate, new DateTimeZone( 'UTC' ) );
+$startDateTime->setTimezone( new DateTimeZone( 'America/Los_Angeles' ) );
 
 
 
@@ -72,8 +76,13 @@ $allPurchases = [];
 $gaPurchases = [];
 $gaRevenue = [];
 
-// Fetch all campaigns
-$allCampaigns = get_idwiz_campaigns(['startAt_start' => $startDate, 'startAt_end' => $endDate]);
+// Adjust the start date to include campaigns within the first 7 hours of the day
+$adjustedStartDate = new DateTime( $startDate, new DateTimeZone( 'America/Los_Angeles' ) );
+$adjustedStartDate->setTime( 0, 0, 0 ); // Set the time to the beginning of the day
+$adjustedStartDateFormatted = $adjustedStartDate->format( 'Y-m-d' );
+
+// Fetch all campaigns using the adjusted start date and the original end date
+$allCampaigns = get_idwiz_campaigns( [ 'startAt_start' => $adjustedStartDateFormatted, 'startAt_end' => $endDate ] );
 
 // Fetch all purchases
 $allPurchases = get_idwiz_purchases( [ 'startAt_start' => $startDate, 'startAt_end' => $endDate ] );

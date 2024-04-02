@@ -603,14 +603,15 @@ function build_idwiz_query( $args, $table_name ) {
 				$placeholders = implode( ',', array_fill( 0, count( $value ), '%s' ) );
 				$sql .= call_user_func_array( array( $wpdb, 'prepare' ), array_merge( array( " AND id IN ($placeholders)" ), $args['purchaseIds'] ) );
 			} elseif ( $key === 'startAt_start' ) {
-				//$value = sanitize_text_field($value); // Sanitize the input
-				$dt = DateTime::createFromFormat( 'Y-m-d', $value ); // Create a DateTime object
+				$dt = DateTime::createFromFormat( 'Y-m-d', $value, new DateTimeZone( 'America/Los_Angeles' ) );
 				if ( $dt ) {
 					if ( $dateKey === 'purchaseDate' ) {
 						// If it's a purchase date, format as 'Y-m-d'
 						$formattedValue = $dt->format( 'Y-m-d' );
 					} else {
 						// For other dates, adjust the format as needed
+						$dt->setTime( 0, 0, 0 ); // Set the time to the beginning of the day
+						$dt->setTimezone( new DateTimeZone( 'UTC' ) ); // Convert to UTC
 						$formattedValue = $dt->getTimestamp() * 1000; // For example, if they're stored as timestamps
 					}
 					$sql .= $wpdb->prepare( " AND $dateKey >= %s", $formattedValue );
@@ -618,16 +619,18 @@ function build_idwiz_query( $args, $table_name ) {
 					return [ 'error' => 'Invalid date format for startAt_start' ];
 				}
 			} elseif ( $key === 'startAt_end' ) {
-				//$value = sanitize_text_field($value); // Sanitize the input
-				$dt = DateTime::createFromFormat( 'Y-m-d', $value ); // Create a DateTime object
+				$dt = DateTime::createFromFormat( 'Y-m-d', $value, new DateTimeZone( 'America/Los_Angeles' ) );
 				if ( $dt ) {
-					$dt->setTime( 23, 59, 59 ); // Set time to the end of the day
 					if ( $dateKey === 'purchaseDate' ) {
 						// If it's a purchase date, format as 'Y-m-d'
+						//$dt->setTime( 23, 59, 59 ); // Set time to the end of the day
 						$formattedValue = $dt->format( 'Y-m-d' );
 					} else {
 						// For other dates, adjust the format
-						$formattedValue = $dt->getTimestamp() * 1000; // Adjusted for timestamps in milliseconds
+						//$dt->setTime( 23, 59, 59 ); // Set the time to the end of the day
+						$dt->setTimezone( new DateTimeZone( 'UTC' ) ); // Convert to UTC
+						$adjustedTimestamp = $dt->getTimestamp() + ( 7 * 60 * 60 ); // Add 7 hours offset
+						$formattedValue = $adjustedTimestamp * 1000; // Adjusted for timestamps in milliseconds
 					}
 					$sql .= $wpdb->prepare( " AND $dateKey <= %s", $formattedValue );
 				} else {
