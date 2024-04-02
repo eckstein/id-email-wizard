@@ -623,7 +623,7 @@ function build_idwiz_query( $args, $table_name ) {
 				if ( $dt ) {
 					if ( $dateKey === 'purchaseDate' ) {
 						// If it's a purchase date, format as 'Y-m-d'
-						//$dt->setTime( 23, 59, 59 ); // Set time to the end of the day
+						//$dt->setTime( 23, 59, 59 ); // Set time to the end of the day 
 						$formattedValue = $dt->format( 'Y-m-d' );
 					} else {
 						// For other dates, adjust the format

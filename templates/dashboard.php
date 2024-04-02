@@ -90,7 +90,7 @@ $allPurchases = get_idwiz_purchases( [ 'startAt_start' => $startDate, 'startAt_e
 // Categorize campaigns into Blast and Triggered
 $blastCampaigns = [];
 $triggeredCampaigns = [];
-foreach ($allCampaigns as $campaign) {
+foreach ($allCampaigns as $campaign) { 
     if ($campaign['type'] == 'Blast') {
         $blastCampaigns[] = $campaign;
     } elseif ($campaign['type'] == 'Triggered') {
