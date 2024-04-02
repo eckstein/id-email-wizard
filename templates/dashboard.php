@@ -1,7 +1,7 @@
 <?php get_header();
 
 // Initialize date variables
-date_default_timezone_set('America/Los_Angeles');
+date_default_timezone_set('UTC');
 $startDate = '';
 $endDate = '';
 $wizMonth = '';
