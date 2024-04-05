@@ -155,19 +155,14 @@ function initColorPickers($optionalElement = null) {
 
 
 function expandBuilderElementVis($element, toggledClass) {
-    $element.children('.collapsed-message').hide().addClass('hide').removeClass('show');
+    $element.children(toggledClass).slideDown(250);
     $element.addClass('--expanded').removeClass('--collapsed');
 }
 
 function collapseBuilderElementVis($element, toggledClass) {
-    $element.children(toggledClass).slideUp();
-    setTimeout(function() {
-        $element.children('.collapsed-message').fadeIn().addClass('show').removeClass('hide');
-    }, 250);
-
-    setTimeout(function() {
+    $element.children(toggledClass).slideUp(250, function() {
         $element.addClass('--collapsed').removeClass('--expanded');
-    }, 500);
+    });
 }
 
 function toggleBuilderElementVis($header, e) {
