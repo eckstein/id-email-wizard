@@ -22,7 +22,7 @@ function idemailwiz_get_template_data_for_iterable()
 
 	$wizTemplate = get_wiztemplate($post_id);
 
-	$iterableSyncSettings = $wizTemplate['template_settings']['iterable-sync'];
+	$iterableSyncSettings = $wizTemplate['template_settings']['iterable-sync'] ?? [];
 
 	$messageSettings = $wizTemplate['template_options']['message_settings'];
 
@@ -63,7 +63,7 @@ function idemailwiz_get_template_data_for_iterable()
 
 		// Iterable template ID
 		//$templateId = $_POST['template_id'] ?? false;
-		$templateId = $iterableSyncSettings['iterable_template_id'];
+		$templateId = $iterableSyncSettings['iterable_template_id'] ?? '';
 
 		if ($templateId) {
 			// Get wiz campaign based on templateId

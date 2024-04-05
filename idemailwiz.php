@@ -639,6 +639,8 @@ function idemailwiz_enqueue_assets()
     //wp_enqueue_script('gradientGenerator', plugin_dir_url(__FILE__) . 'vendors/eckstein/gradientGenerator/gradientGeneratorFinal.js', array('jquery'), null, true);
     wp_enqueue_script('gradx', plugin_dir_url(__FILE__) . 'vendors/gradx/gradX.js', array('jquery'), null, true);
 
+    wp_enqueue_script('crush', 'https://cdn.jsdelivr.net/npm/html-crush/dist/html-crush.umd.js', array(), null, true);
+
 
     //wp_enqueue_script('DataTables', plugin_dir_url(__FILE__) . 'vendors/DataTables/datatables.min.js', array());
     wp_enqueue_script('DataTables', 'https://cdn.datatables.net/v/dt/jszip-3.10.1/dt-1.13.6/b-2.4.2/b-colvis-2.4.2/b-html5-2.4.2/cr-1.7.0/date-1.5.1/fc-4.3.0/fh-3.4.0/rr-1.4.1/sc-2.2.0/sb-1.5.0/sl-1.7.0/sr-1.3.0/datatables.min.js', array());
@@ -662,13 +664,9 @@ function idemailwiz_enqueue_assets()
 
     wp_enqueue_style('spectrum-stylles', plugin_dir_url(__FILE__) . 'vendors/spectrum/spectrum.css', array());
 
-    wp_enqueue_style('code-mirror-css', plugin_dir_url(__FILE__) . 'vendors/codemirror-5.65.16/lib/codemirror.css', array());
-    wp_enqueue_style('code-mirror-theme-mbo', plugin_dir_url(__FILE__) . 'vendors/codemirror-5.65.16/theme/mbo.css', array());
 
     //wp_enqueue_style('gradientGeneratorStyle', plugin_dir_url(__FILE__) . 'vendors/eckstein/gradientGenerator/gradientGeneratorFinal.css', array());
     wp_enqueue_style('gradx-css', plugin_dir_url(__FILE__) . 'vendors/gradx/gradX.css', array());
-
-
 
 
     wp_enqueue_style('DataTablesCss', plugin_dir_url(__FILE__) . 'vendors/DataTables/datatables.css', array());
@@ -681,20 +679,45 @@ function idemailwiz_enqueue_assets()
         wp_enqueue_script('idemailwiz-image-upload', plugin_dir_url(__FILE__) . 'js/image-upload.js', array('jquery'), null, true);
     }
 
+
+    $codemirror_path = plugin_dir_url(__FILE__) . 'vendors/codemirror-5.65.16/';
+
+    $codemirror_files = array(
+        
+        array('codemirror', 'lib/codemirror.js', array('jquery', 'csslint'), '', true),
+        array('codemirror-mode-css', 'mode/css/css.js', array('jquery', 'codemirror'), '', true),
+        array('codemirror-lint', 'addon/lint/lint.js', array('jquery', 'codemirror'), '', true),
+        array('codemirror-lint-css', 'addon/lint/css-lint.js', array('jquery', 'codemirror', 'codemirror-lint'), '', true),
+        array('codemirror-lint-html', 'addon/lint/html-lint.js', array('jquery', 'codemirror', 'codemirror-lint'), '', true),
+        array('codemirror-addon-hint', 'addon/hint/show-hint.js', array('jquery', 'codemirror'), '', true),
+        array('codemirror-addon-hint-css', 'addon/hint/css-hint.js', array('jquery', 'codemirror', 'codemirror-addon-hint'), '', true),
+    );
+
+    foreach ($codemirror_files as $file) {
+        wp_enqueue_script($file[0], $codemirror_path . $file[1], $file[2], '', $file[4]);
+    }
+
+    $codemirror_styles = array(
+        array('codemirror', 'lib/codemirror.css'),
+        array('codemirror-theme', 'theme/mbo.css', array('codemirror')),
+        array('codemirror-lint-style', 'addon/lint/lint.css', array('codemirror')),
+        array('codemirror-hint-style', 'addon/hint/show-hint.css', array('codemirror')),
+    );
+
+    foreach ($codemirror_styles as $style) {
+        wp_enqueue_style($style[0], $codemirror_path . $style[1], isset($style[2]) ? $style[2] : array(), '', 'all');
+    }
+
     $scripts = array(
         'moment-js' => array('/js/libraries/moment.min.js', array()),
         'dt-date-col-sort' => array('/js/dt-date-col-sort.js', array('moment-js')),
         'id-general' => array('/js/id-general.js', array('jquery')),
         'mergeTags' => array('/js/mergeTags.js', array()),
-        
-        'template-editor' => array('/js/template-editor.js', array('jquery', 'id-general', 'jquery-ui-resizable', 'editable', 'spectrum', 'tinymce', 'gradx', 'mergeTags')),
-        'template-actions' => array('/js/template-actions.js', array('jquery', 'id-general')),
-        'codemirror' => array('/vendors/codemirror-5.65.16/lib/codemirror.js', array('jquery')),
-        
-        'codemirror-mode-javascript' => array('/vendors/codemirror-5.65.16/mode/javascript/javascript.js', array('jquery', 'codemirror')),
-        'codemirror-mode-css' => array('/vendors/codemirror-5.65.16/mode/css/css.js', array('jquery', 'codemirror')),
-        'codemirror-mode-xml' => array('/vendors/codemirror-5.65.16/mode/xml/xml.js', array('jquery', 'codemirror')),
-        'codemirror-mode-html' => array('/vendors/codemirror-5.65.16/mode/htmlmixed/htmlmixed.js', array('jquery', 'codemirror-mode-css', 'codemirror-mode-javascript', 'codemirror-mode-xml')),
+
+		'builder-functions' => array( '/builder-v2/js/builder-functions.js', array( 'jquery', 'id-general', 'jquery-ui-resizable', 'editable', 'spectrum', 'tinymce', 'gradx', 'crush', 'mergeTags' ) ),
+		'template-editor' => array( '/builder-v2/js/template-editor.js', array( 'jquery', 'id-general', 'builder-functions', 'jquery-ui-resizable', 'editable', 'spectrum', 'tinymce', 'gradx', 'crush', 'mergeTags' ) ),
+        'template-actions' => array('/js/template-actions.js', array('jquery', 'id-general')),        
+
         'wizSnippets' => array('/js/wizSnippets.js', array('jquery', 'id-general', 'codemirror')),
         'folder-actions' => array('/js/folder-actions.js', array('jquery', 'id-general')),
         'user-favorites' => array('/js/user-favorites.js', array('jquery', 'id-general')),

@@ -272,8 +272,8 @@ function duplicate_wiz_template($post_id, $returnPHP = false) {
 	
 	if ($wizTemplateRow) {
 		// Clear out the template_data_draft template_html_draft columns
-		$wizTemplateRow['template_data_draft'] = json_encode([]);
-		$wizTemplateRow['template_html_draft'] = '';
+		//$wizTemplateRow['template_data_draft'] = json_encode([]);
+		//$wizTemplateRow['template_html_draft'] = '';
 
 		// Unpack the JSON in the template_data column
 		$templateData = json_decode( $wizTemplateRow['template_data'], true );

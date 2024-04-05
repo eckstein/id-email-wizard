@@ -4,14 +4,14 @@ jQuery(document).ready(function ($) {
         var snippetEditor = CodeMirror.fromTextArea(document.getElementById('wizSnippet-editor'), {
             mode: 'htmlmixed',
             lineNumbers: true,
-            theme: 'mbo wizTheme',
+            theme: 'mbo',
             viewportMargin: Infinity
         });
 
         var snippetCssEditor = CodeMirror.fromTextArea(document.getElementById('wizSnippet-css-editor'), {
             mode: 'css',
             lineNumbers: true,
-            theme: 'mbo wizTheme',
+            theme: 'mbo',
             viewportMargin: Infinity
         });
     }

@@ -1,13 +1,13 @@
 <?php
 get_header();
 $postId = get_the_ID();
-$wizTemplate = get_wiztemplate( $postId);
-$wizTemplateObject = get_wiztemplate_object($postId);
+$wizTemplate = get_wiztemplate( $postId );
+$wizTemplateObject = get_wiztemplate_object( $postId );
 
 $current_user = wp_get_current_user();
 $userId = $current_user->ID;
 // $itTemplateId = get_post_meta( $postId, 'itTemplateId', true ) ?? '';
-$itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_template_id'] ?? '';
+$itTemplateId = $wizTemplate['template_settings']['iterable-sync']['iterable_template_id'] ?? '';
 
 ?>
 <header class="wizHeader">
@@ -16,8 +16,7 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 			<h1 id="single-template-title" class="wizEntry-title" title="<?php echo get_the_title(); ?>"
 				itemprop="name">
 				<input type="text" name="templateTitle" id="idwiz_templateTitle"
-					data-templateid="<?php echo $postId; ?>"
-					value="<?php echo get_the_title( $postId ); ?>" />
+					data-templateid="<?php echo $postId; ?>" value="<?php echo get_the_title( $postId ); ?>" />
 			</h1>
 			<div class="wizEntry-meta">
 				<strong>WizTemplate</strong>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
@@ -46,7 +45,7 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 				</span>
 
 			</div>
-		
+
 
 		</div>
 		<div class="wizHeader-right">
@@ -61,8 +60,7 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 					data-postid="<?php echo $postId; ?>">
 					<i class="fa-solid fa-copy"></i>&nbsp;&nbsp;Duplicate
 				</div>
-				<div title="Move Template" class="wiz-button green moveTemplate"
-					data-postid="<?php echo $postId; ?>">
+				<div title="Move Template" class="wiz-button green moveTemplate" data-postid="<?php echo $postId; ?>">
 					<i class="fa-solid fa-folder-tree"></i>&nbsp;&nbsp;Move
 				</div>
 				<div title="Delete Template" class="wiz-button red delete-template"
@@ -86,17 +84,22 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 	<div class="left panel-left">
 		<div id="builder">
 			<div class="main-builder-header">
-				<div id="main-builder-tabs" class="builder-tabs">
-					<div class="builder-tab --active" data-tab="builder-tab-chunks" title="Content chunks"><i
-							class="fa-solid fa-puzzle-piece"></i>&nbsp;&nbsp;Chunks</div>
-					<div class="builder-tab" data-tab="builder-tab-styles" title="Template Styles"><i
+				<div id="main-builder-tabs" class="wizard-tabs">
+					<div class="wizard-tab builder-tab --active" data-tab="#builder-tab-chunks" title="Content chunks">
+						<i class="fa-solid fa-puzzle-piece"></i>&nbsp;&nbsp;Chunks
+					</div>
+					<div class="wizard-tab builder-tab" data-tab="#builder-tab-styles" title="Template Styles"><i
 							class="fa-solid fa-brush"></i>&nbsp;&nbsp;Styles</div>
-					<div class="builder-tab" data-tab="builder-tab-message-settings" title="Message settings"><i
-							class="fa-solid fa-envelope"></i>&nbsp;&nbsp;Options</div>
-					<div class="builder-tab" data-tab="builder-tab-code"><i class="fa-solid fa-code"
+					<div class="wizard-tab builder-tab" data-tab="#builder-tab-message-settings"
+						title="Message settings"><i class="fa-solid fa-envelope"></i>&nbsp;&nbsp;Options</div>
+
+					<div class="wizard-tab builder-tab" data-tab="#builder-tab-mocks" title="Mockups"><i
+							class="fa-regular fa-file-image"></i>&nbsp;&nbsp;Mock-ups</div>
+					<div class="wizard-tab builder-tab" data-tab="#builder-tab-code"><i class="fa-solid fa-code"
 							title="Code & JSON"></i></div>
-					<div class="builder-tab" data-tab="builder-tab-settings" title="Template Settings"><i
+					<div class="wizard-tab builder-tab" data-tab="#builder-tab-settings" title="Template Settings"><i
 							class="fa-solid fa-gear"></i></div>
+
 
 				</div>
 				<div class="main-builder-actions">
@@ -112,7 +115,7 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 
 				</div>
 			</div>
-			<div class="builder-tab-content --active" id="builder-tab-chunks">
+			<div class="builder-tab-content wizard-tab-content --active" id="builder-tab-chunks">
 				<div class="builder-form-wrapper">
 					<div class="builder-rows-wrapper">
 						<?php
@@ -142,7 +145,7 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 			$templateStyles = $templateOptions['template_styles'] ?? [];
 			?>
 
-			<div class="builder-tab-content" id="builder-tab-styles">
+			<div class="builder-tab-content wizard-tab-content" id="builder-tab-styles">
 				<div class="builder-vertical-tabs">
 					<div class="template-settings-tabs">
 						<div class="template-settings-tab active" data-tab="template-styles-tab-header-and-footer">
@@ -159,7 +162,7 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 						</div>
 					</div>
 					<div class="template-settings-tabs-content">
-						<?php //print_r( $templateStyles );                                              ?>
+						<?php //print_r( $templateStyles );                                                       ?>
 						<form id="template-styles-form">
 							<?php
 							$templateHeaderFooterStyles = $templateStyles['header-and-footer'] ?? [];
@@ -177,7 +180,7 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 											<input type="checkbox" class="wiz-check-toggle"
 												id="template_settings_show_id_header" name="show_id_header" hidden <?php echo $showHeader ? 'checked' : ''; ?>>
 											<label for="template_settings_show_id_header"
-												class="checkbox-toggle-replace <?php echo $showHeader ? 'active' : ''; ?>"><i
+												class="wiz-check-toggle-display <?php echo $showHeader ? 'active' : ''; ?>"><i
 													class="<?php echo $showHeader ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
 										</div>
 
@@ -247,7 +250,7 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 											<input type="checkbox" class="wiz-check-toggle"
 												id="template_settings_show_id_footer" name="show_id_footer" hidden <?php echo $showFooter ? 'checked' : ''; ?>>
 											<label for="template_settings_show_id_footer"
-												class="checkbox-toggle-replace <?php echo $showFooter ? 'active' : ''; ?>"><i
+												class="wiz-check-toggle-display <?php echo $showFooter ? 'active' : ''; ?>"><i
 													class="<?php echo $showFooter ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
 										</div>
 
@@ -259,7 +262,7 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 											<input type="checkbox" class="wiz-check-toggle"
 												id="template_settings_show_unsub" name="show_unsub" hidden <?php echo $showUnsub ? 'checked' : ''; ?>>
 											<label for="template_settings_show_unsub"
-												class="checkbox-toggle-replace <?php echo $showUnsub ? 'active' : ''; ?>"><i
+												class="wiz-check-toggle-display <?php echo $showUnsub ? 'active' : ''; ?>"><i
 													class="<?php echo $showUnsub ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
 										</div>
 
@@ -292,8 +295,8 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 											=> '<i class="fa-solid fa-mobile-screen-button"></i>' ]
 									];
 
-									$forceWhiteTextDesktop = $templateHeaderFooterStyles['footer_force_white_text_on_desktop'];
-									$forceWhiteTextMobile = $templateHeaderFooterStyles['footer_force_white_text_on_mobile'];
+									$forceWhiteTextDesktop = $templateHeaderFooterStyles['footer_force_white_text_on_desktop'] ?? false;
+									$forceWhiteTextMobile = $templateHeaderFooterStyles['footer_force_white_text_on_mobile'] ?? false;
 
 									?>
 
@@ -471,7 +474,7 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 										<input type="checkbox" class="wiz-check-toggle"
 											id="template_styles_dark_mode_support" name="dark-mode-support" hidden <?php echo $includeDarkModeSupport ? 'checked' : ''; ?>>
 										<label for="template_styles_dark_mode_support"
-											class="checkbox-toggle-replace <?php echo $includeDarkModeSupport ? 'active' : ''; ?>"><i
+											class="wiz-check-toggle-display <?php echo $includeDarkModeSupport ? 'active' : ''; ?>"><i
 												class="<?php echo $includeDarkModeSupport ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
 									</div>
 
@@ -492,7 +495,7 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 					</div>
 				</div>
 			</div>
-			<div class="builder-tab-content" id="builder-tab-message-settings">
+			<div class="builder-tab-content wizard-tab-content" id="builder-tab-message-settings">
 				<!-- Template Settings Section -->
 				<div class="template-settings">
 					<form id="template-settings-form">
@@ -523,18 +526,35 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 
 						<div class="builder-field-wrapper block">
 							<label for="template_settings_subject_line">Subject Line</label>
+
 							<input type="text" id="template_settings_subject_line" name="subject_line"
 								class="builder-field" value="<?php echo $templateSettings['subject_line'] ?? ''; ?>">
+							<div class="message-settings-merge-tags" data-field="#template_settings_subject_line">
+								Insert:
+								<div class="insert-merge-tag" data-insert='{{{snippet "FirstName" "your child"}}}'>
+									Student First</div>
+								<div class="insert-merge-tag" data-insert='{{defaultIfEmpty "FirstName" "Friend"}}'>
+									Client First</div>
+							</div>
 						</div>
 
 						<div class="builder-field-wrapper block">
 							<label for="template_settings_preview_text">Preview Text</label>
+
 							<input type="text" id="template_settings_preview_text" name="preview_text"
 								class="builder-field" value="<?php echo $templateSettings['preview_text'] ?? ''; ?>">
+							<div class="message-settings-merge-tags" data-field="#template_settings_preview_text">
+								Insert:
+								<div class="insert-merge-tag" data-insert='{{{snippet "FirstName" "your child"}}}'>
+									Student First</div>
+								<div class="insert-merge-tag" data-insert='{{defaultIfEmpty "FirstName" "Friend"}}'>
+									Client First</div>
+							</div>
 						</div>
 
 						<div class="builder-field-wrapper block">
 							<label for="template_settings_from_name">From Name</label>
+
 							<input type="text" id="template_settings_from_name" name="from_name" class="builder-field"
 								value="<?php echo $templateSettings['from_name'] ?? 'iD Tech Camps'; ?>">
 						</div>
@@ -551,13 +571,13 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 								class="builder-field"><?php echo $templateSettings['fine_print_disclaimer'] ?? ''; ?></textarea>
 						</div>
 						<div class="builder-field-wrapper">
-							<?php $extUtms = $templateSettings['ext_utms'] ?? true; ?>
+							<?php $extUtms = $templateSettings['ext_utms'] ?? false; ?>
 							<label class="checkbox-toggle-label">Ext. UTMs</label>
 							<div class="wiz-checkbox-toggle">
 								<input type="checkbox" class="wiz-check-toggle" id="template_settings_ext_utms"
 									name="ext_utms" hidden <?php echo $extUtms ? 'checked' : ''; ?>>
 								<label for="template_settings_ext_utms"
-									class="checkbox-toggle-replace <?php echo $extUtms ? 'active' : ''; ?>"><i
+									class="wiz-check-toggle-display <?php echo $extUtms ? 'active' : ''; ?>"><i
 										class="<?php echo $extUtms ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
 							</div>
 
@@ -566,8 +586,7 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 						<div class="builder-field-wrapper">
 							<label for="template_settings_ext_utm_string">External UTM String</label>
 							<input type="text" id="template_settings_ext_utm_string" name="ext_utm_string"
-								class="builder-field"
-								value="<?php echo $templateSettings['ext_utm_string'] ?? ''; ?>">
+								class="builder-field" value="<?php echo $templateSettings['ext_utm_string'] ?? ''; ?>">
 						</div>
 
 
@@ -577,10 +596,56 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 					</form>
 				</div>
 			</div>
-			<div class="builder-tab-content" id="builder-tab-code">
+
+
+			<div class="builder-tab-content wizard-tab-content" id="builder-tab-mocks">
+				<h4>Upload Mock-ups</h4>
+				<?php
+				$mockups = $wizTemplate['mockups'] ?? [];
+				$mockup_types = [ 'desktop', 'mobile' ];
+				?>
+				<ul class="mockup-tabs">
+					<?php foreach ( $mockup_types as $index => $type ) : ?>
+						<li<?php echo $index === 0 ? ' class="active"' : ''; ?> data-tab="<?php echo $type; ?>-mockup">
+							<?php echo ucfirst( $type ); ?>
+							</li>
+						<?php endforeach; ?>
+				</ul>
+				<?php foreach ( $mockup_types as $index => $type ) : ?>
+					<?php $mockup = $mockups[ $type ] ?? ''; ?>
+					<div class="mockup-tab-content<?php echo $index === 0 ? '' : ' hidden'; ?>"
+						id="<?php echo $type; ?>-mockup">
+						<div class="mockup-uploader<?php echo empty( $mockup ) ? '' : ' hidden'; ?>">
+							<input type="file" class="mockup-upload-field" id="<?php echo $type; ?>-mockup-upload"
+								name="<?php echo $type; ?>-mockup" accept=".jpg, .jpeg, .png, .gif, .webp"
+								data-preview=".<?php echo $type; ?>-mockup-preview"
+								data-url="#<?php echo $type; ?>-mockup-url">
+							<label for="<?php echo $type; ?>-mockup-upload" class="upload-label">Drag and drop or click to
+								upload</label>
+						</div>
+						<div
+							class="mockup-display <?php echo $type; ?>-mockup-preview<?php echo empty( $mockup ) ? ' hidden' : ''; ?>">
+							<div class="mockup-actions">
+								<button class="wiz-button green upload-new-mock" data-type="<?php echo $type; ?>">Upload
+									New</button>
+								<button class="wiz-button red remove-mock" data-type="<?php echo $type; ?>"><i
+										class="fa-solid fa-xmark"></i></button>
+							</div>
+							<div class="mockup-image <?php echo $type; ?>-mockup-image">
+								<img src="<?php echo $mockup; ?>" />
+							</div>
+						</div>
+						<input type="hidden" id="<?php echo $type; ?>-mockup-url" name="<?php echo $type; ?>-mockup-url"
+							value="<?php echo $mockup; ?>">
+					</div>
+				<?php endforeach; ?>
+			</div>
+
+			<div class="builder-tab-content wizard-tab-content" id="builder-tab-code">
 				<div class="builder-code-wrapper">
 					<div class="builder-code-actions">
-						<button id="copyCode" class="wiz-button green"><i class="fa-solid fa-copy"></i>&nbsp;&nbsp;Copy
+						<button id="copyCode" data-code-in="#templateCode" class="wiz-button green"><i
+								class="fa-solid fa-copy"></i>&nbsp;&nbsp;Copy
 							HTML</button>
 						<button id="viewJson" class="wiz-button green" data-post-id="<?php echo $postId ?>"><i
 								class="fa-solid fa-code"></i>&nbsp;&nbsp;View JSON</button>
@@ -590,10 +655,11 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 							<i class="fa-solid fa-file-import"></i>&nbsp;&nbsp;Import JSON</button>
 					</div>
 					<pre
-						id="templateCode"><code><?php echo htmlspecialchars( generate_template_html( $wizTemplate, false ) ); ?></code></pre>
+						id="templateCode"><code ><?php echo htmlspecialchars( generate_template_html( $wizTemplate, false ) ); ?></code></pre>
 				</div>
 			</div>
-			<div class="builder-tab-content" id="builder-tab-settings">
+
+			<div class="builder-tab-content wizard-tab-content" id="builder-tab-settings">
 				<div class="builder-field-group">
 					<h4>Sync Settings</h4>
 					<fieldset name="iterable-sync">
@@ -617,7 +683,7 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 								<input type="checkbox" class="wiz-check-toggle"
 									id="builder_settings_save_collapse_states" name="save_collapse_states" hidden <?php echo $saveCollapseStates ? 'checked' : ''; ?>>
 								<label for="builder_settings_save_collapse_states"
-									class="checkbox-toggle-replace <?php echo $saveCollapseStates ? 'active' : ''; ?>"><i
+									class="wiz-check-toggle-display <?php echo $saveCollapseStates ? 'active' : ''; ?>"><i
 										class="<?php echo $saveCollapseStates ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
 							</div>
 
@@ -625,44 +691,83 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 						<div class="builder-field-wrapper centered">
 							<label class="checkbox-toggle-label">Auto-Collapse Rows</label>
 							<div class="wiz-checkbox-toggle">
-								<?php $autoCollapseRows = $templateOptions['template_settings']['interface-settings']['auto_collapse_rows'] ?? false; ?>
+								<?php $autoCollapseRows = $templateOptions['template_settings']['interface-settings']['auto_collapse_rows'] ?? true; ?>
 								<input type="checkbox" class="wiz-check-toggle" id="builder_settings_auto_collapse_rows"
 									name="auto_collapse_rows" hidden <?php echo $autoCollapseRows ? 'checked' : ''; ?>>
 								<label for="builder_settings_auto_collapse_rows"
-									class="checkbox-toggle-replace <?php echo $autoCollapseRows ? 'active' : ''; ?>"><i
+									class="wiz-check-toggle-display <?php echo $autoCollapseRows ? 'active' : ''; ?>"><i
 										class="<?php echo $autoCollapseRows ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
 							</div>
 
 						</div>
 						<div class="builder-field-wrapper centered">
-							<label class="checkbox-toggle-label">Auto-Collapse chunks (within rows)</label>
+							<label class="checkbox-toggle-label">Auto-Collapse Column Sets</label>
 							<div class="wiz-checkbox-toggle">
-								<?php $autoCollapsechunks = $templateOptions['template_settings']['interface-settings']['auto_collapse_chunks_within_rows'] ?? false; ?>
+								<?php $autoCollapseColsets = $templateOptions['template_settings']['interface-settings']['auto_collapse_columnsets'] ?? true; ?>
 								<input type="checkbox" class="wiz-check-toggle"
-									id="builder_settings_auto_collapse_chunks_within_rows"
-									name="auto_collapse_chunks_within_rows" hidden <?php echo $autoCollapsechunks ? 'checked' : ''; ?>>
-								<label for="builder_settings_auto_collapse_chunks_within_rows"
-									class="checkbox-toggle-replace <?php echo $autoCollapsechunks ? 'active' : ''; ?>"><i
-										class="<?php echo $autoCollapsechunks ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
+									id="builder_settings_auto_collapse_columnsets"
+									name="auto_collapse_columnsets" hidden <?php echo $autoCollapseColsets ? 'checked' : ''; ?>>
+								<label for="builder_settings_auto_collapse_columnsets"
+									class="wiz-check-toggle-display <?php echo $autoCollapseColsets ? 'active' : ''; ?>"><i
+										class="<?php echo $autoCollapseColsets ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
 							</div>
 
 						</div>
 						<div class="builder-field-wrapper centered">
 							<label class="checkbox-toggle-label">Auto-Collapse chunks</label>
 							<div class="wiz-checkbox-toggle">
-								<?php $autoCollapsechunks = $templateOptions['template_settings']['interface-settings']['auto_collapse_chunks'] ?? false; ?>
+								<?php $autoCollapsechunks = $templateOptions['template_settings']['interface-settings']['auto_collapse_chunks'] ?? true; ?>
 								<input type="checkbox" class="wiz-check-toggle"
 									id="builder_settings_auto_collapse_chunks" name="auto_collapse_chunks" hidden <?php echo $autoCollapsechunks ? 'checked' : ''; ?>>
 								<label for="builder_settings_auto_collapse_chunks"
-									class="checkbox-toggle-replace <?php echo $autoCollapsechunks ? 'active' : ''; ?>"><i
+									class="wiz-check-toggle-display <?php echo $autoCollapsechunks ? 'active' : ''; ?>"><i
 										class="<?php echo $autoCollapsechunks ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
 							</div>
 
 						</div>
 					</fieldset>
 				</div>
+
+				<div class="builder-field-group">
+					<h4>Interface Colors</h4>
+					
+					<fieldset name="interface-colors" id="builder-interface-colors">
+						<div class="builder-field-wrapper centered">
+							<?php
+							$rowColor = $templateOptions['template_settings']['interface-colors']['row_color'] ?? '#eeeeee';
+							?>
+							<label for="interface_colors_row_color">Row BG</label>
+							<input class="builder-colorpicker interface_colors_picker" type="color" name="row_color"
+								id="interface_colors_row_color" data-color-value="<?php echo $rowColor; ?>">
+						</div>
+						<div class="builder-field-wrapper centered">
+							<?php
+							$colsetColor = $templateOptions['template_settings']['interface-colors']['colset_color'] ?? '#eeeeee';
+							?>
+							<label for="interface_colors_colset_color">Colset BG</label>
+							<input class="builder-colorpicker interface_colors_picker" type="color" name="colset_color"
+								id="interface_colors_colset_color" data-color-value="<?php echo $colsetColor; ?>">
+						</div>
+						<div class="builder-field-wrapper centered">
+							<?php
+							$columnColor = $templateOptions['template_settings']['interface-colors']['column_color'] ?? '#eeeeee';
+							?>
+							<label for="interface_colors_column_color">Column BG</label>
+							<input class="builder-colorpicker interface_colors_picker" type="color" name="column_color"
+								id="interface_colors_column_color" data-color-value="<?php echo $columnColor; ?>">
+						</div>
+						<div class="builder-field-wrapper centered">
+							<?php
+							$chunkColor = $templateOptions['template_settings']['interface-colors']['chunk_color'] ?? '#eeeeee';
+							?>
+							<label for="interface_colors_chunk_color">Chunk BG</label>
+							<input class="builder-colorpicker interface_colors_picker" type="color" name="chunk_color"
+								id="interface_colors_chunk_color" data-color-value="<?php echo $chunkColor; ?>">
+						</div>
+					</fieldset>
+					<div class="reset-interface-colors">Reset to default</div>
+				</div>
 			</div>
-			
 
 		</div>
 
@@ -681,20 +786,26 @@ $itTemplateId = $wizTemplate['template-settings']['iterable-sync']['iterable_tem
 				// 	$fileStarClass = 'fa-regular';
 				// }
 				?>
-				<!-- <i title="Add/Remove Favorite" class="addRemoveFavorite <?php //echo $fileStarClass;                                                                        ?> fa-star"
-					data-objecttype="Template" data-objectid="<?php //echo $postId;                                                                        ?>"></i> -->
+				<!-- <i title="Add/Remove Favorite" class="addRemoveFavorite <?php //echo $fileStarClass;                                                                                 ?> fa-star"
+					data-objecttype="Template" data-objectid="<?php //echo $postId;                                                                                 ?>"></i> -->
 
 
 
 				<div id="templatePreviewIcons">
-					<i title="Desktop Preview" class="fas fa-desktop active" id="showDesktop"></i>
-					<i title="Mobile Preview" class="fas fa-mobile-alt" id="showMobile"></i>
-					<div id="preview_width_dragger"></div>
+					<i title="Desktop Preview" class="fas fa-desktop showDesktopPreview active"
+						data-frame="#previewFrame"></i>
+					<i title="Mobile Preview" class="fas fa-mobile-alt showMobilePreview"
+						data-frame="#previewFrame"></i>
+					<div class="preview_width_dragger" data-frame="#previewFrame"></div>
+
 					<span class="templateActions-divider"></span>
-					<i title="White Background" class="fa-solid fa-sun light-mode-interface active"></i>
-					<i title="Dark Background" class="fa-solid fa-moon dark-mode-interface"></i>
-					<div title="Transparent Background"
-						class="interface-transparency-toggle transparent-mode-background">
+
+					<i title="White Background" class="fa-solid fa-sun editor-bg-mode light-mode-interface active"
+						data-mode="light" data-frame="#previewFrame"></i>
+					<i title="Dark Background" class="fa-solid fa-moon editor-bg-mode dark-mode-interface"
+						data-mode="dark" data-frame="#previewFrame"></i>
+					<div title="Transparent Background" class="editor-bg-mode transparent-mode-interface"
+						data-mode="trans" data-frame="#previewFrame">
 					</div>
 					<span class="templateActions-divider"></span>
 					<div title="Fill Merge Tags" class="fill-merge-tags" data-postid="<?php echo $postId; ?>">

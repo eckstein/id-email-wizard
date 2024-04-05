@@ -44,7 +44,6 @@ jQuery(document).ready(function ($) {
 					template_action: "duplicate",
 					post_id: post_id,
 				};
-
 				const templateDuplicateSuccess = function (response) {
 					console.log(response);
 					Swal.fire({
@@ -72,8 +71,10 @@ jQuery(document).ready(function ($) {
 						icon: "error",
 					});
 				};
-
 				idemailwiz_do_ajax("id_ajax_template_actions", idAjax_template_actions.nonce, templateDuplicateData, templateDuplicateSuccess, templateDuplicateError);
+				
+
+				
 			} else {
 				$("#iDoverlay, #iDspinner").hide();
 			}

@@ -270,6 +270,8 @@ function idemailwiz_fetch_templates( $campaignIds = null ) {
 	$urlsToFetch = [];
 	foreach ( $templateIds as $templateId ) {
 
+		//error_log($templateId);
+
 		// Try email endpoint first, and if it fails, fall back to SMS
 		$emailEndpoint = "https://api.iterable.com/api/templates/email/get?templateId=$templateId";
 		$smsEndpoint = "https://api.iterable.com/api/templates/sms/get?templateId=$templateId";

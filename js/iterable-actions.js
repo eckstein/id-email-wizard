@@ -109,6 +109,7 @@ jQuery(document).ready(function ($) {
 							toggleOverlay(false);
 						});
 					} else {
+						console.log(data.fields);
 						create_or_update_iterable_template(data.fields, result.value, data.alreadySent)
 							.then(handleTemplateUpdateSuccess)
 							.catch(handleTemplateUpdateFailure);
@@ -124,14 +125,16 @@ jQuery(document).ready(function ($) {
 	// Function to handle success of template sync
 	function handleTemplateUpdateSuccess(templateId) {
 		$('#iterable_template_id').val(templateId).change();
-		$('#iterable_template_id').attr('data-auto-publish', 'true');
+		//$('#iterable_template_id').attr('data-auto-publish', 'true');
 		Swal.fire({
 			title: "Sync complete",
 			html: `Sync was successful!<br/><a style="text-decoration:underline;" href="https://app.iterable.com/templates/editor?templateId=${templateId}" target="_blank">Click here to go to Iterable template</a>.`,
 			showConfirmButton: true,
 		}).then(() => {
-			// Update the input field with the new template ID
+			
 			toggleOverlay(false);
+
+			saveTemplateData();
 
 			// Reload the page to reflect changes (if necessary)
 			//var currentUrl = window.location.href;
@@ -171,27 +174,34 @@ jQuery(document).ready(function ($) {
 				fromName,
 			} = templateData;
 
-			const messageTypeId = messageType == "Transactional" ? config.TRANSACTIONAL_MESSAGE_TYPE_ID : config.PROMOTIONAL_MESSAGE_TYPE_ID;
-			const fromSender = messageType == "Transactional" ? config.TRANSACTIONAL_FROM_EMAIL : config.PROMOTIONAL_FROM_EMAIL;
+			const messageTypeId = messageType == "transactional" ? config.TRANSACTIONAL_MESSAGE_TYPE_ID : config.PROMOTIONAL_MESSAGE_TYPE_ID;
+			const fromSender = messageType == "transactional" ? config.TRANSACTIONAL_FROM_EMAIL : config.PROMOTIONAL_FROM_EMAIL;
 
-			const additionalData = {
-				template_id: postId,
-				mode: 'code'
+			var additionalData = {
+				action: "generate_template_html_from_ajax",
+				template_id: idAjax_template_editor.currentPost.ID,
+				session_data: getTemplateFromSession(),
+				//security: idAjax_template_editor.nonce
 			};
 
-			idemailwiz_do_ajax('generate_template_html_from_ajax', idAjax_template_editor.nonce, additionalData, getHTMLsuccessCallback, getHTMLerrorCallback, 'html');
+			
 
+			//idemailwiz_do_ajax('generate_template_html_from_ajax', idAjax_template_editor.nonce, additionalData, getHTMLsuccessCallback, getHTMLerrorCallback);
+
+			
+			jQuery.ajax({
+				type: "POST",
+				url: idAjax.ajaxurl,
+				data: additionalData,
+				//dataType: "json",
+				success: getHTMLsuccessCallback,
+				error: getHTMLerrorCallback
+			});
+			
 			function getHTMLsuccessCallback(response) {
-				var data = typeof response === 'string' ? JSON.parse(response) : response;
-				//console.log(data.data.templateHtml);
-				//return;
-				// Decode HTML entities
-				var rawHtml = data.data.templateHtml;
-				let templateHtml = $('<div/>').html(rawHtml).text();
+
+				let templateHtml = $('<div/>').html(response).text();
 				
-
-				//console.log(templateHtml);
-
 				// Replace curly quotes with straight quotes
 				templateHtml = templateHtml.replace(/[\u201C\u201D]/g, '"');
 

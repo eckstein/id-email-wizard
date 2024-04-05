@@ -54,11 +54,11 @@ function get_wiztemplate_with_ajax() {
 		wp_send_json_error( [ 'message' => 'No post ID provided' ] );
 		return;
 	}
-	$templateData = get_wiztemplate( $postId);
+	$templateData = get_wiztemplate( $postId );
 	wp_send_json_success( $templateData );
 }
 
-function get_wiztemplate( $postId) {
+function get_wiztemplate( $postId ) {
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'wiz_templates';
 
@@ -74,7 +74,7 @@ function get_wiztemplate( $postId) {
 	return $templateData;
 }
 
-function get_wiztemplate_object($postId) {
+function get_wiztemplate_object( $postId ) {
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'wiz_templates';
 	// Fetch the entire template data from the database
@@ -102,7 +102,7 @@ function idemailwiz_save_template_title() {
 		wp_send_json_error( [ 'message' => 'Invalid template ID or template title' ] );
 		return;
 	}
-	$updateTitle = wp_update_post( [ 'ID' => $templateId, 'post_title' => $templateTitle, 'post_name' => sanitize_title($templateTitle) ] );
+	$updateTitle = wp_update_post( [ 'ID' => $templateId, 'post_title' => $templateTitle, 'post_name' => sanitize_title( $templateTitle ) ] );
 	if ( $updateTitle ) {
 		wp_send_json_success( [ 'message' => 'Template title updated successfully' ] );
 	} else {
@@ -144,23 +144,24 @@ function handle_create_new_row() {
 	$templateData = $sessionTemplateData ?: $publishedTemplateData;
 
 	// Initialize $chunkData to false
-	$chunkData = [];
+	$rowData = [];
 
 	// Check if the row index is valid and the template data contains rows
 	if ( isset( $_POST['row_to_dupe'] ) && $add_after >= 0 && isset( $templateData['rows'][ $add_after ] ) ) {
 		// Retrieve the specific row data to duplicate
-		$chunkData = $templateData['rows'][ $add_after ];
+		$rowData = $templateData['rows'][ $add_after ];
 	}
 
+
 	// Generate the HTML for the new row
-	$html = generate_builder_row( $row_id, $chunkData );
+	$html = generate_builder_row( $row_id, $rowData );
 
 	// Return the HTML
 	wp_send_json_success( [ 'html' => $html ] );
 }
 
-add_action( 'wp_ajax_add_new_chunk', 'handle_add_new_chunk' );
-function handle_add_new_chunk() {
+add_action( 'wp_ajax_create_new_columnset', 'handle_create_new_columnset' );
+function handle_create_new_columnset() {
 	$nonce = $_POST['security'] ?? '';
 	if ( ! wp_verify_nonce( $nonce, 'template-editor' ) ) {
 		wp_send_json_error( [ 'message' => 'Nonce verification failed' ] );
@@ -169,6 +170,72 @@ function handle_add_new_chunk() {
 
 	$post_id = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
 	$rowId = intval( $_POST['row_id'] );
+	$colSetIndex = isset( $_POST['colset_index'] ) ? intval( $_POST['colset_index'] ) : 0;
+
+	// Initialize $columnSetData to an empty array
+	$columnSetData = [ 
+		'columns' => []
+	];
+
+	// Check if the row index is valid and the template data contains rows
+	if ( isset( $_POST['colset_to_dupe'] ) ) {
+		// Get existing data (for duplicating) if passed
+		$publishedTemplateData = get_wiztemplate( $post_id );
+		// Check for passed session data and use that, if present
+		$sessionTemplateData = isset( $_POST['session_data'] ) && $_POST['session_data'] ? json_decode( stripslashes( $_POST['session_data'] ), true ) : [];
+		$templateData = $sessionTemplateData ?: $publishedTemplateData;
+
+		// Retrieve the specific columnSet data to duplicate using the original columnSet index
+		$originalColSetIndex = intval( $_POST['colset_to_dupe'] );
+		if ( isset( $templateData['rows'][ $rowId ]['columnSets'][ $originalColSetIndex ] ) ) {
+			$columnSetData = $templateData['rows'][ $rowId ]['columnSets'][ $originalColSetIndex ];
+		}
+	} else {
+		// Generate a blank column for the new columnSet
+		$columnData = [ 
+			'title' => 'Column',
+			'activation' => 'active',
+			'chunks' => []
+		];
+		$columnSetData['columns'][] = $columnData;
+	}
+
+	// Generate the HTML for the new columnSet
+	$html = generate_builder_columnset( $colSetIndex, $columnSetData, $rowId, [] );
+
+	wp_send_json_success( [ 'html' => $html ] );
+}
+
+add_action( 'wp_ajax_create_new_column', 'handle_create_new_column' );
+function handle_create_new_column() {
+	$nonce = $_POST['security'] ?? '';
+	if ( ! wp_verify_nonce( $nonce, 'template-editor' ) ) {
+		wp_send_json_error( [ 'message' => 'Nonce verification failed' ] );
+		return;
+	}
+
+	$rowId = intval( $_POST['row_id'] );
+	$colSetId = intval( $_POST['colset_id'] );
+	$columnIndex = isset( $_POST['column_index'] ) ? intval( $_POST['column_index'] ) : 0;
+
+	// Generate a new column HTML. We'll return a blank column structure.
+	$html = generate_builder_column( $rowId, $colSetId, [], $columnIndex );
+
+	wp_send_json_success( [ 'html' => $html ] );
+}
+
+
+add_action( 'wp_ajax_add_new_chunk', 'add_or_duplicate_chunk' );
+function add_or_duplicate_chunk() {
+	$nonce = $_POST['security'] ?? '';
+	if ( ! wp_verify_nonce( $nonce, 'template-editor' ) ) {
+		wp_send_json_error( [ 'message' => 'Nonce verification failed' ] );
+		return;
+	}
+
+	$post_id = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
+	$rowId = intval( $_POST['row_id'] );
+	$colSetIndex = intval( $_POST['colset_index'] );
 	$chunkBeforeId = isset( $_POST['chunk_before_id'] ) ? intval( $_POST['chunk_before_id'] ) : null;
 	$chunkType = sanitize_text_field( $_POST['chunk_type'] );
 
@@ -184,7 +251,7 @@ function handle_add_new_chunk() {
 		$sessionTemplateData = isset( $_POST['session_data'] ) && $_POST['session_data'] ? json_decode( stripslashes( $_POST['session_data'] ), true ) : [];
 		$templateData = $sessionTemplateData ?: $publishedTemplateData;
 
-		$chunkData = $templateData['rows'][ $rowId ]['columns'][ $columnId ]['chunks'][ $chunkBeforeId ];
+		$chunkData = $templateData['rows'][ $rowId ]['columnSets'][ $colSetIndex ]['columns'][ $columnId ]['chunks'][ $chunkBeforeId ];
 	} else {
 		$chunkData = [];
 	}
@@ -195,78 +262,105 @@ function handle_add_new_chunk() {
 }
 
 
-
-add_action( 'wp_ajax_create_new_column', 'handle_create_new_column' );
-function handle_create_new_column() {
-	$nonce = $_POST['security'] ?? '';
-	if ( ! wp_verify_nonce( $nonce, 'template-editor' ) ) {
-		wp_send_json_error( [ 'message' => 'Nonce verification failed' ] );
-		return;
-	}
-
-	$rowId = intval( $_POST['row_id'] ); // Assuming row ID is passed
-	$columnIndex = isset( $_POST['column_index'] ) ? intval( $_POST['column_index'] ) : 0;
-
-	// Generate a new column HTML. We'll return a blank column structure.
-	$html = generate_builder_column( $rowId, [], $columnIndex );
-
-	wp_send_json_success( [ 'html' => $html ] );
-}
-
-
 function generate_builder_row( $rowId, $rowData = [] ) {
 
 	$uniqueId = uniqid( 'wiz-row-' );
 
-	$columns = isset( $rowData['columns'] ) && is_array( $rowData['columns'] ) ? $rowData['columns'] : [ [ 'chunks' => [] ] ];
-	$countColumns = 0;
-	foreach ( $columns as $column ) {
-		if ( ! isset( $column['activation'] ) || $column['activation'] === 'active' ) {
-			$countColumns++;
+	// Attempt to set columnSets from rowData, default to an empty array if not set or not an array
+	$columnSets = isset( $rowData['columnSets'] ) && is_array( $rowData['columnSets'] ) ? $rowData['columnSets'] : [];
+
+	// Check if columnSets is empty, indicating an older version of the template
+	if ( empty( $columnSets ) ) {
+		// Check if 'columns' key exists in rowData
+		if ( isset( $rowData['columns'] ) && is_array( $rowData['columns'] ) ) {
+			// Move 'stacked' and 'magic_wrap' keys from row level to columnSet level
+			$stacked = isset( $rowData['stacked'] ) ? $rowData['stacked'] : false;
+			$magic_wrap = isset( $rowData['magic_wrap'] ) ? $rowData['magic_wrap'] : "off";
+
+			// Determine the layout based on the number of columns
+			$columnCount = count( $rowData['columns'] );
+			$layout = '';
+			switch ( $columnCount ) {
+				case 1:
+					$layout = 'one-column';
+					break;
+				case 2:
+					$layout = 'two-column';
+					break;
+				case 3:
+					$layout = 'three-column';
+					break;
+				default:
+					$layout = 'one-column';
+			}
+
+			// Create a new columnSet with the columns from the older version
+			$columnSets = [ 
+				[ 
+					'columns' => $rowData['columns'],
+					'layout' => $layout,
+					'stacked' => $stacked,
+					'magic_wrap' => $magic_wrap,
+					'activation' => 'active',
+				]
+			];
+		} else {
+			// If 'columns' key doesn't exist, initialize with a default empty column set
+			$columnSets = [ 
+				[ 
+					'columns' => [ 
+						[ 
+							'title' => 'Column',
+							'activation' => 'active',
+							'chunk' => [],
+						]
+					],
+					'layout' => 'one-column',
+					'stacked' => false,
+					'magic_wrap' => "off",
+					'activation' => 'active',
+				]
+			];
 		}
 	}
-	$collapseState = $rowData['state'] ?? 'collapsed';
 
-	$magicWrap = $rowData['magic_wrap'] ?? 'off';
-	$magicWrapClass = $magicWrap == 'on' ? 'active' : '';
+	$html = '';
 
-	if ( $magicWrap == 'on' ) {
-		$columns = array_reverse( $columns );
-	}
+	$rowCollapseState = $rowData['state'] ?? 'collapsed';
 
-	$desktopVisibility = isset( $rowData['desktop_visibility'] ) && $rowData['desktop_visibility'] === 'false' ? 'false' : 'true';
-	$mobileVisibility = isset( $rowData['mobile_visibility'] ) && $rowData['mobile_visibility'] === 'false' ? 'false' : 'true';
+	$rowDesktopVisibility = isset( $rowData['desktop_visibility'] ) && $rowData['desktop_visibility'] === 'false' ? 'false' : 'true';
+	$rowMobileVisibility = isset( $rowData['mobile_visibility'] ) && $rowData['mobile_visibility'] === 'false' ? 'false' : 'true';
 
 
 	// Determine if the icons should have the 'disabled' class based on visibility
-	$desktopIconClass = $desktopVisibility === 'false' ? 'disabled' : '';
-	$mobileIconClass = $mobileVisibility === 'false' ? 'disabled' : '';
+	$rowDesktopIconClass = $rowDesktopVisibility === 'false' ? 'disabled' : '';
+	$rowMobileIconClass = $rowMobileVisibility === 'false' ? 'disabled' : '';
+
+
+	$rowBackgroundSettings = $rowData['background_settings'] ?? [];
+
 
 	$rowTitle = $rowData['title'] ?? 'Section';
 	$rowNumber = $rowId + 1;
-	$columnsStacked = $rowData['stacked'] ?? false;
-	$stackedClass = $columnsStacked ? 'fa-rotate-90' : '';
-	$html = '<div class="builder-row --' . $collapseState . '" id="' . $uniqueId . '" data-row-id="' . $rowId . '"  data-column-stacked="' . $columnsStacked . '">
-				<div class="builder-row-header">
+
+	$html .= '<div class="builder-row --' . $rowCollapseState . '" id="' . $uniqueId . '" data-row-id="' . $rowId . '">
+				<div class="builder-header builder-row-header">
 					<div class="builder-row-title exclude-from-toggle"><div class="builder-row-title-number" data-row-id-display="' . $rowNumber . '">' . $rowNumber . '</div>
 					<div class="builder-row-title-text edit-row-title exclude-from-toggle" data-row-id="' . $rowId . '">' . $rowTitle . '</div>
 					</div>
+					<div class="builder-row-toggle builder-toggle">&nbsp;</div>
 					<div class="builder-row-actions">
-						<div class="builder-row-actions-button exclude-from-toggle show-on-desktop ' . $desktopIconClass . '" data-show-on-desktop="' . $desktopVisibility . '">
+						<div class="builder-row-actions-button exclude-from-toggle show-on-desktop ' . $rowDesktopIconClass . '" data-show-on-desktop="' . $rowDesktopVisibility . '">
 						<i class="fas fa-desktop"></i>
 						</div>
-						<div class="builder-row-actions-button exclude-from-toggle show-on-mobile ' . $mobileIconClass . '" data-show-on-mobile="' . $mobileVisibility . '">
+						<div class="builder-row-actions-button exclude-from-toggle show-on-mobile ' . $rowMobileIconClass . '" data-show-on-mobile="' . $rowMobileVisibility . '">
 						<i class="fas fa-mobile-alt" ></i>
 						</div>
-						<div class="builder-row-actions-button exclude-from-toggle ' . $stackedClass . '" title="Stack/Unstack columns">
-						<i class="fa-solid fa-bars rotate-columns" ></i>
+
+						<div class="builder-row-actions-button exclude-from-toggle row-bg-settings-toggle" title="Background color">
+							<i class="fa-solid fa-fill-drip"></i>
 						</div>
-						<div class="builder-row-actions-button row-column-settings exclude-from-toggle" data-columns="' . $countColumns . '" title="Add/Remove columns">
-						<i class="fas fa-columns"></i>
-						</div>
-						<div class="builder-row-actions-button magic-wrap-toggle row-columns-magic-wrap exclude-from-toggle ' . $magicWrapClass . '" data-magic-wrap="' . $magicWrap . '" title="Magic Wrap">
-						<i class="fa-solid fa-arrow-right-arrow-left"></i>
-						</div>
+
 						<div class="builder-row-actions-button exclude-from-toggle duplicate-row" title="Duplicate row">
 						
 						<i class="fa-regular fa-copy"></i>
@@ -275,20 +369,148 @@ function generate_builder_row( $rowId, $rowData = [] ) {
 						<i class="fas fa-times"></i>
 						</div>
 					</div>
+					
 				</div>
+				<div class="builder-row-settings-row">
+				<form class="builder-row-settings">';
+				$html .= generateBackgroundSettingsModule( $rowBackgroundSettings, '' );
+				$html .= '</form>'; // row-settings form
+				$html .= '</div>'; // row-settings
+
+				$html .= '
 				<div class="builder-row-content">
-				<div class="builder-row-columns" data-active-columns="' . $countColumns . '">';
+				<div class="builder-columnsets">
+				';
+	foreach ( $columnSets as $colSetIndex => $columnSet ) {
 
-	foreach ( $columns as $columnIndex => $column ) {
-
-		$html .= generate_builder_column( $rowId, $column, $columnIndex );
+		$html .= generate_builder_columnset( $colSetIndex, $columnSet, $rowId, $rowData );
 	}
 
-	$html .= '</div></div></div>'; // Close builder-row-columns, builder-row-content, and builder-row divs
+
+	$html .= '</div>'; // columnsets
+	$html .= '<div class="builder-row-footer">';
+	$html .= '<button class="wiz-button outline add-columnset">Add Column Set</button>';
+	$html .= '</div>'; // row-footer
+	$html .= '</div>'; // Builder-row-content
+	$html .= '</div>'; // Builder-row divs
+
 	return $html;
 }
 
-function generate_builder_column( $rowId, $columnData, $columnIndex ) {
+function generate_builder_columnset( $colSetIndex, $columnSet, $rowId, $rowData ) {
+
+	$uniqueId = uniqid( 'wiz-columnset-' );
+
+	$colsetDesktopVisibility = isset( $rowData['desktop_visibility'] ) && $rowData['desktop_visibility'] === 'false' ? 'false' : 'true';
+	$colsetMobileVisibility = isset( $rowData['mobile_visibility'] ) && $rowData['mobile_visibility'] === 'false' ? 'false' : 'true';
+
+
+	// Determine if the icons should have the 'disabled' class based on visibility
+	$colsetDesktopIconClass = $colsetDesktopVisibility === 'false' ? 'disabled' : '';
+	$colsetMobileIconClass = $colsetMobileVisibility === 'false' ? 'disabled' : '';
+
+	$columns = $columnSet['columns'] ?? [];
+
+	// Ensure there are always three columns available
+	while ( count( $columns ) < 3 ) {
+		$columns[] = [ 
+			'title' => 'Column',
+			'activation' => 'inactive',
+			'chunks' => []
+		];
+	}
+
+	$countColumns = 0;
+	foreach ( $columns as $column ) {
+		if ( ! isset( $column['activation'] ) || $column['activation'] === 'active' ) {
+			$countColumns++;
+		}
+	}
+
+	$columnSetDisplayCnt = $colSetIndex + 1;
+
+	$magicWrap = $columnSet['magic_wrap'] ?? 'off';
+
+
+	$magicWrapToggleClass = $magicWrap == 'on' ? 'active' : '';
+
+	if ( $magicWrap == 'on' ) {
+		$columns = array_reverse( $columns, true );
+	}
+
+	$columnsStacked = $columnSet['stacked'] ?? false;
+	$stackedClass = $columnsStacked ? 'fa-rotate-90' : '';
+
+	$columnsetTitle = $columnSet['title'] ?? 'Column Set';
+
+	$colsLayout = $columnSet['layout'] ?? 'one-col';
+
+	$colsetBgSettings = $columnSet['background_settings'] ?? [];
+
+	$colSetState = $columnSet['state'] ?? 'collapsed';
+
+	$html = '';
+
+	$html .= '<div class="builder-columnset --'.$colSetState.'" id="' . $uniqueId . '" data-columnset-id="' . $colSetIndex . '" data-layout="' . $colsLayout . '" data-magic-wrap="' . $magicWrap . '">
+			<div class="builder-header builder-columnset-header">
+			<div class="builder-columnset-title exclude-from-toggle"><div class="builder-columnset-title-number" data-columnset-id-display="' . $columnSetDisplayCnt . '">' . $columnSetDisplayCnt . '</div>
+			<div class="builder-columnset-title-text edit-columnset-title exclude-from-toggle" data-columnset-id="' . $colSetIndex . '">' . $columnsetTitle . '</div>
+			</div>
+			<div class="builder-toggle builder-columnset-toggle">&nbsp;</div>
+			<div class="builder-columnset-actions">
+				<div class="builder-columnset-actions-button exclude-from-toggle show-on-desktop ' . $colsetDesktopIconClass . '" data-show-on-desktop="' . $colsetDesktopVisibility . '">
+				<i class="fas fa-desktop"></i>
+				</div>
+				<div class="builder-columnset-actions-button exclude-from-toggle show-on-mobile ' . $colsetMobileIconClass . '" data-show-on-mobile="' . $colsetMobileVisibility . '">
+				<i class="fas fa-mobile-alt" ></i>
+				</div>
+				<div class="builder-columnset-actions-button exclude-from-toggle colset-bg-settings-toggle" title="Background color">
+					<i class="fa-solid fa-fill-drip"></i>
+				</div>
+				<div class="builder-columnset-actions-button exclude-from-toggle ' . $stackedClass . '" title="Stack/Unstack columns">
+				<i class="fa-solid fa-bars rotate-columns" ></i>
+				</div>
+				<div class="builder-columnset-actions-button columnset-column-settings exclude-from-toggle" data-columns="' . $countColumns . '" title="Add/Remove columns">
+				<i class="fas fa-columns"></i>
+				</div>
+				<div class="builder-columnset-actions-button magic-wrap-toggle columnset-columns-magic-wrap exclude-from-toggle ' . $magicWrapToggleClass . '" title="Magic Wrap">
+				<i class="fa-solid fa-arrow-right-arrow-left"></i>
+				</div>
+				<div class="builder-columnset-actions-button exclude-from-toggle duplicate-columnset" title="Duplicate columnset">
+					
+				<i class="fa-regular fa-copy"></i>
+				</div>
+				<div class="builder-columnset-actions-button remove-columnset exclude-from-toggle" title="Delete columnset">
+				<i class="fas fa-times"></i>
+				</div>
+			</div>
+			</div>
+			
+			
+			<div class="builder-columnset-settings-row">
+			<form class="builder-columnset-settings">';
+	$html .= generateBackgroundSettingsModule( $colsetBgSettings, '' );
+	$html .= '</form>'; // end columnset settings form
+	$html .= '</div>'; // end columnset settings
+
+	$html .= '<div class="builder-columnset-content">';
+	$html .= '<div class="builder-columnset-columns" data-active-columns="' . $countColumns . '">';
+
+	foreach ( $columns as $columnIndex => $column ) {
+
+		$html .= generate_builder_column( $rowId, $columnSet, $column, $columnIndex );
+	}
+
+	$html .= '</div>';// builder-columnset-content
+	$html .= '</div>';// builder-columnset-columns
+	$html .= '</div>';// end columnset
+
+
+	return $html;
+
+}
+
+function generate_builder_column( $rowId, $columnSet, $columnData, $columnIndex ) {
 	$uniqueId = uniqid( 'wiz-column-' );
 
 	$columnNumber = $columnIndex + 1;
@@ -299,15 +521,17 @@ function generate_builder_column( $rowId, $columnData, $columnIndex ) {
 	$colBgSettings = $columnData['settings'] ?? [];
 
 	$colActiveClass = isset( $columnData['activation'] ) && $columnData['activation'] === 'inactive' ? 'inactive' : 'active';
+
 	$html = '<div class="builder-column ' . $colActiveClass . '" id="' . $uniqueId . '" data-column-id="' . $columnIndex . '">';
-	$html .= '<div class="builder-column-header">';
+	$html .= '<div class="builder-header builder-column-header">';
 
 	$colTitle = $columnData['title'] ?? 'Column';
+
 
 	$html .= '<div class="builder-column-title exclude-from-toggle"><div class="builder-column-title-number" data-column-id-display="' . $columnNumber . '">' . $columnNumber . '</div>';
 	$html .= '<div class="builder-column-title-text edit-column-title exclude-from-toggle" data-column-id="' . $columnIndex . '">' . $colTitle . '</div>';
 	$html .= '</div>';
-
+	$html .= '<div class="builder-column-toggle">&nbsp;</div>';
 	$html .= '<div class="builder-column-actions">';
 	$html .= '<div class="builder-column-actions-button show-column-settings">';
 	$html .= '<i class="fas fa-cog" title="Column settings"></i>';
@@ -353,10 +577,12 @@ function generate_builder_column( $rowId, $columnData, $columnIndex ) {
 		}
 	}
 	$html .= '</div>';
-	$html .= '<div class="add-chunk-to-end add-chunk-wrapper"><button class="wiz-button centered add-chunk">Add Chunk</button></div>';
+	$html .= '<div class="builder-column-footer add-chunk-wrapper"><button class="wiz-button centered add-chunk">Add Chunk</button></div>';
 
 	$html .= '</div>';
+
 	$html .= '</div>';
+
 	return $html;
 }
 
@@ -366,6 +592,10 @@ function get_chunk_preview( $chunkData = [], $chunkType ) {
 	$chunkPreview = '';
 	if ( $chunkType == 'text' ) {
 		$chunkPreview = $chunkData['fields']['plain_text_content'] ? mb_substr( strip_tags( $chunkData['fields']['plain_text_content'] ), 0, 32 ) . '...' : '';
+	}
+
+	if ( $chunkType == 'html' ) {
+		$chunkPreview = 'Raw HTML';
 	}
 
 	if ( $chunkType == 'image' ) {
@@ -410,8 +640,9 @@ function generate_builder_chunk( $chunkId, $chunkType, $rowId, $columnId, $chunk
 
 
 	$html = '<div class="builder-chunk --' . $chunkState . '" data-chunk-id="' . $chunkId . '" data-chunk-type="' . $chunkType . '" id="' . $uniqueId . '">
-				<div class="builder-chunk-header">
+				<div class="builder-header builder-chunk-header">
 					<div class="builder-chunk-title">' . $chunkPreview . '</div>
+					<div class="builder-toggle builder-chunk-toggle">&nbsp;</div>
 					<div class="builder-chunk-actions">
 						<div class="builder-chunk-actions-button exclude-from-toggle show-on-desktop ' . $desktopIconClass . '" data-show-on-desktop="' . $desktopVisibility . '" title="Show on desktop">
 						<i class="fas fa-desktop" ></i>
@@ -484,7 +715,11 @@ function generate_chunk_form_interface( $chunkType, $rowId, $columnId, $chunkId,
 	echo "<button class='wiz-button green copy-chunk-code' title='Copy HTML Code'><i class='fa-regular fa-copy'></i>&nbsp;&nbsp;Copy Code</button>";
 	echo "</div>"; // Close chunk-code-actions div
 	echo "<form id='{$uniqueId}-chunk-code' class='chunk-code-form'>";
-	echo render_chunk_code( $chunkData, $uniqueId );
+	echo "<div class='chunk-html-code'>";
+	echo "<pre><code>";
+	echo render_chunk_code( $chunkData );
+	echo "</code></pre>";
+	echo "</div>"; // Close chunk-html-code div
 	echo "</form>";
 	echo "</div>"; // Close chunk-settings div
 
@@ -492,14 +727,45 @@ function generate_chunk_form_interface( $chunkType, $rowId, $columnId, $chunkId,
 	return ob_get_clean();
 }
 
-function render_chunk_code( $chunkData, $uniqueId ) {
+add_action( 'wp_ajax_get_chunk_code', 'ajax_get_chunk_code' );
+
+function ajax_get_chunk_code() {
+	// Verify the nonce for security.
+	$nonce = isset( $_POST['security'] ) ? sanitize_text_field( $_POST['security'] ) : '';
+	if ( ! wp_verify_nonce( $nonce, 'template-editor' ) ) {
+		wp_send_json_error( [ 'message' => 'Nonce verification failed' ] );
+		return;
+	}
+
+	// Chunk data is sent as a JSON encoded string.
+	$chunkData = json_decode( stripslashes( $_POST['chunkData'] ), true ); // Decode the JSON into an associative array.
+
+	// Check if $chunkData is decoded properly and is an array.
+	if ( null === $chunkData || ! is_array( $chunkData ) ) {
+		echo 'Invalid ChunkData provided';
+		wp_die();
+	}
+
+	// Render the chunk code. 
+	$html = render_chunk_code( $chunkData );
+	if ( $html ) {
+		echo $html;
+		wp_die();
+	} else {
+		wp_die( 'Something went wrong' );
+	}
+
+}
+
+
+function render_chunk_code( $chunkData ) {
 	$currentTemplate = get_the_ID();
 	$wizTemplate = get_wiztemplate( $currentTemplate );
-	$chunkTemplate = idwiz_get_chunk_template( $chunkData, $wizTemplate['template_options'] );
-	echo '<div class="chunk-html-code">';
-	//echo '<textarea name="chunk_html" id="'.$uniqueId.'-chunk-html" style="display: none;">'.htmlspecialchars($chunkTemplate).'</textarea>';
-	echo '<pre><code>' . htmlspecialchars( $chunkTemplate ) . '</code></pre>';
-	echo '</div>';
+	$templateOptions = $wizTemplate['template_options'] ?? [];
+	$chunkTemplate = idwiz_get_chunk_template( $chunkData, $templateOptions );
+
+
+	return htmlspecialchars( $chunkTemplate );
 }
 
 function render_chunk_settings( $chunkType, $chunkData, $uniqueId ) {
@@ -514,6 +780,21 @@ function render_chunk_settings( $chunkType, $chunkData, $uniqueId ) {
 				'force_white_text_devices',
 				'div',
 				'background_settings'
+			);
+
+			break;
+		case 'html':
+			$settings = array(
+				'chunk_wrap',
+				'chunk_wrap_hide',
+				'chunk_classes',
+				'chunk_padding',	
+				'div',
+				'base_text_color',
+				'force_white_text_devices',
+				'div',
+				'background_settings',
+				'chunk_wrap_hide_end'
 			);
 
 			break;
@@ -556,84 +837,131 @@ function render_chunk_settings( $chunkType, $chunkData, $uniqueId ) {
 	echo "</div>"; // Close chunk-inner-content div
 
 }
+
+
 function show_specific_chunk_settings( $chunkData, $uniqueId, $settings ) {
 	$chunkSettings = $chunkData['settings'] ?? array();
-	echo "<div class='builder-field-group flex'>";
+	echo "<div class='builder-field-group flex'>"; // Start the main wrapper
+
+	$chunkWrap = $chunkSettings['chunk_wrap'] ?? false;
+	
+	$isChunkWrapHideOpen = false; // Flag to track if we're inside a chunk_wrap_hide wrapper
+
 	foreach ( $settings as $setting ) {
-		switch ( $setting ) {
-			case 'div':
-				echo "</div>";
-				echo "<div class='builder-field-group flex'>";
-				break;
-			case 'chunk_classes':
-				$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
-				echo "<div class='builder-field-wrapper chunk-classes'><label for='{$uniqueId}-chunk-classes'>Chunk Classes</label>";
-				echo "<input type='text' name='chunk_classes' id='{$uniqueId}-chunk-classes' value='{$chunkClasses}'>";
-				echo "</div>";
-				break;
-			case 'chunk_padding':
-				$chunkPadding = $chunkSettings['chunk_padding'] ?? '';
-				echo "<div class='builder-field-wrapper chunk-padding small-input'><label for='{$uniqueId}-chunk-padding'>Chunk Padding</label>";
-				echo "<input type='text' name='chunk_padding' id='{$uniqueId}-chunk-padding' value='{$chunkPadding}'>";
-				echo "</div>";
-				break;
-			case 'p_padding':
-				$pPadding = $chunkSettings['p_padding'] ?? true;
-				$uniqueIdPpadding = $uniqueId . 'p_padding';
-				$pPaddingChecked = $pPadding ? 'checked' : '';
-				$pPaddingActive = $pPadding ? 'active' : '';
-				$npPaddingClass = $pPadding ? 'fa-solid' : 'fa-regular';
+		// Open a new wrapper div specifically for chunk_wrap_hide settings
+		if ( $setting === 'chunk_wrap_hide' && ! $isChunkWrapHideOpen ) {
+			$chunkWrapVal = $chunkWrap === true ? 'true' : 'false';
+			echo "<div class='builder-field-group flex chunk-wrap-hide-settings' data-chunk-wrap-hide='$chunkWrapVal'>";
+			$isChunkWrapHideOpen = true; // Update flag
+			continue; // Move to the next iteration
+		}
 
-				echo "<div class='builder-field-wrapper'>";
-				echo "<div class='wiz-checkbox-toggle'>";
+		// Close the chunk_wrap_hide wrapper div
+		if ( $setting === 'chunk_wrap_hide_end' && $isChunkWrapHideOpen ) {
+			echo "</div>"; // Close the chunk-wrap-hide-settings div
+			$isChunkWrapHideOpen = false; // Update flag
+			continue; // Move to the next iteration
+		}
 
-				echo "<input type='checkbox' class='wiz-check-toggle' id='$uniqueIdPpadding' name='p_padding' hidden $pPaddingChecked>";
-				echo "<label for='$uniqueIdPpadding' class='checkbox-toggle-replace $pPaddingActive'><i class='$npPaddingClass fa-2x fa-square-check'></i></label>";
-				echo "<label class='checkbox-toggle-label'>Pad " . htmlentities( '<p>' ) . "'s</label>";
-				echo "</div>";
-				echo "</div>";
-				break;
-			case 'base_text_color':
-				$baseTextColor = $chunkSettings['text_base_color'] ?? '#000000';
-				echo "<div class='builder-field-wrapper base-text-color centered'><label for='{$uniqueId}-text-base-color'>Base Text Color</label>";
-				echo "<input class='builder-colorpicker' type='color' name='text_base_color' id='{$uniqueId}-text-base-color' data-color-value='{$baseTextColor}'>";
-				echo "</div>";
-				break;
+		if ( $isChunkWrapHideOpen || $setting !== 'div' ) {
+			switch ( $setting ) {
+				case 'chunk_classes':
+					$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
+					echo "<div class='builder-field-wrapper chunk-classes'><label for='{$uniqueId}-chunk-classes'>Chunk Classes</label>";
+					echo "<input type='text' name='chunk_classes' id='{$uniqueId}-chunk-classes' value='{$chunkClasses}'>";
+					echo "</div>";
+					break;
+				case 'chunk_padding':
+					$chunkPadding = $chunkSettings['chunk_padding'] ?? '0';
+					echo "<div class='builder-field-wrapper chunk-padding small-input'><label for='{$uniqueId}-chunk-padding'>Chunk Padding</label>";
+					echo "<input type='text' name='chunk_padding' id='{$uniqueId}-chunk-padding' value='{$chunkPadding}'>";
+					echo "</div>";
+					break;
+				case 'p_padding':
+					$pPadding = $chunkSettings['p_padding'] ?? true;
+					$uniqueIdPpadding = $uniqueId . 'p_padding';
+					$pPaddingChecked = $pPadding ? 'checked' : '';
+					$pPaddingActive = $pPadding ? 'active' : '';
+					$npPaddingClass = $pPadding ? 'fa-solid' : 'fa-regular';
 
-			case 'force_white_text_devices':
-				$forceWhiteTextDevices = [ 
-					[ 'id' => $uniqueId . 'force-white-text-desktop', 'name' => 'force_white_text_on_desktop', 'display' => 'desktop', 'value' => true, 'label' => '<i class="fa-solid fa-desktop"></i>' ],
-					[ 'id' => $uniqueId . 'force-white-text-mobile', 'name' => 'force_white_text_on_mobile', 'display' => 'mobile', 'value' => true, 'label' => '<i class="fa-solid fa-mobile-screen-button"></i>' ]
-				];
+					echo "<div class='builder-field-wrapper'>";
+					echo "<div class='wiz-checkbox-toggle'>";
 
-				echo "<div class='button-group-wrapper builder-field-wrapper chunk-force-white-text-devices'>";
-				echo "<label class='button-group-label'>Force Gmail white text on:</label>";
-				echo "<div class='button-group checkbox'>";
-				foreach ( $forceWhiteTextDevices as $opt ) {
+					echo "<input type='checkbox' class='wiz-check-toggle' id='$uniqueIdPpadding' name='p_padding' hidden $pPaddingChecked>";
+					echo "<label for='$uniqueIdPpadding' class='wiz-check-toggle-display $pPaddingActive'><i class='$npPaddingClass fa-2x fa-square-check'></i></label>";
+					echo "<label class='checkbox-toggle-label'>Pad " . htmlentities( '<p>' ) . "'s</label>";
+					echo "</div>";
+					echo "</div>";
+					break;
+				case 'base_text_color':
+					$baseTextColor = $chunkSettings['text_base_color'] ?? '#000000';
+					echo "<div class='builder-field-wrapper base-text-color centered'><label for='{$uniqueId}-text-base-color'>Base Text Color</label>";
+					echo "<input class='builder-colorpicker' type='color' name='text_base_color' id='{$uniqueId}-text-base-color' data-color-value='{$baseTextColor}'>";
+					echo "</div>";
+					break;
 
-					$fieldID = $opt['id'];
+				case 'force_white_text_devices':
+					$forceWhiteTextDevices = [ 
+						[ 'id' => $uniqueId . '_force-white-text-desktop', 'name' => 'force_white_text_on_desktop', 'display' => 'desktop', 'value' => true, 'label' => '<i class="fa-solid fa-desktop"></i>' ],
+						[ 'id' => $uniqueId . '_force-white-text-mobile', 'name' => 'force_white_text_on_mobile', 'display' => 'mobile', 'value' => true, 'label' => '<i class="fa-solid fa-mobile-screen-button"></i>' ]
+					];
 
-					$isChecked = isset( $chunkSettings[ $opt['name'] ] ) && $chunkSettings[ $opt['name'] ] ? 'checked' : '';
+					echo "<div class='button-group-wrapper builder-field-wrapper chunk-force-white-text-devices'>";
+					echo "<label class='button-group-label'>Force Gmail white text on:</label>";
+					echo "<div class='button-group checkbox'>";
+					foreach ( $forceWhiteTextDevices as $opt ) {
+
+						$fieldID = $opt['id'];
+
+						$isChecked = isset( $chunkSettings[ $opt['name'] ] ) && $chunkSettings[ $opt['name'] ] ? 'checked' : '';
 
 
-					echo "<input type='checkbox' id='{$uniqueId}" . "{$fieldID}' name='{$opt['name']}'
-						value='{$opt['value']}'  $isChecked>";
-					echo "<label for='{$uniqueId}" . "{$fieldID}' class='button-label' title='{$opt['display']}'>";
-					echo $opt['label'];
-					echo "</label>";
-				}
-				;
-				echo "</div>";
-				echo "</div>";
-				break;
-			case 'background_settings':
-				echo generateBackgroundSettingsModule( $chunkData['settings'], '' );
-				break;
+						echo "<input type='checkbox' id='{$fieldID}' name='{$opt['name']}'
+							value='{$opt['value']}'  $isChecked>";
+						echo "<label for='{$fieldID}' class='button-label' title='{$opt['display']}'>";
+						echo $opt['label'];
+						echo "</label>";
+					}
+					;
+					echo "</div>";
+					echo "</div>";
+					break;
+				case 'background_settings':
+					echo generateBackgroundSettingsModule( $chunkData['settings'], '' );
+					break;
+				case 'chunk_wrap':
+					
+					$uniqueIdchunkWrap = $uniqueId . 'chunk_wrap';
+					$chunkWrapChecked = $chunkWrap ? 'checked' : '';
+					$chunkWrapActive = $chunkWrap ? 'active' : '';
+					$chunkWrapClass = $chunkWrap ? 'fa-solid' : 'fa-regular';
+
+					echo "<div class='builder-field-wrapper'>";
+					echo "<div class='wiz-checkbox-toggle'>";
+
+					echo "<input type='checkbox' class='wiz-check-toggle' id='$uniqueIdchunkWrap' name='chunk_wrap' hidden $chunkWrapChecked>";
+					echo "<label for='$uniqueIdchunkWrap' class='wiz-check-toggle-display toggle_chunk_wrap $chunkWrapActive'><i class='$chunkWrapClass fa-2x fa-square-check'></i></label>";
+					echo "<label class='checkbox-toggle-label'>Standard Chunk Wrap</label>";
+					echo "</div>";
+					echo "</div>";
+					break;
+			}
+		} else {
+			// Handling for 'div' when not in chunk_wrap_hide block
+			echo "</div><div class='builder-field-group flex'>";
 		}
 	}
-	echo "</div>"; // Close main builder-field-group flex div
 
+	if ( $isChunkWrapHideOpen ) {
+		// In case the loop ends but a chunk_wrap_hide section was not closed
+		echo "</div>"; // Ensure we close any open chunk-wrap-hide-settings div
+	}
+
+	echo "</div>"; // Close the main wrapper div
 }
+
+
+
 function render_chunk_fields( $chunkType, $chunkData, $uniqueId ) {
 	// Chunk specific form fields
 	echo "<div class='chunk-inner-content'>";
@@ -645,6 +973,11 @@ function render_chunk_fields( $chunkType, $chunkData, $uniqueId ) {
 
 			echo '<textarea class="wiz-wysiwyg" name="plain_text_content" id="' . $uniqueId . '-wiz-wysiwyg" data-editor-mode="' . $editorMode . '">' . $existingContent . '</textarea>';
 
+
+			break;
+		case 'html':
+			$existingContent = isset( $chunkData['fields']['raw_html_content'] ) ? $chunkData['fields']['raw_html_content'] : '<p>Enter your HTML here...</p>';
+			echo '<textarea class="wiz-html-block" name="raw_html_content" id="' . $uniqueId . '-raw-html">' . $existingContent . '</textarea>';
 
 			break;
 		case 'image':
@@ -670,7 +1003,7 @@ function render_chunk_fields( $chunkType, $chunkData, $uniqueId ) {
 			$buttonBorderColor = $chunkData['fields']['button_border_color'] ?? '#343434';
 			$buttonBorderSize = $chunkData['fields']['button_border_size'] ?? '1px';
 			$buttonBorderRadius = $chunkData['fields']['button_border_radius'] ?? '30px';
-			$buttonPadding = $chunkData['fields']['button_padding'] ?? '15px 30px';
+			$buttonPadding = $chunkData['fields']['button_padding'] ?? '15px 60px';
 			$buttonAlign = $chunkData['fields']['button_align'] ?? 'center';
 
 			$buttonLink = $chunkData['fields']['button_link'] ?? 'https://www.idtech.com';
@@ -854,7 +1187,7 @@ function generateBackgroundSettingsModule( $backgroundSettings, $uniqueId = '', 
 						<input type="checkbox" class="wiz-check-toggle" id="<?php echo $uniqueId . 'force-background'; ?>"
 							name="<?php echo $uniqueId . 'force-background'; ?>" hidden <?php echo $forceBackground ? 'checked' : ''; ?>>
 						<label for="<?php echo $uniqueId . 'force-background'; ?>"
-							class="checkbox-toggle-replace <?php echo $forceBackground ? 'active' : ''; ?>"><i
+							class="wiz-check-toggle-display <?php echo $forceBackground ? 'active' : ''; ?>"><i
 								class="<?php echo $forceBackground ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
 						<label class="checkbox-toggle-label">Force BG in all modes</label>
 					</div>
@@ -977,7 +1310,7 @@ function prepare_wiztemplate_for_save() {
 	$templateData = isset( $_POST['template_data'] ) ? json_decode( stripslashes( $_POST['template_data'] ), true ) : '';
 
 	// Save the template data
-	save_template_data( $postId, $userId, $templateData);
+	save_template_data( $postId, $userId, $templateData );
 
 	wp_send_json_success( [ 'message' => 'Template saved successfully', 'templateData' => $templateData ] );
 }
@@ -1018,28 +1351,7 @@ function save_template_data( $postId, $userId, $templateData ) {
 }
 
 
-function idwiz_get_chunk_template( $chunk, $templateOptions ) {
-	$chunkType = $chunk['field_type'];
 
-	$return = '';
-
-	if ( $chunkType == 'text' ) {
-		$return .= idwiz_get_plain_text_chunk( $chunk, $templateOptions );
-	} else if ( $chunkType == 'image' ) {
-		$return .= idwiz_get_image_chunk( $chunk, $templateOptions );
-	} else if ( $chunkType == 'button' ) {
-		$return .= idwiz_get_button_chunk( $chunk, $templateOptions );
-	} else if ( $chunkType == 'spacer' ) {
-		$return .= idwiz_get_spacer_chunk( $chunk, $templateOptions );
-	} else if ( $chunkType == 'snippet' ) {
-		$return .= idwiz_get_snippet_chunk( $chunk, $templateOptions );
-	}
-
-
-
-	return $return;
-
-}
 
 
 function get_snippets_for_select() {
@@ -1135,13 +1447,11 @@ function generate_template_preview_pane( $templateHtml ) {
 		'<div id="fullModePreview">' .
 		'<div class="previewPopupInnerScroll">' .
 		'<div class="previewDisplay">' .
-		'<iframe id="emailTemplatePreviewIframe" style="width:100%;height:100%;border:none;"></iframe>' .
+		'<iframe id="emailTemplatePreviewIframe" style="width:100%;height:100%;"></iframe>' .
 		'</div>' .
 		'</div>' .
 		'</div>' .
 		'</div>';
-
-	//error_log( $popupHtml );
 
 	return $popupHtml;
 }
@@ -1163,9 +1473,11 @@ function generate_template_html_from_ajax() {
 	$templateHtml = generate_template_html( $templateData, false );
 
 	if ( $templateHtml ) {
-		wp_send_json_success( [ 'templateHtml' => htmlspecialchars( $templateHtml ) ] );
+		// We don't send back json because it won't work to display HTML code. We must echo and die.
+		echo htmlspecialchars( $templateHtml );
+		wp_die();
 	} else {
-		wp_send_json_error( [ 'error' => 'Something went wrong' ] );
+		wp_die( 'Something went wrong' );
 	}
 }
 function generate_template_html( $templateData, $forEditor = false ) {
@@ -1180,13 +1492,13 @@ function generate_template_html( $templateData, $forEditor = false ) {
 	$return .= idwiz_get_email_top( $message_settings, $templateStyles, $rows );
 
 	// iD Logo Header
-	$showIdHeader = json_decode($templateStyles['header-and-footer']['show_id_header']) ?? true;
-	if ( $showIdHeader != false) {
-		
+	$showIdHeader = json_decode( $templateStyles['header-and-footer']['show_id_header'] ) ?? true;
+	if ( $showIdHeader != false ) {
+
 	}
 
 	$showIdHeader = true;
-	if ( json_decode($templateStyles['header-and-footer']['show_id_header']) != false ) {
+	if ( json_decode( $templateStyles['header-and-footer']['show_id_header'] ) != false ) {
 		$return .= idwiz_get_standard_header( $templateOptions );
 	}
 
@@ -1198,7 +1510,7 @@ function generate_template_html( $templateData, $forEditor = false ) {
 
 		// Show unsub link in footer (or not)
 		$showUnsub = true;
-		if ( json_decode($templateStyles['header-and-footer']['show_unsub']) != true ) {
+		if ( json_decode( $templateStyles['header-and-footer']['show_unsub'] ) != true ) {
 			$showUnsub = false;
 		}
 		$return .= idwiz_get_standard_footer( $templateOptions, $showUnsub );
@@ -1221,88 +1533,146 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 	$return = '';
 
 	foreach ( $rows as $rowIndex => $row ) {
+		$rowBackgroundCss = generate_background_css( $row['background_settings']);
+		$rowBackgroundCssMso = generate_background_css( $row['background_settings'], '', true );
+
 		if ( $isEditor ) {
 			// Row wrapper for the editor with data attributes
 			$return .= "<div class='editor-row-wrapper' data-row-index='{$rowIndex}' style='position: relative;'>";
 		}
 
-		$columns = $row['columns'] ?? [];
-		$numActiveColumns = count( array_filter( $columns, function ($column) {
-			return $column['activation'] === 'active';
-		} ) );
+		$return .= "<div class='row' style='font-size:0; width: 100%; margin: 0; padding: 0; " . $rowBackgroundCss . "'>";
+		$return .= "<!--[if mso]><table class='row' role='presentation' width='100%' style='$rowBackgroundCssMso white-space:nowrap;text-align:center; '><tr><td><![endif]-->";
 
-		$magicRtl = '';
-		if ( $row['magic_wrap'] == 'on' ) {
-			$magicRtl = 'dir="rtl"';
-		}
+		$columnSets = $row['columnSets'] ?? [];
 
-		$colsClass = $numActiveColumns > 1 ? ( $numActiveColumns == 2 ? 'two-col' : 'three-col' ) : '';
-		$displayTable = $numActiveColumns > 1 ? 'display: table;' : '';
-
-
-
-		$return .= "<div class='$colsClass' $magicRtl style='text-align: center; font-size: 0; width: 100%; background: transparent; " . $displayTable . "'>";
-		$return .= "<!--[if mso]><table role='presentation' width='100%' style='white-space:nowrap;text-align:center; background: transparent;'><tr><![endif]-->";
-
-
-
-
-		foreach ( $columns as $columnIndex => $column ) {
-			if ( $column['activation'] === 'active' ) {
-				//print_r($column);
-
-				$colValign = $column['settings']['valign'] ? strtolower( $column['settings']['valign'] ) : 'top';
-
-				$colBackgroundCSS = generate_background_css( $column['settings'], '' );
-				//print_r($colBackgroundCSS);
-
-				$columnChunks = $column['chunks'];
-				$templateWidth = isset( $templateStyles['body-and-background']['template_width'] ) && $templateStyles['body-and-background']['template_width'] > 0 ? $templateStyles['body-and-background']['template_width'] : 648;
-
-				$columnWidthPx = $numActiveColumns > 1 ? round( $templateWidth / $numActiveColumns, 0 ) : $templateWidth;
-				$columnWidthPct = $numActiveColumns > 1 ? round( 100 / $numActiveColumns ) : 100;
-				$columnStyle = "width: {$columnWidthPct}%; font-size: {$templateStyles['font-styles']['template_font_size']}; max-width: {$columnWidthPx}px; vertical-align: {$colValign};text-align: left;";
-				if ( $numActiveColumns > 1 ) {
-					$columnStyle .= "display: table-cell; ";
-				} else {
-					$columnStyle .= "display: block; ";
+		foreach ( $columnSets as $columnSetIndex => $columnSet ) {
+			$allColumns = $columnSet['columns'] ?? []; // includes inactive columns
+			$columns = [];
+			foreach ( $allColumns as $allColumn ) {
+				if ( $allColumn['activation'] === 'active' ) {
+					$columns[] = $allColumn;
 				}
-				$return .= "<!--[if mso]><td style='width:{$columnWidthPct}%; $colBackgroundCSS' valign='{$colValign}'><![endif]-->";
-				$return .= "<!--[if !mso]><!--><div class='column' style='$columnStyle $colBackgroundCSS' dir='ltr'><!--<![endif]-->";
-
-				if ( $isEditor ) {
-					// Column wrapper for the editor with data attributes
-					$return .= "<div class='editor-column-wrapper' data-column-index='{$columnIndex}' style='position: relative;'>";
-				}
-
-				foreach ( $columnChunks as $chunkIndex => $chunk ) {
-					if ( $isEditor ) {
-						// Chunk wrapper for the editor with data attributes
-						$return .= "<div class='editor-chunk-wrapper' data-chunk-index='{$chunkIndex}' style='position: relative;'>";
-					}
-
-					$chunkHtml = idwiz_get_chunk_template( $chunk, $templateData['template_options'] );
-					$return .= $chunkHtml;
-
-					if ( $isEditor ) {
-						$return .= "</div>"; // Close .editor-chunk-wrapper
-					}
-				}
-				if ( $isEditor ) {
-					$return .= "</div>"; // Close .editor-column-wrapper
-				}
-
-				$return .= "<!--[if !mso]><!--></div><!--<![endif]-->"; // Close .column div
-				$return .= "<!--[if mso]></td><![endif]-->";
-
-
 			}
+			$numActiveColumns = count( $columns);
+
+			$magicRtl = '';
+			$magicWrap = $columnSet['magic_wrap'] ?? 'off';
+			if ( $magicWrap == 'on' ) {
+				$magicRtl = 'dir="rtl"';
+				// swap the sidebar-right and sidebar-left classes to make magic-wrap work
+			}
+
+			$colSetBackgroundCss = generate_background_css( $columnSet['background_settings'], '', false );
+			$colSetBackgroundCssMso = generate_background_css( $columnSet['background_settings'], '', true );
+
+			$layoutClass = $columnSet['layout'] ?? '';
+
+			$displayTable = $numActiveColumns > 1 ? 'display: table;' : '';
+
+			$return .= "<div class='$layoutClass columnSet' $magicRtl style='$colSetBackgroundCss text-align: center; font-size: 0; width: 100%; " . $displayTable . "'>";
+			$return .= "<!--[if mso]><table class='columnSet' role='presentation' width='100%' style='$colSetBackgroundCssMso white-space:nowrap;text-align:center; '><tr><![endif]-->";
+
+			
+			foreach ( $columns as $columnIndex => $column ) {
+	
+
+					$colValign = $column['settings']['valign'] ? strtolower( $column['settings']['valign'] ) : 'top';
+
+					$colBackgroundCSS = generate_background_css( $column['settings'], '' );
+					$msoColBackgroundCSS = generate_background_css( $column['settings'], '', true );
+
+					$columnChunks = $column['chunks'];
+					$templateWidth = $templateStyles['body-and-background']['template_width'];
+					$templateWidth = (int)$templateWidth > 0 ? (int)$templateWidth : 648;
+
+					$columnWidthPx = $templateWidth;
+					$columnWidthPct = 100;
+
+
+
+				if ( $layoutClass === 'two-col' ) {
+					$columnWidthPx = round( $templateWidth / 2, 0 );
+					$columnWidthPct = 50;
+				} elseif ( $layoutClass === 'three-col' ) {
+					$columnWidthPx = round( $templateWidth / 3, 0 );
+					$columnWidthPct = 33.33;
+				} elseif ( $layoutClass === 'sidebar-left' ) {
+					if ( $magicWrap == 'on' ) {
+						$columnIndex = $columnIndex === 0 ? 1 : 0;
+					}
+					if ( $columnIndex === 0 ) {
+						$columnWidthPx = round( $templateWidth * 0.33, 0 );
+						$columnWidthPct = 33.33;
+					} else {
+						$columnWidthPx = round( $templateWidth * 0.67, 0 );
+						$columnWidthPct = 66.67;
+					}
+				} elseif ( $layoutClass === 'sidebar-right' ) {
+					
+					if ( $magicWrap == 'on' ) {
+						$columnIndex = $columnIndex === 0 ? 1 : 0;
+					}
+					if ( $columnIndex === 0 ) {
+						$columnWidthPx = round( $templateWidth * 0.67, 0 );
+						$columnWidthPct = 66.67;
+					} else {
+						$columnWidthPx = round( $templateWidth * 0.33, 0 );
+						$columnWidthPct = 33.33;
+					}
+				} else {
+					// Default layout (e.g., single column)
+					$columnWidthPx = $templateWidth;
+					$columnWidthPct = 100;
+				}
+
+					$columnStyle = "width: {$columnWidthPct}%; font-size: {$templateStyles['font-styles']['template_font_size']}; max-width: {$columnWidthPx}px; vertical-align: {$colValign};text-align: left;";
+					if ( $numActiveColumns > 1 ) {
+						$columnStyle .= "display: table-cell; ";
+					} else {
+						$columnStyle .= "display: block; ";
+					}
+					if ( $numActiveColumns > 1 ) {
+						$columnStyle .= "display: table-cell; ";
+					} else {
+						$columnStyle .= "display: block; ";
+					}
+					$return .= "<!--[if mso]><td style='width:{$columnWidthPct}%; $msoColBackgroundCSS' width='{$columnWidthPx}'  valign='{$colValign}'><![endif]-->";
+					$return .= "<!--[if !mso]><!--><div class='column' style='$columnStyle max-width:{$columnWidthPx}px; $colBackgroundCSS' dir='ltr'><!--<![endif]-->";
+
+					if ( $isEditor ) {
+						// Column wrapper for the editor with data attributes
+						$return .= "<div class='editor-column-wrapper' data-column-index='{$columnIndex}' style='position: relative;'>";
+					}
+
+					foreach ( $columnChunks as $chunkIndex => $chunk ) {
+						if ( $isEditor ) {
+							// Chunk wrapper for the editor with data attributes
+							$return .= "<div class='editor-chunk-wrapper' data-chunk-index='{$chunkIndex}' style='position: relative;'>";
+						}
+
+						$chunkHtml = idwiz_get_chunk_template( $chunk, $templateData['template_options'] );
+						$return .= $chunkHtml;
+
+						if ( $isEditor ) {
+							$return .= "</div>"; // Close .editor-chunk-wrapper
+						}
+					}
+
+					if ( $isEditor ) {
+						$return .= "</div>"; // Close .editor-column-wrapper
+					}
+
+					$return .= "<!--[if !mso]><!--></div><!--<![endif]-->"; // Close .column div
+					$return .= "<!--[if mso]></td><![endif]-->";
+				
+			}
+
+			$return .= "<!--[if mso]></tr></table><![endif]-->";
+			$return .= "</div>"; // Close the colset layout div
 		}
-
-
-		$return .= "<!--[if mso]></tr></table><![endif]-->";
-		$return .= "</div>"; // Close .two-col or .three-col div
-
+		$return .= "<!--[if mso]></td></tr></table><![endif]-->";
+		$return .= "</div>"; // Close the row layout div
 
 		if ( $isEditor ) {
 			$return .= "</div>"; // Close .editor-row-wrapper
@@ -1311,6 +1681,53 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 
 	return $return;
 }
+
+
+function idwiz_get_chunk_template( $chunk, $templateOptions ) {
+
+	$chunkType = $chunk['field_type'];
+
+	$return = '';
+
+	if ( $chunkType == 'text' ) {
+		$return .= idwiz_get_plain_text_chunk( $chunk, $templateOptions );
+	} else if ( $chunkType == 'image' ) {
+		$return .= idwiz_get_image_chunk( $chunk, $templateOptions );
+	} else if ( $chunkType == 'button' ) {
+		$return .= idwiz_get_button_chunk( $chunk, $templateOptions );
+	} else if ( $chunkType == 'spacer' ) {
+		$return .= idwiz_get_spacer_chunk( $chunk, $templateOptions );
+	} else if ( $chunkType == 'snippet' ) {
+		$return .= idwiz_get_snippet_chunk( $chunk, $templateOptions );
+	} else if ( $chunkType == 'html' ) {
+		$return .= idwiz_get_raw_html_chunk( $chunk, $templateOptions );
+	}
+	//error_log('message settings: '. print_r($templateOptions, true));
+	$externalUtms = $templateOptions['message_settings']['ext_utms'] ?? false;
+	$externalUtmString = $templateOptions['message_settings']['ext_utm_string'] ?? '';
+	// Find all links inside $return and add a UTMs to them
+	if($externalUtms && $externalUtmString) {
+		$dom = new DOMDocument();
+		$dom->loadHTML( $return );
+		$links = $dom->getElementsByTagName( 'a' );
+		foreach ( $links as $link ) {
+			$href = $link->getAttribute( 'href' );
+			if ( strpos( $href, '?' ) !== false ) {
+				$href .= '&' . $externalUtmString;
+			} else {
+				$href .= '?' . $externalUtmString;
+			}
+			$link->setAttribute( 'href', $href );
+		}
+		$return = $dom->saveHTML();
+
+	}
+
+	return $return;
+
+}
+
+
 add_action( 'wp_ajax_generate_background_css_ajax', 'generate_background_css_ajax' );
 function generate_background_css_ajax() {
 	$backgroundSettings = $_POST['backgroundSettings'] ?? [];
@@ -1319,7 +1736,7 @@ function generate_background_css_ajax() {
 	echo json_encode( $css );
 	die();
 }
-function generate_background_css( $backgroundSettings, $prefix = '' ) {
+function generate_background_css( $backgroundSettings, $prefix = '', $forMso = false ) {
 	$bg_type = $backgroundSettings[ $prefix . 'background-type' ] ?? 'none';
 	$css = [];
 
@@ -1332,24 +1749,29 @@ function generate_background_css( $backgroundSettings, $prefix = '' ) {
 			if ( $fallback_color == 'rgba(0,0,0,0)' ) {
 				$fallback_color = 'transparent';
 			}
+
 			$css[] = "background-color: $fallback_color;";
 
-			// Use the gradient style directly if it's provided in the correct format
-			if ( ! empty( $gradientStyles['style'] ) ) {
-				$gradient_css = $gradientStyles['style'];
-				$css[] = "background-image: $gradient_css;";
+			// Skip gradients for mso
+			if ( ! $forMso ) {
+				// Use the gradient style directly if it's provided in the correct format
+				if ( ! empty( $gradientStyles['style'] ) ) {
+					$gradient_css = $gradientStyles['style'];
+					$css[] = "background-image: $gradient_css;";
+				}
+
+				// Image fallback
+				if ( ! empty( $backgroundSettings[ $prefix . 'background-image-url' ] ) ) {
+					$image_url = $backgroundSettings[ $prefix . 'background-image-url' ];
+					$position = $backgroundSettings[ $prefix . 'background-image-position' ] ?? 'center';
+					$size = $backgroundSettings[ $prefix . 'background-image-size' ] ?? 'cover';
+
+					$css[] = "background-image: url('$image_url'), $gradient_css;";
+					$css[] = "background-position: $position;";
+					$css[] = "background-size: $size;";
+				}
 			}
 
-			// Image fallback
-			if ( ! empty( $backgroundSettings[ $prefix . 'background-image-url' ] ) ) {
-				$image_url = $backgroundSettings[ $prefix . 'background-image-url' ];
-				$position = $backgroundSettings[ $prefix . 'background-image-position' ] ?? 'center';
-				$size = $backgroundSettings[ $prefix . 'background-image-size' ] ?? 'cover';
-
-				$css[] = "background-image: url('$image_url'), $gradient_css;";
-				$css[] = "background-position: $position;";
-				$css[] = "background-size: $size;";
-			}
 
 			break;
 
@@ -1365,25 +1787,32 @@ function generate_background_css( $backgroundSettings, $prefix = '' ) {
 				$fallback_color = 'transparent';
 			}
 
-
-			$css[] = "background-color: $fallback_color;";
+			// Only include fallback color for mso clients
+			if ( $forMso ) {
+				$css[] = "background-color: $fallback_color;";
+			}
 			if ( $image_url ) {
 				$css[] = "background-image: url($image_url);";
 				$css[] = "background-position: $position;";
 				$css[] = "background-size: $size;";
 			}
 
-			// Background repeat
-			$bgRepeatY = $backgroundSettings[ $prefix . 'background-repeat-vertical' ] ?? false;
-			$bgRepeatX = $backgroundSettings[ $prefix . 'background-repeat-horizontal' ] ?? false;
-			if ( $bgRepeatY === true && $bgRepeatX === true ) {
-				$css[] = "background-repeat: repeat;";
-			} else if ( $bgRepeatY === true ) {
-				$css[] = "background-repeat: repeat-y;";
-			} else if ( $bgRepeatX === true ) {
-				$css[] = "background-repeat: repeat-x;";
-			} else {
-				$css[] = "background-repeat: no-repeat;";
+
+
+			// For outlook, exclude image position stuff since not necessary
+			if ( ! $forMso ) {
+				// Background repeat
+				$bgRepeatY = $backgroundSettings[ $prefix . 'background-repeat-vertical' ] ?? false;
+				$bgRepeatX = $backgroundSettings[ $prefix . 'background-repeat-horizontal' ] ?? false;
+				if ( $bgRepeatY === true && $bgRepeatX === true ) {
+					$css[] = "background-repeat: repeat;";
+				} else if ( $bgRepeatY === true ) {
+					$css[] = "background-repeat: repeat-y;";
+				} else if ( $bgRepeatX === true ) {
+					$css[] = "background-repeat: repeat-x;";
+				} else {
+					$css[] = "background-repeat: no-repeat;";
+				}
 			}
 
 			break;
@@ -1411,7 +1840,8 @@ function generate_background_css( $backgroundSettings, $prefix = '' ) {
 	if ( $forceBackground == 'true'
 		&& $bg_type != 'none'
 		&& isset( $backgroundSettings[ $prefix . 'background-color' ] )
-		&& $backgroundSettings[ $prefix . 'background-color' ] != 'transparent' ) {
+		&& $backgroundSettings[ $prefix . 'background-color' ] != 'transparent'
+		&& ! $forMso ) {
 		$css[] = "background-image: linear-gradient({$backgroundSettings[ $prefix . 'background-color' ]}, {$backgroundSettings[ $prefix . 'background-color' ]});";
 	}
 
@@ -1420,6 +1850,38 @@ function generate_background_css( $backgroundSettings, $prefix = '' ) {
 	return implode( " ", $css );
 }
 
+
+add_action( 'wp_ajax_upload_mockup', 'handle_mockup_upload' );
+function handle_mockup_upload() {
+	if ( ! isset( $_FILES['file'] ) ) {
+		wp_send_json_error( 'No file uploaded' );
+		wp_die();
+	}
+
+	$file = $_FILES['file'];
+	$upload = wp_handle_upload( $file, array( 'test_form' => false ) );
+
+	if ( isset( $upload['error'] ) ) {
+		wp_send_json_error( $upload['error'] );
+		wp_die();
+	}
+
+	$attachment_id = wp_insert_attachment( array(
+		'post_title' => sanitize_file_name( $file['name'] ),
+		'post_content' => '',
+		'post_type' => 'attachment',
+		'post_mime_type' => $file['type'],
+		'guid' => $upload['url'],
+	), $upload['file'] );
+
+	if ( is_wp_error( $attachment_id ) ) {
+		wp_send_json_error( $attachment_id->get_error_message() );
+		wp_die();
+	}
+
+	wp_send_json_success( array( 'url' => $upload['url'] ) );
+	wp_die();
+}
 
 
 

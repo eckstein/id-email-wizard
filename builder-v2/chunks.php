@@ -16,6 +16,11 @@ function idwiz_get_spacer_chunk( $chunk, $templateOptions ) {
 	$backgroundColorCss = generate_background_css( $chunkSettings );
 
 	$visibility = get_visibility_class_and_style( $chunkSettings );
+	if ( $visibility['class'] != '' ) {
+		$tableClassHtml = 'class="spacer ' . esc_attr( $visibility['class'] ) . '"';
+	} else {
+		$tableClassHtml = 'class="spacer"';
+	}
 
 	ob_start();
 	if ( $visibility['class'] == 'mobile-only' ) {
@@ -23,16 +28,19 @@ function idwiz_get_spacer_chunk( $chunk, $templateOptions ) {
 	}
 
 	?>
+
+
+
 	<!--[if mso]>
-	<table class="spacer <?php echo $visibility['class']; ?>" role="presentation" width="100%" aria-hidden="true" style="table-layout:fixed; <?php echo $visibility['inlineStyle']; ?>">
+	<table <?php echo $tableClassHtml; ?> role="presentation" width="100%" aria-hidden="true" style="table-layout:fixed; <?php echo $visibility['inlineStyle']; ?>">
 	<tr>
-	<td style="width:100%;text-align:center; <?php echo $backgroundColorCss; ?>" valign="middle">
+	<td style="width:100%;text-align:center;mso-line-height-rule:exactly; <?php echo $backgroundColorCss; ?>" valign="middle">
 	<![endif]-->
 	<div class="id-chunk id-spacer <?php echo $chunkClasses; ?> <?php echo $visibility['class']; ?>"
 		style="<?php echo $visibility['inlineStyle']; ?>" aria-hidden="true">
 		<div
-			style="line-height:<?php echo $spacerHeight; ?>;height:<?php echo $spacerHeight; ?>;mso-line-height-rule:exactly;<?php echo $backgroundColorCss; ?>">
-			&nbsp;</div>
+			style="line-height:<?php echo $spacerHeight; ?>;height:<?php echo $spacerHeight; ?>; font-size: <?php echo $spacerHeight; ?>; <?php echo $backgroundColorCss; ?>">
+			&#8202;</div>
 	</div>
 	<!--[if mso]>
 	</td>
@@ -59,6 +67,7 @@ function idwiz_get_button_chunk( $chunk, $templateOptions ) {
 
 
 	$backgroundColorCss = generate_background_css( $chunkSettings );
+	$msoBackgroundColorCss = generate_background_css( $chunkSettings, '', true );
 
 	$backgroundColor = $chunkSettings['background_color'] ?? 'transparent';
 
@@ -100,12 +109,27 @@ function idwiz_get_button_chunk( $chunk, $templateOptions ) {
 	$buttonWidth = $baseWidth + $additionalWidth;
 
 	$visibility = get_visibility_class_and_style( $chunkSettings );
+	if ( $visibility['class'] != '' ) {
+		$tableClassHtml = 'class="' . esc_attr( $visibility['class'] ) . '"';
+	} else {
+		$tableClassHtml = '';
+	}
 
 	//print_r( $chunkSettings );
 	ob_start();
+
+	echo '<!--[if mso]>';
+	echo '<table ' . $tableClassHtml . ' role="presentation" width="100%" style="table-layout:fixed; ' . esc_attr( $msoBackgroundColorCss . $visibility['inlineStyle'] ) . '">';
+	echo '<tr><td style="width:100%;text-align:center; ' . esc_attr( $msoBackgroundColorCss ) . '" valign="middle">';
+	echo '<![endif]-->';
+
+
+
 	if ( $visibility['class'] == 'mobile-only' ) {
 		echo '<!--[if !mso]><!-->';
 	}
+
+
 
 	?>
 
@@ -133,9 +157,16 @@ function idwiz_get_button_chunk( $chunk, $templateOptions ) {
 		</table>
 	</div>
 	<?php
+
 	if ( $visibility['class'] == 'mobile-only' ) {
 		echo '<!--<![endif]-->';
 	}
+
+	echo '<!--[if mso]>';
+	echo '</td></tr></table>';
+	echo '<![endif]-->';
+
+
 	return ob_get_clean();
 }
 
@@ -146,6 +177,7 @@ function idwiz_get_snippet_chunk( $chunk, $templateOptions ) {
 	$chunkFields = $chunk['fields'];
 
 	$backgroundColorCss = generate_background_css( $chunkSettings );
+	$msoBackgroundColorCss = generate_background_css( $chunkSettings );
 
 	$fontCss = 'font-size: 1em; line-height: 1.5;';
 	$brandedFont = $chunkSettings['branded_font'] ?? 0;
@@ -154,6 +186,12 @@ function idwiz_get_snippet_chunk( $chunk, $templateOptions ) {
 	}
 
 	$visibility = get_visibility_class_and_style( $chunkSettings );
+	if ( $visibility['class'] != '' ) {
+		$tableClassHtml = 'class="' . esc_attr( $visibility['class'] ) . '"';
+	} else {
+		$tableClassHtml = '';
+	}
+
 	$msoTableWrap = $chunkSettings['mso_table_wrap'] ?? false;
 
 	// Retrieve the post object from the 'snippet' ACF field
@@ -169,8 +207,8 @@ function idwiz_get_snippet_chunk( $chunk, $templateOptions ) {
 
 	if ( $msoTableWrap ) {
 		echo '<!--[if mso]>';
-		echo '<table class="' . esc_attr( $visibility['class'] ) . '" role="presentation" width="100%" style="table-layout:fixed; ' . esc_attr( $fontCss . $backgroundColorCss . $visibility['inlineStyle'] ) . '">';
-		echo '<tr><td style="width:100%;text-align:center; ' . esc_attr( $backgroundColorCss ) . '" valign="middle">';
+		echo '<table ' . $tableClassHtml . ' role="presentation" width="100%" style="table-layout:fixed; ' . esc_attr( $fontCss . $msoBackgroundColorCss . $visibility['inlineStyle'] ) . '">';
+		echo '<tr><td style="width:100%;text-align:center; ' . esc_attr( $msoBackgroundColorCss ) . '" valign="middle">';
 		echo '<![endif]-->';
 	}
 
@@ -191,7 +229,98 @@ function idwiz_get_snippet_chunk( $chunk, $templateOptions ) {
 	return ob_get_clean();
 }
 
+function idwiz_get_raw_html_chunk( $chunk, $templateOptions ) {
+	$templateStyles = $templateOptions['template_styles'] ?? [];
 
+	$chunkFields = $chunk['fields'] ?? [];
+	$chunkSettings = $chunk['settings'] ?? [];
+
+	$chunkWrap = $chunkSettings['chunk_wrap'] ?? false;
+
+	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
+
+	$visibility = get_visibility_class_and_style( $chunkSettings );
+	if ( $visibility['class'] != '' ) {
+		$tableClassHtml = 'class="' . esc_attr( $visibility['class'] ) . '"';
+	} else {
+		$tableClassHtml = '';
+	}
+
+	$backgroundColorCss = generate_background_css( $chunkSettings );
+	$msoBackgroundColorCss = generate_background_css( $chunkSettings, '', true );
+
+	$templateFontSize = $templateStyles['font-size']['template_font_size'] ?? '16px';
+
+	$baseTextColor = $chunkSettings['text_base_color'] ?? '#000000';
+
+	$gmailBlendDesktop = false;
+	if ( isset( $chunkSettings['force_white_text_on_desktop'] ) ) {
+		$gmailBlendDesktop = json_decode( $chunkSettings['force_white_text_on_desktop'] );
+	}
+	$gmailBlendMobile = false;
+	if ( isset( $chunkSettings['force_white_text_on_desktop'] ) ) {
+		$gmailBlendMobile = json_decode( $chunkSettings['force_white_text_on_mobile'] );
+	}
+
+	$gmailBlendDesktopClass = $gmailBlendDesktop ? 'desktop' : '';
+	$gmailBlendMobileClass = $gmailBlendMobile ? 'mobile' : '';
+
+	$chunkPadding = $chunkSettings['chunk_padding'] ?? '0px';
+
+	$rawHtmlContent = $chunkFields['raw_html_content'] ?? '<p>Your code goes here!</p>';
+
+	ob_start();
+
+	if ( $chunkWrap ) {
+
+		if ( $visibility['class'] == 'mobile-only' ) {
+			echo '<!--[if !mso]><!-->';
+		}
+
+
+		?>
+		<!--[if mso]>
+	<table <?php echo $tableClassHtml; ?> role="presentation"
+		style="width:100%;border:0;border-spacing:0; <?php echo $visibility['inlineStyle']; ?> <?php echo $msoBackgroundColorCss; ?>">
+		<tr>
+			
+			<td class="id-raw-html" style="<?php echo $msoBackgroundColorCss; ?> padding: <?php echo $chunkPadding; ?>; color: <?php echo $baseTextColor; ?>; font-family: Poppins, Arial, sans-serif!important; font-size: <?php echo $templateFontSize; ?>;">
+			<![endif]-->
+
+		<div class="id-chunk id-raw-html <?php echo $chunkClasses; ?> <?php echo $visibility['class']; ?>"
+			style="<?php echo $visibility['inlineStyle']; ?> <?php echo $backgroundColorCss; ?> color: <?php echo $baseTextColor; ?>; padding: <?php echo $chunkPadding; ?>; font-size: <?php echo $templateFontSize; ?>; border:1px solid transparent;">
+			<?php
+			if ( $gmailBlendDesktopClass || $gmailBlendMobileClass ) {
+				echo '<div class="gmail-blend-screen ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
+				echo '<div class="gmail-blend-difference ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
+			}
+	}
+	echo $rawHtmlContent;
+	if ( $chunkWrap ) {
+		if ( $gmailBlendDesktopClass || $gmailBlendMobileClass ) {
+			echo '</div>';
+			echo '</div>';
+		}
+		?>
+		</div>
+
+		<!--[if mso]>
+			</td>
+			
+		</tr>
+	</table>
+	<![endif]-->
+
+
+		<?php
+
+
+		if ( $visibility['class'] == 'mobile-only' ) {
+			echo '<!--<![endif]-->';
+		}
+	}
+	return ob_get_clean();
+}
 
 function idwiz_get_plain_text_chunk( $chunk, $templateOptions ) {
 	$templateStyles = $templateOptions['template_styles'] ?? [];
@@ -202,26 +331,32 @@ function idwiz_get_plain_text_chunk( $chunk, $templateOptions ) {
 	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
 
 	$visibility = get_visibility_class_and_style( $chunkSettings );
+	if ( $visibility['class'] != '' ) {
+		$tableClassHtml = 'class="' . esc_attr( $visibility['class'] ) . '"';
+	} else {
+		$tableClassHtml = '';
+	}
 
 	$backgroundColorCss = generate_background_css( $chunkSettings );
+	$msoBackgroundColorCss = generate_background_css( $chunkSettings, '', true );
 
 	$templateFontSize = $templateStyles['font-size']['template_font_size'] ?? '16px';
 
 	$baseTextColor = $chunkSettings['text_base_color'] ?? '#000000';
 
 	$gmailBlendDesktop = false;
-	if (isset($chunkSettings['force_white_text_on_desktop'])) {
-		$gmailBlendDesktop = json_decode($chunkSettings['force_white_text_on_desktop']);
+	if ( isset( $chunkSettings['force_white_text_on_desktop'] ) ) {
+		$gmailBlendDesktop = json_decode( $chunkSettings['force_white_text_on_desktop'] );
 	}
 	$gmailBlendMobile = false;
-	if (isset($chunkSettings['force_white_text_on_desktop'])) {
-		$gmailBlendMobile = json_decode($chunkSettings['force_white_text_on_mobile']);
+	if ( isset( $chunkSettings['force_white_text_on_desktop'] ) ) {
+		$gmailBlendMobile = json_decode( $chunkSettings['force_white_text_on_mobile'] );
 	}
 
 	$gmailBlendDesktopClass = $gmailBlendDesktop ? 'desktop' : '';
 	$gmailBlendMobileClass = $gmailBlendMobile ? 'mobile' : '';
 
-	
+
 
 	$chunkPadding = $chunkSettings['chunk_padding'] ?? '0px';
 
@@ -242,11 +377,11 @@ function idwiz_get_plain_text_chunk( $chunk, $templateOptions ) {
 
 	?>
 	<!--[if mso]>
-	<table class="<?php echo $visibility['class']; ?>" role="presentation"
-		style="width:100%;border:0;border-spacing:0; <?php echo $visibility['inlineStyle']; ?> <?php echo $backgroundColorCss; ?>">
+	<table <?php echo $tableClassHtml; ?> role="presentation"
+		style="width:100%;border:0;border-spacing:0; <?php echo $visibility['inlineStyle']; ?> <?php echo $msoBackgroundColorCss; ?>">
 		<tr>
 			
-			<td class="id-plain-text" style="<?php echo $backgroundColorCss; ?> padding: <?php echo $chunkPadding; ?>; color: <?php echo $baseTextColor; ?>; font-family: Poppins, Arial, sans-serif!important; font-size: <?php echo $templateFontSize; ?>;">
+			<td class="id-plain-text" style="<?php echo $msoBackgroundColorCss; ?> padding: <?php echo $chunkPadding; ?>; color: <?php echo $baseTextColor; ?>; font-family: Poppins, Arial, sans-serif!important; font-size: <?php echo $templateFontSize; ?>;">
 			<![endif]-->
 
 	<div class="id-chunk id-plain-text <?php echo $chunkClasses; ?> <?php echo $pPaddingClass; ?> <?php echo $visibility['class']; ?>"
@@ -315,7 +450,14 @@ function add_aria_label_to_links( $html ) {
 function idwiz_get_image_chunk( $chunk, $templateOptions ) {
 	$chunkSettings = $chunk['settings'];
 
+	$chunkSettings = $chunk['settings'];
+
 	$visibility = get_visibility_class_and_style( $chunkSettings );
+	if ( $visibility['class'] != '' ) {
+		$tableClassHtml = 'class="' . esc_attr( $visibility['class'] ) . '"';
+	} else {
+		$tableClassHtml = '';
+	}
 
 	$chunkFields = $chunk['fields'];
 
@@ -326,7 +468,7 @@ function idwiz_get_image_chunk( $chunk, $templateOptions ) {
 	$chunkPaddingCss = $chunkPadding ? 'padding:' . $chunkPadding . ';' : '';
 	$msoPaddingToMargin = $chunkPadding ? 'margin:' . $chunkPadding . ';' : 'margin: 0;';
 
-	$variant = $chunkSettings['image_context'] ?? '';
+	$image_context = $chunkSettings['image_context'] ?? '';
 	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
 
 	$templateWidth = $templateOptions['template_styles']['body-and-background']['template_width'] ?? '648';
@@ -335,18 +477,21 @@ function idwiz_get_image_chunk( $chunk, $templateOptions ) {
 	$imageLink = $chunkFields['image_link'] ?? '';
 	$imageAlt = $chunkFields['image_alt'] ?? '';
 
-	// Default width for non-MSO clients
-	$defaultWidth = '100%';
-
-	// Specific widths for MSO clients based on variant
+	// Specific widths for MSO clients based on image_context
 	$msoWidth = $templateWidth; // Default full width
-	if ( $variant == 'two-col' ) {
+
+	if ( $image_context == 'two-col' ) {
 		$msoWidth = $templateWidth > 0 ? round( $templateWidth / 2, 0 ) : $templateWidth;
-	} elseif ( $variant == 'three-col' ) {
+	} elseif ( $image_context == 'three-col' ) {
 		$msoWidth = $templateWidth > 0 ? round( $templateWidth / 3, 0 ) : $templateWidth;
+	} elseif ( $image_context == 'sidebar-main' ) {
+		$msoWidth = $templateWidth > 0 ? round( $templateWidth * 0.6667, 0 ) : $templateWidth;
+	} elseif ( $image_context == 'sidebar-side' ) {
+		$msoWidth = $templateWidth > 0 ? round( $templateWidth * 0.3333, 0 ) : $templateWidth;
 	}
 
 	$backgroundColorCss = generate_background_css( $chunkSettings );
+	$msoBackgroundColorCss = generate_background_css( $chunkSettings, '', true );
 
 
 
@@ -361,9 +506,9 @@ function idwiz_get_image_chunk( $chunk, $templateOptions ) {
 
 	// MSO conditional for Outlook
 	echo '<!--[if mso]>';
-	echo '<table role="presentation" style="width:100%;border:0;border-spacing:0;margin: 0;' . $visibility['inlineStyle'] . '">
+	echo '<table ' . $tableClassHtml . ' role="presentation" style="width:100%;border:0;border-spacing:0;margin: 0;' . $visibility['inlineStyle'] . '">
 		<tr>
-		<td style="font-size: 0; line-height: 0; ' . $backgroundColorCss . '">';
+		<td style="font-size: 0; line-height: 0; ' . $msoBackgroundColorCss . '">';
 	if ( $imageLink ) {
 		echo '<a href="' . $imageLink . '" ' . $ariaHidden . ' class="id-image-link" title="' . $imageAlt . '" style="' . $msoPaddingToMargin . 'display: block;padding: 0; line-height: 0;font-size:0;text-decoration:none;">';
 	}
@@ -371,7 +516,7 @@ function idwiz_get_image_chunk( $chunk, $templateOptions ) {
 	// If no link, add pointer-events: none to prevent click interaction
 	$pointerEventsCss = ! $imageLink ? 'pointer-events: none;' : '';
 
-	echo '<img class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" width="' . $msoWidth . '" ' . $altAttribute . ' style="' . $pointerEventsCss . 'width:' . $msoWidth . 'px; max-width:' . $msoWidth . 'px; height:auto;' . $visibility['inlineStyle'] . '" />';
+	echo '<img class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" width="' . $msoWidth . '" ' . $altAttribute . ' style="' . $pointerEventsCss . 'width:100%; max-width:' . $msoWidth . 'px; height:auto;' . $visibility['inlineStyle'] . '" />';
 	if ( $imageLink ) {
 		echo '</a>';
 	}
@@ -384,7 +529,7 @@ function idwiz_get_image_chunk( $chunk, $templateOptions ) {
 	if ( $imageLink ) {
 		echo '<a href="' . $imageLink . '" ' . $ariaHidden . ' class="id-image-link" title="' . $imageAlt . '">';
 	}
-	echo '<img ' . $altAttribute . ' class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" style="' . $pointerEventsCss . 'width:' . $defaultWidth . '; height:auto;' . $visibility['inlineStyle'] . '" />';
+	echo '<img ' . $altAttribute . ' class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" style="' . $pointerEventsCss . 'width:100%; height:auto;' . $visibility['inlineStyle'] . '" />';
 	if ( $imageLink ) {
 		echo '</a>';
 	}
@@ -436,21 +581,19 @@ function idwiz_get_standard_footer( $templateoptions, $showUnsub = true ) {
 	$footerTextColor = $templateStyles['header-and-footer']['template_footer_text_color'] ?? '#343434';
 
 	$gmailBlendDesktop = false;
-	if (isset($templateStyles['header-and-footer']['footer_force_white_text_on_desktop'])) {
-		$gmailBlendDesktop = json_decode($templateStyles['header-and-footer']['footer_force_white_text_on_desktop']);
+	if ( isset( $templateStyles['header-and-footer']['footer_force_white_text_on_desktop'] ) ) {
+		$gmailBlendDesktop = json_decode( $templateStyles['header-and-footer']['footer_force_white_text_on_desktop'] );
 	}
 	$gmailBlendMobile = false;
-	if (isset($templateStyles['header-and-footer']['footer_force_white_text_on_mobile'])) {
-		$gmailBlendMobile = json_decode($templateStyles['header-and-footer']['footer_force_white_text_on_mobile']);
+	if ( isset( $templateStyles['header-and-footer']['footer_force_white_text_on_mobile'] ) ) {
+		$gmailBlendMobile = json_decode( $templateStyles['header-and-footer']['footer_force_white_text_on_mobile'] );
 	}
 
 	$gmailBlendDesktopClass = $gmailBlendDesktop ? 'desktop' : '';
 	$gmailBlendMobileClass = $gmailBlendMobile ? 'mobile' : '';
 
-
-
-	$templateLinkColor = $templateStyles['link-styles']['template_link_style_color'] ?? '#000000';
-	$footerLinkColor = $templateStyles['header-and-footer']['template_footer_link_color'] ?? $templateLinkColor ?? '#000000';
+	$templateLinkColor = $templateStyles['link-styles']['template_link_style_color'] ?? '#1b75d0';
+	$footerLinkColor = $templateStyles['header-and-footer']['template_footer_link_color'] ?? $templateLinkColor ?? '#343434';
 
 	ob_start();
 	?>
@@ -493,7 +636,7 @@ function idwiz_get_standard_footer( $templateoptions, $showUnsub = true ) {
 
 			Copyright © {{now format='yyyy'}} All rights reserved.
 		</p>
-		
+
 		<?php if ( $showUnsub ) { ?>
 			<?php echo '{{#if userId}}'; ?>
 			<a href="{{hostedUnsubscribeUrl}}" aria-label="Manage Subscription Preferences"
@@ -536,12 +679,12 @@ function idwiz_get_fine_print_disclaimer( $templateOptions ) {
 	$footerBackgroundCss = generate_background_css( $footerBackground );
 	$footerTextColor = $templateStyles['header-and-footer']['template_footer_text_color'] ?? '#ffffff';
 	$gmailBlendDesktop = false;
-	if (isset($templateStyles['header-and-footer']['footer_force_white_text_on_desktop'])) {
-		$gmailBlendDesktop = json_decode($templateStyles['header-and-footer']['footer_force_white_text_on_desktop']);
+	if ( isset( $templateStyles['header-and-footer']['footer_force_white_text_on_desktop'] ) ) {
+		$gmailBlendDesktop = json_decode( $templateStyles['header-and-footer']['footer_force_white_text_on_desktop'] );
 	}
 	$gmailBlendMobile = false;
-	if (isset($templateStyles['header-and-footer']['footer_force_white_text_on_mobile'])) {
-		$gmailBlendMobile = json_decode($templateStyles['header-and-footer']['footer_force_white_text_on_mobile']);
+	if ( isset( $templateStyles['header-and-footer']['footer_force_white_text_on_mobile'] ) ) {
+		$gmailBlendMobile = json_decode( $templateStyles['header-and-footer']['footer_force_white_text_on_mobile'] );
 	}
 
 	$gmailBlendDesktopClass = $gmailBlendDesktop ? 'desktop' : '';
@@ -593,9 +736,9 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 	$linkHoverColor = $templateStyles['link-styles']['template_link_style_hover_color'] ?? $linkColor;
 
 	$linkStyles = $templateStyles['link-styles'];
-	$underlineLinks = json_decode($linkStyles['underline']) ?? false;
-	$boldLinks = json_decode($linkStyles['bold']) ?? false;
-	$italicLinks = json_decode($linkStyles['italic']) ?? false;
+	$underlineLinks = json_decode( $linkStyles['underline'] ) ?? false;
+	$boldLinks = json_decode( $linkStyles['bold'] ) ?? false;
+	$italicLinks = json_decode( $linkStyles['italic'] ) ?? false;
 
 
 	$linkStyles = '';
@@ -603,9 +746,9 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 		$linkStyles .= 'color: ' . $linkColor . ';';
 	}
 	if ( $underlineLinks ) {
-		$linkStyles .= 'text-decoration: underline!important;';
+		$linkStyles .= 'text-decoration: underline;';
 	} else {
-		$linkStyles .= 'text-decoration: none!important;';
+		$linkStyles .= 'text-decoration: none;';
 	}
 	if ( $boldLinks ) {
 		$linkStyles .= 'font-weight: bold;';
@@ -657,42 +800,32 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 			}
 		</style>
 
-		<?php
-		// add conditional css for gmail if a forced white text setting is active
-		$force_white_desktop = $templateStyles['custom-styles']['force_white_text_desktop'] ?? false;
-		$force_white_mobile = $templateStyles['custom-styles']['force_white_text_mobile'] ?? false;
-		if ( $force_white_desktop || $force_white_mobile ) { ?>
-			<style type="text/css">
-				<?php if ( $force_white_desktop ) : ?>
-					@media only screen and (min-width: 768px) {
-						u+.body .gmail-blend-screen.desktop {
-							background: #000;
-							mix-blend-mode: screen;
-						}
+		<style type="text/css">
+			@media only screen and (min-width: 768px) {
+				u+.body .gmail-blend-screen.desktop {
+					background: #000;
+					mix-blend-mode: screen;
+				}
 
-						u+.body .gmail-blend-difference.desktop {
-							background-color: #000;
-							mix-blend-mode: difference;
-						}
-					}
+				u+.body .gmail-blend-difference.desktop {
+					background-color: #000;
+					mix-blend-mode: difference;
+				}
+			}
 
-				<?php endif; ?>
-				<?php if ( $force_white_mobile ) : ?>
-					@media only screen and (max-width: 767px) {
-						u+.body .gmail-blend-screen.mobile {
-							background: #000;
-							mix-blend-mode: screen;
-						}
+			@media only screen and (max-width: 767px) {
+				u+.body .gmail-blend-screen.mobile {
+					background: #000;
+					mix-blend-mode: screen;
+				}
 
-						u+.body .gmail-blend-difference.mobile {
-							background-color: #000;
-							mix-blend-mode: difference;
-						}
-					}
+				u+.body .gmail-blend-difference.mobile {
+					background-color: #000;
+					mix-blend-mode: difference;
+				}
+			}
+		</style>
 
-				<?php endif; ?>
-			</style>
-		<?php } ?>
 
 
 		<style type="text/css">
@@ -700,9 +833,9 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 			a[x-apple-data-detectors] {
 				color: inherit !important;
 				<?php if ( $underlineLinks ) { ?>
-					text-decoration: underline;
+					text-decoration: underline !important;
 				<?php } else { ?>
-					text-decoration: none;
+					text-decoration: none !important;
 				<?php } ?>
 				font-size: inherit !important;
 				font-family: inherit !important;
@@ -714,9 +847,9 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 			#MessageViewBody a {
 				color: inherit !important;
 				<?php if ( $underlineLinks ) { ?>
-					text-decoration: underline;
+					text-decoration: underline !important;
 				<?php } else { ?>
-					text-decoration: none;
+					text-decoration: none !important;
 				<?php } ?>
 				font-size: inherit !important;
 				font-family: inherit !important;
@@ -728,7 +861,22 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 
 		<!-- Global styles for all clients that can read them-->
 		<style type="text/css">
-			/*Fix rendering issues with <p> and other elements*/
+			html * {
+				font-family: 'Poppins', Verdana, Arial, Helvetica, sans-serif;
+			}
+
+			#outlook a {
+				padding: 0;
+			}
+
+			.ReadMsgBody {
+				width: 100%;
+			}
+
+			.ExternalClass {
+				width: 100%;
+			}
+
 			.ExternalClass,
 			.ExternalClass p,
 			.ExternalClass span,
@@ -746,6 +894,33 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 					<?php echo $templateLineHeight; ?>
 				;
 				font-family: Poppins, Helvetica, Arial, sans-serif;
+				height: 100% !important;
+				margin: 0 !important;
+				padding: 0 !important;
+				width: 100% !important;
+			}
+
+			body,
+			table,
+			td,
+			a {
+				-webkit-text-size-adjust: 100%;
+				-ms-text-size-adjust: 100%;
+			}
+
+			table,
+			td {
+				mso-table-lspace: 0pt;
+				mso-table-rspace: 0pt;
+			}
+
+			img {
+				-ms-interpolation-mode: bicubic;
+				border: 0;
+				height: auto;
+				line-height: 100%;
+				outline: none;
+				text-decoration: none;
 			}
 
 			p {
@@ -802,10 +977,7 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 				!important;
 			}
 
-			a {
-
-				<?php echo $linkStyles; ?>
-			}
+			a,
 			a:visited {
 				<?php echo $linkStyles; ?>
 			}
@@ -813,23 +985,32 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 
 			a:hover {
 				color:
-					<?php echo $linkHoverColor; ?>;
+					<?php echo $linkHoverColor; ?>
+				;
 			}
+
 			a.id-button {
-				text-decoration: none!important;
-				font-style: normal!important;
+				text-decoration: none !important;
+				font-style: normal !important;
 				font-weight: bold;
 				color: inherit;
 			}
+
 			a.id-image-link {
 				color: transparent;
-				text-decoration: none!important;
+				text-decoration: none !important;
 				line-height: 0;
 				font-size: 0;
 			}
 
+			ul {
+				margin-top: 0;
+				margin-block-start: 0;
+			}
+
 			ul>li {
-				line-height: 1.5;
+				line-height: 1;
+				padding-bottom: .7em;
 			}
 
 			table,
@@ -960,6 +1141,26 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 					text-align: left;
 				}
 
+				.sidebar-left:not([dir="rtl"]) .column:nth-child(1),
+				.sidebar-right[dir="rtl"] .column:nth-child(1),
+				.sidebar-right:not([dir="rtl"]) .column:nth-child(2),
+				.sidebar-left[dir="rtl"] .column:nth-child(2) {
+					max-width: 33.333% !important;
+					min-width: 33.333% !important;
+					display: inline-block;
+					text-align: left;
+				}
+
+				.sidebar-left:not([dir="rtl"]) .column:nth-child(2),
+				.sidebar-right[dir="rtl"] .column:nth-child(2),
+				.sidebar-right:not([dir="rtl"]) .column:nth-child(1),
+				.sidebar-left[dir="rtl"] .column:nth-child(1) {
+					max-width: 66.667% !important;
+					min-width: 66.667% !important;
+					display: inline-block;
+					text-align: left;
+				}
+
 				.desktop-only {
 					display: block !important;
 					/* Show on desktop */
@@ -976,13 +1177,11 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 			}
 
 			@media screen and (max-width: 648px) {
-				.three-col .column {
-					max-width: 100% !important;
-					min-width: 100% !important;
-					display: block !important;
-				}
 
-				.two-col .column {
+				.three-col .column,
+				.two-col .column,
+				.sidebar-left .column,
+				.sidebar-right .column {
 					max-width: 100% !important;
 					min-width: 100% !important;
 					display: block !important;
@@ -1001,7 +1200,6 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 					display: none !important;
 					/* Hide on mobile */
 				}
-
 			}
 		</style>
 		<!--<![endif]-->
@@ -1026,7 +1224,8 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 	</title>
 
 	<?php
-	$templateWidth = $templateSettings['body-and-background']['template_width'] ?? 648;
+	$templateWidth = $templateStyles['body-and-background']['template_width'];
+	$templateWidth = (int) $templateWidth > 0 ? (int) $templateWidth : 648;
 	$bodyBackgroundCss = generate_background_css( $templateStyles['body-and-background']['body-background'], 'body_background_' );
 	$pageBackgroundCss = generate_background_css( $templateStyles['body-and-background']['page-background'], 'page_background_' );
 	?>
@@ -1065,7 +1264,8 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 		</div>
 		<div role="article" aria-roledescription="email" lang="en"
 			style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; word-spacing:normal;text-align: center;">
-			<table role="presentation" style="width: 100%; border: 0; border-spacing: 0;margin: 0 auto; <?php echo $bodyBackgroundCss; ?>" 
+			<table role="presentation"
+				style="width: 100%; border: 0; border-spacing: 0;margin: 0 auto; <?php echo $bodyBackgroundCss; ?>"
 				class="email-wrapper">
 				<tr>
 					<td align="center">
