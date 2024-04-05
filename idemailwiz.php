@@ -454,7 +454,7 @@ function idemailwiz_template_chooser($template)
 
 
     if (strpos($_SERVER['REQUEST_URI'], '/journeys') !== false) {
-        return dirname(__FILE__) . '/templates/journeys.php';
+        return dirname(__FILE__) . '/templates/archive-journeys.php';
     }
 
     if (strpos($_SERVER['REQUEST_URI'], '/snippets') !== false) {

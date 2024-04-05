@@ -7,6 +7,7 @@ jQuery(document).ready(function ($) {
 	table = $(".wizcampaign-tiny-table").DataTable({
 		dom: 'ltp',
 		scrollY: '340px',
+		scrollCollapse: true,
 		pageLength: 50,
 		fnDrawCallback: function(oSettings) {
 			if (oSettings._iDisplayLength > oSettings.fnRecordsDisplay()) {
@@ -52,19 +53,19 @@ jQuery(document).ready(function ($) {
 			columns: get_wiz_campaign_columns(),
 			buttons: get_wiz_campaign_buttons(),
 			language: get_wiz_campaign_languages(),
-			dom: '<"#wiztable_top_wrapper"><"wiztable_toolbar" <"#wiztable_top_search" f><"#wiztable_top_dates">  B>rtp',
+			dom: '<"#wiztable_top_wrapper"><"wiztable_toolbar" <"#wiztable_top_search" f><"#wiztable_top_dates">  B>rptp',
 			fixedHeader: { header: true, footer: false },
 			colReorder: { realtime: false },
 			//scroller: true,
 			scrollX: true,
-			scrollY: "650px",
+			//scrollY: "650px",
 			paging: true,
 			lengthMenu: [
 				[25, 50, 100, 200, 350, 500, 1000 - 1],
 				[25, 50, 100, 200, 350, 500, 1000, "All"],
 			],
 			pageLength: 100,
-			scrollResize: true,
+			//scrollResize: true,
 			scrollCollapse: true,
 			processing: true,
 			select: {

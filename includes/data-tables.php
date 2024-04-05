@@ -12,13 +12,13 @@ function idwiz_get_campaign_table_view() {
     $prepare_args = [];
 
     if ($campaign_type == 'Triggered') {
-        $sql .= " WHERE campaign_type = %s";
+		$sql .= " WHERE campaign_type = %s AND campaign_state = 'Running'";
         $prepare_args[] = 'Triggered';
     } elseif ($campaign_type == 'Blast') {
         $sql .= " WHERE campaign_type = %s";
         $prepare_args[] = 'Blast';
-    } elseif ($campaign_type == 'Both') {
-        // No WHERE clause needed; we fetch both 'Triggered' and 'Blast'
+    } elseif ($campaign_type == 'Archive') {
+		$sql .= " WHERE campaign_type = 'Triggered' AND campaign_state = 'Finished'";
     }
 
     // Prepare and execute the SQL query

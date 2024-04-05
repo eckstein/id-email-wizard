@@ -2345,6 +2345,9 @@ pre#generatedCode {
 .dataTables_wrapper .dataTables_filter {
 	float: none;
 }
+	.dataTables_wrapper .dataTables_paginate {
+	margin: 10px 0;
+}
 .dataTables_wrapper .dataTables_filter input,
 #idemailwiz_date_range input {
 	padding: 6px 10px;
@@ -2462,6 +2465,8 @@ pre#generatedCode {
 .dt-button.wiz-dt-button.fiscal-year {
 	margin-left: 10px !important;
 }
+
+
 
 /* Single WizCampaign Metrics Page */
 

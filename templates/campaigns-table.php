@@ -49,11 +49,11 @@ if (isset($_GET['startDate']) && $_GET['startDate'] !== '' && isset($_GET['endDa
                     } ?>">
                     Triggered
                 </a>
-                <a href="<?php echo add_query_arg(['view' => 'All']); ?>"
-                    class="campaign-tab <?php if ($activeTab == 'All') {
+                <a href="<?php echo add_query_arg(['view' => 'Archive']); ?>"
+                    class="campaign-tab <?php if ($activeTab == 'Archive') {
                         echo 'active';
                     } ?>">
-                    All
+                    Archive
                 </a>
             </div>
         </div>

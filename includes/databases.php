@@ -31,6 +31,16 @@ function idemailwiz_create_databases() {
         PRIMARY KEY  (id)
     ) $charset_collate;";
 
+
+	$workflows_table_name = $wpdb->prefix . 'idemailwiz_workflows';
+	$workflows_sql = "CREATE TABLE IF NOT EXISTS $workflows_table_name (
+		workflowId INT PRIMARY KEY,
+		workflowName VARCHAR(255) NOT NULL,
+		firstSendAt BIGINT,
+		lastSendAt BIGINT,
+	) $charset_collate;";
+
+
 	$campaign_init_table_name = $wpdb->prefix . 'idemailwiz_init_campaigns';
 	$campaign_init_sql = "CREATE TABLE IF NOT EXISTS $campaign_init_table_name (
         id INT AUTO_INCREMENT,
@@ -412,6 +422,7 @@ function idemailwiz_create_databases() {
 	dbDelta( $campaign_sql );
 	dbDelta( $users_sql );
 	dbDelta( $campaign_init_sql );
+	dbDelta( $workflows_sql );
 	dbDelta( $cohorts_sql );
 	dbDelta( $triggered_sends_sql );
 	dbDelta( $triggered_opens_sql );
@@ -443,6 +454,7 @@ function idemailwiz_create_view() {
             campaigns.type as campaign_type,
             campaigns.messageMedium as message_medium,
             campaigns.name as campaign_name,
+            campaigns.campaignState as campaign_state,
             campaigns.initiativeLinks as initiative_links,
             campaigns.startAt as campaign_start,
             campaigns.labels as campaign_labels,

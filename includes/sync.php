@@ -1989,7 +1989,7 @@ function idemailwiz_process_single_jobid( $jobId, $metricType ) {
 	if ( $apiResponse && ! empty( $apiResponse ) ) {
 
 		// Set the new jobState for return
-		$jobState = $apiResponse['response']['jobState'];
+		$jobState = $apiResponse['response']['jobState'] ?? '';
 		$return['jobState'] = $jobState;
 
 		if ( $jobState === 'failed' ) {
