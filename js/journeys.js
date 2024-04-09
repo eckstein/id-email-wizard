@@ -1,7 +1,7 @@
 jQuery(document).ready(function ($) {
 
     // On page load
-    if ($(".journey-timeline").length) {
+    if ($(".single-journey-article").length) {
         updateDynamicJourneyRollup();
     }
 

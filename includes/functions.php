@@ -987,11 +987,11 @@ function get_triggered_campaign_metrics( $campaignIds = [], $startDate = null, $
 	$metrics['uniqueEmailsDelivered'] = $metrics['uniqueEmailSends'] - $metrics['emailSendSkips'] - $metrics['emailBounces'];
 
 	// Calculate rate metrics
-	$metrics['wizDeliveryRate'] = $metrics['uniqueEmailsDelivered'] > 0 ? ( $metrics['uniqueEmailsDelivered'] / $metrics['uniqueEmailSends'] ) * 100 : 'N/A';
-	$metrics['wizOpenRate'] = $metrics['uniqueEmailOpens'] > 0 && $metrics['uniqueEmailSends'] > 0 ? ( $metrics['uniqueEmailOpens'] / $metrics['uniqueEmailSends'] ) * 100 : 'N/A';
-	$metrics['wizCtr'] = $metrics['uniqueEmailClicks'] > 0 ? ( $metrics['uniqueEmailClicks'] / $metrics['uniqueEmailSends'] ) * 100 : 'N/A';
-	$metrics['wizCto'] = $metrics['uniqueEmailClicks'] > 0 && $metrics['uniqueEmailOpens'] > 0 ? ( $metrics['uniqueEmailClicks'] / $metrics['uniqueEmailOpens'] ) * 100 : 'N/A';
-	$metrics['wizUnsubRate'] = $metrics['uniqueUnsubscribes'] > 0 && $metrics['uniqueEmailSends'] > 0 ? ( $metrics['uniqueUnsubscribes'] / $metrics['uniqueEmailSends'] ) * 100 : 'N/A';
+	$metrics['wizDeliveryRate'] = $metrics['uniqueEmailsDelivered'] > 0 ? ( $metrics['uniqueEmailsDelivered'] / $metrics['uniqueEmailSends'] ) * 100 : 0;
+	$metrics['wizOpenRate'] = $metrics['uniqueEmailOpens'] > 0 && $metrics['uniqueEmailSends'] > 0 ? ( $metrics['uniqueEmailOpens'] / $metrics['uniqueEmailSends'] ) * 100 : 0;
+	$metrics['wizCtr'] = $metrics['uniqueEmailClicks'] > 0 && $metrics['uniqueEmailSends'] > 0 ? ( $metrics['uniqueEmailClicks'] / $metrics['uniqueEmailSends'] ) * 100 : 0;
+	$metrics['wizCto'] = $metrics['uniqueEmailClicks'] > 0 && $metrics['uniqueEmailOpens'] > 0 ? ( $metrics['uniqueEmailClicks'] / $metrics['uniqueEmailOpens'] ) * 100 : 0;
+	$metrics['wizUnsubRate'] = $metrics['uniqueUnsubscribes'] > 0 && $metrics['uniqueEmailSends'] > 0 ? ( $metrics['uniqueUnsubscribes'] / $metrics['uniqueEmailSends'] ) * 100 : 0;
 
 	$metrics['uniquePurchases'] = count( $allPurchases );
 	$metrics['revenue'] = array_sum( array_column( $allPurchases, 'total' ) );

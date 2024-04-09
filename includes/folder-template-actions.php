@@ -208,7 +208,7 @@ function create_wiz_template_db_row( $post_id ) {
 			'last_updated' => current_time( 'mysql' ), // Use WordPress current time function
 			'post_id' => $post_id,
 			'user_id' => get_current_user_id(),
-			'template_data' => json_encode( [ 'templateOptions' => [] ] )
+			'template_data' => json_encode( [ 'template_options' => [] ] )
 		),
 		array(
 			'%s',

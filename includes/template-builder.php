@@ -6,6 +6,8 @@ function idemailwiz_handle_builder_v2_request() {
 	// Handle build-template
 	if ( isset( $wp_query->query_vars['build-template-v2'] ) ) {
 
+		
+
 		$current_url = home_url( add_query_arg( array(), $wp->request ) );
 		if ( strpos( $current_url, '/build-template-v2/' ) !== false && ! isset( $_SERVER['HTTP_REFERER'] ) ) {
 			$dieMessage = 'Direct access to the template builder endpoint is not allowed!';
@@ -13,7 +15,47 @@ function idemailwiz_handle_builder_v2_request() {
 			exit;
 		}
 
-		echo '<div style="padding: 30px; text-align: center; font-weight: bold; font-family: Poppins, sans-serif;"><i style="font-family: Font Awesome 5;" class="fas fa-spinner fa-spin"></i>  Loading template...<br/>';
+		$templateId = $wp_query->query_vars['build-template-v2'];
+
+		if (!$templateId) {
+			$dieMessage = 'TemplateId is unset or invalid!';
+			wp_die( $dieMessage );
+			exit;
+		}
+
+		// Start the session
+		if ( session_status() === PHP_SESSION_NONE ) {
+			session_start();
+		}
+
+		// Check if template data exists in the transient
+		$transientKey = 'template_data_' . $templateId;
+		$templateData = get_transient( $transientKey );
+
+		if ( $templateData === false ) {
+			// Fallback to fetching template data from the database
+			$templateData = get_wiztemplate( $templateId );
+		}
+
+		// Initialize flags and settings
+		$mergeTags = false;
+		$previewMode = 'desktop';
+
+		ob_start();
+
+		if ($templateData && $templateData['template_options'] &&  !empty( $templateData['template_options'])) {
+
+		// Preview pane styles
+		include dirname( plugin_dir_path( __FILE__ ) ) . '/builder-v2/preview-pane-styles.html';
+
+		echo generate_template_html( $templateData, true );
+
+		// Add spacer for proper scrolling in preview pane
+		echo '<div style="height: 100vh; color: #cdcdcd; padding: 20px; font-family: Poppins, sans-serif; text-align: center; border-top: 2px dashed #fff;" class="scrollSpace"><em>The extra space below allows proper scrolling in the builder and will not appear in the template</em></div>';
+		} else {
+			echo 'Template data not found!';
+		}
+		echo ob_get_clean();
 		exit;
 	}
 }
@@ -33,16 +75,25 @@ function idemailwiz_build_template() {
 	$userId = get_current_user_id();
 	$templateId = $_POST['templateid'];
 
+	$transientKey = 'template_data_' . $templateId;
+
+	delete_transient( $transientKey );
+
 	// Check if template data is passed in the request
 	if ( isset( $_POST['template_data'] ) ) {
 		// Use the template data from the request
 		$templateData = json_decode( stripslashes( $_POST['template_data'] ), true );
-	} else {
-		// Fallback to fetching template data from the database
-		$templateData = get_wiztemplate( $templateId );
-	}
 
-	include dirname( plugin_dir_path( __FILE__ ) ) . '/builder-v2/preview-pane.php';
+		// Store the template data using a transient
+		
+		set_transient( $transientKey, $templateData, 10 );
+
+		//error_log( print_r( $_SESSION, true ) );
+
+		wp_send_json_success();
+	} else {
+		wp_send_json_error();
+	}
 }
 
 
@@ -244,14 +295,8 @@ function add_or_duplicate_chunk() {
 
 	$columnId = isset( $_POST['column_id'] ) ? intval( $_POST['column_id'] ) : 0;
 
-	if ( isset( $_POST['duplicate'] ) ) {
-		// Get existing data (for duplicating) if passed
-		$publishedTemplateData = get_wiztemplate( $post_id );
-		// Check for passed session data and use that, if present
-		$sessionTemplateData = isset( $_POST['session_data'] ) && $_POST['session_data'] ? json_decode( stripslashes( $_POST['session_data'] ), true ) : [];
-		$templateData = $sessionTemplateData ?: $publishedTemplateData;
-
-		$chunkData = $templateData['rows'][ $rowId ]['columnSets'][ $colSetIndex ]['columns'][ $columnId ]['chunks'][ $chunkBeforeId ];
+	if ( isset( $_POST['duplicate'] ) && $_POST['chunk_data'] !== null ) {
+		$chunkData = $_POST['chunk_data'];
 	} else {
 		$chunkData = [];
 	}
@@ -365,19 +410,19 @@ function generate_builder_row( $rowId, $rowData = [] ) {
 						
 						<i class="fa-regular fa-copy"></i>
 						</div>
-						<div class="builder-row-actions-button remove-row exclude-from-toggle" title="Delete row">
+						<div class="builder-row-actions-button remove-element remove-row exclude-from-toggle" title="Delete row">
 						<i class="fas fa-times"></i>
 						</div>
 					</div>
 					
 				</div>
-				<div class="builder-row-settings-row">
+				<div class="builder-settings-section builder-row-settings-row">
 				<form class="builder-row-settings">';
-				$html .= generateBackgroundSettingsModule( $rowBackgroundSettings, '' );
-				$html .= '</form>'; // row-settings form
-				$html .= '</div>'; // row-settings
+	$html .= generateBackgroundSettingsModule( $rowBackgroundSettings, '' );
+	$html .= '</form>'; // row-settings form
+	$html .= '</div>'; // row-settings
 
-				$html .= '
+	$html .= '
 				<div class="builder-row-content">
 				<div class="builder-columnsets">
 				';
@@ -435,7 +480,7 @@ function generate_builder_columnset( $colSetIndex, $columnSet, $rowId, $rowData 
 	$magicWrapToggleClass = $magicWrap == 'on' ? 'active' : '';
 
 	if ( $magicWrap == 'on' ) {
-		$columns = array_reverse( $columns, true );
+		$columns = array_reverse( $columns );
 	}
 
 	$columnsStacked = $columnSet['stacked'] ?? false;
@@ -451,7 +496,7 @@ function generate_builder_columnset( $colSetIndex, $columnSet, $rowId, $rowData 
 
 	$html = '';
 
-	$html .= '<div class="builder-columnset --'.$colSetState.'" id="' . $uniqueId . '" data-columnset-id="' . $colSetIndex . '" data-layout="' . $colsLayout . '" data-magic-wrap="' . $magicWrap . '">
+	$html .= '<div class="builder-columnset --' . $colSetState . '" id="' . $uniqueId . '" data-columnset-id="' . $colSetIndex . '" data-layout="' . $colsLayout . '" data-magic-wrap="' . $magicWrap . '">
 			<div class="builder-header builder-columnset-header">
 			<div class="builder-columnset-title exclude-from-toggle"><div class="builder-columnset-title-number" data-columnset-id-display="' . $columnSetDisplayCnt . '">' . $columnSetDisplayCnt . '</div>
 			<div class="builder-columnset-title-text edit-columnset-title exclude-from-toggle" data-columnset-id="' . $colSetIndex . '">' . $columnsetTitle . '</div>
@@ -480,20 +525,23 @@ function generate_builder_columnset( $colSetIndex, $columnSet, $rowId, $rowData 
 					
 				<i class="fa-regular fa-copy"></i>
 				</div>
-				<div class="builder-columnset-actions-button remove-columnset exclude-from-toggle" title="Delete columnset">
+				<div class="builder-columnset-actions-button remove-element remove-columnset exclude-from-toggle" title="Delete columnset">
 				<i class="fas fa-times"></i>
 				</div>
 			</div>
 			</div>
 			
 			
-			<div class="builder-columnset-settings-row">
+			<div class="builder-settings-section builder-columnset-settings-row">
 			<form class="builder-columnset-settings">';
 	$html .= generateBackgroundSettingsModule( $colsetBgSettings, '' );
 	$html .= '</form>'; // end columnset settings form
 	$html .= '</div>'; // end columnset settings
 
 	$html .= '<div class="builder-columnset-content">';
+	if ($magicWrap == 'on') {
+		$html .= '<div class="magic-wrap-indicator"><i class="fa-solid fa-wand-magic-sparkles"></i>&nbsp;&nbsp;Magic wrap is on! Columns will be reversed when wrapped for mobile.</div>';
+	}
 	$html .= '<div class="builder-columnset-columns" data-active-columns="' . $countColumns . '">';
 
 	foreach ( $columns as $columnIndex => $column ) {
@@ -513,7 +561,16 @@ function generate_builder_columnset( $colSetIndex, $columnSet, $rowId, $rowData 
 function generate_builder_column( $rowId, $columnSet, $columnData, $columnIndex ) {
 	$uniqueId = uniqid( 'wiz-column-' );
 
-	$columnNumber = $columnIndex + 1;
+	$columnNumberDisplay = $columnIndex + 1;
+	// if ($columnSet['magic_wrap'] == 'on') {
+	// 	// reverse the column display numbers
+	// 	if ( $columnNumberDisplay == 1 ) {
+	// 		$columnNumberDisplay = 3;
+	// 	} else if ( $columnNumberDisplay == 3 ) {
+	// 		$columnNumberDisplay = 1;
+	// 	}
+	// }
+
 	//$collapsedState = $columnData['state'] ?? 'expanded';
 
 	$colValign = $columnData['settings']['valign'] ?? 'top';
@@ -528,7 +585,7 @@ function generate_builder_column( $rowId, $columnSet, $columnData, $columnIndex 
 	$colTitle = $columnData['title'] ?? 'Column';
 
 
-	$html .= '<div class="builder-column-title exclude-from-toggle"><div class="builder-column-title-number" data-column-id-display="' . $columnNumber . '">' . $columnNumber . '</div>';
+	$html .= '<div class="builder-column-title exclude-from-toggle"><div class="builder-column-title-number">' . $columnNumberDisplay . '</div>';
 	$html .= '<div class="builder-column-title-text edit-column-title exclude-from-toggle" data-column-id="' . $columnIndex . '">' . $colTitle . '</div>';
 	$html .= '</div>';
 	$html .= '<div class="builder-column-toggle">&nbsp;</div>';
@@ -639,7 +696,7 @@ function generate_builder_chunk( $chunkId, $chunkType, $rowId, $columnId, $chunk
 	$chunkPreview = get_chunk_preview( $chunkData, $chunkType );
 
 
-	$html = '<div class="builder-chunk --' . $chunkState . '" data-chunk-id="' . $chunkId . '" data-chunk-type="' . $chunkType . '" id="' . $uniqueId . '">
+	$html = '<div class="builder-chunk --' . $chunkState . '" data-chunk-id="' . $chunkId . '" data-chunk-type="' . $chunkType . '" id="' . $uniqueId . '" data-chunk-data="' . htmlspecialchars( json_encode( $chunkData ), ENT_QUOTES, 'UTF-8' ) . '">
 				<div class="builder-header builder-chunk-header">
 					<div class="builder-chunk-title">' . $chunkPreview . '</div>
 					<div class="builder-toggle builder-chunk-toggle">&nbsp;</div>
@@ -656,7 +713,7 @@ function generate_builder_chunk( $chunkId, $chunkType, $rowId, $columnId, $chunk
 						<div class="builder-chunk-actions-button exclude-from-toggle duplicate-chunk" title="Duplicate chunk">
 						<i class="fas fa-copy"></i>
 						</div>
-						<div class="builder-chunk-actions-button remove-chunk exclude-from-toggle" title="Remove chunk">
+						<div class="builder-chunk-actions-button remove-element remove-chunk exclude-from-toggle" title="Remove chunk">
 						<i class="fas fa-times"></i>
 						</div>
 					</div>
@@ -688,7 +745,11 @@ function generate_chunk_form_interface( $chunkType, $rowId, $columnId, $chunkId,
 	echo '<div class="chunk-tabs">';
 	foreach ( $tabs as $tab => $label ) {
 		$isActive = $tab === $activeTab ? 'active' : '';
-		echo "<div class=\"chunk-tab $isActive\" data-target=\"#{$uniqueId}-chunk-{$tab}-container\">{$label}</div>";
+		$additionalClasses = '';
+		if ( $tab == 'code' ) {
+			$additionalClasses .= 'refresh-chunk-code';
+		}
+		echo "<div class=\"chunk-tab $isActive $additionalClasses\" data-target=\"#{$uniqueId}-chunk-{$tab}-container\">{$label}</div>";
 	}
 
 	echo '</div>';
@@ -712,12 +773,13 @@ function generate_chunk_form_interface( $chunkType, $rowId, $columnId, $chunkId,
 	// HTML Code tab content
 	echo "<div class='tab-content chunk-code' id='{$uniqueId}-chunk-code-container' " . ( $activeTab !== 'code' ? "style='display:none;'" : "" ) . ">";
 	echo "<div class='tab-content-actions'>";
-	echo "<button class='wiz-button green copy-chunk-code' title='Copy HTML Code'><i class='fa-regular fa-copy'></i>&nbsp;&nbsp;Copy Code</button>";
+	echo "<button class='wiz-button green copy-chunk-code' title='Copy HTML Code' data-code-in='#{$uniqueId}-chunk-code'><i class='fa-regular fa-copy'></i>&nbsp;&nbsp;Copy Code</button>";
 	echo "</div>"; // Close chunk-code-actions div
 	echo "<form id='{$uniqueId}-chunk-code' class='chunk-code-form'>";
 	echo "<div class='chunk-html-code'>";
 	echo "<pre><code>";
-	echo render_chunk_code( $chunkData );
+	//echo render_chunk_code( $chunkData );
+	echo 'Loading HTML code...';
 	echo "</code></pre>";
 	echo "</div>"; // Close chunk-html-code div
 	echo "</form>";
@@ -788,7 +850,7 @@ function render_chunk_settings( $chunkType, $chunkData, $uniqueId ) {
 				'chunk_wrap',
 				'chunk_wrap_hide',
 				'chunk_classes',
-				'chunk_padding',	
+				'chunk_padding',
 				'div',
 				'base_text_color',
 				'force_white_text_devices',
@@ -844,7 +906,7 @@ function show_specific_chunk_settings( $chunkData, $uniqueId, $settings ) {
 	echo "<div class='builder-field-group flex'>"; // Start the main wrapper
 
 	$chunkWrap = $chunkSettings['chunk_wrap'] ?? false;
-	
+
 	$isChunkWrapHideOpen = false; // Flag to track if we're inside a chunk_wrap_hide wrapper
 
 	foreach ( $settings as $setting ) {
@@ -930,7 +992,7 @@ function show_specific_chunk_settings( $chunkData, $uniqueId, $settings ) {
 					echo generateBackgroundSettingsModule( $chunkData['settings'], '' );
 					break;
 				case 'chunk_wrap':
-					
+
 					$uniqueIdchunkWrap = $uniqueId . 'chunk_wrap';
 					$chunkWrapChecked = $chunkWrap ? 'checked' : '';
 					$chunkWrapActive = $chunkWrap ? 'active' : '';
@@ -985,14 +1047,10 @@ function render_chunk_fields( $chunkType, $chunkData, $uniqueId ) {
 			$imageLink = $chunkData['fields']['image_link'] ?? '';
 			$imageAlt = $chunkData['fields']['image_alt'] ?? '';
 
-
 			echo "<div class='builder-field-group flex'>";
 			echo "<div class='builder-field-wrapper'><label for ='{$uniqueId}-image-url'>Image URL</label><input type='text' name='image_url' id='{$uniqueId}-image-url' value='{$imageUrl}' placeholder='https://'></div>";
 			echo "<div class='builder-field-wrapper'><label for ='{$uniqueId}-image-link'>Image Link</label><input type='text' name='image_link' id='{$uniqueId}-image-link' value='{$imageLink}' placeholder='https://'></div>";
 			echo "<div class='builder-field-wrapper'><label for ='{$uniqueId}-image-alt'>Image Alt</label><input type='text' name='image_alt' id='{$uniqueId}-image-alt' value='{$imageAlt}' placeholder='Describe the image or leave blank'></div>";
-			// echo "<div class='image-chunk-preview'>";
-			// echo "<img src='{$imageUrl}' alt=''>";
-			// echo "</div>";
 			echo "</div>"; // close builder-field-group
 
 			break;
@@ -1409,53 +1467,6 @@ function get_visibility_class_and_style( $settingsObject ) {
 	];
 }
 
-
-add_action( 'wp_ajax_generate_template_for_preview', 'generate_template_for_preview' );
-function generate_template_for_preview() {
-	$templateId = $_POST['template_id'] ?? '';
-	$sessionData = isset( $_POST['session_data'] ) ? $_POST['session_data'] : null;
-
-	// Decide whether to use session data or fetch from database
-	if ( $sessionData ) {
-		// If session data is provided and valid, use it
-		$templateData = $sessionData;
-	} else {
-		// Otherwise, fetch the template data from the database
-		$templateData = get_wiztemplate( $templateId );
-	}
-
-	// Generate the template HTML based on the data
-	$templateHtml = generate_template_html( $templateData );
-
-	// Generate the preview pane HTML (container + empty iframe)
-	$previewPane = generate_template_preview_pane( $templateHtml );
-
-	wp_send_json_success( [ 
-		'previewPaneHtml' => $previewPane, // Container + empty iframe
-		'emailTemplateHtml' => $templateHtml, // The actual email template HTML to be loaded into the iframe
-	] );
-}
-
-
-function generate_template_preview_pane( $templateHtml ) {
-	$popupHtml = '<div id="previewPopup">' .
-		'<div class="fullScreenButtons">' .
-		'<div class="wiz-button green" id="fullModeDesktop"><i class="fa-solid fa-desktop"></i></div>' .
-		'<div class="wiz-button" id="fullModeMobile"><i class="fa-solid fa-mobile-screen-button"></i></div>' .
-		'<button class="wiz-button" id="hideTemplatePreview"><i class="fa-solid fa-circle-xmark fa-2x"></i></button>' .
-		'</div>' .
-		'<div id="fullModePreview">' .
-		'<div class="previewPopupInnerScroll">' .
-		'<div class="previewDisplay">' .
-		'<iframe id="emailTemplatePreviewIframe" style="width:100%;height:100%;"></iframe>' .
-		'</div>' .
-		'</div>' .
-		'</div>' .
-		'</div>';
-
-	return $popupHtml;
-}
-
 add_action( 'wp_ajax_generate_template_html_from_ajax', 'generate_template_html_from_ajax' );
 function generate_template_html_from_ajax() {
 	$_POST = stripslashes_deep( $_POST );
@@ -1533,15 +1544,13 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 	$return = '';
 
 	foreach ( $rows as $rowIndex => $row ) {
-		$rowBackgroundCss = generate_background_css( $row['background_settings']);
+		$rowBackgroundCss = generate_background_css( $row['background_settings'] );
 		$rowBackgroundCssMso = generate_background_css( $row['background_settings'], '', true );
 
-		if ( $isEditor ) {
-			// Row wrapper for the editor with data attributes
-			$return .= "<div class='editor-row-wrapper' data-row-index='{$rowIndex}' style='position: relative;'>";
-		}
+		// If this is the showing in the editor, add a data attribute to the row
+		$rowDataAttr = $isEditor ? 'data-row-index=' . $rowIndex : '';
 
-		$return .= "<div class='row' style='font-size:0; width: 100%; margin: 0; padding: 0; " . $rowBackgroundCss . "'>";
+		$return .= "<div class='row' $rowDataAttr style='font-size:0; width: 100%; margin: 0; padding: 0; " . $rowBackgroundCss . "'>";
 		$return .= "<!--[if mso]><table class='row' role='presentation' width='100%' style='$rowBackgroundCssMso white-space:nowrap;text-align:center; '><tr><td><![endif]-->";
 
 		$columnSets = $row['columnSets'] ?? [];
@@ -1554,7 +1563,7 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 					$columns[] = $allColumn;
 				}
 			}
-			$numActiveColumns = count( $columns);
+			$numActiveColumns = count( $columns );
 
 			$magicRtl = '';
 			$magicWrap = $columnSet['magic_wrap'] ?? 'off';
@@ -1568,35 +1577,47 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 
 			$layoutClass = $columnSet['layout'] ?? '';
 
+			$colSetDataAttr = $isEditor ? 'data-columnset-index=' . $columnSetIndex : '';
+
 			$displayTable = $numActiveColumns > 1 ? 'display: table;' : '';
 
-			$return .= "<div class='$layoutClass columnSet' $magicRtl style='$colSetBackgroundCss text-align: center; font-size: 0; width: 100%; " . $displayTable . "'>";
+			$return .= "<div class='columnSet $layoutClass' $colSetDataAttr $magicRtl style='$colSetBackgroundCss text-align: center; font-size: 0; width: 100%; " . $displayTable . "'>";
 			$return .= "<!--[if mso]><table class='columnSet' role='presentation' width='100%' style='$colSetBackgroundCssMso white-space:nowrap;text-align:center; '><tr><![endif]-->";
 
-			
+
 			foreach ( $columns as $columnIndex => $column ) {
-	
 
-					$colValign = $column['settings']['valign'] ? strtolower( $column['settings']['valign'] ) : 'top';
 
-					$colBackgroundCSS = generate_background_css( $column['settings'], '' );
-					$msoColBackgroundCSS = generate_background_css( $column['settings'], '', true );
+				$colValign = $column['settings']['valign'] ? strtolower( $column['settings']['valign'] ) : 'top';
 
-					$columnChunks = $column['chunks'];
-					$templateWidth = $templateStyles['body-and-background']['template_width'];
-					$templateWidth = (int)$templateWidth > 0 ? (int)$templateWidth : 648;
+				$colBackgroundCSS = generate_background_css( $column['settings'], '' );
+				$msoColBackgroundCSS = generate_background_css( $column['settings'], '', true );
 
-					$columnWidthPx = $templateWidth;
-					$columnWidthPct = 100;
+				$columnChunks = $column['chunks'];
+				$templateWidth = $templateStyles['body-and-background']['template_width'];
+				$templateWidth = (int) $templateWidth > 0 ? (int) $templateWidth : 648;
+
+				$columnWidthPx = $templateWidth;
+				$columnWidthPct = 100;
 
 
 
 				if ( $layoutClass === 'two-col' ) {
 					$columnWidthPx = round( $templateWidth / 2, 0 );
 					$columnWidthPct = 50;
+					if ( $magicWrap == 'on' ) {
+						$columnIndex = $columnIndex === 0 ? 1 : 0;
+					}
 				} elseif ( $layoutClass === 'three-col' ) {
 					$columnWidthPx = round( $templateWidth / 3, 0 );
 					$columnWidthPct = 33.33;
+					if ( $magicWrap == 'on' ) {
+						if ($columnIndex === 0) {
+							$columnIndex = 2;
+						} else if ( $columnIndex === 2 ) {
+							$columnIndex = 0;
+						}
+					}
 				} elseif ( $layoutClass === 'sidebar-left' ) {
 					if ( $magicWrap == 'on' ) {
 						$columnIndex = $columnIndex === 0 ? 1 : 0;
@@ -1609,7 +1630,7 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 						$columnWidthPct = 66.67;
 					}
 				} elseif ( $layoutClass === 'sidebar-right' ) {
-					
+
 					if ( $magicWrap == 'on' ) {
 						$columnIndex = $columnIndex === 0 ? 1 : 0;
 					}
@@ -1626,46 +1647,36 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 					$columnWidthPct = 100;
 				}
 
-					$columnStyle = "width: {$columnWidthPct}%; font-size: {$templateStyles['font-styles']['template_font_size']}; max-width: {$columnWidthPx}px; vertical-align: {$colValign};text-align: left;";
-					if ( $numActiveColumns > 1 ) {
-						$columnStyle .= "display: table-cell; ";
-					} else {
-						$columnStyle .= "display: block; ";
-					}
-					if ( $numActiveColumns > 1 ) {
-						$columnStyle .= "display: table-cell; ";
-					} else {
-						$columnStyle .= "display: block; ";
-					}
-					$return .= "<!--[if mso]><td style='width:{$columnWidthPct}%; $msoColBackgroundCSS' width='{$columnWidthPx}'  valign='{$colValign}'><![endif]-->";
-					$return .= "<!--[if !mso]><!--><div class='column' style='$columnStyle max-width:{$columnWidthPx}px; $colBackgroundCSS' dir='ltr'><!--<![endif]-->";
+				$columnStyle = "width: {$columnWidthPct}%; font-size: {$templateStyles['font-styles']['template_font_size']}; max-width: {$columnWidthPx}px; vertical-align: {$colValign};text-align: left;";
+				if ( $numActiveColumns > 1 ) {
+					$columnStyle .= "display: table-cell; ";
+				} else {
+					$columnStyle .= "display: block; ";
+				}
+				if ( $numActiveColumns > 1 ) {
+					$columnStyle .= "display: table-cell; ";
+				} else {
+					$columnStyle .= "display: block; ";
+				}
 
-					if ( $isEditor ) {
-						// Column wrapper for the editor with data attributes
-						$return .= "<div class='editor-column-wrapper' data-column-index='{$columnIndex}' style='position: relative;'>";
-					}
+				$columnDataAttr = $isEditor ? 'data-column-index=' . $columnIndex : '';
 
-					foreach ( $columnChunks as $chunkIndex => $chunk ) {
-						if ( $isEditor ) {
-							// Chunk wrapper for the editor with data attributes
-							$return .= "<div class='editor-chunk-wrapper' data-chunk-index='{$chunkIndex}' style='position: relative;'>";
-						}
+				$return .= "<!--[if !mso]><!--><div class='column' $columnDataAttr style='$columnStyle max-width:{$columnWidthPx}px; $colBackgroundCSS' dir='ltr'><!--<![endif]-->";
+				$return .= "<!--[if mso]><td style='width:{$columnWidthPct}%; $msoColBackgroundCSS' width='{$columnWidthPx}'  valign='{$colValign}'><![endif]-->";
 
-						$chunkHtml = idwiz_get_chunk_template( $chunk, $templateData['template_options'] );
-						$return .= $chunkHtml;
 
-						if ( $isEditor ) {
-							$return .= "</div>"; // Close .editor-chunk-wrapper
-						}
-					}
 
-					if ( $isEditor ) {
-						$return .= "</div>"; // Close .editor-column-wrapper
-					}
+				foreach ( $columnChunks as $chunkIndex => $chunk ) {
 
-					$return .= "<!--[if !mso]><!--></div><!--<![endif]-->"; // Close .column div
-					$return .= "<!--[if mso]></td><![endif]-->";
-				
+					$chunkHtml = idwiz_get_chunk_template( $chunk, $templateData['template_options'], $chunkIndex, $isEditor );
+					$return .= $chunkHtml;
+
+				}
+
+				$return .= "<!--[if mso]></td><![endif]-->";
+				$return .= "<!--[if !mso]><!--></div><!--<![endif]-->"; // Close .column div
+
+
 			}
 
 			$return .= "<!--[if mso]></tr></table><![endif]-->";
@@ -1674,39 +1685,37 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 		$return .= "<!--[if mso]></td></tr></table><![endif]-->";
 		$return .= "</div>"; // Close the row layout div
 
-		if ( $isEditor ) {
-			$return .= "</div>"; // Close .editor-row-wrapper
-		}
+
 	}
 
 	return $return;
 }
 
 
-function idwiz_get_chunk_template( $chunk, $templateOptions ) {
+function idwiz_get_chunk_template( $chunk, $templateOptions, $chunkIndex = null, $isEditor = false ) {
 
 	$chunkType = $chunk['field_type'];
 
 	$return = '';
 
 	if ( $chunkType == 'text' ) {
-		$return .= idwiz_get_plain_text_chunk( $chunk, $templateOptions );
+		$return .= idwiz_get_plain_text_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor );
 	} else if ( $chunkType == 'image' ) {
-		$return .= idwiz_get_image_chunk( $chunk, $templateOptions );
+		$return .= idwiz_get_image_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor );
 	} else if ( $chunkType == 'button' ) {
-		$return .= idwiz_get_button_chunk( $chunk, $templateOptions );
+		$return .= idwiz_get_button_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor );
 	} else if ( $chunkType == 'spacer' ) {
-		$return .= idwiz_get_spacer_chunk( $chunk, $templateOptions );
+		$return .= idwiz_get_spacer_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor  );
 	} else if ( $chunkType == 'snippet' ) {
-		$return .= idwiz_get_snippet_chunk( $chunk, $templateOptions );
+		$return .= idwiz_get_snippet_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor );
 	} else if ( $chunkType == 'html' ) {
-		$return .= idwiz_get_raw_html_chunk( $chunk, $templateOptions );
+		$return .= idwiz_get_raw_html_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor  );
 	}
 	//error_log('message settings: '. print_r($templateOptions, true));
 	$externalUtms = $templateOptions['message_settings']['ext_utms'] ?? false;
 	$externalUtmString = $templateOptions['message_settings']['ext_utm_string'] ?? '';
 	// Find all links inside $return and add a UTMs to them
-	if($externalUtms && $externalUtmString) {
+	if ( $externalUtms && $externalUtmString ) {
 		$dom = new DOMDocument();
 		$dom->loadHTML( $return );
 		$links = $dom->getElementsByTagName( 'a' );
@@ -1725,6 +1734,55 @@ function idwiz_get_chunk_template( $chunk, $templateOptions ) {
 
 	return $return;
 
+}
+
+
+
+
+add_action( 'wp_ajax_generate_template_for_popup', 'generate_template_for_popup' );
+function generate_template_for_popup() {
+	$templateId = $_POST['template_id'] ?? '';
+	$sessionData = isset( $_POST['session_data'] ) ? $_POST['session_data'] : null;
+
+	// Decide whether to use session data or fetch from database
+	if ( $sessionData ) {
+		// If session data is provided and valid, use it
+		$templateData = $sessionData;
+	} else {
+		// Otherwise, fetch the template data from the database
+		$templateData = get_wiztemplate( $templateId );
+	}
+
+	// Generate the template HTML based on the data
+	$templateHtml = generate_template_html( $templateData );
+
+	// Generate the preview pane HTML (container + empty iframe)
+	$previewPane = generate_template_preview_pane( $templateHtml );
+
+	wp_send_json_success( [ 
+		'previewPaneHtml' => $previewPane, // Container + empty iframe
+		'emailTemplateHtml' => $templateHtml, // The actual email template HTML to be loaded into the iframe
+	] );
+}
+
+
+function generate_template_preview_pane( $templateHtml ) {
+	$popupHtml = '<div id="previewPopup">' .
+		'<div class="fullScreenButtons">' .
+		'<div class="wiz-button green" id="fullModeDesktop"><i class="fa-solid fa-desktop"></i></div>' .
+		'<div class="wiz-button" id="fullModeMobile"><i class="fa-solid fa-mobile-screen-button"></i></div>' .
+		'<button class="wiz-button" id="hideTemplatePreview"><i class="fa-solid fa-circle-xmark fa-2x"></i></button>' .
+		'</div>' .
+		'<div id="fullModePreview">' .
+		'<div class="previewPopupInnerScroll">' .
+		'<div class="previewDisplay">' .
+		'<iframe id="emailTemplatePreviewIframe" style="width:100%;height:100%;"></iframe>' .
+		'</div>' .
+		'</div>' .
+		'</div>' .
+		'</div>';
+
+	return $popupHtml;
 }
 
 

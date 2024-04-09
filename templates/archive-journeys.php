@@ -1,5 +1,5 @@
 <?php get_header(); ?>
-<article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
+<article id="journey-archive">
 	<header class="wizHeader">
 		<div class="wizHeaderInnerWrap">
 			<div class="wizHeader-left">
@@ -57,56 +57,19 @@
                 continue;
             }
 			?>
-			<div class="workflow-wrapper">
+			<div class="workflow-wrapper wizcampaign-section inset">
 				<div class="workflow-title">
 					<?php
-					echo '<h3>' . $workflow['workflowName'] . '</h3>'
+					echo '<a href="'.get_bloginfo('url').'/metrics/journey?id='.$workflow['workflowId'].'">' . $workflow['workflowName'] . '</a>'
 						?>
 				</div>
 				<div class="workflow-details">
-					Sending since:
-					<?php echo date( 'm/d/Y', $workflow['firstSendAt'] / 1000 ); ?>
+					
+					
 				</div>
-				<div class="workflow-campaigns">
-					<table class="wizcampaign-tiny-table">
-						<thead>
-							<tr>
-								<th>Campaign</th>
-								<th>Last Sent</th>
-								<th>Open %</th>
-								<th>Cth</th>
-								<th>CTO</th>
-								<th>Rev</th>
-							</tr>
-						</thead>
-						<tbody>
-							<?php foreach ( $campaigns as $campaign ) {
-								if ( $campaign['campaignState'] == 'Running' ) {
-									?>
-									<tr>
-										<td>
-											<a
-												href="<?php echo get_bloginfo( 'url' ); ?>/metrics/campaign/?id=<?php echo $campaign['id']; ?>">
-												<?php echo $campaign['name']; ?>
-											</a>
-										</td>
 
-										<td>
-											<?php echo date( 'm/d/Y', $campaign['startAt'] / 1000 ); ?>
-										</td>
-
-										<td>OPENS</td>
-										<td>CTR</td>
-										<td>CTO</td>
-										<td>Rev</td>
-									</tr>
-									<?php
-								}
-							}
-							?>
-						</tbody>
-					</table>
-				</div>
+                <?php echo display_workflow_campaigns_table($workflowId, $campaigns); ?>
+				
 			</div>
 			<?php
 		}

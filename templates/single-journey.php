@@ -1,75 +1,77 @@
 <?php get_header(); ?>
 <?php
 // Retrieve the stored campaign IDs and send dates from post meta
-$post_id = get_the_ID();
+$journeyId = $_GET['id'] ?? false;
+
+
 
 // Check if the startDate and endDate parameters are present in the $_GET array, if not, default
 $startDate = $_GET['startDate'] ?? date( 'Y-m-01' );
 $endDate = $_GET['endDate'] ?? date( 'Y-m-d' );
+if ( $journeyId && get_workflow( $journeyId ) ) {
 
-?>
-<header class="wizHeader">
-	<div class="wizHeaderInnerWrap">
-		<div class="wizHeader-left">
-			<h1 class="wizEntry-title single-wizcampaign-title" title="<?php echo get_the_title(); ?>" itemprop="name">
-				<?php echo get_the_title(); ?>
-			</h1>
-			<div class="wizEntry-meta"><strong>Journey</strong>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Send dates:
-				<?php
-				$defFirstJourneySend = get_post_meta( $post_id, 'earliest_send', true );
-				$defLastJourneySend = get_post_meta( $post_id, 'latest_send', true );
-				echo date( 'm/d/Y', $defFirstJourneySend / 1000 ) . ' - ' . date( 'm/d/Y', $defLastJourneySend / 1000 ); ?>
-				&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Includes
-				<?php
-				$journeyCampaignIds = get_post_meta( $post_id, 'journey_campaign_ids', true ) ?? [];
-				$hiddenJourneyCampaignIds = is_array(get_post_meta( $post_id, 'journey_hidden_campaign_ids', true )) ? get_post_meta( $post_id, 'journey_hidden_campaign_ids', true ) : [];
+	$journey = get_workflow( $journeyId );
 
-				$visibleCampaignIds = array_values( array_diff( $journeyCampaignIds, $hiddenJourneyCampaignIds ) );
+	$journeyFirst = $journey['firstSendAt'];
+	$journeyLast = $journey['lastSendAt'];
 
+	$journeyStartDate = date( 'm/d/Y', $journeyFirst / 1000 );
+	$journeyEndDate = date( 'm/d/Y', $journeyLast / 1000 );
 
-				// error_log( print_r( $journeyCampaignIds, true ) );
-				// error_log( print_r( $hiddenJourneyCampaignIds, true ) );
-				// error_log( print_r( $visibleCampaignIds, true ) );
+	$journeyCampaigns = get_workflow_campaigns( $journeyId );
+	$journeyCampaignIds = array_column( $journeyCampaigns, 'id' );
 
-				echo '<span class="journey-meta-counts"><span class="journey-meta-count-all">' . count( $journeyCampaignIds ); ?></span> campaigns
-				<?php if ( count( $hiddenJourneyCampaignIds ) > 0 ) {
-					echo '(<span class="journey-meta-count-hidden">' . count( $hiddenJourneyCampaignIds ) . '</span> hidden)';
-				}
-				echo '</span>' ?>
+	$journeyName = $journey['workflowName'];
+	?>
+	<header class="wizHeader">
+		<div class="wizHeaderInnerWrap">
+			<div class="wizHeader-left">
+				<h1 class="wizEntry-title single-wizcampaign-title" title="<?php echo $journeyName; ?>" itemprop="name">
+					<?php echo $journeyName; ?>
+				</h1>
+				<div class="wizEntry-meta"><strong>Journey</strong>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Send dates:
+					<?php echo $journeyStartDate; ?> -
+					<?php echo $journeyEndDate; ?>
+				</div>
+
+			</div>
+			<div class="wizHeader-right">
+				<div class="wizHeader-actions">
+					<button class="wiz-button green sync-journey"
+						data-journeyids="<?php echo htmlspecialchars( json_encode( $journeyCampaignIds ) ); ?>">Sync
+						Journey</button>
+					<?php include plugin_dir_path( __FILE__ ) . 'parts/module-user-settings-form.php'; ?>
+
+				</div>
+			</div>
+		</div>
+	</header>
+
+	<article id="journey-<?php $journeyId; ?>" data-journey="<?php echo $journeyId; ?>" class="single-journey-article">
+
+		<div class="entry-content" itemprop="mainContentOfPage">
+			<?php include plugin_dir_path( __FILE__ ) . 'parts/dashboard-date-pickers.php'; ?>
+
+			<div id="journey-rollup-wrapper" data-campaign-ids='<?php echo json_encode( $journeyCampaignIds ); ?>'
+				data-start-date="<?php echo $startDate; ?>" data-end-date="<?php echo $endDate; ?>">
+				<div class="rollup_summary_wrapper" id="journey-timeline-rollup-summary">
+					<div class="rollup_summary_loader"><i class="fa-solid fa-spinner fa-spin"></i>&nbsp;&nbsp;Loading
+						rollup summary...</div>
+				</div>
+			</div>
+
+			<div class="journey-campaigns-wrapper">
+				<?php 
+				$campaigns = get_workflow_campaigns($journeyId);
+				echo display_workflow_campaigns_table( $journeyId, $campaigns, $startDate, $endDate ); ?>
 			</div>
 
 		</div>
-		<div class="wizHeader-right">
-			<div class="wizHeader-actions">
-				<button class="wiz-button green sync-journey"
-					data-journeyids="<?php echo htmlspecialchars( json_encode( $journeyCampaignIds ) ); ?>">Sync
-					Journey</button>
-				<?php include plugin_dir_path( __FILE__ ) . 'parts/module-user-settings-form.php'; ?>
-
-			</div>
-		</div>
-	</div>
-</header>
-
-<article id="post-<?php the_ID(); ?>" data-journey="<?php echo get_the_ID(); ?>">
-
-	<div class="entry-content" itemprop="mainContentOfPage">
-		<?php include plugin_dir_path( __FILE__ ) . 'parts/dashboard-date-pickers.php'; ?>
-
-		<div id="journey-rollup-wrapper" data-campaign-ids='<?php echo json_encode( $visibleCampaignIds ); ?>'
-			data-start-date="<?php echo $startDate; ?>" data-end-date="<?php echo $endDate; ?>">
-			<div class="rollup_summary_wrapper" id="journey-timeline-rollup-summary">
-				<div class="rollup_summary_loader"><i class="fa-solid fa-spinner fa-spin"></i>&nbsp;&nbsp;Loading
-					rollup summary...</div>
-			</div>
-		</div>
-
-		<div class="dragScroll-indicator">Drag timeline to scroll <i class="fa-solid fa-right-long"></i></div>
-
-		<?php echo generate_journey_timeline_html( $post_id, $startDate, $endDate ); ?>
-
-	</div>
-</article>
+	</article>
 
 
-<?php get_footer(); ?>
+	<?php
+} else { // if valid workflow id
+	echo 'Invalid workflowId or workflow has been deleted!';
+}
+get_footer(); ?>

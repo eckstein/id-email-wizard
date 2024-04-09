@@ -4,19 +4,12 @@
 		outline-width: 2px;
 		outline-color: #eeeeee;
 	}
-	.editor-row-wrapper,
-	.editor-column-wrapper,
-	.editor-chunk-wrapper {
-		position: relative; /* Ensure stacking context */
-		z-index: 1; /* Base z-index */
-	}
 
-	.editor-row-wrapper.active,
-	.editor-column-wrapper.active,
-	.editor-chunk-wrapper.active {
-		outline: 1px solid yellow;
+	.id-row.active {
+		outline: dashed;
+		outline-width: 1px;
+		outline-color: #000;
 	}
-	
 	
 
 
@@ -35,5 +28,14 @@
 		font-size: inherit;
 		font-weight: inherit;
 		line-height: inherit;
+	}
+
+	.chunk.active {
+		outline: 2px dashed #343434;
+		outline-offset: -2px;
+	}
+	.chunk:not(.active):hover {
+		outline: 2px dashed #666;
+		outline-offset: -2px;
 	}
 </style>

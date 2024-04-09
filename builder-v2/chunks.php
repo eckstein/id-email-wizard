@@ -4,11 +4,14 @@
 
 
 
-function idwiz_get_spacer_chunk( $chunk, $templateOptions ) {
+function idwiz_get_spacer_chunk( $chunk, $templateOptions, $chunkIndex = null, $isEditor = false ) {
 	//print_r($chunk);
 
 	$chunkSettings = $chunk['settings'];
 	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
+
+	$chunkDataAttr = $isEditor ? "data-chunk-index='" . $chunkIndex . "'" : "";
+
 	$chunkFields = $chunk['fields'];
 
 	$spacerHeight = $chunkFields['spacer_height'] ?? '60px';
@@ -36,7 +39,7 @@ function idwiz_get_spacer_chunk( $chunk, $templateOptions ) {
 	<tr>
 	<td style="width:100%;text-align:center;mso-line-height-rule:exactly; <?php echo $backgroundColorCss; ?>" valign="middle">
 	<![endif]-->
-	<div class="id-chunk id-spacer <?php echo $chunkClasses; ?> <?php echo $visibility['class']; ?>"
+	<div class="chunk id-spacer <?php echo $chunkClasses; ?> <?php echo $visibility['class']; ?>" <?php echo $chunkDataAttr; ?>
 		style="<?php echo $visibility['inlineStyle']; ?>" aria-hidden="true">
 		<div
 			style="line-height:<?php echo $spacerHeight; ?>;height:<?php echo $spacerHeight; ?>; font-size: <?php echo $spacerHeight; ?>; <?php echo $backgroundColorCss; ?>">
@@ -55,12 +58,14 @@ function idwiz_get_spacer_chunk( $chunk, $templateOptions ) {
 }
 
 
-function idwiz_get_button_chunk( $chunk, $templateOptions ) {
+function idwiz_get_button_chunk( $chunk, $templateOptions, $chunkIndex = null, $isEditor = false ) {
 	$chunkSettings = $chunk['settings'];
 	$chunkFields = $chunk['fields'];
 
 	$chunkPadding = $chunkSettings['chunk_padding'] ?? '0px';
 	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
+
+	$chunkDataAttr = $isEditor ? 'data-chunk-index="' . $chunkIndex . '"' : '';
 
 	$ctaText = $chunkFields['button_text'] ?? 'Click here';
 	$ctaUrl = $chunkFields['button_link'] ?? 'https://www.idtech.com';
@@ -133,7 +138,7 @@ function idwiz_get_button_chunk( $chunk, $templateOptions ) {
 
 	?>
 
-	<div class="id-chunk id-button <?php echo $chunkClasses; ?> <?php echo $visibility['class']; ?>"
+	<div class="chunk id-button <?php echo $chunkClasses; ?> <?php echo $visibility['class']; ?>" <?php echo $chunkDataAttr; ?>
 		style="width: 100%; border: 0; border-spacing: 0; <?php echo $visibility['inlineStyle']; ?> <?php echo $backgroundColorCss; ?>">
 		<table role="presentation" table-layout="fixed" style="width: 100%; <?php echo $backgroundColorCss; ?>">
 			<tr>
@@ -171,9 +176,12 @@ function idwiz_get_button_chunk( $chunk, $templateOptions ) {
 }
 
 
-function idwiz_get_snippet_chunk( $chunk, $templateOptions ) {
+function idwiz_get_snippet_chunk( $chunk, $templateOptions, $chunkIndex = null, $isEditor = false ) {
 	$chunkSettings = $chunk['settings'];
 	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
+
+	$chunkDataAttr = $isEditor ? 'data-chunk-index="' . $chunkIndex . '"' : '';
+
 	$chunkFields = $chunk['fields'];
 
 	$backgroundColorCss = generate_background_css( $chunkSettings );
@@ -212,7 +220,7 @@ function idwiz_get_snippet_chunk( $chunk, $templateOptions ) {
 		echo '<![endif]-->';
 	}
 
-	echo '<div class="id-chunk id-snippet ' . $chunkClasses . '" style="' . esc_attr( $fontCss . $backgroundColorCss . $visibility['inlineStyle'] ) . '">';
+	echo '<div class="chunk id-snippet ' . $chunkClasses . '" ' . $chunkDataAttr .' style="' . esc_attr( $fontCss . $backgroundColorCss . $visibility['inlineStyle'] ) . '">';
 	echo $snippetContent;
 	echo '</div>';
 
@@ -229,7 +237,7 @@ function idwiz_get_snippet_chunk( $chunk, $templateOptions ) {
 	return ob_get_clean();
 }
 
-function idwiz_get_raw_html_chunk( $chunk, $templateOptions ) {
+function idwiz_get_raw_html_chunk( $chunk, $templateOptions, $chunkIndex = null, $isEditor = false ) {
 	$templateStyles = $templateOptions['template_styles'] ?? [];
 
 	$chunkFields = $chunk['fields'] ?? [];
@@ -238,6 +246,8 @@ function idwiz_get_raw_html_chunk( $chunk, $templateOptions ) {
 	$chunkWrap = $chunkSettings['chunk_wrap'] ?? false;
 
 	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
+
+	$chunkDataAttr = $isEditor ? 'data-chunk-index="' . $chunkIndex . '"' : '';
 
 	$visibility = get_visibility_class_and_style( $chunkSettings );
 	if ( $visibility['class'] != '' ) {
@@ -287,7 +297,7 @@ function idwiz_get_raw_html_chunk( $chunk, $templateOptions ) {
 			<td class="id-raw-html" style="<?php echo $msoBackgroundColorCss; ?> padding: <?php echo $chunkPadding; ?>; color: <?php echo $baseTextColor; ?>; font-family: Poppins, Arial, sans-serif!important; font-size: <?php echo $templateFontSize; ?>;">
 			<![endif]-->
 
-		<div class="id-chunk id-raw-html <?php echo $chunkClasses; ?> <?php echo $visibility['class']; ?>"
+		<div class="chunk id-raw-html <?php echo $chunkClasses; ?> <?php echo $visibility['class']; ?>" <?php echo $chunkDataAttr; ?>
 			style="<?php echo $visibility['inlineStyle']; ?> <?php echo $backgroundColorCss; ?> color: <?php echo $baseTextColor; ?>; padding: <?php echo $chunkPadding; ?>; font-size: <?php echo $templateFontSize; ?>; border:1px solid transparent;">
 			<?php
 			if ( $gmailBlendDesktopClass || $gmailBlendMobileClass ) {
@@ -322,7 +332,7 @@ function idwiz_get_raw_html_chunk( $chunk, $templateOptions ) {
 	return ob_get_clean();
 }
 
-function idwiz_get_plain_text_chunk( $chunk, $templateOptions ) {
+function idwiz_get_plain_text_chunk( $chunk, $templateOptions, $chunkIndex = null, $isEditor = false ) {
 	$templateStyles = $templateOptions['template_styles'] ?? [];
 
 	$chunkFields = $chunk['fields'] ?? [];
@@ -336,6 +346,8 @@ function idwiz_get_plain_text_chunk( $chunk, $templateOptions ) {
 	} else {
 		$tableClassHtml = '';
 	}
+
+	$chunkDataAttr = $isEditor ? "data-chunk-index='" . $chunkIndex . "'" : "";
 
 	$backgroundColorCss = generate_background_css( $chunkSettings );
 	$msoBackgroundColorCss = generate_background_css( $chunkSettings, '', true );
@@ -377,14 +389,14 @@ function idwiz_get_plain_text_chunk( $chunk, $templateOptions ) {
 
 	?>
 	<!--[if mso]>
-	<table <?php echo $tableClassHtml; ?> role="presentation"
+	<table <?php echo $tableClassHtml; ?> role="presentation" 
 		style="width:100%;border:0;border-spacing:0; <?php echo $visibility['inlineStyle']; ?> <?php echo $msoBackgroundColorCss; ?>">
 		<tr>
 			
 			<td class="id-plain-text" style="<?php echo $msoBackgroundColorCss; ?> padding: <?php echo $chunkPadding; ?>; color: <?php echo $baseTextColor; ?>; font-family: Poppins, Arial, sans-serif!important; font-size: <?php echo $templateFontSize; ?>;">
 			<![endif]-->
 
-	<div class="id-chunk id-plain-text <?php echo $chunkClasses; ?> <?php echo $pPaddingClass; ?> <?php echo $visibility['class']; ?>"
+	<div class="chunk id-plain-text <?php echo $chunkClasses; ?> <?php echo $pPaddingClass; ?> <?php echo $visibility['class']; ?>" <?php echo $chunkDataAttr; ?>
 		style="<?php echo $visibility['inlineStyle']; ?> <?php echo $backgroundColorCss; ?> color: <?php echo $baseTextColor; ?>; padding: <?php echo $chunkPadding; ?>; font-size: <?php echo $templateFontSize; ?>; border:1px solid transparent;">
 		<?php
 		if ( $gmailBlendDesktopClass || $gmailBlendMobileClass ) {
@@ -447,7 +459,7 @@ function add_aria_label_to_links( $html ) {
 
 
 
-function idwiz_get_image_chunk( $chunk, $templateOptions ) {
+function idwiz_get_image_chunk( $chunk, $templateOptions, $chunkIndex = null, $isEditor = false ) {
 	$chunkSettings = $chunk['settings'];
 
 	$chunkSettings = $chunk['settings'];
@@ -470,6 +482,8 @@ function idwiz_get_image_chunk( $chunk, $templateOptions ) {
 
 	$image_context = $chunkSettings['image_context'] ?? '';
 	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
+
+	$chunkDataAttr = $isEditor ? "data-chunk-index='" . $chunkIndex . "'" : "";
 
 	$templateWidth = $templateOptions['template_styles']['body-and-background']['template_width'] ?? '648';
 
@@ -525,11 +539,11 @@ function idwiz_get_image_chunk( $chunk, $templateOptions ) {
 
 	// Non-MSO markup for other clients
 	echo '<!--[if !mso]> <!-->';
-	echo '<div class="id-chunk id-image ' . $chunkClasses . ' ' . $visibility['class'] . '" style="' . $backgroundColorCss . ' ' . $visibility['inlineStyle'] . $chunkPaddingCss . '">';
+	echo '<div class="chunk id-image ' . $chunkClasses . ' ' . $visibility['class'] . '" ' . $chunkDataAttr . ' style="' . $backgroundColorCss . ' ' . $visibility['inlineStyle'] . $chunkPaddingCss . '">';
 	if ( $imageLink ) {
 		echo '<a href="' . $imageLink . '" ' . $ariaHidden . ' class="id-image-link" title="' . $imageAlt . '">';
 	}
-	echo '<img ' . $altAttribute . ' class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" style="' . $pointerEventsCss . 'width:100%; height:auto;' . $visibility['inlineStyle'] . '" />';
+	echo '<img ' . $altAttribute . ' class=" ' . $visibility['class'] . '" src="' . $imageSrc . '" style="' . $pointerEventsCss . 'width:100%; height:auto;' . $visibility['inlineStyle'] . '" />';
 	if ( $imageLink ) {
 		echo '</a>';
 	}

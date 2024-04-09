@@ -134,7 +134,7 @@ jQuery(document).ready(function ($) {
 			
 			toggleOverlay(false);
 
-			saveTemplateData();
+			save_template_data();
 
 			// Reload the page to reflect changes (if necessary)
 			//var currentUrl = window.location.href;
@@ -180,7 +180,7 @@ jQuery(document).ready(function ($) {
 			var additionalData = {
 				action: "generate_template_html_from_ajax",
 				template_id: idAjax_template_editor.currentPost.ID,
-				session_data: getTemplateFromSession(),
+				session_data: get_template_from_session(),
 				//security: idAjax_template_editor.nonce
 			};
 

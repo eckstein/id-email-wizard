@@ -1,5 +1,8 @@
 {
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.formatOnPaste": true,
-    "cody.autocomplete.formatOnAccept": true
+    "cody.autocomplete.formatOnAccept": true,
+    // "editor.tokenColorCustomizations": {
+    //     "comments": "#ff00dd"
+    // },
 }

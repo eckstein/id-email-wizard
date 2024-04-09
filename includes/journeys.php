@@ -79,7 +79,7 @@ function upsert_workflow( $workflowId, $workflowName = '' ) {
 
 	if ( $workflowId > 0 ) {
 		if ( empty( $workflowName ) ) {
-			$workflowName = 'Workflow ' . $workflowId;
+			$workflowName = 'Journey ' . $workflowId;
 		}
 
 		$wpdb->query( $wpdb->prepare( "
@@ -119,6 +119,15 @@ function get_workflow_by_campaign_id( $campaignId ) {
 	), ARRAY_A );
 
 	return $workflow;
+}
+
+function get_workflow_campaigns($workflowId) {
+	global $wpdb;
+	$campaigns_table = $wpdb->prefix . 'idemailwiz_campaigns';
+	return $wpdb->get_results( $wpdb->prepare ( "
+	SELECT * FROM $campaigns_table
+	WHERE workflowId = %d", $workflowId ), ARRAY_A );
+
 }
 
 function add_new_workflows_daily() {
@@ -171,3 +180,88 @@ add_action( 'wp_ajax_upsert_workflow', function () {
 	wp_send_json_success();
 } );
 
+function display_workflow_campaigns_table( $workflowId, $campaigns, $startDate = null, $endDate = null ) {
+	$workflow = get_workflow( $workflowId );
+	?>
+		<div class="workflow-campaigns">
+			<table class="wizcampaign-tiny-table">
+				<thead>
+					<tr>
+						<th>Campaign</th>
+	
+						<th>Last Sent</th>
+						<th>Started</th>
+						<th>Total Sent</th>
+						<th>Open %</th>
+						<th>CTR</th>
+						<th>CTO</th>
+						<th>Rev</th>
+						<?php
+						if (!$startDate && !$endDate) {
+							?>
+						<th>GA Rev</th>
+						<?php } ?>
+					</tr>
+				</thead>
+				<tbody>
+				<?php foreach ( $campaigns as $campaign ) {
+					if ( $campaign['campaignState'] == 'Running' ) {
+						if (!$startDate && !$endDate) {
+							$campaignMetrics = get_idwiz_metric( $campaign['id'] );
+						} else {
+							$campaignMetrics = get_triggered_campaign_metrics( [$campaign['id']], $startDate, $endDate );
+						}
+						$totalSent = $campaignMetrics['uniqueEmailSends'];
+						$openRate = $campaignMetrics['wizOpenRate'];
+						$ctr = $campaignMetrics['wizCtr'];
+						$cto = $campaignMetrics['wizCto'];
+						$revenue = $campaignMetrics['revenue'];
+						$gaRevenue = $campaignMetrics['gaRevenue'];
+						?>
+						<tr>
+							<td>
+								<a href="<?php echo get_bloginfo( 'url' ); ?>/metrics/campaign/?id=<?php echo $campaign['id']; ?>">
+									<?php echo $campaign['name']; ?>
+								</a>
+							</td>
+	
+	
+							<td>
+								<?php echo date( 'm/d/Y', $campaign['startAt'] / 1000 ); ?>
+							</td>
+							<td>
+								<?php echo date( 'm/d/Y', $workflow['firstSendAt'] / 1000 ); ?>
+							</td>
+	
+							<td>
+								<?php echo number_format( (int)$totalSent ); ?>
+							</td>
+							<td>
+								<?php echo number_format( (int)$openRate, 2 ); ?>%
+							</td>
+							<td>
+								<?php echo number_format( (int)$ctr, 2 ); ?>%
+							</td>
+							<td>
+								<?php echo number_format( (int)$cto, 2 ); ?>%
+							</td>
+							<td>
+								<?php echo '$' . number_format( (int)$revenue ); ?>
+							</td>
+							<?php
+							if (!$startDate && !$endDate) {
+								?>
+							<td>
+								<?php echo '$' . number_format( (int)$gaRevenue ); ?>
+							</td>
+							<?php } ?>
+						</tr>
+						<?php
+					}
+				}
+				?>
+			</tbody>
+		</table>
+	</div>
+	<?php
+}

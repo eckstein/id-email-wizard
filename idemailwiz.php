@@ -275,46 +275,46 @@ function idwiz_register_custom_post_types()
 
 
 
-    register_post_type('journey', array(
-        'labels' => array(
-            'name' => 'Journeys',
-            'singular_name' => 'Journey',
-            'menu_name' => 'Journeys',
-            'all_items' => 'All Journeys',
-            'edit_item' => 'Edit Journey',
-            'view_item' => 'View Journey',
-            'view_items' => 'View Journeys',
-            'add_new_item' => 'Add New Journey',
-            'new_item' => 'New Journey',
-            'parent_item_colon' => 'Parent Journey:',
-            'search_items' => 'Search Journeys',
-            'not_found' => 'No journeys found',
-            'not_found_in_trash' => 'No journeys found in Trash',
-            'archives' => 'Journey Archives',
-            'attributes' => 'Journey Attributes',
-            'insert_into_item' => 'Insert into journey',
-            'uploaded_to_this_item' => 'Uploaded to this journey',
-            'filter_items_list' => 'Filter journeys list',
-            'filter_by_date' => 'Filter journeys by date',
-            'items_list_navigation' => 'Journeys list navigation',
-            'items_list' => 'Journeys list',
-            'item_published' => 'Journey published.',
-            'item_published_privately' => 'Journey published privately.',
-            'item_reverted_to_draft' => 'Journey reverted to draft.',
-            'item_scheduled' => 'Journey scheduled.',
-            'item_updated' => 'Journey updated.',
-            'item_link' => 'Journey Link',
-            'item_link_description' => 'A link to a journey.',
-        ),
-        'public' => true,
-        'show_in_rest' => true,
-        'menu_icon' => 'dashicons-schedule',
-        'supports' => ['title', 'editor', 'custom-fields', 'thumbnail'],
-        'has_archive' => 'journeys',
-        'rewrite' => ['slug' => 'journey'],
-        'delete_with_user' => false,
-    )
-    );
+    // register_post_type('journey', array(
+    //     'labels' => array(
+    //         'name' => 'Journeys',
+    //         'singular_name' => 'Journey',
+    //         'menu_name' => 'Journeys',
+    //         'all_items' => 'All Journeys',
+    //         'edit_item' => 'Edit Journey',
+    //         'view_item' => 'View Journey',
+    //         'view_items' => 'View Journeys',
+    //         'add_new_item' => 'Add New Journey',
+    //         'new_item' => 'New Journey',
+    //         'parent_item_colon' => 'Parent Journey:',
+    //         'search_items' => 'Search Journeys',
+    //         'not_found' => 'No journeys found',
+    //         'not_found_in_trash' => 'No journeys found in Trash',
+    //         'archives' => 'Journey Archives',
+    //         'attributes' => 'Journey Attributes',
+    //         'insert_into_item' => 'Insert into journey',
+    //         'uploaded_to_this_item' => 'Uploaded to this journey',
+    //         'filter_items_list' => 'Filter journeys list',
+    //         'filter_by_date' => 'Filter journeys by date',
+    //         'items_list_navigation' => 'Journeys list navigation',
+    //         'items_list' => 'Journeys list',
+    //         'item_published' => 'Journey published.',
+    //         'item_published_privately' => 'Journey published privately.',
+    //         'item_reverted_to_draft' => 'Journey reverted to draft.',
+    //         'item_scheduled' => 'Journey scheduled.',
+    //         'item_updated' => 'Journey updated.',
+    //         'item_link' => 'Journey Link',
+    //         'item_link_description' => 'A link to a journey.',
+    //     ),
+    //     'public' => true,
+    //     'show_in_rest' => true,
+    //     'menu_icon' => 'dashicons-schedule',
+    //     'supports' => ['title', 'editor', 'custom-fields', 'thumbnail'],
+    //     'has_archive' => 'journeys',
+    //     'rewrite' => ['slug' => 'journey'],
+    //     'delete_with_user' => false,
+    // )
+    // );
 
     register_post_type('wysiwyg_snippet', [
         'labels' => ['name' => __('Snippets'), 'singular_name' => __('Snippet')],
@@ -397,6 +397,7 @@ function idemailwiz_custom_rewrite_rule()
 
     // Add custom endpoints
     add_rewrite_endpoint('metrics/campaign', EP_ROOT);
+    add_rewrite_endpoint('metrics/journey', EP_ROOT);
     //add_rewrite_endpoint('build-template', EP_ROOT);
     add_rewrite_endpoint('build-template-v2', EP_ROOT);
     add_rewrite_endpoint('user-profile', EP_ROOT);
@@ -440,9 +441,9 @@ function idemailwiz_template_chooser($template)
         return dirname(__FILE__) . '/templates/single-comparison.php';
     }
 
-    if (get_post_type() == 'journey' && is_single()) {
-        return dirname(__FILE__) . '/templates/single-journey.php';
-    }
+    // if (get_post_type() == 'journey' && is_single()) {
+    //     return dirname(__FILE__) . '/templates/single-journey.php';
+    // }
     
     if (get_post_type() == 'wysiwyg_snippet' && is_single()) {
         return dirname(__FILE__) . '/templates/single-snippet.php';
@@ -456,6 +457,10 @@ function idemailwiz_template_chooser($template)
     if (strpos($_SERVER['REQUEST_URI'], '/journeys') !== false) {
         return dirname(__FILE__) . '/templates/archive-journeys.php';
     }
+
+	if ( strpos( $_SERVER['REQUEST_URI'], '/metrics/journey' ) !== false ) {
+		return dirname( __FILE__ ) . '/templates/single-journey.php';
+	}
 
     if (strpos($_SERVER['REQUEST_URI'], '/snippets') !== false) {
         return dirname(__FILE__) . '/templates/archive-snippet.php';
@@ -714,9 +719,16 @@ function idemailwiz_enqueue_assets()
         'id-general' => array('/js/id-general.js', array('jquery')),
         'mergeTags' => array('/js/mergeTags.js', array()),
 
-		'builder-functions' => array( '/builder-v2/js/builder-functions.js', array( 'jquery', 'id-general', 'jquery-ui-resizable', 'editable', 'spectrum', 'tinymce', 'gradx', 'crush', 'mergeTags' ) ),
-		'template-editor' => array( '/builder-v2/js/template-editor.js', array( 'jquery', 'id-general', 'builder-functions', 'jquery-ui-resizable', 'editable', 'spectrum', 'tinymce', 'gradx', 'crush', 'mergeTags' ) ),
-        'template-actions' => array('/js/template-actions.js', array('jquery', 'id-general')),        
+		'wiz-inits' => array( '/builder-v2/js/wiz-inits.js', array( 'jquery', 'id-general', 'jquery-ui-resizable', 'editable', 'spectrum', 'tinymce', 'gradx', 'crush', 'mergeTags') ),
+		'utilities' => array( '/builder-v2/js/utilities.js', array( 'wiz-inits') ),
+		'builder-functions' => array( '/builder-v2/js/builder-functions.js', array( 'wiz-inits', 'utilities' ) ),
+            'template-editor' => array( '/builder-v2/js/template-editor.js', array( 'builder-functions' ) ),
+            'template-actions' => array('/builder-v2/js/template-actions.js', array('builder-functions')),        
+            'save-functions' => array('/builder-v2/js/save-functions.js', array('builder-functions')),        
+            'import-export' => array('/builder-v2/js/import-export.js', array('builder-functions')),        
+            'tiny-mce-editor' => array('/builder-v2/js/tiny-mce-editor.js', array('builder-functions')),        
+                
+        'preview-pane' => array('/builder-v2/js/preview-pane.js', array('builder-functions')),        
 
         'wizSnippets' => array('/js/wizSnippets.js', array('jquery', 'id-general', 'codemirror')),
         'folder-actions' => array('/js/folder-actions.js', array('jquery', 'id-general')),
