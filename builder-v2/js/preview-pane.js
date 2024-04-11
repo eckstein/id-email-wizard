@@ -89,6 +89,10 @@ function setupPreviewFrameEventHandlers() {
 
   var iframe = jQuery("#previewFrame")[0];
   var preview = jQuery(iframe.contentWindow.document || iframe.contentDocument);
+  var previewScroll = jQuery('#templatePreview');
+
+  var builder = jQuery('#builder');
+  var builderScroll = jQuery('#builder-pane');
 
   // Handle clicks on builder chunks
   jQuery(document).on('click', '#builder .builder-chunk', function(event) {
@@ -132,6 +136,9 @@ function setupPreviewFrameEventHandlers() {
   });
   preview.on('click', '.chunk', function(event) {
     var clickedElement = jQuery(this);
+
+    // Move to the chunks tab if not on it
+    switch_wizard_tab(jQuery('[data-tab=#builder-tab-chunks]'));
     
     preview.find('.active').removeClass('active');
     clickedElement.addClass('active');
@@ -145,33 +152,7 @@ function setupPreviewFrameEventHandlers() {
 
     var columnIndex = clickedElement.closest('.column').attr('data-column-index');
 
-    // Check for magic wrap and reverse the column indexes, if set
-    var magicWrap = builderColumnset.attr('data-magic-wrap');
-    var colSetLayout = builderColumnset.attr('data-layout');
-
-    if (magicWrap == 'on') {
-      
-      // if (colSetLayout == 'two-col' || colSetLayout == 'sidebar-left' || colSetLayout == 'sidebar-right') {
-      //   console.log('swapping cols');
-      //   // swap the column indexes of the two columns
-      //   if (columnIndex == 0) {
-      //     columnIndex = 1;
-      //   } else if (columnIndex == 1){
-      //     columnIndex = 0;
-      //   }
-      // } else if (colSetLayout == 'three-col') {
-      //   // swap the column indexes of the first and third column
-      //   if (columnIndex == 0) {
-      //     columnIndex = 2;
-      //   } else if (columnIndex == 2) {
-      //     columnIndex = 0;
-      //   }
-      // }
-    }
-    var builderColumn = builderColumnset.find('.builder-column[data-column-id="' + columnIndex + '"]');
-
-    
-    
+    var builderColumn = builderColumnset.find('.builder-column[data-column-id="' + columnIndex + '"]');   
 
     var chunkIndex = clickedElement.attr('data-chunk-index');
     var builderChunk = builderColumn.find('.builder-chunk[data-chunk-id="' + chunkIndex + '"]');

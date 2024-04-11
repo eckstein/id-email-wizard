@@ -462,16 +462,7 @@ jQuery(document).ready(function($) {
 		$("#builder").on('click', '.refresh-chunk-code', function () {
 			refresh_chunk_html($(this));
 		});
-	
 
-	/*
-	****************
-	* Builder Element Interactions
-	*** iFrame Interactions
-	****************
-	*/
-
-	
 
 	/*
 	****************

@@ -63,6 +63,7 @@ function idwiz_get_button_chunk( $chunk, $templateOptions, $chunkIndex = null, $
 	$chunkFields = $chunk['fields'];
 
 	$chunkPadding = $chunkSettings['chunk_padding'] ?? '0px';
+	$chunkPaddingCss = 'padding: '.$chunkPadding;
 	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
 
 	$chunkDataAttr = $isEditor ? 'data-chunk-index="' . $chunkIndex . '"' : '';
@@ -126,53 +127,43 @@ function idwiz_get_button_chunk( $chunk, $templateOptions, $chunkIndex = null, $
 	echo '<!--[if mso]>';
 	echo '<table ' . $tableClassHtml . ' role="presentation" width="100%" style="table-layout:fixed; ' . esc_attr( $msoBackgroundColorCss . $visibility['inlineStyle'] ) . '">';
 	echo '<tr><td style="width:100%;text-align:center; ' . esc_attr( $msoBackgroundColorCss ) . '" valign="middle">';
-	echo '<![endif]-->';
 
+	// Convert the button background color to RGBA format
+	$btnBgColorRGBA = hex2rgba( $btnBgColor, 1 );
 
-
-	if ( $visibility['class'] == 'mobile-only' ) {
-		echo '<!--[if !mso]><!-->';
-	}
-
-
-
-	?>
-
-	<div class="chunk id-button <?php echo $chunkClasses; ?> <?php echo $visibility['class']; ?>" <?php echo $chunkDataAttr; ?>
-		style="width: 100%; border: 0; border-spacing: 0; <?php echo $visibility['inlineStyle']; ?> <?php echo $backgroundColorCss; ?>">
-		<table role="presentation" table-layout="fixed" style="width: 100%; <?php echo $backgroundColorCss; ?>">
-			<tr>
-				<td
-					style="<?php echo $backgroundColorCss; ?> padding: <?php echo $chunkPadding; ?>; border: 0!important; text-align: <?php echo $textAlign; ?>; font-family: Poppins, Arial, sans-serif; font-size: <?php echo $templateOptions['template_styles']['template_font_size'] ?? '16px'; ?>">
-					<!--[if mso]>
-					<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="<?php echo $ctaUrl; ?>" style="height: 50px; v-text-anchor: middle; width: <?php echo $buttonWidth; ?>px;" arcsize="<?php echo $msoBorderPerc; ?>%" strokecolor="<?php echo $vmlBorderColor; ?>" strokeweight="<?php echo $vmlBorderWeight; ?>px" fillcolor="<?php echo $btnBgColor; ?>">
-						<w:anchorlock/>
-						<center class="id-button" style="mso-style-textfill-type:gradient; mso-style-textfill-fill-gradientfill-stoplist:"0 \<?php echo $textColor; ?> 0 100000\,100000 \<?php echo $textColor; ?> 0 100000";color: <?php echo $vmlBorderColor; ?> !important; font-family: Poppins, Arial, sans-serif; font-size: 1.1em!important; line-height: 1.6em;font-weight: bold;mso-text-raise: 10pt;"><?php echo $ctaText; ?></center>
-					</v:roundrect>
-				<![endif]-->
-
-					<!--[if !mso]> <!-->
-					<a href="<?php echo $ctaUrl; ?>" aria-label="<?php echo $ctaText; ?>" class="id-button"
-						style="font-size: <?php echo $chunk['fields']['button_font_size'] ?? '1.2em'; ?>; line-height: 1;text-align: center; font-weight: bold;background: <?php echo $btnBgColor; ?>; <?php echo $btnBorderCss; ?> text-decoration: none; padding:<?php echo $buttonPadding; ?>; color: <?php echo $textColor; ?> !important; border-radius: <?php echo $borderRadius; ?>; display: inline-block;">
-						<?php echo $ctaText; ?>
-					</a>
-					<!-- <![endif]-->
-				</td>
-			</tr>
-		</table>
-	</div>
-	<?php
-
-	if ( $visibility['class'] == 'mobile-only' ) {
-		echo '<!--<![endif]-->';
-	}
-
-	echo '<!--[if mso]>';
+	echo '<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="' . $ctaUrl . '" style="height: 50px; v-text-anchor: middle; width: ' . $buttonWidth . 'px;" arcsize="' . $msoBorderPerc . '%" strokecolor="' . $vmlBorderColor . '" strokeweight="' . $vmlBorderWeight . 'px" fillcolor="' . $btnBgColor . '">';
+	echo '<w:anchorlock/>';
+	echo '<center class="id-button" style="color: ' . $textColor . ' !important; font-family: Poppins, Arial, sans-serif; font-size: ' . ( $chunk['fields']['button_font_size'] ?? '1.2em' ) . '!important; line-height: 1.6em;font-weight: bold;mso-text-raise: 10pt;">' . $ctaText . '</center>';
+	echo '</v:roundrect>';
 	echo '</td></tr></table>';
 	echo '<![endif]-->';
 
+	echo '<!--[if !mso]><!-->';
+	?>
+
+	<div class="chunk id-button <?php echo $chunkClasses; ?> <?php echo $visibility['class']; ?>" <?php echo $chunkDataAttr; ?>
+		 style="width: 100%; border: 0; border-spacing: 0; <?php echo $visibility['inlineStyle']; ?> <?php echo $backgroundColorCss; ?>">
+		<div style="<?php echo $backgroundColorCss; ?> <?php echo $chunkPaddingCss; ?>; border: 0!important; text-align: <?php echo $textAlign; ?>; font-family: Poppins, Arial, sans-serif; font-size: <?php echo $templateOptions['template_styles']['template_font_size'] ?? '16px'; ?>">
+			<a href="<?php echo $ctaUrl; ?>" aria-label="<?php echo $ctaText; ?>" class="id-button"
+			   style="font-size: <?php echo $chunk['fields']['button_font_size'] ?? '1.2em'; ?>; line-height: 1;text-align: center; font-weight: bold;background-color: <?php echo $btnBgColorRGBA; ?>; <?php echo $btnBorderCss; ?> text-decoration: none; padding:<?php echo $buttonPadding; ?>; color: <?php echo $textColor; ?> !important; border-radius: <?php echo $borderRadius; ?>; display: inline-block;">
+				<?php echo $ctaText; ?>
+			</a>
+		</div>
+	</div>
+
+	<?php
+	echo '<!--<![endif]-->';
 
 	return ob_get_clean();
+}
+
+
+function hex2rgba( $color, $opacity = 1 ) {
+	$color = ltrim( $color, '#' );
+	$r = hexdec( substr( $color, 0, 2 ) );
+	$g = hexdec( substr( $color, 2, 2 ) );
+	$b = hexdec( substr( $color, 4, 2 ) );
+	return "rgba($r, $g, $b, $opacity)";
 }
 
 
@@ -522,7 +513,7 @@ function idwiz_get_image_chunk( $chunk, $templateOptions, $chunkIndex = null, $i
 	echo '<!--[if mso]>';
 	echo '<table ' . $tableClassHtml . ' role="presentation" style="width:100%;border:0;border-spacing:0;margin: 0;' . $visibility['inlineStyle'] . '">
 		<tr>
-		<td style="font-size: 0; line-height: 0; ' . $msoBackgroundColorCss . '">';
+		<td style="font-size: 0; line-height: 0; ' . $msoBackgroundColorCss .' '. $chunkPaddingCss.'">';
 	if ( $imageLink ) {
 		echo '<a href="' . $imageLink . '" ' . $ariaHidden . ' class="id-image-link" title="' . $imageAlt . '" style="' . $msoPaddingToMargin . 'display: block;padding: 0; line-height: 0;font-size:0;text-decoration:none;">';
 	}
