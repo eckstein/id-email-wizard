@@ -46,6 +46,7 @@ jQuery(document).ready(function($) {
 			update_chunk_data_attr_data();
 			save_template_to_session(); // includes updating template and chunk html
 			update_template_preview();
+			updateChunkPreviews($(this).closest('.builder-chunk'));
 			sessionStorage.setItem('unsavedChanges', 'true');
 			
 		});

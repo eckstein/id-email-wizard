@@ -40,7 +40,6 @@ $template = get_idwiz_template( $campaign['templateId'] );
 // Set the default timezone
 date_default_timezone_set( 'America/Los_Angeles' );
 
-// Assuming $campaign['startAt'] and $campaign['endedAt'] are in milliseconds
 $campaignStartStamp = (int) ( $campaign['startAt'] / 1000 );
 $campaignEndStamp = (int) ( $campaign['endedAt'] / 1000 );
 
@@ -95,6 +94,7 @@ $linkedExperimentIds = array_map( function ($id) {
 							echo '&nbsp;with Experiment ' . implode( ', ', $linkedExperimentIds ) . '</a>';
 						} ?>
 					</strong>
+					<span class="connect-campaigns" data-campaignid="<?php echo $campaign['id']; ?>">Connect campaigns</span>
 					&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
 					<?php echo $campaign['messageMedium']; ?>
 
@@ -224,6 +224,7 @@ $linkedExperimentIds = array_map( function ($id) {
 								<canvas class="sendsByDate wiz-canvas" data-chartid="sendsByDate"
 									data-campaignids='<?php echo json_encode( array( $campaign['id'] ) ); ?>'
 									data-charttype="bar" data-startdate="<?php echo $startDate; ?>"
+									data-year-over-year="true" 
 									data-enddate="<?php echo $endDate; ?>"></canvas>
 							</div>
 						</div>

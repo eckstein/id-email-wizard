@@ -53,7 +53,7 @@ function idemailwiz_handle_builder_v2_request() {
 		// Add spacer for proper scrolling in preview pane
 		echo '<div style="height: 100vh; color: #cdcdcd; padding: 20px; font-family: Poppins, sans-serif; text-align: center; border-top: 2px dashed #fff;" class="scrollSpace"><em>The extra space below allows proper scrolling in the builder and will not appear in the template</em></div>';
 		} else {
-			echo 'Template data not found!';
+			echo '<div style="height: 100vh; color: #cdcdcd; padding: 20px; font-family: Poppins, sans-serif; text-align: center; border-top: 2px dashed #fff;">Start adding sections and your preview will show here.</em></div>';
 		}
 		echo ob_get_clean();
 		exit;
@@ -646,33 +646,34 @@ function generate_builder_column( $rowId, $columnSet, $columnData, $columnIndex 
 
 function get_chunk_preview( $chunkData = [], $chunkType ) {
 
-	$chunkPreview = '';
-	if ( $chunkType == 'text' ) {
+	$chunkPreview = ucfirst($chunkType);
+
+	if ( $chunkType == 'text' && isset( $chunkData['fields'])) {
 		$chunkPreview = $chunkData['fields']['plain_text_content'] ? mb_substr( strip_tags( $chunkData['fields']['plain_text_content'] ), 0, 32 ) . '...' : '';
 	}
 
-	if ( $chunkType == 'html' ) {
-		$chunkPreview = 'Raw HTML';
+	if ( $chunkType == 'html' && isset( $chunkData['fields'] )) {
+		$chunkPreview = 'HTML Code';
 	}
 
-	if ( $chunkType == 'image' ) {
+	if ( $chunkType == 'image' && isset( $chunkData['fields'] )) {
 		$image = $chunkData['fields']['image_url'] ?? 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/full-width-image.jpg';
 		if ( $image ) {
 			$chunkPreview = '<div class="image-chunk-preview-wrapper"><img src="' . $image . '" /></div>';
 		}
 	}
 
-	if ( $chunkType == 'button' ) {
+	if ( $chunkType == 'button' && isset( $chunkData['fields'] )) {
 		$buttonText = $chunkData['fields']['button_text'] ?? 'Click Here';
 		$chunkPreview = '<div class="button-chunk-preview-wrapper"><button class="wiz-button">' . $buttonText . '</button></div>';
 	}
 
-	if ( $chunkType == 'spacer' ) {
+	if ( $chunkType == 'spacer' && isset( $chunkData['fields'] )) {
 		$spacerHeight = $chunkData['fields']['spacer_height'] ?? '';
 		$chunkPreview = '<div class="spacer-chunk-preview-wrapper"><em>— <span class="spacer-height-display">' . $spacerHeight . '</span> spacer —</em></div>';
 	}
 
-	if ( $chunkType == 'snippet' ) {
+	if ( $chunkType == 'snippet' && isset( $chunkData['fields'] )) {
 		$snippetName = $chunkData['fields']['snippet_name'] ?? '<em>Select a snippet</em>';
 		$chunkPreview = '<div class="snippet-chunk-preview-wrapper"><i class="fa-solid fa-code"></i>&nbsp;&nbsp;Snippet: <span class="snippet-name-display">' . $snippetName . '</span></div>';
 	}
@@ -680,6 +681,27 @@ function get_chunk_preview( $chunkData = [], $chunkType ) {
 	return $chunkPreview ?? ucfirst( $chunkData['field_type'] ) . ' chunk';
 
 }
+
+
+add_action( 'wp_ajax_get_chunk_preview', 'handle_get_chunk_preview' );
+
+function handle_get_chunk_preview() {
+	// Verify the nonce for security
+	$nonce = isset( $_POST['security'] ) ? sanitize_text_field( $_POST['security'] ) : '';
+	if ( ! wp_verify_nonce( $nonce, 'template-editor' ) ) {
+		wp_send_json_error( [ 'message' => 'Nonce verification failed' ] );
+		return;
+	}
+
+	$chunkData = isset( $_POST['chunkData'] ) ? $_POST['chunkData'] : [];
+	$chunkType = isset( $_POST['chunkType'] ) ? sanitize_text_field( $_POST['chunkType'] ) : '';
+
+	$previewHtml = get_chunk_preview( $chunkData, $chunkType );
+
+	wp_send_json_success( [ 'html' => $previewHtml ] );
+}
+
+
 function generate_builder_chunk( $chunkId, $chunkType, $rowId, $columnId, $chunkData = [] ) {
 	$uniqueId = $chunkData['id'] ?? uniqid( 'wiz-chunk-' );
 	$uniqueId = uniqid( 'wiz-chunk-' );
@@ -902,7 +924,7 @@ function render_chunk_settings( $chunkType, $chunkData, $uniqueId ) {
 
 
 function show_specific_chunk_settings( $chunkData, $uniqueId, $settings ) {
-	$chunkSettings = $chunkData['settings'] ?? array();
+	$chunkSettings = $chunkData['settings'] ?? [];
 	echo "<div class='builder-field-group flex'>"; // Start the main wrapper
 
 	$chunkWrap = $chunkSettings['chunk_wrap'] ?? false;
@@ -989,7 +1011,7 @@ function show_specific_chunk_settings( $chunkData, $uniqueId, $settings ) {
 					echo "</div>";
 					break;
 				case 'background_settings':
-					echo generateBackgroundSettingsModule( $chunkData['settings'], '' );
+					echo generateBackgroundSettingsModule( $chunkSettings, '' );
 					break;
 				case 'chunk_wrap':
 
@@ -1043,8 +1065,8 @@ function render_chunk_fields( $chunkType, $chunkData, $uniqueId ) {
 
 			break;
 		case 'image':
-			$imageUrl = $chunkData['fields']['image_url'] ?? '';
-			$imageLink = $chunkData['fields']['image_link'] ?? '';
+			$imageUrl = $chunkData['fields']['image_url'] ?? 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/full-width-image.jpg';
+			$imageLink = $chunkData['fields']['image_link'] ?? 'https://www.idtech.com';
 			$imageAlt = $chunkData['fields']['image_alt'] ?? '';
 
 			echo "<div class='builder-field-group flex'>";
@@ -1540,7 +1562,7 @@ function generate_template_html( $templateData, $forEditor = false ) {
 
 function renderTemplateRows( $templateData, $isEditor = false ) {
 	$templateStyles = $templateData['template_options']['template_styles'];
-	$rows = $templateData['rows'];
+	$rows = $templateData['rows'] ?? [];
 	$return = '';
 
 	foreach ( $rows as $rowIndex => $row ) {
@@ -1593,7 +1615,7 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 				$colBackgroundCSS = generate_background_css( $column['settings'], '' );
 				$msoColBackgroundCSS = generate_background_css( $column['settings'], '', true );
 
-				$columnChunks = $column['chunks'];
+				$columnChunks = $column['chunks'] ?? [];
 				$templateWidth = $templateStyles['body-and-background']['template_width'];
 				$templateWidth = (int) $templateWidth > 0 ? (int) $templateWidth : 648;
 

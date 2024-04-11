@@ -95,6 +95,9 @@ jQuery(document).ready(function ($) {
 		if ($(canvas).attr("data-campaignids")) {
 			additionalData.campaignIds = $(canvas).attr("data-campaignids");
 		}
+		if ($(canvas).attr("data-year-over-year")) {
+			additionalData.yearOverYear = $(canvas).attr("data-year-over-year");
+		}
 
 		if ($(canvas).attr("data-campaigntypes")) {
 			additionalData.campaignTypes = $(canvas).attr("data-campaigntypes");

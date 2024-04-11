@@ -2,16 +2,18 @@ function initialize_template() {
     // Start a new session to track unsaved changes
     save_template_to_session();
 		
-
     // Initialize template-specific functionality
 
     //update_template_preview(true); // We don't update the template preview on page load because it's initiated by the server from the saved data
-
+    init_template_title_tinymce();
     builder_init_tinymce();
     initialize_all_sortables();
-    initialize_editable('.builder-row-title-text', 'row-id');
-    initialize_editable('.builder-column-title-text', 'column-id');
-    initialize_editable('.builder-columnset-title-text', 'columnset-id');
+
+    init_element_title_tinymce();
+
+    // initialize_editable('.builder-row-title-text', 'row-id');
+    // initialize_editable('.builder-column-title-text', 'column-id');
+    // initialize_editable('.builder-columnset-title-text', 'columnset-id');
     initialize_chunk_tabs();
     init_spectrum_pickers();
     initialize_bg_type_selection();
@@ -280,6 +282,7 @@ function initialize_wiz_sortable($container, itemsSelector, handleSelector, plac
 // Initialize editable elements
 	
 function initialize_editable(editableClass, dataAttributeName, $context) {
+    return;
     // Default to the whole builder div if no context is provided
     $context = $context || jQuery("#builder");
 

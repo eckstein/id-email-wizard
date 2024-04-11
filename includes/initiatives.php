@@ -43,6 +43,7 @@ function idemailwiz_filter_initiatives_by_archive_status( $query ) {
 	}
 }
 
+// Archive initiatives
 function idemailwiz_archive_initiative() {
 	// Check for nonce and security
 	if ( ! check_ajax_referer( 'initiatives', 'security', false ) ) {

@@ -1,11 +1,60 @@
-jQuery(document).ready(function($) {
+
+function init_element_title_tinymce($editable = null) {
+    var selector = '';
+    if ($editable) {
+        selector = $editable.selector;
+    } else {
+        selector = '.edit-row-title, .edit-columnset-title, .edit-column-title';
+    }
+    
+    tinymce.init({
+        selector: selector,
+        inline: true,
+        menubar: false,
+        toolbar: false,
+        forced_root_block: false,
+        convert_newlines_to_brs: false,
+        setup: function (editor) {
+            editor.on('click', function (e) {
+                if (editor.contentDocument.activeElement.nodeName === 'BODY') {
+                    editor.getBody().focus();
+                }
+            });
+            
+            editor.on('keydown', function (e) {
+                if (e.keyCode === 13) { // Enter key
+                    e.preventDefault();
+                    editor.save();
+                    editor.hide();
+                }
+            });
+            
+            editor.on('init', function () {
+                editor.setContent(editor.getContent({ format: 'raw' }));
+            });
+            
+            // Show the editor when the element is clicked
+            editor.on('click', function (e) {
+                editor.show();
+            });
+            
+            // Hide the editor when it loses focus
+            editor.on('blur', function (e) {
+                editor.hide();
+            });
+        }
+    });
+}
+
+
+function init_template_title_tinymce() {
     tinymce.init({
         selector: '#single-template-title',
         inline: true,
         menubar: false,
         toolbar: false,
         setup: function(editor) {
-            var titleH1 = $(editor.getElement());
+            var titleH1 = jQuery(editor.getElement());
             var templateId = titleH1.attr("data-template-id");
             var debounceTimeout;
 
@@ -18,14 +67,14 @@ jQuery(document).ready(function($) {
             });
         }
     });
-});
+}
 
 // Destroy and re-initialize TinyMCE on each .wiz-wysiwyg element with option element selection
 function reinitTinyMCE($optionalElement = null) {
 
     // Determine the correct selector for the operation
     var selector = $optionalElement ? $optionalElement.find('.wiz-wysiwyg') : '.wiz-wysiwyg';
-
+    
     jQuery(selector).each(function() {
         var editorId = jQuery(this).attr('id');
         var editor = tinymce.get(editorId);
@@ -44,7 +93,6 @@ function reinitTinyMCE($optionalElement = null) {
     // After ensuring all editors within the context are properly reset, reinitialize TinyMCE
     builder_init_tinymce($optionalElement);
 
-
 }
 
 var isInitialTinyMCELoad = true;
@@ -56,7 +104,8 @@ function builder_init_tinymce($optionalElement) {
         var $chunk = jQuery('#' + editor.id).closest('.builder-chunk');
         
         if (!isInitialTinyMCELoad) {
-            update_builder_chunk_title(editor);
+            handleEditorUpdate(editor);
+            //updateChunkPreviews($chunk.attr('id'));
             update_chunk_data_attr_data($chunk);
             save_template_to_session();
             sessionStorage.setItem('unsavedChanges', 'true');

@@ -393,14 +393,21 @@ body.single-idemailwiz_template {
 		gap: 10px;
 		align-items: center;
 	}
-	.builder-row .builder-row-title input,
-	.builder-columnset .builder-columnset-title input,
-	.builder-column .builder-column-title input {
-		min-width: 160px;
-		border: 0;
-		padding-left: 5px; 
-		padding-right: 5px;
+	.builder-row-title-text > p,
+	.builder-columnset-title-text > p,
+	.builder-column-title-text > p {
+		margin: 0;
 	}
+	.builder-row-title-text:hover,
+	.builder-columnset-title-text:hover,
+	.builder-column-title-text:hover,
+	.builder-row-title-text:focus-visible,
+	.builder-columnset-title-text:focus-visible,
+	.builder-column-title-text:focus-visible {
+		outline: 1px solid #343434;
+		outline-offset: 5px;
+	}
+
 	.builder-row-title-number,
 	.builder-columnset-title-number,
 	.builder-column-title-number {

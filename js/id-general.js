@@ -996,3 +996,68 @@ function checkImageUrl(url, callback) {
 			callback(false); // Image is not valid
 		});
 }
+
+// Main click handler to decide campaign action
+jQuery(document).on("click", ".connect-campaigns", function () {
+	var thisCampaignId = jQuery(this).attr('data-campaign-id');
+	connectCampaigns(thisCampaignId);
+	
+});
+
+async function connectCampaigns(campaignId) {
+	const { value: formValues, isConfirmed } = await Swal.fire({
+		title: "Select Campaigns",
+		html: '<select class="swal2-input swalSelect2" id="campaignSelect" multiple="multiple"></select>',
+		focusConfirm: false,
+		showCancelButton: true,
+		cancelButtonText: "Cancel",
+		preConfirm: () => {
+			return jQuery("#campaignSelect").val();
+		},
+		didOpen: () => {
+			jQuery("#campaignSelect").select2({
+				multiple: true,
+				ajax: {
+					delay: 250,
+					transport: function (params, success, failure) {
+						idemailwiz_do_ajax(
+							"idemailwiz_get_campaigns_for_select",
+							idAjax_id_general.nonce,
+							{
+								q: params.data.term,
+							},
+							function (data) {
+								success({ results: data });
+							},
+							failure
+						);
+					},
+				},
+			});
+		},
+	});
+
+	if (isConfirmed && formValues) {
+		idemailwiz_do_ajax(
+			"idemailwiz_connect_campaigns",
+			idAjax_id_general.nonce,
+			{
+				campaign_id: campaignId,
+				campaign_to_connect_ids: formValues,
+				action: "add",
+			},
+			function (response) {
+				console.log(response);
+				Swal.fire("Success", "Campaign(s) successfully connected!", "success").then(() => {
+					setTimeout(function () {
+						window.location.reload();
+					}, 500);
+				});
+			},
+			function (error) {
+				console.error("Failed to make call to connect campaigns", error);
+				Swal.fire("Error", "An error occurred. Check the console for details.", "error");
+			}
+		);
+	}
+}

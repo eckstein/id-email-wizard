@@ -722,4 +722,35 @@ function refresh_template_html() {
     });
 }
 
+function updateChunkPreviews(baseElement = '#builder') {
+    // Define the base element to search within
+    var baseElement = jQuery(baseElement);
+
+    // Find all .builder-chunk elements within the base element
+    baseElement.find('.builder-chunk').addBack('.builder-chunk').each(function() {
+        var chunkElement = jQuery(this);
+        var chunkData = chunkElement.data('chunk-data');
+        var chunkType = chunkElement.data('chunk-type');
+
+        jQuery.ajax({
+            url: idAjax.ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'get_chunk_preview',
+                chunkData: chunkData,
+                chunkType: chunkType,
+                security: idAjax_template_editor.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    chunkElement.find('.builder-chunk-title').html(response.data.html);
+                } else {
+                    console.error('Error: ', response.data.message);
+                }
+            }
+        });
+    });
+}
+
+
 

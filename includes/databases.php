@@ -26,7 +26,9 @@ function idemailwiz_create_databases() {
         listIds VARCHAR(255),
         suppressionListIds VARCHAR(255),
         type VARCHAR(20),
+		initiativeIds VARCHAR(255),
         initiativeLinks VARCHAR(255),
+		connectedCampaigns VARCHAR(255),
 		last_wiz_update DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY  (id)
     ) $charset_collate;";

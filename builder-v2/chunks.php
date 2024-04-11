@@ -801,7 +801,7 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 		<!--dedicated block for gmail-->
 		<style type="text/css">
 			u+#body a {
-				color: inherit;
+				color: <?php echo $linkColor; ?>;
 				<?php if ( $underlineLinks ) { ?>
 					text-decoration: underline;
 				<?php } else { ?>
@@ -845,7 +845,7 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 		<style type="text/css">
 			/*Prevent auto-blue links in Apple*/
 			a[x-apple-data-detectors] {
-				color: inherit !important;
+				color: <?php echo $linkColor; ?> !important;
 				<?php if ( $underlineLinks ) { ?>
 					text-decoration: underline !important;
 				<?php } else { ?>
@@ -859,7 +859,7 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 
 			/*Prevent blue links in Samsung*/
 			#MessageViewBody a {
-				color: inherit !important;
+				color: <?php echo $linkColor; ?> !important;
 				<?php if ( $underlineLinks ) { ?>
 					text-decoration: underline !important;
 				<?php } else { ?>
@@ -876,11 +876,12 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 		<!-- Global styles for all clients that can read them-->
 		<style type="text/css">
 			html * {
-				font-family: 'Poppins', Verdana, Arial, Helvetica, sans-serif;
+				font-family: 'Poppins', Helvetica, Arial, sans-serif;
 			}
 
 			#outlook a {
 				padding: 0;
+				color: <?php echo $linkColor; ?>;
 			}
 
 			.ReadMsgBody {
@@ -907,7 +908,7 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 				line-height:
 					<?php echo $templateLineHeight; ?>
 				;
-				font-family: Poppins, Helvetica, Arial, sans-serif;
+				font-family: 'Poppins', Helvetica, Arial, sans-serif;
 				height: 100% !important;
 				margin: 0 !important;
 				padding: 0 !important;
@@ -920,6 +921,7 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 			a {
 				-webkit-text-size-adjust: 100%;
 				-ms-text-size-adjust: 100%;
+				color: <?php echo $linkColor; ?>;
 			}
 
 			table,
@@ -991,6 +993,10 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 				!important;
 			}
 
+			.noPad h1, .noPad h2, .noPad h3, .noPad, h4, .noPad h5, .noPad h6 {
+				padding: 0 !important;
+			}
+
 			a,
 			a:visited {
 				<?php echo $linkStyles; ?>
@@ -1033,7 +1039,7 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 				padding: 0;
 				font-size: inherit;
 				line-height: inherit;
-				font-family: Poppins, Helvetica, Arial, sans-serif;
+				font-family: 'Poppins', Helvetica, Arial, sans-serif;
 			}
 
 			@media screen and (max-width: 460px) {

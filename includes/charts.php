@@ -377,6 +377,8 @@ function idwiz_get_eventBydate_chartdata($chartOptions)
 
     $campaignIds = $chartOptions['campaignIds'] ?? false;
 
+	$yearOverYear = $chartOptions['yearOverYear'] ?? false;
+
     //$campaignTypes = $chartOptions['campaignTypes'] ?? ['Blast', 'Triggered'];
 
     $startDate = $chartOptions['startDate'] ?? false;
@@ -554,6 +556,7 @@ function idwiz_get_byCampaign_chartdata($chartOptions)
         ]
     ];
 
+    $metricValue = null;
     foreach ($campaigns as $campaign) {
         $campaignDate = $campaign['startAt'];
         $dateLabel = date('m/d/Y', $campaignDate / 1000) . ' - ' . $campaign['name'];
