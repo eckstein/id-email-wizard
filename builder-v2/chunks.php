@@ -126,7 +126,7 @@ function idwiz_get_button_chunk( $chunk, $templateOptions, $chunkIndex = null, $
 
 	echo '<!--[if mso]>';
 	echo '<table ' . $tableClassHtml . ' role="presentation" width="100%" style="table-layout:fixed; ' . esc_attr( $msoBackgroundColorCss . $visibility['inlineStyle'] ) . '">';
-	echo '<tr><td style="width:100%;text-align:center; ' . esc_attr( $msoBackgroundColorCss ) . '" valign="middle">';
+	echo '<tr><td style="width:100%;text-align:center; ' . esc_attr( $msoBackgroundColorCss ) .' '.$chunkPaddingCss. '" valign="middle">';
 
 	// Convert the button background color to RGBA format
 	$btnBgColorRGBA = hex2rgba( $btnBgColor, 1 );
