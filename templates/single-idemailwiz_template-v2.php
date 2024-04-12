@@ -492,7 +492,7 @@ $itTemplateId = $wizTemplate['template_settings']['iterable-sync']['iterable_tem
 
 								<input type="text" id="template_settings_subject_line" name="subject_line"
 									class="builder-field"
-									value="<?php echo $templateSettings['subject_line'] ?? ''; ?>">
+									value="<?php echo esc_attr( $templateSettings['subject_line']) ?? ''; ?>">
 								<div class="message-settings-merge-tags" data-field="#template_settings_subject_line">
 									Insert:
 									<div class="insert-merge-tag" data-insert="{{{snippet 'FirstName' 'your child'}}}">
@@ -506,8 +506,8 @@ $itTemplateId = $wizTemplate['template_settings']['iterable-sync']['iterable_tem
 								<label for="template_settings_preview_text">Preview Text</label>
 
 								<input type="text" id="template_settings_preview_text" name="preview_text"
-									class="builder-field"
-									value="<?php echo $templateSettings['preview_text'] ?? ''; ?>">
+								   class="builder-field"
+								   value="<?php echo esc_attr( $templateSettings['preview_text'] ?? '' ); ?>">
 								<div class="message-settings-merge-tags" data-field="#template_settings_preview_text">
 									Insert:
 									<div class="insert-merge-tag" data-insert="{{{snippet 'FirstName' 'your child'}}}">

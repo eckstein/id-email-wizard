@@ -649,7 +649,7 @@ function get_chunk_preview( $chunkData = [], $chunkType ) {
 	$chunkPreview = ucfirst($chunkType);
 
 	if ( $chunkType == 'text' && isset( $chunkData['fields'])) {
-		$chunkPreview = $chunkData['fields']['plain_text_content'] ? mb_substr( strip_tags( $chunkData['fields']['plain_text_content'] ), 0, 32 ) . '...' : '';
+		$chunkPreview = $chunkData['fields']['plain_text_content'] ? mb_substr( strip_tags( stripslashes( $chunkData['fields']['plain_text_content'] ) ), 0, 32 ) . '...' : '';
 	}
 
 	if ( $chunkType == 'html' && isset( $chunkData['fields'] )) {
@@ -665,7 +665,8 @@ function get_chunk_preview( $chunkData = [], $chunkType ) {
 
 	if ( $chunkType == 'button' && isset( $chunkData['fields'] )) {
 		$buttonText = $chunkData['fields']['button_text'] ?? 'Click Here';
-		$chunkPreview = '<div class="button-chunk-preview-wrapper"><button class="wiz-button">' . $buttonText . '</button></div>';
+		$chunkPreview = '<div class="button-chunk-preview-wrapper"><button class="wiz-button">' . stripslashes($buttonText) . '</button></div>';
+		
 	}
 
 	if ( $chunkType == 'spacer' && isset( $chunkData['fields'] )) {
@@ -1087,7 +1088,7 @@ function render_chunk_fields( $chunkType, $chunkData, $uniqueId ) {
 			$buttonAlign = $chunkData['fields']['button_align'] ?? 'center';
 
 			$buttonLink = $chunkData['fields']['button_link'] ?? 'https://www.idtech.com';
-			$buttonCta = $chunkData['fields']['button_text'] ?? 'Click Here';
+			$buttonCta = htmlspecialchars( $chunkData['fields']['button_text'] ?? 'Click Here', ENT_QUOTES );
 
 
 
@@ -1416,12 +1417,13 @@ function save_template_data( $postId, $userId, $templateData ) {
 
 	// Check for an existing record
 	$existingRecordId = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $table_name WHERE post_id = %d", $postId ) );
+
 	if ( $existingRecordId ) {
 		// Update existing record
-		$wpdb->update( $table_name, $data, [ 'id' => $existingRecordId ] );
+		$wpdb->update( $table_name, $data, [ 'id' => $existingRecordId ], [ '%s', '%d', '%s' ], [ '%d' ] );
 	} else {
 		// Insert new record
-		$wpdb->insert( $table_name, $data );
+		$wpdb->insert( $table_name, $data, [ '%s', '%d', '%s' ] );
 	}
 
 	// Check for and log any database errors

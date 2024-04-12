@@ -29,13 +29,13 @@ function idemailwiz_get_template_data_for_iterable()
 	$current_user = wp_get_current_user();
 
 	$templateFields = array(
-		'preheader' => $messageSettings['preview_text'] ?? '',
+		'preheader' => html_entity_decode($messageSettings['preview_text']) ?? '',
 		'fromName' => $messageSettings['from_name'] ?? 'iD Tech Camps',
 		'utmTerm' => $messageSettings['utm_term'] ?? '',
 	);
 	$reqTemplateFields = array(
-		'templateName' => get_the_title($post_id),
-		'emailSubject' =>  $messageSettings['subject_line']  ?? '',
+		'templateName' => html_entity_decode(get_the_title($post_id)),
+		'emailSubject' =>  html_entity_decode($messageSettings['subject_line'])  ?? '',
 
 		'messageType' => $messageSettings['email_type'] ?? 'promotional',
 		'fromEmail' => $messageSettings['from_email'] ?? 'info@idtechonline.com',
