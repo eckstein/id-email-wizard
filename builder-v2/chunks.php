@@ -126,18 +126,17 @@ function idwiz_get_button_chunk( $chunk, $templateOptions, $chunkIndex = null, $
 
 	echo '<!--[if mso]>';
 	echo '<table ' . $tableClassHtml . ' role="presentation" width="100%" style="table-layout:fixed; ' . esc_attr( $msoBackgroundColorCss . $visibility['inlineStyle'] ) . '">';
-	echo '<tr><td style="width:100%;text-align:center; ' . esc_attr( $msoBackgroundColorCss ) . '" valign="middle">';
+	echo '<tr><td style="width:100%;text-align:center; ' . esc_attr( $msoBackgroundColorCss ) .' '.$chunkPaddingCss. '" valign="middle">';
 
 	// Convert the button background color to RGBA format
 	$btnBgColorRGBA = hex2rgba( $btnBgColor, 1 );
 
-	echo '<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td style="' . $chunkPaddingCss . '">';
+	echo '<br/>';
 	echo '<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="' . $ctaUrl . '" style="height: 50px; v-text-anchor: middle; width: ' . $buttonWidth . 'px;" arcsize="' . $msoBorderPerc . '%" strokecolor="' . $vmlBorderColor . '" strokeweight="' . $vmlBorderWeight . 'px" fillcolor="' . $btnBgColor . '">';
 	echo '<w:anchorlock/>';
 	echo '<center class="id-button" style="color: ' . $textColor . ' !important; font-family: Poppins, Arial, sans-serif; font-size: ' . ( $chunk['fields']['button_font_size'] ?? '1.2em' ) . '!important; line-height: 1.6em;font-weight: bold;mso-text-raise: 10pt;">' . $ctaText . '</center>';
 	echo '</v:roundrect>';
-	echo '</td></tr></table>';
-
+	echo '<br/>';
 	echo '</td></tr></table>';
 	echo '<![endif]-->';
 
