@@ -238,12 +238,15 @@ function idemailwiz_fetch_templates( $campaignIds = null ) {
 	} else {
 
 		// Initialize URLs for fetching templates of different types and mediums
+		
+		// Get a formatted end date of tomorrow
+		$endDate = date( 'Y-m-d', strtotime( '+1 day' ) );
 		$templateAPIurls = [ 
-			'blastEmails' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=Email',
-			'triggeredEmails' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=Email',
-			'workflowEmails' => 'https://api.iterable.com/api/templates?templateType=Workflow&messageMedium=Email',
-			'blastSMS' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=SMS',
-			'triggeredSMS' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=SMS', 
+			'blastEmails' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=Email&endDateTime='   . $endDate,
+			'triggeredEmails' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=Email&endDateTime=' . $endDate,
+			'workflowEmails' => 'https://api.iterable.com/api/templates?templateType=Workflow&messageMedium=Email&endDateTime=' . $endDate,
+			'blastSMS' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=SMS&endDateTime=' . $endDate,
+			'triggeredSMS' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=SMS&endDateTime=' . $endDate, 
 		];
 
 		// Fetch templates from all four endpoints
@@ -1556,7 +1559,6 @@ function idemailwiz_check_for_cron_sequence_start() {
 	$blastSync = $wizSettings['iterable_sync_toggle'] ?? 'off';
 	$triggeredSync = $wizSettings['iterable_triggered_sync_toggle'] ?? 'off';
 
-
 	// Check for GA sync
 	// Wait a couple seconds in case the transient is being set to avoid quickly re-running
 	sleep( 2 );
@@ -1565,58 +1567,46 @@ function idemailwiz_check_for_cron_sequence_start() {
 		sync_ga_campaign_revenue_data();
 		// Sync every 2 hours only
 		set_transient( 'ga_sync_waiting', true, ( 120 * MINUTE_IN_SECONDS ) );
-
 	}
 
 	$metricTypes = [ 'send', 'open', 'click', 'unSubscribe', 'bounce', 'sendSkip', 'complaint' ];
-	$triggeredSyncInProgress = false;
 
-	// Check if we're waiting to start the next sync
-	$blastSyncWaiting = get_transient( 'blast_sync_waiting' );
-	$triggeredSyncWaiting = get_transient( 'triggered_sync_waiting' );
-
-
-	// Check if a sync is in progress
-	$blastSyncInProgress = get_transient( 'idemailwiz_blast_sync_in_progress' );
-
-	// Start blast sync sequence if not in progress or waiting
+	// Start blast sync sequence if enabled
 	if ( $blastSync == 'on' ) {
-		if ( ! $blastSyncWaiting ) {
-			if ( ! $blastSyncInProgress ) {
-				set_transient( 'idemailwiz_blast_sync_in_progress', true, ( 10 * MINUTE_IN_SECONDS ) );
-				set_transient( 'blast_sync_waiting', true, ( 60 * MINUTE_IN_SECONDS ) );
-				idwiz_maybe_start_wpcron_sync_sequence( [ 'blast' ] );
-			} else {
-				wiz_log( 'Blast sync is already in progress.' );
-			}
-		}
+		start_sync_sequence( 'blast', [ 'blast' ], 10, 60 );
 	} else {
 		wiz_log( 'Blast sync was triggered, but is turned off in the settings.' );
 	}
 
-
-	// Start triggered sync sequence if not in progress or waiting, and no other sync is in progress
+	// Start triggered sync sequence if enabled
 	if ( $triggeredSync == 'on' ) {
-		if ( ! $triggeredSyncWaiting ) {
-			if ( ! $triggeredSyncInProgress ) {
-				$addTime = 0;
-				foreach ( $metricTypes as $metricType ) {
-					set_transient( "idemailwiz_{$metricType}_sync_in_progress", true, ( 20 * MINUTE_IN_SECONDS ) + $addTime );
-					$addTime += ( 4 * MINUTE_IN_SECONDS );
-				}
-				set_transient( 'triggered_sync_waiting', true, ( 90 * MINUTE_IN_SECONDS ) );
-				idwiz_maybe_start_wpcron_sync_sequence( $metricTypes );
-			} else {
-				wiz_log( 'Triggered sync is already in progress.' );
-			}
-		}
+		start_sync_sequence( 'triggered', $metricTypes, 20, 90, 4 );
 	} else {
 		wiz_log( 'Triggered sync was triggered, but is turned off in the settings.' );
 	}
+}
 
+function start_sync_sequence( $syncType, $metricTypes, $inProgressDuration, $waitDuration, $addTime = 0 ) {
+	$syncWaiting = get_transient( "{$syncType}_sync_waiting" );
+	$syncInProgress = get_transient( "idemailwiz_{$syncType}_sync_in_progress" );
 
+	if ( ! $syncWaiting ) {
+		if ( ! $syncInProgress ) {
+			set_transient( "idemailwiz_{$syncType}_sync_in_progress", true, ( $inProgressDuration * MINUTE_IN_SECONDS ) );
+			set_transient( "{$syncType}_sync_waiting", true, ( $waitDuration * MINUTE_IN_SECONDS ) );
 
+			if ( $addTime > 0 ) {
+				foreach ( $metricTypes as $metricType ) {
+					set_transient( "idemailwiz_{$metricType}_sync_in_progress", true, ( $inProgressDuration * MINUTE_IN_SECONDS ) + $addTime );
+					$addTime += ( $addTime * MINUTE_IN_SECONDS );
+				}
+			}
 
+			idwiz_maybe_start_wpcron_sync_sequence( $metricTypes );
+		} else {
+			wiz_log( ucfirst( $syncType ) . ' sync is already in progress.' );
+		}
+	}
 }
 
 if ( ! wp_next_scheduled( 'idemailwiz_check_for_export_sequence_start' ) ) {
@@ -1920,11 +1910,24 @@ function idemailwiz_sync_triggered_metric_from_transient( $metricType, $manualTr
 
 			if ( in_array( $processResult['jobState'], [ 'failed', 'completed' ] ) ) {
 				unset( $jobs[ $jobId ] );
-			} else if ( $manualTransient === false ) {
-				// if job is still running or enqueued, we re-queue it for 1 hour from now
+			} else if ( $manualTransient === false && $currentTimestamp < $jobData['retryAfter'] ) {
+				// If the job was not processed in this batch (i.e., retryAfter is in the future),
+				// re-queue it with a delay based on its state
 				$jobs[ $jobId ]['jobState'] = $processResult['jobState'];
-				if ( in_array( $processResult['jobState'], [ 'enqueued', 'running' ] ) ) {
-					$jobs[ $jobId ]['retryAfter'] = $currentTimestamp + 3600;
+
+				switch ( $processResult['jobState'] ) {
+					case 'enqueued':
+						// If the job is enqueued, retry in 15 minutes
+						$jobs[ $jobId ]['retryAfter'] = $currentTimestamp + 900;
+						break;
+					case 'running':
+						// If the job is running, retry in 1 hour
+						$jobs[ $jobId ]['retryAfter'] = $currentTimestamp + 3600;
+						break;
+					default:
+						// For unknown states, retry in 30 minutes
+						$jobs[ $jobId ]['retryAfter'] = $currentTimestamp + 1800;
+						break;
 				}
 			}
 
@@ -1944,8 +1947,10 @@ function idemailwiz_sync_triggered_metric_from_transient( $metricType, $manualTr
 	}
 
 	set_transient( $transientName, [ 'jobs' => $jobs ] );
-	$jobsRemaining = array_filter( $jobs, function ($jobData) {
-		return ! in_array( $jobData['jobState'], [ 'completed', 'failed', null ] );
+	$currentTimestamp = time();
+	$jobsRemaining = array_filter( $jobs, function ($jobData) use ($currentTimestamp) {
+		return ! in_array( $jobData['jobState'], [ 'completed', 'failed', null ] )
+			&& $currentTimestamp < $jobData['retryAfter'];
 	} );
 
 	if ( ! empty( $jobsRemaining ) ) {

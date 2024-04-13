@@ -159,7 +159,11 @@ $activeTab = $_GET['view'] ?? 'Active';
         <?php
 
     } else {
-        // No initiatives found
+        if ($activeTab != 'Archive') {
+            echo 'No active initiatives found. <a href="#" class="new-initiative">Create one!</a>';
+        } else {
+            echo 'No archived initiatives were found.';
+        }
     } ?>
 </div>
 <?php get_footer(); ?>

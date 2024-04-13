@@ -300,6 +300,7 @@ function idemailwiz_manage_campaign_initiative_relationship( $action, $campaignI
 
 
 
+add_action( 'wp_ajax_idemailwiz_add_remove_campaign_from_initiative', 'idemailwiz_add_remove_campaign_from_initiative' );
 function idemailwiz_add_remove_campaign_from_initiative() {
 	global $wpdb;
 	$response = [ 
@@ -356,7 +357,6 @@ function idemailwiz_add_remove_campaign_from_initiative() {
 	wp_send_json( $response );
 }
 
-add_action( 'wp_ajax_idemailwiz_add_remove_campaign_from_initiative', 'idemailwiz_add_remove_campaign_from_initiative' );
 
 // Runs when a campaign is added or removed from an initiative.
 // Adds or removes images URLs based on images found in each campaign template
