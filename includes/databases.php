@@ -930,14 +930,23 @@ function get_idemailwiz_triggered_data( $database, $args = [], $batchSize = 2000
 
 
 
-function get_triggered_data_by_campaign_id( $campaignId, $metricType ) {
+function get_triggered_data_by_campaign_id( $campaignIds, $metricType ) {
 	global $wpdb;
 
-	// Sanitize the input to prevent SQL injection
-	$safe_campaignId = (int) $campaignId;
-
-	// SQL query to fetch rows from wp_idemailwiz_triggered_sends that match the campaignId
-	$sql = $wpdb->prepare( "SELECT * FROM " . $wpdb->prefix . "idemailwiz_triggered_{$metricType}s WHERE campaignId = %d", $safe_campaignId );
+	// Check if $campaignId is an array
+	if ( is_array( $campaignIds ) ) {
+		// Sanitize each element in the array to prevent SQL injection
+		$safe_campaignIds = array_map( 'intval', $campaignIds );
+		// Create a comma-separated string of the sanitized IDs for use in the SQL query
+		$campaignId_list = implode( ',', $safe_campaignIds );
+		// SQL query to fetch rows from wp_idemailwiz_triggered_sends that match any of the campaignIds
+		$sql = "SELECT * FROM " . $wpdb->prefix . "idemailwiz_triggered_{$metricType}s WHERE campaignId IN ($campaignId_list)";
+	} else {
+		// Sanitize the single campaignId to prevent SQL injection
+		$safe_campaignId = (int) $campaignIds;
+		// SQL query to fetch rows from wp_idemailwiz_triggered_sends that match the single campaignId
+		$sql = $wpdb->prepare( "SELECT * FROM " . $wpdb->prefix . "idemailwiz_triggered_{$metricType}s WHERE campaignId = %d", $safe_campaignId );
+	}
 
 	// Execute the SQL query and fetch the results
 	$results = $wpdb->get_results( $sql, ARRAY_A );

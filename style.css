@@ -2304,9 +2304,9 @@ pre#generatedCode {
 .rollup_summary_wrapper {
 	display: flex;
 	flex-wrap: wrap;
-	justify-content: space-between;
+	gap: 10px;
 	margin-bottom: 20px;
-	
+	justify-content: center;
 }
 
 .rollup_summary_wrapper .rollup_summary_loader {
@@ -2316,11 +2316,12 @@ pre#generatedCode {
 }
 
 .metric-item {
+	flex: 0 1 auto;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	min-width: 100px;
+	min-width: 80px;
 	max-width: 200px;
 	padding: 6px;
 	border: 1px solid #ccc;
@@ -2523,6 +2524,7 @@ pre#generatedCode {
 }
 .wizHeader .wizHeaderInnerWrap {
 	display: flex;
+	flex-wrap: wrap;
 	justify-content: space-between;
 	padding: 30px 0;
 	max-width: 1800px;
@@ -2534,6 +2536,7 @@ pre#generatedCode {
 		padding: 30px 40px;
 	}
 }
+
 .wizHeader .wizEntry-title input {
 	display: block;
 	width: 100%;
@@ -2552,12 +2555,47 @@ pre#generatedCode {
 	font-size: 12px;
 	color: #666;
 }
+
+.wizHeader .connected-campaigns {
+	display: inline-flex;
+	gap: 5px;
+	align-items: center;
+}
+.wizHeader .connected-campaign-bubble {
+	padding: 4px 10px;
+	background-color: #eee;
+	border-radius: 10px;
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+}
+.wizHeader .connected-campaign-bubble:hover {
+	background-color: #dddddd;
+}
+.wizHeader .connected-campaign-bubble a {
+	font-size: 10px;
+	color: #343434;
+	text-decoration: none;
+}
+.wizHeader .connected-campaign-bubble .disconnect-campaign:hover {
+	color: red;
+	cursor: pointer;
+}
+
+
 .wizHeader-left,
 .wizHeader-right {
-	flex: 1;
+	flex: 1 0 400px;
 }
-.wizHeader-right {
+@media screen and (max-width: 900px) {
+	.wizHeader-left {
+		margin-bottom: 30px;
+	}
 
+	#site-nav {
+		margin: 0;
+		display: inline-block;
+	}
 }
 .wizHeader .wizHeader-actions {
 	position: relative;
@@ -2848,6 +2886,7 @@ h2.wizArticle-title {
 
 .dashboard-date-pickers {
 	display: flex;
+	flex-wrap: wrap;
 	justify-content: center;
 	margin-bottom: 20px;
 	align-items: center;
@@ -2866,12 +2905,17 @@ h2.wizArticle-title {
 
 .dashboard-date-buttons {
 	display: flex;
+	flex-wrap: wrap;
 	justify-content: center;
 	align-items: center;
 	gap: 10px;
 }
+.dashboard-date-buttons .wiz-button {
+	white-space: nowrap;
+}
 .dashboard-date-range-form {
 	display: flex;
+	flex-wrap: wrap;
 	gap: 10px;
 	align-items: center;
 }
@@ -2882,13 +2926,16 @@ h2.wizArticle-title {
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
+	flex: 1;
 }
 .metrics-tower h5 {
 	text-align: center;
 }
 
+
 .metrics-tower-group .wizcampaign-section-content {
 	display: flex;
+	gap: 10px;
 	justify-content: space-between;
 	overflow-y: auto;
 }
@@ -3321,6 +3368,9 @@ h2.wizArticle-title {
 #initTemplateTools {
 	text-align: center;
 }
+#initTemplateTools button {
+	margin: 0 auto;
+}
 #initTemplateTools .acf-form {
 	margin: 20px 0;
 }
@@ -3420,6 +3470,9 @@ table.compact th {
 }
 .swal2-html-container {
 	overflow: visible !important;
+}
+.swal2-html-container .wiz-button {
+	margin: 0 auto;
 }
 
 /* Initiative Archive */

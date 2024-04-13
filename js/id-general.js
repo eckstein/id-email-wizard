@@ -999,9 +999,16 @@ function checkImageUrl(url, callback) {
 
 // Main click handler to decide campaign action
 jQuery(document).on("click", ".connect-campaigns", function () {
-	var thisCampaignId = jQuery(this).attr('data-campaign-id');
+	var thisCampaignId = jQuery(this).attr('data-campaignid');
 	connectCampaigns(thisCampaignId);
-	
+});
+
+// Click handler for disconnecting a campaign
+jQuery(document).on("click", ".disconnect-campaign", function (event) {
+	event.preventDefault();
+	var campaignId = jQuery(this).attr("data-remove-from");
+	var campaignToDisconnectId = jQuery(this).attr("data-campaignid");
+	disconnectCampaign(campaignId, campaignToDisconnectId);
 });
 
 async function connectCampaigns(campaignId) {
@@ -1044,7 +1051,7 @@ async function connectCampaigns(campaignId) {
 			{
 				campaign_id: campaignId,
 				campaign_to_connect_ids: formValues,
-				action: "add",
+				connect_action: "add",
 			},
 			function (response) {
 				console.log(response);
@@ -1056,6 +1063,41 @@ async function connectCampaigns(campaignId) {
 			},
 			function (error) {
 				console.error("Failed to make call to connect campaigns", error);
+				Swal.fire("Error", "An error occurred. Check the console for details.", "error");
+			}
+		);
+	}
+}
+
+async function disconnectCampaign(campaignId, campaignToDisconnectId) {
+	const result = await Swal.fire({
+		title: "Confirm Disconnection",
+		text: "Are you sure you want to disconnect this campaign?",
+		icon: "warning",
+		showCancelButton: true,
+		confirmButtonText: "Yes, disconnect",
+		cancelButtonText: "Cancel"
+	});
+
+	if (result.isConfirmed) {
+		idemailwiz_do_ajax(
+			"idemailwiz_connect_campaigns",
+			idAjax_id_general.nonce,
+			{
+				campaign_id: campaignId,
+				campaign_to_connect_ids: [campaignToDisconnectId],
+				connect_action: "remove",
+			},
+			function (response) {
+				console.log(response);
+				Swal.fire("Success", "Campaign successfully disconnected!", "success").then(() => {
+					setTimeout(function () {
+						window.location.reload();
+					}, 500);
+				});
+			},
+			function (error) {
+				console.error("Failed to make call to disconnect campaign", error);
 				Swal.fire("Error", "An error occurred. Check the console for details.", "error");
 			}
 		);

@@ -2012,54 +2012,73 @@ function update_connected_campaigns( $campaignId, $campaignToConnectIds, $action
 	global $wpdb;
 	$databaseName = $wpdb->prefix . 'idemailwiz_campaigns';
 
-	// Retrieve the existing connected campaigns for the given campaignId
-	$existingConnectedCampaigns = $wpdb->get_var(
-		$wpdb->prepare(
-			"SELECT connectedCampaigns FROM $databaseName WHERE campaignId = %d",
-			$campaignId
-		)
-	);
-
-	// Unserialize the existing connected campaigns array
-	$connectedCampaigns = $existingConnectedCampaigns ? maybe_unserialize( $existingConnectedCampaigns ) : array();
-
 	// Ensure $campaignToConnectIds is an array
 	$campaignToConnectIds = is_array( $campaignToConnectIds ) ? $campaignToConnectIds : array( $campaignToConnectIds );
 
-	if ( $action === 'add' ) {
-		// Add the campaign IDs to the connected campaigns array
-		$connectedCampaigns = array_unique( array_merge( $connectedCampaigns, $campaignToConnectIds ) );
-	} elseif ( $action === 'remove' ) {
-		// Remove the campaign IDs from the connected campaigns array
-		$connectedCampaigns = array_diff( $connectedCampaigns, $campaignToConnectIds );
+	// Combine the campaignId and campaignToConnectIds into a single array
+	$allCampaignIds = array_unique( array_merge( array( $campaignId ), $campaignToConnectIds ) );
+
+	foreach ( $allCampaignIds as $currentCampaignId ) {
+		// Retrieve the existing connected campaigns for the current campaignId
+		$existingConnectedCampaigns = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT connectedCampaigns FROM $databaseName WHERE id = %d",
+				$currentCampaignId
+			)
+		);
+
+		// Unserialize the existing connected campaigns array
+		$connectedCampaigns = $existingConnectedCampaigns ? maybe_unserialize( $existingConnectedCampaigns ) : array();
+
+		if ( $action === 'add' ) {
+			// Add the other campaign IDs to the connected campaigns array
+			$connectedCampaigns = array_unique( array_merge( $connectedCampaigns, array_diff( $allCampaignIds, array( $currentCampaignId ) ) ) );
+		} elseif ( $action === 'remove' ) {
+			// Remove the other campaign IDs from the connected campaigns array
+			$connectedCampaigns = array_diff( $connectedCampaigns, array_diff( $allCampaignIds, array( $currentCampaignId ) ) );
+		}
+
+		// Serialize the updated connected campaigns array
+		$serializedConnectedCampaigns = maybe_serialize( $connectedCampaigns );
+
+		// Update the connectedCampaigns column in the database for the current campaignId
+		$result = $wpdb->update(
+			$databaseName,
+			array( 'connectedCampaigns' => $serializedConnectedCampaigns ),
+			array( 'id' => $currentCampaignId ),
+			array( '%s' ),
+			array( '%d' )
+		);
+
+		// Check if the update was successful
+		if ( $result === false ) {
+			// Log the error
+			error_log( "Failed to update connected campaigns for campaign ID: $currentCampaignId. Error: " . $wpdb->last_error );
+			return false;
+		}
 	}
 
-	// Serialize the updated connected campaigns array
-	$serializedConnectedCampaigns = maybe_serialize( $connectedCampaigns );
-
-	// Update the connectedCampaigns column in the database
-	$wpdb->update(
-		$databaseName,
-		array( 'connectedCampaigns' => $serializedConnectedCampaigns ),
-		array( 'campaignId' => $campaignId ),
-		array( '%s' ),
-		array( '%d' )
-	);
+	return true;
 }
 
 function idemailwiz_connect_campaigns_ajax_handler() {
 	// Check nonce for security
 	check_ajax_referer( 'id-general', 'security' );
 
-	// Get the campaign IDs and action from the AJAX request
+	// Get the campaign IDs and connect_action from the AJAX request
 	$campaignId = intval( $_POST['campaign_id'] );
 	$campaignToConnectIds = isset( $_POST['campaign_to_connect_ids'] ) ? $_POST['campaign_to_connect_ids'] : array();
-	$action = sanitize_text_field( $_POST['action'] );
+	$action = sanitize_text_field( $_POST['connect_action'] );
 
 	// Call the utility function to update the connected campaigns
-	update_connected_campaigns( $campaignId, $campaignToConnectIds, $action );
+	$success = update_connected_campaigns( $campaignId, $campaignToConnectIds, $action );
 
-	// Return a success response
-	wp_send_json_success( 'Connected campaigns updated successfully.' );
+	if ( $success ) {
+		// Return a success response
+		wp_send_json_success( 'Connected campaigns updated successfully.' );
+	} else {
+		// Return an error response
+		wp_send_json_error( 'Failed to update connected campaigns.' );
+	}
 }
 add_action( 'wp_ajax_idemailwiz_connect_campaigns', 'idemailwiz_connect_campaigns_ajax_handler' );

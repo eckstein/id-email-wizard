@@ -56,8 +56,23 @@ $sendsTimezone = date( 'T', $campaignStartStamp );
 
 $campaignState = $campaign['campaignState'];
 
+$connectedCampaignIds = !empty(maybe_unserialize( $campaign['connectedCampaigns'] )) ? maybe_unserialize( $campaign['connectedCampaigns'] ) : [];
 
-$purchases = get_idwiz_purchases( array( 'campaignIds' => [ $campaign['id'], 'shoppingCartItems_utmMedium' => 'email' ] ) );
+//Create an array with the current campaign id and all connected campaigns ids
+$allCampaignIds = array_merge( [ $campaign_id ], $connectedCampaignIds );
+
+if ( ! empty( $connectedCampaignIds ) ) {
+	$connectedCampaigns = get_idwiz_campaigns( [ 
+		'campaignIds' => $connectedCampaignIds,
+		'fields' => [ 'id', 'name' ]
+	] );
+
+}
+
+
+
+
+$purchases = get_idwiz_purchases( [ 'campaignIds' => $allCampaignIds, 'shoppingCartItems_utmMedium' => 'email' ] );
 
 //$experimentIds = maybe_unserialize($campaign['experimentIds']) ?? array();
 // This returns one row per experiment TEMPLATE
@@ -86,61 +101,50 @@ $linkedExperimentIds = array_map( function ($id) {
 				<div class="wizEntry-meta">
 
 					<strong>
-						<?php echo $campaign['type']; ?> Campaign <a
+						<?php echo $campaign['type']; ?> <?php echo $campaign['messageMedium']; ?> Campaign <a
 							href="https://app.iterable.com/campaigns/<?php echo $campaign['id']; ?>?view=summary">
-							<?php echo $campaign['id']; ?>
-						</a>
+							<?php echo $campaign['id']; ?></a> within Workflow <a
+							href="https://app.iterable.com/workflows/<?php echo $campaign['workflowId']; ?>/edit"><?php echo $campaign['workflowId']; ?></a>
+
 						<?php if ( $experimentIds ) {
 							echo '&nbsp;with Experiment ' . implode( ', ', $linkedExperimentIds ) . '</a>';
 						} ?>
 					</strong>
-					<span class="connect-campaigns" data-campaignid="<?php echo $campaign['id']; ?>">Connect campaigns</span>
 					&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
-					<?php echo $campaign['messageMedium']; ?>
+					<?php
+					if ( ! empty( $connectedCampaignIds ) ) {
+						$campaignNames = [];
+						foreach ( $connectedCampaigns as $connectedCampaign ) {
+							$campaignNames[ $connectedCampaign['id'] ] = $connectedCampaign['name'];
+						}
 
-					&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
+						$campaignIdList = array_map( function ($id) use ($campaignNames) {
+							$name = isset ( $campaignNames[ $id ] ) ? htmlspecialchars( $campaignNames[ $id ] ) : '';
+							return '<span class="connected-campaign-bubble"><a href="' . get_bloginfo( 'url' ) . '/metrics/campaign?id=' . urlencode( $id ) . '" title="' . $name . '">' . htmlspecialchars( $id ) . '</a><i class="fa-solid fa-xmark disconnect-campaign" data-remove-from="' . intval( $_GET['id'] ) . '" data-campaignid="' . $id . '"></i></span>';
+						}, $connectedCampaignIds );
+
+
+						?>
+						<span class="connected-campaigns">Connected to:
+							<?php echo implode( ' ', $campaignIdList ); ?></span>
+					<?php } ?>
+					<a href="#" class="connect-campaigns" data-campaignid="<?php echo $campaign['id']; ?>">Connect
+						campaigns</a>
+
+					<br />
 					<?php if ( $campaign['type'] == 'Triggered' ) {
 						echo 'Last ';
 					} ?>Sent on
 					<?php echo $campaignStartAt; ?>
 					<?php
-					if ( $campaignStartAt != $campaignEndDateTime ) {
+					if ( $campaignStartAt != $campaignEndDateTime && $campaign['type'] == 'Blast' ) {
 						echo "— $campaignEndedAt";
 					}
 					echo '&nbsp;' . $sendsTimezone;
 					?>
 
 
-					<?php
-					$journeyPosts = get_posts( [ 'post_type' => 'journey', 'posts_per_page' => -1 ] );
-					$found = false; // Flag to indicate a match has been found
-					$journeyPostId = false; // Variable to store the matching journey post ID
-					
-					foreach ( $journeyPosts as $journeyPost ) {
-						if ( have_rows( 'workflow_ids', $journeyPost->ID ) ) {
-							while ( have_rows( 'workflow_ids', $journeyPost->ID ) ) {
-								the_row();
-								if ( get_sub_field( 'workflow_id' ) == $campaign['workflowId'] ) {
-									?>
-									(<i class="fa-regular fa-calendar"></i> <a
-										href="<?php echo get_bloginfo( 'url' ); ?>?p=<?php echo $journeyPost->ID; ?>&highlight=<?php echo $campaign['id']; ?>">view
-										journey
-										timeline</a>)
-									<?php
 
-									$found = true; // Set the flag to true as a match is found
-									$journeyPostId = $journeyPost->ID; // Store the ID of the matching journey post
-									break; // Break out of the while loop
-								}
-							}
-						}
-						if ( $found ) {
-							break; // Break out of the foreach loop if a match was found
-						}
-					}
-
-
-					?>
 
 					<?php
 					if ( isset( $template['clientTemplateId'] ) ) { ?>
@@ -172,10 +176,10 @@ $linkedExperimentIds = array_map( function ($id) {
 					<?php include plugin_dir_path( __FILE__ ) . 'parts/module-user-settings-form.php'; ?>
 				</div>
 				<div class="wizHeader-actions-meta">
-					<?php 
+					<?php
 					$lastSyncedOn = $campaign['last_wiz_update'] ?? 'never';
-					if ( $lastSyncedOn!= 'never' ) {
-						$lastSyncedOn = date( 'm/d/Y, g:ia', strtotime($lastSyncedOn) );
+					if ( $lastSyncedOn != 'never' ) {
+						$lastSyncedOn = date( 'm/d/Y, g:ia', strtotime( $lastSyncedOn ) );
 					}
 					?>
 					Last synced:
@@ -195,12 +199,12 @@ $linkedExperimentIds = array_map( function ($id) {
 		?>
 
 		<?php
-		$metricRates = get_idwiz_metric_rates( [ $campaign['id'] ], $startDate, $endDate, [ $campaign['type'] ] );
+		$metricRates = get_idwiz_metric_rates( $allCampaignIds, $startDate, $endDate, [ $campaign['type'] ] );
 		echo get_idwiz_rollup_row( $metricRates );
 
-		if ( $journeyPostId ) {
-			//echo generate_journey_timeline_html( $journeyPostId, $startDate, $endDate, [$campaign['id']] );
-		}
+		//if ( $journeyPostId ) {
+		//echo generate_journey_timeline_html( $journeyPostId, $startDate, $endDate, [$campaign['id']] );
+		//}
 		?>
 
 		<?php
@@ -208,7 +212,7 @@ $linkedExperimentIds = array_map( function ($id) {
 			?>
 			<div>
 				<?php
-				$triggeredSends = get_triggered_data_by_campaign_id( $campaign['id'], 'send' );
+				$triggeredSends = get_triggered_data_by_campaign_id( $allCampaignIds, 'send' );
 				if ( ! empty( $triggeredSends ) ) {
 					?>
 
@@ -222,9 +226,8 @@ $linkedExperimentIds = array_map( function ($id) {
 
 
 								<canvas class="sendsByDate wiz-canvas" data-chartid="sendsByDate"
-									data-campaignids='<?php echo json_encode( array( $campaign['id'] ) ); ?>'
-									data-charttype="bar" data-startdate="<?php echo $startDate; ?>"
-									data-year-over-year="true" 
+									data-campaignids='<?php echo json_encode( $allCampaignIds ); ?>' data-charttype="bar"
+									data-startdate="<?php echo $startDate; ?>" data-year-over-year="true"
 									data-enddate="<?php echo $endDate; ?>"></canvas>
 							</div>
 						</div>
@@ -237,9 +240,8 @@ $linkedExperimentIds = array_map( function ($id) {
 
 
 								<canvas class="opensByDate wiz-canvas" data-chartid="opensByDate"
-									data-campaignids='<?php echo json_encode( array( $campaign['id'] ) ); ?>'
-									data-charttype="bar" data-startdate="<?php echo $startDate; ?>"
-									data-enddate="<?php echo $endDate; ?>"></canvas>
+									data-campaignids='<?php echo json_encode( $allCampaignIds ); ?>' data-charttype="bar"
+									data-startdate="<?php echo $startDate; ?>" data-enddate="<?php echo $endDate; ?>"></canvas>
 							</div>
 						</div>
 
@@ -251,9 +253,8 @@ $linkedExperimentIds = array_map( function ($id) {
 
 
 								<canvas class="clicksByDate wiz-canvas" data-chartid="clicksByDate"
-									data-campaignids='<?php echo json_encode( array( $campaign['id'] ) ); ?>'
-									data-charttype="bar" data-startdate="<?php echo $startDate; ?>"
-									data-enddate="<?php echo $endDate; ?>"></canvas>
+									data-campaignids='<?php echo json_encode( $allCampaignIds ); ?>' data-charttype="bar"
+									data-startdate="<?php echo $startDate; ?>" data-enddate="<?php echo $endDate; ?>"></canvas>
 							</div>
 						</div>
 					</div>
@@ -266,7 +267,7 @@ $linkedExperimentIds = array_map( function ($id) {
 		}
 
 		// Setup standard chart variables
-		$standardChartCampaignIds = array( $campaign['id'] );
+		$standardChartCampaignIds = $allCampaignIds;
 		$standardChartPurchases = $purchases;
 		include plugin_dir_path( __FILE__ ) . 'parts/standard-charts.php';
 
