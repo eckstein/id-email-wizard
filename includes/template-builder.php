@@ -1568,9 +1568,9 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 	$return = '';
 
 	foreach ( $rows as $rowIndex => $row ) {
-		error_log( print_r( $row, true ) );
-		$rowBackgroundCss = generate_background_css( $row['background_settings'] );
-		$rowBackgroundCssMso = generate_background_css( $row['background_settings'], '', true );
+		$rowBackgroundSettings = $row['background_settings'] ?? [];
+		$rowBackgroundCss = generate_background_css( $rowBackgroundSettings );
+		$rowBackgroundCssMso = generate_background_css( $rowBackgroundSettings, '', true );
 
 		// If this is the showing in the editor, add a data attribute to the row
 		$rowDataAttr = $isEditor ? 'data-row-index=' . $rowIndex : '';
@@ -1597,8 +1597,9 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 				// swap the sidebar-right and sidebar-left classes to make magic-wrap work
 			}
 
-			$colSetBackgroundCss = generate_background_css( $columnSet['background_settings'], '', false );
-			$colSetBackgroundCssMso = generate_background_css( $columnSet['background_settings'], '', true );
+			$colSetBackgroundSettings = $columnSet['background_settings'] ?? [];
+			$colSetBackgroundCss = generate_background_css( $colSetBackgroundSettings, '', false );
+			$colSetBackgroundCssMso = generate_background_css( $colSetBackgroundSettings, '', true );
 
 			$layoutClass = $columnSet['layout'] ?? '';
 
