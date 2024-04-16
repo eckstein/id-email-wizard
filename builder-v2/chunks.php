@@ -982,7 +982,7 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 			h6 {
 				margin: 0 !important;
 				padding: 0 0 1.33em 0;
-				font-size: .67em;
+				font-size: .67em!important;
 				
 			}
 

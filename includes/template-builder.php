@@ -1524,7 +1524,7 @@ function generate_template_html( $templateData, $forEditor = false ) {
 	$return = '';
 
 	// Email top
-	$return .= idwiz_get_email_top( $message_settings, $templateStyles, $rows );
+	$return .= idwiz_get_email_top( $message_settings, $templateStyles, $rows ); 
 
 	// iD Logo Header
 	$showIdHeader = json_decode( $templateStyles['header-and-footer']['show_id_header'] ) ?? true;
