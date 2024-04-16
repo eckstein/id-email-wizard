@@ -1606,7 +1606,8 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 			$displayTable = $numActiveColumns > 1 ? 'display: table;' : '';
 
 			$return .= "<div class='columnSet $layoutClass' $colSetDataAttr $magicRtl style='$colSetBackgroundCss text-align: center; font-size: 0; width: 100%; " . $displayTable . "'>";
-			$return .= "<!--[if mso]><table class='columnSet' role='presentation' width='100%' style='$colSetBackgroundCssMso white-space:nowrap;text-align:center; '><tr><![endif]-->";
+			$return .= "<!--[if mso]><table class='columnSet' role='presentation' width='100%' style='white-space:nowrap;text-align:center;'><tr><td style='$colSetBackgroundCssMso'><![endif]-->";
+			$return .= "<table role='presentation' width='100%' style='width:100%;'><tr>";
 
 
 			foreach ( $columns as $columnIndex => $column ) {
@@ -1703,7 +1704,8 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 
 			}
 
-			$return .= "<!--[if mso]></tr></table><![endif]-->";
+			$return .= "</tr></table>";
+			$return .= "<!--[if mso]></td></tr></table><![endif]-->";
 			$return .= "</div>"; // Close the colset layout div
 		}
 		$return .= "<!--[if mso]></td></tr></table><![endif]-->";
@@ -1868,15 +1870,17 @@ function generate_background_css( $backgroundSettings, $prefix = '', $forMso = f
 			if ( $fallback_color == 'rgba(0,0,0,0)' ) {
 				$fallback_color = 'transparent';
 			}
+			
+			if ( !$forMso && $image_url ) {
+				$css[] = "background-image: url($image_url);";
+				$css[] = "background-position: $position;";
+				$css[] = "background-size: $size;";
+			}
 
 			// Only include fallback color for mso clients
 			if ( $forMso ) {
 				$css[] = "background-color: $fallback_color;";
-			}
-			if ( $image_url ) {
-				$css[] = "background-image: url($image_url);";
-				$css[] = "background-position: $position;";
-				$css[] = "background-size: $size;";
+				$css[] = "mso-shading: $fallback_color;";
 			}
 
 

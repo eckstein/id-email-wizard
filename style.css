@@ -324,7 +324,7 @@ body.single-idemailwiz_template {
 .builder-code-wrapper .builder-code-actions .wiz-button {
 	font-size: 12px;
 }
-#builder-tab-code #templateCode {
+#builder-tab-code #templateCode code{
 	word-wrap: break-word;
 	white-space: pre-wrap;
 }
@@ -4201,7 +4201,13 @@ color: #eee;
 	z-index: 1000; /* Above everything else */
 }
 
-
+#subjectLineBuilder {
+	display: flex;
+	gap: 30px;
+}
+#subjectLinePanel, #previewTextPanel {
+	
+}
 
 
 

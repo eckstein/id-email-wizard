@@ -947,43 +947,43 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 			h1 {
 				margin: 0 !important;
 				padding: 0 0 .67em 0;
-				font-size: 2em;
-				!important;
+				font-size: 2em!important;
+				
 			}
 
 			h2 {
 				margin: 0 !important;
 				padding: 0 0 .83em 0;
-				font-size: 1.5em;
-				!important;
+				font-size: 1.5em!important;
+				
 			}
 
 			h3 {
 				margin: 0 !important;
 				padding: 0 0 1em 0;
-				font-size: 1.17em;
-				!important;
+				font-size: 1.17em!important;
+				
 			}
 
 			h4 {
 				margin: 0 !important;
 				padding: 0 0 1.33em 0;
-				font-size: 1em;
-				!important;
+				font-size: 1em!important;
+				
 			}
 
 			h5 {
 				margin: 0 !important;
 				padding: 0 0 1.67em 0;
-				font-size: .83em;
-				!important;
+				font-size: .83em!important;
+				
 			}
 
 			h6 {
 				margin: 0 !important;
 				padding: 0 0 1.33em 0;
 				font-size: .67em;
-				!important;
+				
 			}
 
 			.noPad h1, .noPad h2, .noPad h3, .noPad, h4, .noPad h5, .noPad h6 {
@@ -1112,13 +1112,7 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 					min-width: 100%!important;
 				}
 			</style>
-			<noscript>
-				<xml>
-					<o:OfficeDocumentSettings>
-						<o:PixelsPerInch>96</o:PixelsPerInch>
-					</o:OfficeDocumentSettings>
-				</xml>
-			</noscript>
+			
 		<![endif]-->
 
 		<!-- If this is a non-MSO client, we include styles for dynamic mobile/desktop visibility -->
@@ -1140,39 +1134,7 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 			}
 
 			@media screen and (min-width: 601px) {
-				.three-col .column {
-					max-width: 33.333% !important;
-					min-width: 33.333% !important;
-					display: inline-block;
-					text-align: left;
-				}
-
-				.two-col .column {
-					max-width: 50% !important;
-					min-width: 50% !important;
-					display: inline-block;
-					text-align: left;
-				}
-
-				.sidebar-left:not([dir="rtl"]) .column:nth-child(1),
-				.sidebar-right[dir="rtl"] .column:nth-child(1),
-				.sidebar-right:not([dir="rtl"]) .column:nth-child(2),
-				.sidebar-left[dir="rtl"] .column:nth-child(2) {
-					max-width: 33.333% !important;
-					min-width: 33.333% !important;
-					display: inline-block;
-					text-align: left;
-				}
-
-				.sidebar-left:not([dir="rtl"]) .column:nth-child(2),
-				.sidebar-right[dir="rtl"] .column:nth-child(2),
-				.sidebar-right:not([dir="rtl"]) .column:nth-child(1),
-				.sidebar-left[dir="rtl"] .column:nth-child(1) {
-					max-width: 66.667% !important;
-					min-width: 66.667% !important;
-					display: inline-block;
-					text-align: left;
-				}
+				
 
 				.desktop-only {
 					display: block !important;
@@ -1228,7 +1190,15 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 		?>
 
 
-
+		<!--[if mso]>
+		<noscript>
+		  <xml>
+			<o:OfficeDocumentSettings>
+			  <o:PixelsPerInch>96</o:PixelsPerInch>
+			</o:OfficeDocumentSettings>
+		  </xml>
+		</noscript>
+		<![endif]-->
 
 	</head>
 
