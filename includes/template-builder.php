@@ -1568,6 +1568,7 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 	$return = '';
 
 	foreach ( $rows as $rowIndex => $row ) {
+		error_log( print_r( $row, true ) );
 		$rowBackgroundCss = generate_background_css( $row['background_settings'] );
 		$rowBackgroundCssMso = generate_background_css( $row['background_settings'], '', true );
 
