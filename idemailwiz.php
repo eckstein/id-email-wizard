@@ -466,6 +466,10 @@ function idemailwiz_template_chooser($template)
         return dirname(__FILE__) . '/templates/archive-snippet.php';
     }
 
+	if ( strpos( $_SERVER['REQUEST_URI'], '/tools/subject-line-builder' ) !== false ) {
+		return dirname( __FILE__ ) . '/templates/subject-line-builder.php';
+	}
+
     
 
 
