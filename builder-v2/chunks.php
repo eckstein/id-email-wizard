@@ -1040,37 +1040,37 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 				/* Mobile Headers */
 				h1 {
 					margin: 0 0 .83em 0;
-					font-size: 1.5em!important;;
+					font-size: 1.5em!important;
 					
 				}
 
 				h2 {
 					margin: 0 0 .9em 0;
-					font-size: 1.3em!important;;
+					font-size: 1.3em!important;
 					
 				}
 
 				h3 {
 					margin: 0 0 1em 0;
-					font-size: 1.17em!important;;
+					font-size: 1.17em!important;
 					
 				}
 
 				h4 {
 					margin: 0 0 1.33em 0;
-					font-size: 1em!important;;
+					font-size: 1em!important;
 					
 				}
 
 				h5 {
 					margin: 0 0 1.67em 0;
-					font-size: .83em!important;;
+					font-size: .83em!important;
 					
 				}
 
 				h6 {
 					margin: 0 0 1.33em 0;
-					font-size: .67em!important;;
+					font-size: .67em!important;
 					
 				}
 			}
