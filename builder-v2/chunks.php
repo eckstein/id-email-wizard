@@ -497,6 +497,15 @@ function idwiz_get_image_chunk( $chunk, $templateOptions, $chunkIndex = null, $i
 		$msoWidth = $templateWidth > 0 ? round( $templateWidth * 0.3333, 0 ) : $templateWidth;
 	}
 
+	// Determine the aspect ratio of the image
+	$imageDimensions = getimagesize( $imageSrc );
+	$imageWidth = $imageDimensions[0];
+	$imageHeight = $imageDimensions[1];
+	$imageAspectRatio = $imageWidth / $imageHeight;
+
+	// Calculate the height based on the aspect ratio and msoWidth
+	$msoHeight = round( $msoWidth / $imageAspectRatio, 2 );
+
 	$backgroundColorCss = generate_background_css( $chunkSettings );
 	$msoBackgroundColorCss = generate_background_css( $chunkSettings, '', true );
 
@@ -515,15 +524,15 @@ function idwiz_get_image_chunk( $chunk, $templateOptions, $chunkIndex = null, $i
 	echo '<!--[if mso]>';
 	echo '<table ' . $tableClassHtml . ' role="presentation" style="width:100%;border:0;border-spacing:0;margin: 0;' . $visibility['inlineStyle'] . '">
 		<tr>
-		<td style="font-size: 0; line-height: 0; ' . $msoBackgroundColorCss .' '. $chunkPaddingCss.'">';
+		<td style="text-align: center; font-size: 0; line-height: 0; ' . $msoBackgroundColorCss .' '. $msoPaddingToMargin.'" align="center">';
 	if ( $imageLink ) {
-		echo '<a href="' . $imageLink . '" ' . $ariaHidden . ' class="id-image-link" title="' . $imageAlt . '" style="' . $msoPaddingToMargin . 'display: block;padding: 0; line-height: 0;font-size:0;text-decoration:none;">';
+		echo '<a href="' . $imageLink . '" ' . $ariaHidden . ' class="id-image-link" title="' . $imageAlt . '" style="display: block;padding: 0; line-height: 0;font-size:0;text-decoration:none;">';
 	}
 
 	// If no link, add pointer-events: none to prevent click interaction
 	$pointerEventsCss = ! $imageLink ? 'pointer-events: none;' : '';
 
-	echo '<img class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" width="' . $msoWidth . '" ' . $altAttribute . ' style="' . $pointerEventsCss . 'width:100%; max-width:' . $msoWidth . 'px; height:auto;' . $visibility['inlineStyle'] . '" />';
+	echo '<img class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" width="' . $msoWidth . '" height="' . $msoHeight . '" ' . $altAttribute . ' style="' . $pointerEventsCss . 'width:100%; max-width:' . $msoWidth . 'px; height:auto; max-height:' . $msoHeight . 'px;' . $visibility['inlineStyle'] . ';" />';
 	if ( $imageLink ) {
 		echo '</a>';
 	}
@@ -532,11 +541,11 @@ function idwiz_get_image_chunk( $chunk, $templateOptions, $chunkIndex = null, $i
 
 	// Non-MSO markup for other clients
 	echo '<!--[if !mso]> <!-->';
-	echo '<div class="chunk id-image ' . $chunkClasses . ' ' . $visibility['class'] . '" ' . $chunkDataAttr . ' style="' . $backgroundColorCss . ' ' . $visibility['inlineStyle'] . $chunkPaddingCss . '">';
+	echo '<div class="chunk ' . $chunkClasses . ' ' . $visibility['class'] . '" ' . $chunkDataAttr . ' style="' . $backgroundColorCss . ' ' . $visibility['inlineStyle'] . $chunkPaddingCss . '">';
 	if ( $imageLink ) {
 		echo '<a href="' . $imageLink . '" ' . $ariaHidden . ' class="id-image-link" title="' . $imageAlt . '">';
 	}
-	echo '<img ' . $altAttribute . ' class=" ' . $visibility['class'] . '" src="' . $imageSrc . '" style="' . $pointerEventsCss . 'width:100%; height:auto;' . $visibility['inlineStyle'] . '" />';
+	echo '<img ' . $altAttribute . ' class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" style="' . $pointerEventsCss . 'width:100%; height:auto;' . $visibility['inlineStyle'] . '" />';
 	if ( $imageLink ) {
 		echo '</a>';
 	}
@@ -947,43 +956,43 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 			h1 {
 				margin: 0 !important;
 				padding: 0 0 .67em 0;
-				font-size: 2em!important;
-				
+				font-size: 2em
+				!important
 			}
 
 			h2 {
 				margin: 0 !important;
 				padding: 0 0 .83em 0;
-				font-size: 1.5em!important;
-				
+				font-size: 1.5em
+				!important
 			}
 
 			h3 {
 				margin: 0 !important;
 				padding: 0 0 1em 0;
-				font-size: 1.17em!important;
-				
+				font-size: 1.17em
+				!important
 			}
 
 			h4 {
 				margin: 0 !important;
 				padding: 0 0 1.33em 0;
-				font-size: 1em!important;
-				
+				font-size: 1em
+				!important
 			}
 
 			h5 {
 				margin: 0 !important;
 				padding: 0 0 1.67em 0;
-				font-size: .83em!important;
-				
+				font-size: .83em
+				!important;
 			}
 
 			h6 {
 				margin: 0 !important;
 				padding: 0 0 1.33em 0;
-				font-size: .67em!important;
-				
+				font-size: .67em
+				!important;
 			}
 
 			.noPad h1, .noPad h2, .noPad h3, .noPad, h4, .noPad h5, .noPad h6 {
@@ -1040,38 +1049,38 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 				/* Mobile Headers */
 				h1 {
 					margin: 0 0 .83em 0;
-					font-size: 1.5em!important;
-					
+					font-size: 1.5em
+					!important;
 				}
 
 				h2 {
 					margin: 0 0 .9em 0;
-					font-size: 1.3em!important;
-					
+					font-size: 1.3em
+					!important;
 				}
 
 				h3 {
 					margin: 0 0 1em 0;
-					font-size: 1.17em!important;
-					
+					font-size: 1.17em
+					!important;
 				}
 
 				h4 {
 					margin: 0 0 1.33em 0;
-					font-size: 1em!important;
-					
+					font-size: 1em
+					!important;
 				}
 
 				h5 {
 					margin: 0 0 1.67em 0;
-					font-size: .83em!important;
-					
+					font-size: .83em
+					!important;
 				}
 
 				h6 {
 					margin: 0 0 1.33em 0;
-					font-size: .67em!important;
-					
+					font-size: .67em
+					!important;
 				}
 			}
 		</style>
@@ -1134,7 +1143,39 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 			}
 
 			@media screen and (min-width: 601px) {
-				
+				.three-col .column {
+					max-width: 33.333% !important;
+					min-width: 33.333% !important;
+					display: inline-block;
+					text-align: left;
+				}
+
+				.two-col .column {
+					max-width: 50% !important;
+					min-width: 50% !important;
+					display: inline-block;
+					text-align: left;
+				}
+
+				.sidebar-left:not([dir="rtl"]) .column:nth-child(1),
+				.sidebar-right[dir="rtl"] .column:nth-child(1),
+				.sidebar-right:not([dir="rtl"]) .column:nth-child(2),
+				.sidebar-left[dir="rtl"] .column:nth-child(2) {
+					max-width: 33.333% !important;
+					min-width: 33.333% !important;
+					display: inline-block;
+					text-align: left;
+				}
+
+				.sidebar-left:not([dir="rtl"]) .column:nth-child(2),
+				.sidebar-right[dir="rtl"] .column:nth-child(2),
+				.sidebar-right:not([dir="rtl"]) .column:nth-child(1),
+				.sidebar-left[dir="rtl"] .column:nth-child(1) {
+					max-width: 66.667% !important;
+					min-width: 66.667% !important;
+					display: inline-block;
+					text-align: left;
+				}
 
 				.desktop-only {
 					display: block !important;
@@ -1189,16 +1230,16 @@ function idwiz_get_email_top( $templateSettings, $templateStyles, $rows ) {
 		echo get_snippet_css( $rows );
 		?>
 
-
 		<!--[if mso]>
 		<noscript>
-		  <xml>
-			<o:OfficeDocumentSettings>
-			  <o:PixelsPerInch>96</o:PixelsPerInch>
-			</o:OfficeDocumentSettings>
-		  </xml>
+			<xml>
+				<o:OfficeDocumentSettings>
+					<o:PixelsPerInch>96</o:PixelsPerInch>
+				</o:OfficeDocumentSettings>
+			</xml>
 		</noscript>
 		<![endif]-->
+
 
 	</head>
 
