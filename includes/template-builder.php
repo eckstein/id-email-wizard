@@ -1748,16 +1748,35 @@ function idwiz_get_chunk_template( $chunk, $templateOptions, $chunkIndex = null,
 
 	// Find all links inside $return and add UTMs to them
 	if ( $externalUtms && $externalUtmString ) {
-		$pattern = '/<a\s+(?:[^>]*?\s+)?href=(["\'])(.*?)\1/i';
-		$return = preg_replace_callback( $pattern, function ($matches) use ($externalUtmString) {
-			$href = $matches[2];
-			if ( strpos( $href, '?' ) !== false ) {
-				$href .= '&' . $externalUtmString;
+		$offset = 0;
+		while ( ( $start = strpos( $return, '<a', $offset ) ) !== false ) {
+			$end = strpos( $return, '>', $start );
+			if ( $end !== false ) {
+				$linkTag = substr( $return, $start, $end - $start + 1 );
+				$hrefStart = strpos( $linkTag, 'href="' );
+				if ( $hrefStart !== false ) {
+					$hrefStart += 6;
+					$hrefEnd = strpos( $linkTag, '"', $hrefStart );
+					if ( $hrefEnd !== false ) {
+						$href = substr( $linkTag, $hrefStart, $hrefEnd - $hrefStart );
+						if ( strpos( $href, '?' ) !== false ) {
+							$href .= '&' . $externalUtmString;
+						} else {
+							$href .= '?' . $externalUtmString;
+						}
+						$updatedLinkTag = substr_replace( $linkTag, $href, $hrefStart, $hrefEnd - $hrefStart );
+						$return = substr_replace( $return, $updatedLinkTag, $start, $end - $start + 1 );
+						$offset = $start + strlen( $updatedLinkTag );
+					} else {
+						$offset = $end + 1;
+					}
+				} else {
+					$offset = $end + 1;
+				}
 			} else {
-				$href .= '?' . $externalUtmString;
+				break;
 			}
-			return '<a href="' . $href . '"';
-		}, $return );
+		}
 	}
 
 	return $return;
