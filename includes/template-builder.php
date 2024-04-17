@@ -315,62 +315,62 @@ function generate_builder_row( $rowId, $rowData = [] ) {
 	$columnSets = isset( $rowData['columnSets'] ) && is_array( $rowData['columnSets'] ) ? $rowData['columnSets'] : [];
 
 	// Check if columnSets is empty, indicating an older version of the template
-	if ( empty( $columnSets ) ) {
-		// Check if 'columns' key exists in rowData
-		if ( isset( $rowData['columns'] ) && is_array( $rowData['columns'] ) ) {
-			// Move 'stacked' and 'magic_wrap' keys from row level to columnSet level
-			$stacked = isset( $rowData['stacked'] ) ? $rowData['stacked'] : false;
-			$magic_wrap = isset( $rowData['magic_wrap'] ) ? $rowData['magic_wrap'] : "off";
+	// if ( empty( $columnSets ) ) {
+	// 	// Check if 'columns' key exists in rowData
+	// 	if ( isset( $rowData['columns'] ) && is_array( $rowData['columns'] ) ) {
+	// 		// Move 'stacked' and 'magic_wrap' keys from row level to columnSet level
+	// 		$stacked = isset( $rowData['stacked'] ) ? $rowData['stacked'] : false;
+	// 		$magic_wrap = isset( $rowData['magic_wrap'] ) ? $rowData['magic_wrap'] : "off";
 
-			// Determine the layout based on the number of columns
-			$columnCount = count( $rowData['columns'] );
-			$layout = '';
-			switch ( $columnCount ) {
-				case 1:
-					$layout = 'one-column';
-					break;
-				case 2:
-					$layout = 'two-column';
-					break;
-				case 3:
-					$layout = 'three-column';
-					break;
-				default:
-					$layout = 'one-column';
-			}
+	// 		// Determine the layout based on the number of columns
+	// 		$columnCount = count( $rowData['columns'] );
+	// 		$layout = '';
+	// 		switch ( $columnCount ) {
+	// 			case 1:
+	// 				$layout = 'one-column';
+	// 				break;
+	// 			case 2:
+	// 				$layout = 'two-column';
+	// 				break;
+	// 			case 3:
+	// 				$layout = 'three-column';
+	// 				break;
+	// 			default:
+	// 				$layout = 'one-column';
+	// 		}
 
-			// Create a new columnSet with the columns from the older version
-			$columnSets = [ 
-				[ 
-					'columns' => $rowData['columns'],
-					'layout' => $layout,
-					'stacked' => $stacked,
-					'magic_wrap' => $magic_wrap,
-					'activation' => 'active',
-				]
-			];
+	// 		// Create a new columnSet with the columns from the older version
+	// 		$columnSets = [ 
+	// 			[ 
+	// 				'columns' => $rowData['columns'],
+	// 				'layout' => $layout,
+	// 				'stacked' => $stacked,
+	// 				'magic_wrap' => $magic_wrap,
+	// 				'activation' => 'active',
+	// 			]
+	// 		];
 
-			// Remove the 'columns' key from $rowData to avoid extra columns
-			unset( $rowData['columns'] );
-		} else {
-			// If 'columns' key doesn't exist, initialize with a default empty column set
-			$columnSets = [ 
-				[ 
-					'columns' => [ 
-						[ 
-							'title' => 'Column',
-							'activation' => 'active',
-							'chunk' => [],
-						]
-					],
-					'layout' => 'one-column',
-					'stacked' => false,
-					'magic_wrap' => "off",
-					'activation' => 'active',
-				]
-			];
-		}
-	}
+	// 		// Remove the 'columns' key from $rowData to avoid extra columns
+	// 		unset( $rowData['columns'] );
+	// 	} else {
+	// 		// If 'columns' key doesn't exist, initialize with a default empty column set
+	// 		$columnSets = [ 
+	// 			[ 
+	// 				'columns' => [ 
+	// 					[ 
+	// 						'title' => 'Column',
+	// 						'activation' => 'active',
+	// 						'chunk' => [],
+	// 					]
+	// 				],
+	// 				'layout' => 'one-column',
+	// 				'stacked' => false,
+	// 				'magic_wrap' => "off",
+	// 				'activation' => 'active',
+	// 			]
+	// 		];
+	// 	}
+	// }
 
 	$html = '';
 
