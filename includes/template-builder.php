@@ -349,6 +349,9 @@ function generate_builder_row( $rowId, $rowData = [] ) {
 					'activation' => 'active',
 				]
 			];
+
+			// Remove the 'columns' key from $rowData to avoid extra columns
+			unset( $rowData['columns'] );
 		} else {
 			// If 'columns' key doesn't exist, initialize with a default empty column set
 			$columnSets = [ 
@@ -488,7 +491,7 @@ function generate_builder_columnset( $colSetIndex, $columnSet, $rowId, $rowData 
 
 	$columnsetTitle = $columnSet['title'] ?? 'Column Set';
 
-	$colsLayout = $columnSet['layout'] ?? 'one-col';
+	$colsLayout = $columnSet['layout'] ?? 'one-column';
 
 	$colsetBgSettings = $columnSet['background_settings'] ?? [];
 
@@ -1580,6 +1583,10 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 		$columnSets = $row['columnSets'] ?? [];
 
 		foreach ( $columnSets as $columnSetIndex => $columnSet ) {
+			//filter out empty columnsets
+			if ( empty( $columnSet['columns'] ) ) {
+				continue;
+			}
 			$allColumns = $columnSet['columns'] ?? []; // includes inactive columns
 			$columns = [];
 			foreach ( $allColumns as $allColumn ) {
@@ -1627,13 +1634,13 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 
 
 
-				if ( $layoutClass === 'two-col' ) {
+				if ( $layoutClass === 'two-column' ) {
 					$columnWidthPx = round( $templateWidth / 2, 0 );
 					$columnWidthPct = 50;
 					if ( $magicWrap == 'on' ) {
 						$columnIndex = $columnIndex === 0 ? 1 : 0;
 					}
-				} elseif ( $layoutClass === 'three-col' ) {
+				} elseif ( $layoutClass === 'three-column' ) {
 					$columnWidthPx = round( $templateWidth / 3, 0 );
 					$columnWidthPct = 33.33;
 					if ( $magicWrap == 'on' ) {
@@ -1719,9 +1726,7 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 
 
 function idwiz_get_chunk_template( $chunk, $templateOptions, $chunkIndex = null, $isEditor = false ) {
-
 	$chunkType = $chunk['field_type'];
-
 	$return = '';
 
 	if ( $chunkType == 'text' ) {
@@ -1731,35 +1736,31 @@ function idwiz_get_chunk_template( $chunk, $templateOptions, $chunkIndex = null,
 	} else if ( $chunkType == 'button' ) {
 		$return .= idwiz_get_button_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor );
 	} else if ( $chunkType == 'spacer' ) {
-		$return .= idwiz_get_spacer_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor  );
+		$return .= idwiz_get_spacer_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor );
 	} else if ( $chunkType == 'snippet' ) {
 		$return .= idwiz_get_snippet_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor );
 	} else if ( $chunkType == 'html' ) {
-		$return .= idwiz_get_raw_html_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor  );
+		$return .= idwiz_get_raw_html_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor );
 	}
-	//error_log('message settings: '. print_r($templateOptions, true));
+
 	$externalUtms = $templateOptions['message_settings']['ext_utms'] ?? false;
 	$externalUtmString = $templateOptions['message_settings']['ext_utm_string'] ?? '';
-	// Find all links inside $return and add a UTMs to them
+
+	// Find all links inside $return and add UTMs to them
 	if ( $externalUtms && $externalUtmString ) {
-		$dom = new DOMDocument();
-		$dom->loadHTML( $return );
-		$links = $dom->getElementsByTagName( 'a' );
-		foreach ( $links as $link ) {
-			$href = $link->getAttribute( 'href' );
+		$pattern = '/<a\s+(?:[^>]*?\s+)?href=(["\'])(.*?)\1/i';
+		$return = preg_replace_callback( $pattern, function ($matches) use ($externalUtmString) {
+			$href = $matches[2];
 			if ( strpos( $href, '?' ) !== false ) {
 				$href .= '&' . $externalUtmString;
 			} else {
 				$href .= '?' . $externalUtmString;
 			}
-			$link->setAttribute( 'href', $href );
-		}
-		$return = $dom->saveHTML();
-
+			return '<a href="' . $href . '"';
+		}, $return );
 	}
 
 	return $return;
-
 }
 
 

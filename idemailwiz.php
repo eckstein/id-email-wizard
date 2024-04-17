@@ -660,7 +660,7 @@ function idemailwiz_enqueue_assets()
 
     wp_enqueue_script('spectrum', plugin_dir_url(__FILE__) . 'vendors/spectrum/spectrum.js', array());
 
-    wp_enqueue_script('tinymce', 'https://cdn.tiny.cloud/1/qogjcr5qz9n4z7j78l00hfc535nb65l59n4ohtsap43i8sxo/tinymce/6/tinymce.min.js');
+    wp_enqueue_script('tinymce', plugin_dir_url( __FILE__ ) . 'vendors/tinymce/js/tinymce/tinymce.min.js');
 
 
     wp_enqueue_script('editable', plugin_dir_url(__FILE__) . 'vendors/tiny-edit-in-place/jquery.editable.min.js', array());

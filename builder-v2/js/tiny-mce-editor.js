@@ -9,10 +9,10 @@ function init_element_title_tinymce($editable = null) {
     
     tinymce.init({
         selector: selector,
+        license_key: 'gpl',
         inline: true,
         menubar: false,
         toolbar: false,
-        forced_root_block: false,
         convert_newlines_to_brs: false,
         setup: function (editor) {
             editor.on('click', function (e) {
@@ -50,6 +50,7 @@ function init_element_title_tinymce($editable = null) {
 function init_template_title_tinymce() {
     tinymce.init({
         selector: '#single-template-title',
+        license_key: 'gpl',
         inline: true,
         menubar: false,
         toolbar: false,
@@ -240,6 +241,7 @@ function builder_init_tinymce($optionalElement) {
 
     tinymce.init({
         selector: selector,
+        license_key: 'gpl',
         height: 250,
         toolbar: [
             { name: 'code', items: [ 'code'] },

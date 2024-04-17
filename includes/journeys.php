@@ -57,7 +57,8 @@ function update_journey_send_times() {
 				$workflows_table,
 				[ 'firstSendAt' => $times['firstSend'], 
 				'lastSendAt' => $times['lastSend'] ],
-				[ 'workflowId' => $workflowId ]
+				[ 'workflowId' => $workflowId ],
+				[ '%s', '%s', '%d' ]
 			);
 		}
 	}
