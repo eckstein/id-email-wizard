@@ -1572,7 +1572,7 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 
 	foreach ( $rows as $rowIndex => $row ) {
 		$rowBackgroundCss = generate_background_css( $row['background_settings'] );
-		$rowBackgroundCssMso = generate_background_css( $row['background_settings'], '', true );
+		$rowBackgroundCssMso = generate_background_css( $row['background_settings'], '', true ); 
 
 		// If this is the showing in the editor, add a data attribute to the row
 		$rowDataAttr = $isEditor ? 'data-row-index=' . $rowIndex : '';
