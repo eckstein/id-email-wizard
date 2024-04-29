@@ -149,21 +149,28 @@ function update_template_after_sync()
 	//check nonce
 	check_ajax_referer('iterable-actions', 'security');
 
-	$post_id = $_POST['post_id'];
+	
 	$template_id = $_POST['template_id'];
+	$post_id = $_POST['post_id'] ?? null;
+
+	$wizTemplate = get_idwiz_template($template_id);
+
+	$template_name = $_POST['template_name'] ?? $wizTemplate['name'];
+
+	
 
 	// Update the custom database table
 	$wpdb->update(
 		$wpdb->prefix . 'idemailwiz_templates',
-		array('clientTemplateId' => $post_id),
+		array('clientTemplateId' => $post_id, 'name' => $template_name),
 		array('templateId' => $template_id),
-		array('%d'),
+		array('%d', '%s'),
 		array('%d')
 	);
 
 	$response = array(
 		'status' => 'success',
-		'message' => 'itTemplateId added to template database!',
+		'message' => 'WizTemplate updated!',
 	);
 	wp_send_json($response);
 }

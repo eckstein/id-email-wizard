@@ -762,7 +762,21 @@ function save_experiment_notes() {
 
 
 
+function generate_purchases_table_data($purchases)
+{
+	$data = [];
 
+	foreach ($purchases as $purchase) {
+		$data[] = [
+			'Product' => $purchase['shoppingCartItems_name'],
+			'Division' => $purchase['shoppingCartItems_divisionName'],
+			'Location' => $purchase['shoppingCartItems_locationName'],
+			'Revenue' => '$' . number_format($purchase['shoppingCartItems_price'], 2),
+		];
+	}
+
+	return $data;
+}
 
 
 
@@ -774,6 +788,7 @@ function transfigure_purchases_by_product( $purchases ) {
 
 	foreach ( $purchases as $purchase ) {
 		$product = $purchase['shoppingCartItems_name'];
+		
 
 		if ( ! isset( $products[ $product ] ) ) {
 			$products[ $product ] = 0;
@@ -794,7 +809,7 @@ function transfigure_purchases_by_product( $purchases ) {
 			'Product' => $productName,
 			'Topics' => $productTopics[ $productName ],
 			'Purchases' => $purchaseCount,
-			'Revenue' => '$' . number_format( $productRevenue[ $productName ], 2 )
+			'Revenue' => '$' . number_format( $productRevenue[ $productName ], 2 ),
 		];
 	}
 
@@ -1292,124 +1307,7 @@ function return_new_and_returning_customers( $purchases ) {
 }
 
 
-function get_orders_grouped_by_customers() {
-	global $wpdb;
 
-	$batch_size = 25000; // Define a reasonable batch size. You can adjust this based on your server's capabilities.
-	$offset = 0;
-
-	$grouped_orders = [];
-
-	while ( true ) {
-		$query = $wpdb->prepare( "SELECT accountNumber, orderId, purchaseDate, cohort_value as division FROM {$wpdb->prefix}idemailwiz_cohorts WHERE cohort_type = 'division' ORDER BY accountNumber, purchaseDate ASC LIMIT %d OFFSET %d", $batch_size, $offset );
-		$results = $wpdb->get_results( $query, ARRAY_A );
-
-		// If no results, break out of the loop
-		if ( empty( $results ) ) {
-			break;
-		}
-
-		foreach ( $results as $row ) {
-			$grouped_orders[ $row['accountNumber'] ][] = $row;
-		}
-
-		$offset += $batch_size; // Increase the offset for the next batch
-	}
-
-	return $grouped_orders;
-}
-function get_campaigns_with_most_returning_customers( $campaigns ) {
-	$campaignsCount = [];
-
-	foreach ( $campaigns as $campaign ) {
-		$campaignId = $campaign['id'];
-		$purchasesForCampaign = get_idwiz_purchases( [ 'campaignIds' => [ $campaignId ], 'fields' => 'campaignId,orderId,accountNumber,purchaseDate' ] );
-
-		$customerCounts = return_new_and_returning_customers( $purchasesForCampaign );
-
-		$campaignsCount[ $campaignId ] = $customerCounts['returning'];
-	}
-
-	// Sort campaigns by number of returning customers in descending order
-	arsort( $campaignsCount );
-
-	return $campaignsCount;
-}
-
-
-function get_campaigns_by_open_rate( $campaigns ) {
-	$openRates = [];
-
-	foreach ( $campaigns as $campaign ) {
-		$campaignMetrics = get_idwiz_metric( $campaign['id'] );
-		if ( $campaignMetrics['wizOpenRate'] != 0 ) {
-			$openRates[ $campaign['id'] ] = $campaignMetrics['wizOpenRate'];
-		}
-	}
-
-	// Sort by open rate in descending order
-	arsort( $openRates );
-
-	$sortedCampaigns = [];
-	foreach ( $openRates as $campaignId => $openRate ) {
-		foreach ( $campaigns as $campaign ) {
-			if ( $campaign['id'] == $campaignId ) {
-				$sortedCampaigns[] = $campaign;
-				break;
-			}
-		}
-	}
-
-	return $sortedCampaigns;
-}
-
-function get_campaigns_by_ctr( $campaigns ) {
-	$ctrs = [];
-
-	foreach ( $campaigns as $campaign ) {
-		$campaignMetrics = get_idwiz_metric( $campaign['id'] );
-		$ctrs[ $campaign['id'] ] = floatval( $campaignMetrics['wizCtr'] ); // Convert to float
-	}
-
-	// Sort by open rate in descending order
-	arsort( $ctrs );
-
-	$sortedCampaigns = [];
-	foreach ( $ctrs as $campaignId => $ctr ) {
-		foreach ( $campaigns as $campaign ) {
-			if ( $campaign['id'] == $campaignId ) {
-				$sortedCampaigns[] = $campaign;
-				break;
-			}
-		}
-	}
-
-	return $sortedCampaigns;
-}
-
-function get_campaigns_by_cto( $campaigns ) {
-	$ctos = [];
-
-	foreach ( $campaigns as $campaign ) {
-		$campaignMetrics = get_idwiz_metric( $campaign['id'] );
-		$ctos[ $campaign['id'] ] = floatval( $campaignMetrics['wizCto'] ); // Convert to float
-	}
-
-	// Sort by open rate in descending order
-	arsort( $ctos );
-
-	$sortedCampaigns = [];
-	foreach ( $ctos as $campaignId => $cto ) {
-		foreach ( $campaigns as $campaign ) {
-			if ( $campaign['id'] == $campaignId ) {
-				$sortedCampaigns[] = $campaign;
-				break;
-			}
-		}
-	}
-
-	return $sortedCampaigns;
-}
 
 function wiz_truncate_string( $string, $length ) {
 	if ( strlen( $string ) > $length ) {
@@ -1420,51 +1318,7 @@ function wiz_truncate_string( $string, $length ) {
 
 
 
-function get_second_purchases_within_week( $purchaseMonth, $purchaseMonthDay, $purchaseWindowDays, $divisions ) {
-	$all_orders = get_orders_grouped_by_customers();
-	$second_purchases = [];
 
-	$specified_date = new DateTime();
-	$specified_date->setDate( $specified_date->format( "Y" ), $purchaseMonth, $purchaseMonthDay );
-	$week_start = ( clone $specified_date )->modify( 'this week' );
-	$purchase_window_end = ( clone $week_start )->modify( "+$purchaseWindowDays days" );
-
-	foreach ( $all_orders as $accountNumber => $orders ) {
-		$qualifying_purchase_date = null;
-
-		foreach ( $orders as $order ) {
-			$purchase_date = new DateTime( $order['purchaseDate'] );
-
-			if (
-				! $qualifying_purchase_date &&
-				$purchase_date->format( 'z' ) >= $specified_date->format( 'z' ) &&
-				$purchase_date->format( 'z' ) <= $purchase_window_end->format( 'z' ) &&
-				in_array( $order['division'], $divisions )
-			) {
-				$qualifying_purchase_date = $purchase_date;
-				continue;
-			}
-
-			if ( $qualifying_purchase_date ) {
-				$end_of_qualifying_year = ( clone $qualifying_purchase_date )->setDate( $qualifying_purchase_date->format( "Y" ), 12, 31 );
-				$days_until_end_of_year = $qualifying_purchase_date->diff( $end_of_qualifying_year )->days;
-				$days_from_start_of_next_year = ( new DateTime( $order['purchaseDate'] ) )->format( 'z' );
-				$days_since_qualifying_order = $days_until_end_of_year + $days_from_start_of_next_year;
-
-				$is_leap_year = ( $qualifying_purchase_date->format( 'L' ) == 1 && $qualifying_purchase_date->format( 'm' ) <= 2 ) ? true : false;
-				$days_limit = $is_leap_year ? 366 : 365;
-				$days_limit = $days_limit - (int) $purchaseWindowDays;
-
-				if ( $days_since_qualifying_order <= $days_limit ) {
-					$order['day_of_year'] = $days_since_qualifying_order;
-					$second_purchases[] = $order;
-				}
-			}
-		}
-	}
-
-	return $second_purchases;
-}
 
 
 function wiz_notifications() {
@@ -1475,132 +1329,6 @@ add_action( 'wp_footer', 'wiz_notifications' );
 
 
 
-if ( ! function_exists( 'wfu_after_file_loaded_handler' ) ) {
-	/** Function syntax
-	 *  The function takes two parameters, $changable_data and $additional_data.
-	 *  - $changable_data is an array that can be modified by the filter and
-	 *    contains the items:
-	 *    > error_message: initially it is set to an empty value, if the handler
-	 *      sets a non-empty value then upload of the file will be cancelled
-	 *      showing this error message
-	 *    > admin_message: initially it is set to an empty value, if the handler
-	 *      sets a non-empty value then this value will be shown to
-	 *      administrators if adminmessages attribute has been activated,
-	 *      provided that error_message is also set. You can use it to display
-	 *      more information about the error, visible only to admins.
-	 *  - $additional_data is an array with additional data to be used by the
-	 *    filter (but cannot be modified) as follows:
-	 *    > file_unique_id: this id is unique for each individual file upload
-	 *      and can be used to identify each separate upload
-	 *    > file_path: the full path of the uploaded file
-	 *    > shortcode_id: this is the id of the plugin, as set using uploadid
-	 *      attribute; it can be used to apply this filter only to a specific
-	 *      instance of the plugin (if it is used in more than one pages or
-	 *      posts)
-	 *  The function must return the final $changable_data. */
-	function wfu_after_file_loaded_handler( $changable_data, $additional_data ) {
-		global $wpdb;
-		$templateId = $additional_data['shortcode_id'];
-
-		$filePath = $additional_data['file_path'];
-
-		$wpdb->query(
-			$wpdb->prepare(
-				"UPDATE {$wpdb->prefix}idemailwiz_templates SET heatmapFile = %s WHERE templateId = %d",
-				$filePath,
-				$templateId
-			)
-		);
-
-		return $changable_data;
-	}
-	add_filter( 'wfu_after_file_loaded', 'wfu_after_file_loaded_handler', 10, 2 );
-}
-
-
-/*
-	This filter is executed after the upload process for each individual file has
-	finished, in order to allow additional tasks to be executed and define custom
-	javascript code to run in clientâ  s browser. 
-*/
-if ( ! function_exists( 'wfu_after_file_upload_handler' ) ) {
-	/** Function syntax
-	 *  The function takes two parameters, $changable_data and $additional_data.
-	 *  - $changable_data is an array that can be modified by the filter and
-	 *    contains the items:
-	 *    > ret_value: not used for the moment, it exists for future additions
-	 *    > js_script: javascript code to be executed on the client's browser
-	 *      after each file is uploaded
-	 *  - $additional_data is an array with additional data to be used by the
-	 *    filter (but cannot be modified) as follows:
-	 *    > shortcode_id: this is the id of the plugin, as set using uploadid
-	 *      attribute; it can be used to apply this filter only to a specific
-	 *      instance of the plugin (if it is used in more than one pages or
-	 *      posts)
-	 *    > file_unique_id: this id is unique for each individual file upload
-	 *      and can be used to identify each separate upload
-	 *    > upload_result: it is the result of the upload process, taking the
-	 *      following values:
-	 *        success: the upload was successful
-	 *        warning: the upload was successful but with warning messages
-	 *        error: the upload failed
-	 *    > error_message: contains warning or error messages generated during
-	 *      the upload process
-	 *    > admin_messages: contains detailed error messages for administrators
-	 *      generated during the upload process
-	 *  The function must return the final $changable_data. */
-	function wfu_after_file_upload_handler( $changable_data, $additional_data ) {
-		$changable_data['js_script'] = "location.reload()";
-		return $changable_data;
-	}
-	add_filter( 'wfu_after_file_upload', 'wfu_after_file_upload_handler', 10, 2 );
-}
-
-/*
-	This filter runs right before the uploaded file starts to be uploaded in order
-	to make modifications of its filename.
-*/
-if ( ! function_exists( 'wfu_before_file_upload_handler' ) ) {
-	/** Function syntax
-	 *  The function takes two parameters, $file_path and $file_unique_id.
-	 *  - $file_path is the filename of the uploaded file (after all internal
-	 *    checks have been applied) and can be modified by the filter.
-	 *  - $file_unique_id is is unique for each individual file upload and can
-	 *    be used to identify each separate upload.
-	 *  The function must return the final $file_path.
-	 *  If additional data are required (such as user id or userdata) you can
-	 *  get them by implementing the previous filter wfu_before_file_check and
-	 *  link both filters by $file_unique_id parameter. Please note that no
-	 *  filename validity checks will be performed after the filter. The filter
-	 *  must ensure that filename is valid. */
-	function wfu_before_file_upload_handler( $file_path, $file_unique_id ) {
-		// Extract the directory part of the file path
-		$directory = dirname( $file_path );
-
-		// Create the new file name
-		$new_file_name = "heatmap_" . $file_unique_id . "_" . time() . ".csv";
-
-		// Concatenate the directory with the new file name
-		$new_file_path = $directory . DIRECTORY_SEPARATOR . $new_file_name;
-
-		return $new_file_path;
-	}
-
-	add_filter( 'wfu_before_file_upload', 'wfu_before_file_upload_handler', 10, 2 );
-}
-
-add_action( 'wp_ajax_idemailwiz_remove_heatmap', 'idemailwiz_remove_heatmap' );
-function idemailwiz_remove_heatmap() {
-	global $wpdb;
-	$templateId = $_POST['templateId'];
-	$wpdb->query(
-		$wpdb->prepare(
-			"UPDATE {$wpdb->prefix}idemailwiz_templates SET heatmapFile = NULL WHERE templateId = %d",
-			$templateId
-		)
-	);
-	wp_send_json_success( true );
-}
 
 
 add_filter( 'cron_schedules', 'idemailwiz_add_five_minutes_cron_schedule' );

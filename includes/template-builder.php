@@ -647,8 +647,11 @@ function generate_builder_column( $rowId, $columnSet, $columnData, $columnIndex 
 }
 
 
-function get_chunk_preview( $chunkData = [], $chunkType ) {
+function get_chunk_preview( $chunkData = [], $chunkType = null ) {
 
+	if (!$chunkType) {
+		return;
+	}
 	$chunkPreview = ucfirst($chunkType);
 
 	if ( $chunkType == 'text' && isset( $chunkData['fields'])) {

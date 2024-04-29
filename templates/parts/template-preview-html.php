@@ -34,20 +34,20 @@
 	?>
 	<div class="wizcampaign-template-details">
 		<h3>
-			<?php echo $currentTemplate['name']; ?>
+			<?php echo $currentTemplate['name']; ?>&nbsp&nbsp<a href="#" class="editTemplateName" data-templateid= "<?php echo $currentTemplate['templateId']; ?>" data-currentname="<?php echo $currentTemplate['name'];?>">edit name</a>
 		</h3>
 		<?php if ( $currentTemplate['messageMedium'] == 'Email' ) { ?>
 			<ul>
 				<li>
 					<strong>
-						<?php echo $currentTemplate['subject']; ?>
+						SL: <?php echo $currentTemplate['subject']; ?>
 					</strong>
 				</li>
 				<li>
-					<?php echo $currentTemplate['preheaderText']; ?>
+					PT: <?php echo $currentTemplate['preheaderText']; ?>
 				</li>
 				<li>
-					<?php echo $currentTemplate['fromName'] . ' &lt' . $currentTemplate['fromEmail'] . '&gt'; ?>
+					From: <?php echo $currentTemplate['fromName'] . ' &lt' . $currentTemplate['fromEmail'] . '&gt'; ?>
 				</li>
 			</ul>
 		<?php } ?>

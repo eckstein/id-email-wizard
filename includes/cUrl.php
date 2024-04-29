@@ -2,10 +2,11 @@
 // Include WordPress' database functions
 global $wpdb;
 
-function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = false, $retryAttempts = 3, $maxConsecutive400Errors = 5)
+function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = false, $retryAttempts = 2, $maxConsecutive400Errors = 2, $timeout = 10)
 {
     $attempts = 0;
     $consecutive400Errors = 0;
+    $consecutiveTimeouts = 0;
 
     do {
         // Initialize cURL
@@ -24,12 +25,14 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
         // Set SSL verification
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $verifySSL);
 
-
         // If POST data is provided, set up a POST request
         if ($postData !== null) {
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($postData));
         }
+
+        // Set timeout
+        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
 
         // Return the transfer as a string
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -39,6 +42,18 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
         if ($response === false) {
             $error = curl_error($ch);
             error_log("cURL Error: $error");
+            
+            // Check for timeout error
+            if (curl_errno($ch) === CURLE_OPERATION_TIMEDOUT) {
+                $consecutiveTimeouts++;
+                if ($consecutiveTimeouts > 3 ) {
+                    throw new Exception("Consecutive timeouts exceeded limit. Stopping execution.");
+                }
+                sleep(5); // Wait for 5 seconds before retrying
+                continue;
+            }
+        } else {
+            $consecutiveTimeouts = 0; // Reset consecutive timeouts count if a successful response is received
         }
 
         // Get the HTTP status code
@@ -49,8 +64,8 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
 
         // Check for rate limit
         if ($httpCode === 429) {
-            error_log("Rate limit hit. Waiting 20 seconds before retrying...");
-            sleep(20); // Adjust this delay as needed.
+            error_log("Rate limit hit. Waiting 5 seconds before retrying...");
+            sleep(5); // Adjust this delay as needed.
             continue;
         }
 
@@ -78,7 +93,7 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
             throw new Exception("HTTP 400 Error after $retryAttempts attempts. Stopping execution.");
         }
 
-    } while ($httpCode === 400 || $httpCode === 429);
+    } while ($httpCode === 400 || $httpCode === 429 || $consecutiveTimeouts > 0);
 
     $decodedResponse = json_decode($response, true);
     if (is_array($decodedResponse)) {

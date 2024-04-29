@@ -178,10 +178,10 @@ if (isset($lazyLoadCharts) && $lazyLoadCharts == 'true') {
         <div class="tinyTableWrapper">
             <?php
             $byProductHeaders = [
-                'Product' => '30%',
-                'Topics' => '30%',
-                'Purchases' => '15%',
-                'Revenue' => '15%'
+                'Product' => '45%',
+                'Topics' => '25%',
+                'Purchases' => '10%',
+                'Revenue' => '20%',
             ];
 
             $purchasesByProduct = transfigure_purchases_by_product($standardChartPurchases);

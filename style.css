@@ -3005,14 +3005,18 @@ h2.wizArticle-title {
 	top: 4px;
 }
 
-.wizChartWrapper.cohort2ndPurchases {
-	max-height: 350px;
-}
+
 /* Wizcharts */
 .wizChartWrapper {
 	position: relative;
-	min-height: 250px;
-	max-height: 350px;
+	display: flex;
+	justify-content: center;
+	height: 225px;
+}
+.wizsection-error-message {
+	font-size: 14px;
+	text-align: center;
+	padding: 40px 20px;
 }
 .wizChart-loadChart {
 	margin: 0 auto;
@@ -3077,7 +3081,12 @@ h2.wizArticle-title {
 	background-color: #f3f3f3;
 }
 .wizcampaign-single .wizcampaign-template-details h3 {
-	margin-bottom: 0;
+	font-size: 12px;
+	font-weight: 500;
+	border-bottom: 1px dotted #343434;
+	padding-bottom: 7px;
+	margin-bottom: 7px;
+	font-style: italic;
 }
 .wizcampaign-single .wizcampaign-template-details ul {
 	margin: 0;
@@ -3101,17 +3110,12 @@ h2.wizArticle-title {
 	display: flex;
 	gap: 10px;
 }
-#removeHeatmap {
-	color: red;
-	cursor: pointer;
-}
+
 .wizcampaign-single .wizcampaign-template-html {
-	margin: 30px 0;
-	box-shadow: 0 0 20px 1px rgba(0, 0, 0, 0.1);
-	border-top-right-radius: 10px;
-	border-top-left-radius: 10px;
+	
+	border: 1px solid #eee;
+	border-radius: 5px;
 	position: relative;
-	width: 800px;
 }
 .wizcampaign-single .wizcampaign-template-html.sms {
 	width: 300px;
@@ -3125,6 +3129,8 @@ h2.wizArticle-title {
 .wizcampaign-template-preview-container {
 	position: relative;
 	width: 100%;
+	max-height: 350px;
+	overflow-y:auto;
 }
 .template-preview-missing-message {
 	text-align: center;
@@ -3138,47 +3144,6 @@ h2.wizArticle-title {
 }
 
 
-.heatmap-container {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	pointer-events: none; /* This allows user interactions to pass through the overlay */
-	overflow: visible;
-}
-
-.heatmap-overlay {
-	position: absolute; /* Now we can set this to absolute as it's within the .heatmap-container */
-	width: 100%;
-	height: 100%;
-}
-
-.heatmap-point {
-	position: absolute;
-	width: 40px;
-	height: 40px;
-	border-radius: 50%;
-	pointer-events: auto;
-	display: flex;
-	justify-content: center;
-	align-items: center;
-}
-
-.heatmap-tooltip {
-	display: none;
-	position: absolute;
-	top: -50px; /* Position above the point */
-	left: 50%;
-	max-width: 250px;
-	transform: translateX(-50%);
-	padding: 5px;
-	border: 1px solid #ccc;
-	background-color: #fff;
-	font-size: 12px;
-	z-index: 9999;
-	word-break: break-all;
-}
 .tinyTableWrapper {
 	min-width: 260px;
 }
@@ -3195,20 +3160,24 @@ h2.wizArticle-title {
 	margin-bottom: 10px;
 	float: right;
 }
+.wizcampaign-tiny-table thead {
+	width: 100%;
+}
 .wizcampaign-tiny-table th {
 	text-align: left;
 	background-color: #343434;
 	color: #fff;
-	padding: 5px 10px;
-	font-size: 14px;
+	padding: 3px 7px;
+	font-size: 12px;
 	border: 1px solid #000;
 }
 
 .wizcampaign-tiny-table td {
-	padding: 5px 10px;
+	padding: 3px 7px;
 	border: 1px solid #343434;
-	font-size: 14px;
+	font-size: 12px;
 	max-width: 200px;
+	color: #000;
 }
 
 .wizcampaign-mobile-template {
@@ -4210,6 +4179,41 @@ color: #eee;
 }
 
 
+/* Wizcampaign standard tabs */
 
+.wizcampaign-section-tabs {
+  
+}
+
+.wizcampaign-section-tabs ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+}
+
+.wizcampaign-section-tabs ul li {
+  padding: 5px 15px;
+  background-color: #f1f1f1;
+  cursor: pointer;
+  margin-right: 5px;
+  border-radius: 5px 5px 0 0;
+  font-size: 13px;
+}
+
+.wizcampaign-section-tabs ul li.active {
+  background-color: #ddd;
+}
+
+.wizcampagn-section-tab-content {
+  display: none;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 0 5px 5px 5px;
+}
+
+.wizcampagn-section-tab-content.active {
+  display: block;
+}
 
 

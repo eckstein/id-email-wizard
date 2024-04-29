@@ -213,7 +213,6 @@ function idwiz_get_report_chartdata($chartOptions)
 
 
 function idwiz_get_byPurchaseField_chartdata($chartOptions) {
-    global $wpdb;
 
     $chartId = $chartOptions['chartId'];
     $chartType = $chartOptions['chartType'];
@@ -236,7 +235,7 @@ function idwiz_get_byPurchaseField_chartdata($chartOptions) {
 
     // Fetch all campaigns in one go
     $campaignIds = array_unique(array_column($allPurchases, 'campaignId'));
-    $allCampaigns = get_idwiz_campaigns(['campaignIds'=>$campaignIds]); // Assuming this function exists to fetch campaigns by IDs
+    $allCampaigns = get_idwiz_campaigns(['campaignIds'=>$campaignIds]);
     $campaignMap = array_column($allCampaigns, null, 'id');
 
     $blastPurchases = [];
@@ -377,7 +376,7 @@ function idwiz_get_eventBydate_chartdata($chartOptions)
 
     $campaignIds = $chartOptions['campaignIds'] ?? false;
 
-	$yearOverYear = $chartOptions['yearOverYear'] ?? false;
+    $campaignType = $chartOptions['campaignType'] ?? 'triggered';
 
     //$campaignTypes = $chartOptions['campaignTypes'] ?? ['Blast', 'Triggered'];
 
@@ -386,17 +385,17 @@ function idwiz_get_eventBydate_chartdata($chartOptions)
 
     switch ($chartId) {
         case 'sendsByDate':
-            $triggeredTableName = 'idemailwiz_triggered_sends';
+            $triggeredTableName = "idemailwiz_{$campaignType}_sends";
             $label = 'Sends';
             break;
 
         case 'opensByDate':
-            $triggeredTableName = 'idemailwiz_triggered_opens';
+            $triggeredTableName = "idemailwiz_{$campaignType}_opens";
             $label = 'Opens';
             break;
 
         case 'clicksByDate':
-            $triggeredTableName = 'idemailwiz_triggered_clicks';
+            $triggeredTableName = "idemailwiz_{$campaignType}_clicks";
             $label = 'Clicks';
             break;
 
@@ -450,6 +449,7 @@ function idwiz_get_eventBydate_chartdata($chartOptions)
 
         return [
             'type' => $chartType,
+            
             'data' => [
                 'labels' => $labels,
                 'datasets' => [
@@ -461,7 +461,14 @@ function idwiz_get_eventBydate_chartdata($chartOptions)
                 ]
             ],
             'options' => [
+                'maintainAspectRatio' => false,
+                'responsive' => true,
                 'scales' => [
+                    'x' => [
+                        'ticks' => [
+                            'maxRotation' => 0,
+                        ]
+                    ],
                     'y-axis-1' => [
                         'position' => 'left',
                         'beginAtZero' => true,
@@ -487,7 +494,7 @@ function idwiz_get_eventBydate_chartdata($chartOptions)
 
 
     } else {
-        return ['error' => 'No triggered data was returned from the query.'];
+        return ['error' => 'No data was returned from the query.'];
     }
 }
 
@@ -822,86 +829,6 @@ function idwiz_generate_monthly_to_goal_data($startDate, $endDate, $wizMonth, $w
 
     return $result;
 }
-
-
-
-
-
-
-
-add_action('wp_ajax_idwiz_generate_cohort_chart', 'idwiz_generate_cohort_chart');
-
-function idwiz_generate_cohort_chart()
-{
-    global $wpdb;
-    $purchaseMonth = isset($_POST['purchaseMonth']) ? intval($_POST['purchaseMonth']) : null;
-    $purchaseMonthDay = isset($_POST['purchaseMonthDay']) ? intval($_POST['purchaseMonthDay']) : null;
-    $divisions = isset($_POST['divisions']) ? $_POST['divisions'] : [];
-    $purchaseWindowDays = isset($_POST['purchaseWindow']) ? $_POST['purchaseWindow'] : 30;
-
-    // Construct the specified date using the purchaseMonth and purchaseMonthDay
-    $specified_date = new DateTime();
-    $specified_date->setDate($specified_date->format("Y"), $purchaseMonth, $purchaseMonthDay);
-
-    // Clone the specified_date and add one year to get next_year_specified_date
-    $next_year_specified_date = (clone $specified_date)->modify('+1 year');
-
-    // Get the second purchases for the given date
-    $second_purchases = get_second_purchases_within_week($purchaseMonth, $purchaseMonthDay, $purchaseWindowDays, $divisions);
-    if (empty($second_purchases)) {
-        wp_send_json_error(['message' => 'No second purchases found.']);
-    }
-
-    $grouped_chart_data = [];
-    foreach ($second_purchases as $purchase) {
-        $purchase_date = new DateTime($purchase['purchaseDate']);
-
-        if ($purchase_date->format("Y") == $specified_date->format("Y")) {
-            // If the purchase is within the same year as the specified_date
-            $days_since_initial = $specified_date->diff($purchase_date)->days;
-        } else {
-            // If the purchase is in the next year
-            $remaining_days_in_specified_year = 365 - $specified_date->format('z'); // Subtracting day of year from total days
-            $days_in_next_year = $purchase_date->format('z'); // Days passed in the next year
-
-            $days_since_initial = $remaining_days_in_specified_year + $days_in_next_year;
-
-            // Adjust for leap year
-            if ($specified_date->format("L") == 1 && $specified_date->format("m") <= 2) {
-                $days_since_initial += 1;
-            }
-        }
-
-        // Convert days_since_initial to the format "50 - 7/3"
-        $date_from_day = (clone $specified_date)->add(new DateInterval("P{$days_since_initial}D"));
-        $formatted_date = $date_from_day->format('n/j');
-        $label = $days_since_initial . " - " . $formatted_date;
-
-        $key = $label . "_" . $purchase['division'];
-        if (!isset($grouped_chart_data[$key])) {
-            $grouped_chart_data[$key] = [
-                'day_of_year' => $label,
-                'division' => $purchase['division'],
-                'count' => 0
-            ];
-        }
-        $grouped_chart_data[$key]['count']++;
-    }
-
-    // Sort the data based on the day of the year
-    usort($grouped_chart_data, function ($a, $b) {
-        return explode(' - ', $a['day_of_year'])[0] - explode(' - ', $b['day_of_year'])[0];
-    });
-
-    $chart_data = array_values($grouped_chart_data);
-
-    // Send the JSON response
-    wp_send_json_success($chart_data);
-}
-
-
-
-
 
 
 

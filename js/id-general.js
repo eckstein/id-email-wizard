@@ -298,6 +298,16 @@ jQuery(document).ready(function ($) {
 		}
 	}
 
+
+	// Standard tab system
+	$('.wizcampaign-section-tabs ul li').click(function() {
+		var tabId = $(this).data('tab');
+		var paneId = $(this).closest('.wizcampaign-section-tabs').data('pane');
+
+		$(this).addClass('active').siblings().removeClass('active');
+		$('#' + paneId + ' .wizcampagn-section-tab-content').removeClass('active');
+		$('#' + tabId).addClass('active');
+	  });
 	
 
 });
@@ -502,7 +512,7 @@ jQuery(document).on("click", ".sync-single-triggered", function () {
 
 
 	idemailwiz_do_ajax(
-		"idemailwiz_manual_export_request_ajax",
+		"handle_single_triggered_sync",
 		idAjax_id_general.nonce,
 		{
 			campaignId: campaignId,
@@ -515,10 +525,8 @@ jQuery(document).on("click", ".sync-single-triggered", function () {
     
 			$thisButton.html($thisButton.data("original-text")).removeClass("disabled");
     
-			
-
 			Swal.fire({
-				title: "Sync Complete",
+				title: "Sync Queued!",
 				html: 'Check the <a target="_blank" href="'+idAjax_id_general.site_url+'/sync-station">sync log</a> for details.',
 				icon: "success",
 			});
@@ -717,6 +725,8 @@ window.manageCampaignsInInitiative = function (action, campaignIds, onSuccess = 
 
 	window.Swal.fire(swalConfig);
 };
+
+
 
 // Auto-refresh sync log
 if (jQuery("#syncLogContent code").length) {

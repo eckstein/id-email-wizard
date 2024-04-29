@@ -15,8 +15,8 @@ if ( isset( $_GET['db-cleanup'] ) ) {
 		update_missing_purchase_dates();
 	} else if ( $doCleanup == 'clean-campaign-ids' ) {
 		remove_zero_campaign_ids();
-	} else if ( $doCleanup == 'backfill-purchase-campaign-dates' ) {
-		idemailwiz_backfill_campaign_start_dates();
+	// } else if ( $doCleanup == 'backfill-purchase-campaign-dates' ) {
+	// 	idemailwiz_backfill_campaign_start_dates();
 	} else if ( $doCleanup == 'cleanup-users-database' ) {
 		idwiz_cleanup_users_database();
 	} else if ( $doCleanup == 'fix-triggered-timestamps' ) {
@@ -47,10 +47,10 @@ if ( isset( $_GET['db-cleanup'] ) ) {
 					<form id="syncStationForm" method="post">
 						<fieldset class="syncTypes blast">
 							<legend>Sync Blast Metrics:</legend>
-							<?php echo "<label><input type='checkbox' name='syncTypes[]' value='blast'>Blast Metrics</label>"; ?>
+							<?php echo "<label><input type='checkbox' name='syncTypes[]' value='blastMetrics'>Blast Metrics</label>"; ?>
 						</fieldset>
 						<fieldset class="syncTypes triggered">
-							<legend>Sync Triggered Metrics:</legend>
+							<legend>Sync Engagement Data:</legend>
 							<?php
 							$syncTypes = [ 'Sends' => 'send', 'Opens' => 'open', 'Clicks' => 'click', 'Unsubscribes' => 'unSubscribe', 'Bounces' => 'bounce', 'Complaints' => 'complaint', 'SendSkips' => 'sendSkip' ];
 							foreach ( $syncTypes as $label => $type ) {
@@ -61,8 +61,7 @@ if ( isset( $_GET['db-cleanup'] ) ) {
 						</fieldset>
 
 						<fieldset id="syncStation-syncCampaigns">
-							<legend>Sync specific campaigns <br /><em>optional and only applicable to blast
-									campaigns</em></legend>
+							<legend>Sync specific campaigns <br /></legend>
 							<label for="campaignIds">Campaign IDs (comma-separated):</label><br />
 							<textarea id="campaignIds" name="campaignIds"></textarea>
 						</fieldset>
@@ -104,12 +103,12 @@ if ( isset( $_GET['db-cleanup'] ) ) {
 								id="removeZeroCampaignIds">Clean Campaign IDs</a>
 							<h5>Remove campaignIds with a value of "0" (updates value to null).</h5>
 						</div>
-						<div class="wizcampaign-section">
+						<!-- <div class="wizcampaign-section">
 							<a class="wiz-button green"
-								href="<?php echo add_query_arg( 'db-cleanup', 'backfill-purchase-campaign-dates' ); ?>"
+								href="<?php //echo add_query_arg( 'db-cleanup', 'backfill-purchase-campaign-dates' ); ?>"
 								id="backfillPurchaseCampaignDates">Backfill Purchase Campaign Send Dates</a>
 							<h5>At the startAt date/time to each purchase, if missing.</h5>
-						</div>
+						</div> -->
 						<div class="wizcampaign-section">
 							<a class="wiz-button green"
 								href="<?php echo add_query_arg( 'db-cleanup', 'cleanup-users-database' ); ?>"

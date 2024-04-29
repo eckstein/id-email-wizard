@@ -247,7 +247,7 @@ jQuery(document).ready(function ($) {
 						existingTemplateId = response.templateId || extractID(response.msg);
 					}
 
-					updateTemplateAfterSync(postId, existingTemplateId);
+					updateTemplateAfterSync(existingTemplateId, postId);
 
 					resolve(existingTemplateId);
 				})
@@ -276,11 +276,12 @@ jQuery(document).ready(function ($) {
 
 
 	// Function to update template after sync
-	function updateTemplateAfterSync(postId, templateId) {
+	function updateTemplateAfterSync(templateId, postId = null, templateName = null) {
 		return $.post(idAjax.ajaxurl, {
 			action: "update_template_after_sync",
 			post_id: postId,
 			template_id: templateId,
+			template_name: templateName,
 			security: idAjax_iterable_actions.nonce
 		});
 	}
@@ -291,6 +292,76 @@ jQuery(document).ready(function ($) {
 		return match ? parseInt(match[1], 10) : null;
 	}
 
+	// Function to update the template name
+	function updateIterableTemplateName(templateId, newTemplateName) {
+	  return new Promise((resolve, reject) => {
+		const apiData = {
+		  templateId: parseInt(templateId),
+		  name: newTemplateName
+		};
 
+		$.ajax({
+		  type: "POST",
+		  url: "https://api.iterable.com/api/templates/email/update",
+		  data: JSON.stringify(apiData),
+		  contentType: "text/plain",
+		  beforeSend: function (xhr) {
+			xhr.setRequestHeader("Api-Key", config.API_KEY);
+		  },
+		})
+		.done(function(response) {
+		
+		  resolve(response);
+		})
+		.fail(function(jqXHR) {
+		  var errorResponse = JSON.parse(jqXHR.responseText);
+		  var errorMessage = "Failed to update template name. ";
+      
+		  if (errorResponse && errorResponse.msg) {
+			errorMessage += "Error: " + errorResponse.msg;
+		  } else {
+			errorMessage += "An unknown error occurred.";
+		  }
+
+		  reject(errorMessage);
+		});
+	  });
+	}
+
+	// Click event handler for the "edit name" link
+	$(document).on('click', '.editTemplateName', function(e) {
+	  e.preventDefault();
+	  const templateId = $(this).data('templateid');
+	  const currentName = $(this).data('currentname');
+
+	  Swal.fire({
+		title: 'Update Template Name',
+		icon: 'info',
+		input: 'text',
+		inputValue: currentName,
+		inputPlaceholder: 'Enter new template name',
+		text: 'This will rename the template in Iterable and The Wizard',
+		showCancelButton: true,
+		confirmButtonText: 'Update',
+		showLoaderOnConfirm: true,
+		preConfirm: (newTemplateName) => {
+		  return updateIterableTemplateName(templateId, newTemplateName)
+			.then(response => {
+			  updateTemplateAfterSync(templateId, null, newTemplateName);
+			  Swal.fire({
+				title: 'Template Name Updated',
+				text: 'The template name has been successfully updated.',
+				icon: 'success'
+			  }).then(() => {
+				location.reload();
+			  });
+			})
+			.catch(error => {
+			  Swal.showValidationMessage(error);
+			});
+		},
+		allowOutsideClick: () => !Swal.isLoading()
+	  });
+	});
 
 });

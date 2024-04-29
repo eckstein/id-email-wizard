@@ -37,65 +37,7 @@ jQuery(document).ready(function ($) {
 		});
 	});
 
-	// Template preview heatmap for single campaigns page
-	if ($(".templatePreviewIframe").length) {
-		$(".templatePreviewIframe").each(function () {
-			var iframe = $(this);
-			var heatmapContainer = iframe.closest(".wizcampaign-template-preview-iframe-container").find(".heatmap-container");
-
-			// Set the overlay height for this iframe
-			function setOverlayHeight() {
-				var iframeContentHeight = iframe.contents().find("body").height();
-				heatmapContainer.height(iframeContentHeight);
-			}
-
-			iframe.on("load", function () {
-				setTimeout(function () {
-					setOverlayHeight();
-					syncScrolling(iframe[0], heatmapContainer);
-				}, 500);
-			});
-		});
-	}
-
-	$(".heatmap-point").hover(
-		function () {
-			var unique_clicks = $(this).data("unique-clicks");
-			var unique_click_rate = $(this).data("unique-click-rate");
-			var url = $(this).data("url");
-			var tooltip_content = "Unique Clicks: " + unique_clicks + "<br>Unique Click Rate: " + unique_click_rate + '<br>URL: <a href="' + url + '">' + url + "</a>";
-			var tooltip = $('<div class="heatmap-tooltip"></div>').html(tooltip_content);
-
-			var position = $(this).position(); // Get the position of the heatmap point
-			tooltip.css({
-				left: position.left,
-				top: position.top - 30, // Position above the point, adjust as needed
-			});
-
-			$(".heatmap-tooltips").append(tooltip);
-			tooltip.show();
-		},
-		function () {
-			$(".heatmap-tooltips").find(".heatmap-tooltip").remove();
-		}
-	);
-
-	// Function to set the overlay height to match the iframe content height
-	function setOverlayHeight() {
-		var iframeContentHeight = $(".templatePreviewIframe").contents().find("body").height();
-		$(".heatmap-overlay").height(iframeContentHeight);
-	}
-
-	// Function to synchronize scrolling
-	function syncScrolling(iframe, heatmapContainer) {
-		var iframeWindow = iframe.contentWindow;
-		var iframeDocument = iframe.contentDocument || iframeWindow.document;
-
-		$(iframeDocument).on("scroll", function () {
-			var scrollTop = $(this).scrollTop();
-			heatmapContainer.css("top", -scrollTop + "px");
-		});
-	}
+	
 
 	$(".mark_as_winner button").on("click", function () {
 		console.log("toggling winner....");

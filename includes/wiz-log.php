@@ -77,7 +77,7 @@ function get_wiz_log( $limit = 1000, $startTimestamp = null, $endTimestamp = nul
 			// Format the date and append microseconds
 			$formattedDate = $date->format( 'm-d-Y g:ia' ) . sprintf( '.%06d', $microsecs );
 
-			$output .= $formattedDate . " - " . $log['message'] . "\n";
+			$output .= $formattedDate . " | " . $log['message'] . "\n";
 		}
 	} else {
 		$output = "Log is empty!";

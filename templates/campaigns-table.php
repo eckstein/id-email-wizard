@@ -59,7 +59,7 @@ if (isset($_GET['startDate']) && $_GET['startDate'] !== '' && isset($_GET['endDa
         </div>
         <div class="wizHeader-right">
             <div class="wizHeader-actions">
-                <button class="wiz-button green sync-db sync-everything"><i class="fa-solid fa-rotate"></i>&nbsp;Sync
+                <button class="wiz-button green doWizSync"><i class="fa-solid fa-rotate"></i>&nbsp;Sync
                     Databases</button>
                 <button class="wiz-button green new-initiative"><i class="fa-regular fa-plus"></i>&nbsp;Add
                     Initiative</button>

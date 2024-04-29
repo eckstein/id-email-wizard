@@ -6,7 +6,7 @@ jQuery(document).ready(function ($) {
 	// Initialize DataTables with the parsed data
 	table = $(".wizcampaign-tiny-table").DataTable({
 		dom: 'ltp',
-		scrollY: '340px',
+		scrollY: '250px',
 		scrollCollapse: true,
 		pageLength: 50,
 		fnDrawCallback: function(oSettings) {
@@ -17,6 +17,10 @@ jQuery(document).ready(function ($) {
 				 $(oSettings.nTableWrapper).find('.dataTables_paginate').show();
 				 $(oSettings.nTableWrapper).find('.dataTables_length').show();
 			}
+
+					$('[data-colAdjust="true"]').on('click', function () {
+					table.columns.adjust();
+					});
 		}
 	});
 

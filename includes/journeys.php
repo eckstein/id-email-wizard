@@ -37,29 +37,42 @@ function update_journey_send_times() {
 	$campaigns_table = $wpdb->prefix . 'idemailwiz_campaigns';
 	$sends_table = $wpdb->prefix . 'idemailwiz_triggered_sends';
 
-	$workflows = $wpdb->get_results( "SELECT DISTINCT workflowId FROM $campaigns_table", ARRAY_A );
+	$workflows = $wpdb->get_results("SELECT DISTINCT workflowId FROM $campaigns_table", ARRAY_A);
 
-	foreach ( $workflows as $workflow ) {
+	foreach ($workflows as $workflow) {
 		$workflowId = $workflow['workflowId'];
 
-		// Optimized query to get the earliest and latest sendAt times for a given workflowId
-		$times = $wpdb->get_row( $wpdb->prepare( "
-			SELECT MIN(startAt) as firstSend, MAX(startAt) as lastSend
-			FROM $sends_table
-			WHERE campaignId IN (
-				SELECT id FROM $campaigns_table WHERE workflowId = %d
-			)",
-			$workflowId
-		), ARRAY_A );
+		// Retrieve the IDs of all campaigns associated with the current workflow
+		$campaignsWithWorkflows = get_idwiz_campaigns(['workflowId' => [$workflowId], 'fields' => ['id']]);
+		$campaign_ids = array_column($campaignsWithWorkflows, 'id');
+		
 
-		if ( $times ) {
-			$wpdb->update(
-				$workflows_table,
-				[ 'firstSendAt' => $times['firstSend'], 
-				'lastSendAt' => $times['lastSend'] ],
-				[ 'workflowId' => $workflowId ],
-				[ '%s', '%s', '%d' ]
-			);
+		if (!empty($campaign_ids)) {
+			// Create a comma-separated string of campaign IDs
+			$campaign_ids_string = implode(',', $campaign_ids);
+
+			// Prepare the SQL query using the campaign IDs string
+			$query = "SELECT MIN(startAt) as firstSend, MAX(startAt) as lastSend FROM $sends_table WHERE campaignId IN ($campaign_ids_string)";
+
+			$times = $wpdb->get_row($query, ARRAY_A);
+
+			if ($times) {
+
+				$firstSend = isset($times['firstSend']) && !empty($times['firstSend']) ? $times['firstSend'] : null;
+				$lastSend = isset($times['lastSend']) && !empty($times['lastSend']) ? $times['lastSend'] : null;
+
+				if ($firstSend !== null || $lastSend !== null) {
+					// Update the workflows table with the retrieved times
+					$wpdb->update(
+						$workflows_table,
+						['firstSendAt' => $firstSend, 'lastSendAt' => $lastSend],
+						['workflowId' => $workflowId],
+						['%d', '%d'],
+						['%d']
+					);
+					wiz_log('Updated journey send times for workflow ' . $workflowId);
+				}
+			}
 		}
 	}
 }

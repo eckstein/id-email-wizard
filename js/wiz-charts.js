@@ -103,14 +103,16 @@ jQuery(document).ready(function ($) {
 			additionalData.campaignTypes = $(canvas).attr("data-campaigntypes");
 		}
 
+		if ($(canvas).attr("data-campaigntype")) {
+			additionalData.campaignType = $(canvas).attr("data-campaigntype");
+		}
+
 		idemailwiz_do_ajax(
 			"idwiz_catch_chart_request",
 			idAjax_wiz_charts.nonce,
 			additionalData,
 			function (response) {
-				if (response.data.error) {
-					$(canvas).before('<div class="wizsection-error-message">No data available</div>');
-				}
+				
 				if (response.success) {
 					$('.wizsection-error-message').remove();
 					let options = response.data.options;
@@ -188,9 +190,13 @@ jQuery(document).ready(function ($) {
 					idwiz_create_chart(canvas, response.data.type, response.data.data.labels, response.data.data.datasets, options);
 					$(canvas).siblings(".wizChartLoader").remove();
 				} else {
-					//console.error("AJAX request successful but response indicated failure:", response);
-					$(canvas).before('<div class="wizsection-error-message">' + response.data + '</div>');
-				$(canvas).siblings(".wizChartLoader").remove();
+					setTimeout(function () {
+						$(canvas).closest('.wizChartWrapper').append('<div class="wizsection-error-message">' + response.data + '</div>');
+						$(canvas).siblings(".wizChartLoader").remove();
+						$(canvas).hide();
+					}, 1000);
+
+					
 				}
 			},
 			function (error) {

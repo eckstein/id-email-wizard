@@ -474,24 +474,22 @@ jQuery(document).ready(function ($) {
 	}
 
 	if ($(".idwiz-initiative-table").length) {
-		// Custom sorting for date format 'm/d/Y'
-		$.fn.dataTable.ext.type.order["date-mdy-pre"] = function (dateString) {
-			var dateParts = dateString.split("/");
-			return new Date(dateParts[2], dateParts[0] - 1, dateParts[1]).getTime(); // Month is 0-indexed
-		};
+
 
 		var idemailwiz_initiative_campaign_table = $(".idwiz-initiative-table").DataTable({
 			dom: '<"#wiztable_top_wrapper"><"wiztable_toolbar" <"#wiztable_top_search" f><"#wiztable_top_dates">  B>rtp',
 			columnDefs: [
-				{ targets: "campaignDate", type: "date-mdy" },
-				{ targets: "campaignId", visible: false },
+			
+			{ targets: "campaignId", 
+				visible: false 
+			},
 			],
 			order: [[1, "desc"]],
 			autoWidth: false,
 			scrollX: true,
 			scrollY: true,
 			paging: true,
-			pageLength: 10,
+			pageLength: 25,
 			select: true,
 			fixedHeader: {
 				header: true,
