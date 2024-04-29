@@ -5,7 +5,7 @@ function do_database_cleanups()
     update_null_user_ids();
     update_missing_purchase_dates();
     remove_zero_campaign_ids();
-    //idemailwiz_backfill_campaign_start_dates();
+    idemailwiz_backfill_campaign_start_dates();
     //idwiz_cleanup_users_database();
 }
 function update_null_user_ids()
@@ -166,35 +166,35 @@ function remove_apostrophes_from_column($table_suffix, $column_name)
     }
 }
 
-// function idemailwiz_backfill_campaign_start_dates()
-// {
-//     global $wpdb;
-//     $purchases_table = $wpdb->prefix . 'idemailwiz_purchases';
-//     $campaigns_table = $wpdb->prefix . 'idemailwiz_campaigns';
+function idemailwiz_backfill_campaign_start_dates()
+{
+    global $wpdb;
+    $purchases_table = $wpdb->prefix . 'idemailwiz_purchases';
+    $campaigns_table = $wpdb->prefix . 'idemailwiz_campaigns';
 
-//     // Fetch all purchases that have a campaignId and an empty or null campaignStartAt
-//     $purchases = $wpdb->get_results("SELECT id, campaignId FROM $purchases_table WHERE campaignId IS NOT NULL AND (campaignStartAt IS NULL OR campaignStartAt = '')");
-//     $countUpdates = 0;
-//     foreach ($purchases as $purchase) {
-//         // Fetch the campaign's startAt date
-//         $campaignStartAt = $wpdb->get_var($wpdb->prepare("SELECT startAt FROM $campaigns_table WHERE id = %d", $purchase->campaignId));
+    // Fetch all purchases that have a campaignId and an empty or null campaignStartAt
+    $purchases = $wpdb->get_results("SELECT id, campaignId FROM $purchases_table WHERE campaignId IS NOT NULL AND (campaignStartAt IS NULL OR campaignStartAt = '')");
+    $countUpdates = 0;
+    foreach ($purchases as $purchase) {
+        // Fetch the campaign's startAt date
+        $campaignStartAt = $wpdb->get_var($wpdb->prepare("SELECT startAt FROM $campaigns_table WHERE id = %d", $purchase->campaignId));
 
-//         if ($campaignStartAt) {
-//             // Update the purchase record with the campaignStartAt date
-//             $updateRecord = $wpdb->update(
-//                 $purchases_table,
-//                 ['campaignStartAt' => $campaignStartAt],
-//                 ['id' => $purchase->id]
-//             );
-//             if ($updateRecord && $updateRecord > 0) {
-//                 $countUpdates++;
-//             }
-//         }
-//     }
+        if ($campaignStartAt) {
+            // Update the purchase record with the campaignStartAt date
+            $updateRecord = $wpdb->update(
+                $purchases_table,
+                ['campaignStartAt' => $campaignStartAt],
+                ['id' => $purchase->id]
+            );
+            if ($updateRecord && $updateRecord > 0) {
+                $countUpdates++;
+            }
+        }
+    }
 
-//     wiz_log("Purchase campaign start date backfill completed for {$countUpdates} records.");
-//     return "Purchase campaign start date backfill completed for {$countUpdates} records.";
-// }
+    wiz_log("Purchase campaign start date backfill completed for {$countUpdates} records.");
+    return "Purchase campaign start date backfill completed for {$countUpdates} records.";
+}
 
 function idwiz_cleanup_users_database($batchSize = 10000)
 {
