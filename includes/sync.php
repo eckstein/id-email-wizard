@@ -208,7 +208,7 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 
 function idemailwiz_fetch_campaigns($campaignIds = null)
 {
-	
+
 	$url = 'https://api.iterable.com/api/campaigns';
 	try {
 		$response = idemailwiz_iterable_curl_call($url);
@@ -1523,8 +1523,15 @@ function idemailwiz_add_cron_intervals($schedules)
 add_action('init', 'idemailwiz_schedule_queue_fill_process');
 function idemailwiz_schedule_queue_fill_process()
 {
-	if (!wp_next_scheduled('idemailwiz_fill_sync_queue')) {
-		wp_schedule_event(time(), 'twicedaily', 'idemailwiz_fill_sync_queue');
+	$wizSettings = get_option('idemailwiz_settings');
+	$engSync = $wizSettings['iterable_engagement_data_sync_toggle'] ?? 'off';
+
+	if ($engSync == 'on') {
+		if (!wp_next_scheduled('idemailwiz_fill_sync_queue')) {
+			wp_schedule_event(time(), 'twicedaily', 'idemailwiz_fill_sync_queue');
+		}
+	} else {
+		wiz_log("Engagement data sync fill was activated but is disable in Wiz Settings.");
 	}
 }
 add_action('idemailwiz_fill_sync_queue', 'idwiz_export_and_store_jobs_to_sync_queue');
@@ -1533,15 +1540,23 @@ add_action('idemailwiz_fill_sync_queue', 'idwiz_export_and_store_jobs_to_sync_qu
 add_action('init', 'idemailwiz_schedule_sync_process');
 function idemailwiz_schedule_sync_process()
 {
-	if (!wp_next_scheduled('idemailwiz_sync_engagement_data')) {
-		if (get_transient('data_sync_in_progress')) {
-			wiz_log("Auto-sync triggered, but data sync is already in progress.");
-			wp_schedule_single_event(time() + 2 * HOUR_IN_SECONDS, 'idemailwiz_sync_engagement_data');
-			return;
-		};
-		wp_schedule_event(time(), 'every_two_hours', 'idemailwiz_sync_engagement_data');
-		
-		//wp_schedule_single_event(time(), 'idemailwiz_sync_engagement_data');
+	$wizSettings = get_option('idemailwiz_settings');
+	$engSync = $wizSettings['iterable_engagement_data_sync_toggle'] ?? 'off';
+
+	if ($engSync == 'on') {
+		if (!wp_next_scheduled('idemailwiz_sync_engagement_data')) {
+			if (get_transient('data_sync_in_progress')) {
+				wiz_log("Auto-sync triggered, but data sync is already in progress.");
+				wp_schedule_single_event(time() + 2 * HOUR_IN_SECONDS, 'idemailwiz_sync_engagement_data');
+				sleep(1);
+				return;
+			};
+			wp_schedule_event(time(), 'every_two_hours', 'idemailwiz_sync_engagement_data');
+
+			//wp_schedule_single_event(time(), 'idemailwiz_sync_engagement_data');
+		}
+	} else {
+		wiz_log("Engagement data sync is disabled in Wiz Settings.");
 	}
 }
 
@@ -1668,6 +1683,7 @@ function idwiz_export_and_store_jobs_to_sync_queue($campaignIds = null, $campaig
 
 	// If campaignIds are provided, override the campaignTypes
 	if (!empty($campaignIds)) {
+		$campaignIds = array_unique($campaignIds);
 		$campaignTypes = [];
 	}
 
@@ -1715,6 +1731,7 @@ function idemailwiz_process_campaign_batch($campaignBatches, $currentBatch, $tot
 				&& ($metricType == 'send')
 				&& ($messageMedium == 'Email')
 				&& ($campaignEndTimestamp < strtotime('-1 day'))
+				&& ($priority == 1) // higher priorities indicate manual syncs
 			) {
 				continue;  // skip processing
 			}
@@ -1778,8 +1795,6 @@ function idemailwiz_export_and_queue_single_job($campaignId, $messageType, $metr
 		wiz_log("Error starting export job for campaign $campaignId: " . $e->getMessage());
 		return;
 	}
-
-	
 }
 
 
@@ -1793,13 +1808,32 @@ function idemailwiz_add_sync_queue_row($scheduledJob, $campaignId, $syncType, $p
 	if (isset($scheduledJob['response']['jobId'])) {
 		$iterableJobId = $scheduledJob['response']['jobId'];
 
+		// Create a DateTime object representing the current time
+		$currentTime = new DateTimeImmutable('now', new DateTimeZone('America/Los_Angeles'));
+		//$currentTime->setTimezone(new DateTimeZone('America/Los_Angeles'));
+
+		$deleteAfter = $currentTime->modify('+ 12 hours');
+
+		// Set retry after to 12 hours later so that manual syncs an re-queues are still prioritized
+		// We also set deleteAfter to the same time so the job will be deleted if not syned within 12 hours
+		$deleteAfter = $deleteAfter->format('Y-m-d H:i:s');
+
+		if ($priority > 1) {
+			$retryAfter = $currentTime->format('Y-m-d H:i:s');
+		} else {
+			$retryAfter = $deleteAfter;
+		}
+
+		//wiz_log("priority: " . $priority . " retryAfter: " . $retryAfter);
+
 		try {
 			// Insert a new row into the sync queue
 			$result = $wpdb->insert($sync_jobs_table_name, [
 				'jobId' => $iterableJobId,
 				'campaignId' => $campaignId,
 				'jobState' => '',
-				'retryAfter' => 0,
+				'retryAfter' => $retryAfter,
+				'deleteAfter' => $deleteAfter,
 				'syncType' => $syncType,
 				'syncStatus' => 'pending',
 				'syncPriority' => $priority,
@@ -1865,7 +1899,6 @@ function get_campaigns_to_sync(
 		$campaigns = array_merge($blastCampaigns, $triggeredCampaigns);
 	}
 
-	// Return a maximum of $batchSize campaigns
 	return $campaigns;
 }
 
@@ -1881,7 +1914,7 @@ function idemailwiz_sync_engagement_data_callback()
 	$sync_jobs_table_name = $wpdb->prefix . 'idemailwiz_sync_jobs';
 
 	set_transient('data_sync_in_progress', 'true', 2 * HOUR_IN_SECONDS);
-	$jobs = $wpdb->get_results("SELECT * FROM $sync_jobs_table_name WHERE syncStatus = 'pending' AND DATE(retryAfter) < date(NOW()) ORDER BY syncPriority DESC, retryAfter ASC LIMIT 1", ARRAY_A);
+	$jobs = $wpdb->get_results("SELECT * FROM $sync_jobs_table_name WHERE syncStatus = 'pending' ORDER BY syncPriority DESC, retryAfter ASC LIMIT 1", ARRAY_A);
 
 	if (empty($jobs)) {
 		wiz_log("No pending jobs found in the sync queue.");
@@ -1890,9 +1923,15 @@ function idemailwiz_sync_engagement_data_callback()
 		delete_transient('data_sync_in_progress');
 		return;
 	} else {
-		idemailwiz_process_job_from_sync_queue($jobs[0]['jobId']);
-
-		wp_schedule_single_event(time() + 1, 'idemailwiz_sync_engagement_data');
+		$now = new DateTimeImmutable('now', new DateTimeZone('America/Los_Angeles'));
+		
+		foreach ($jobs as $job) {
+			$retryAfter = new DateTimeImmutable($job['retryAfter'], new DateTimeZone('America/Los_Angeles'));
+			if ($now > $retryAfter) {
+				idemailwiz_process_job_from_sync_queue($job['jobId']);
+				wp_schedule_single_event(time() + 1, 'idemailwiz_sync_engagement_data');
+			}
+		}
 	}
 }
 
@@ -1904,19 +1943,25 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 	$sync_jobs_table_name = $wpdb->prefix . 'idemailwiz_sync_jobs';
 
 	if (!$jobId) {
-		$job = $wpdb->get_row("SELECT * FROM $sync_jobs_table_name WHERE jobState = '' AND syncStatus = 'pending' AND DATE(retryAfter) < date(NOW()) ORDER BY syncPriority ASC, retryAfter ASC LIMIT 1", ARRAY_A);
+		$job = $wpdb->get_row("SELECT * FROM $sync_jobs_table_name WHERE syncStatus = 'pending' ORDER BY syncPriority ASC, retryAfter ASC LIMIT 1", ARRAY_A);
 	} else {
-		$job = $wpdb->get_row("SELECT * FROM $sync_jobs_table_name WHERE jobId = $jobId AND DATE(retryAfter) < date(NOW()) LIMIT 1", ARRAY_A);
+		$job = $wpdb->get_row("SELECT * FROM $sync_jobs_table_name WHERE jobId = $jobId LIMIT 1", ARRAY_A);
 	}
 
 	if (empty($job)) {
-		wiz_log("No job found with ID $jobId");
-		return;
+		wiz_log("Could not find job in queue with id $jobId");
 	}
 
 	if ($job['syncStatus'] == 'finished') {
 		return;
 	}
+
+	$now = new DateTimeImmutable('now', new DateTimeZone('America/Los_Angeles'));
+	$retryAfter = new DateTimeImmutable($job['retryAfter'], new DateTimeZone('America/Los_Angeles'));
+
+	if ($now < $retryAfter) {
+		return;
+	}	
 
 	$jobId = $job['jobId'];
 	$startAfter = $job['startAfter'] ? '?startAfter=' . $job['startAfter'] : '';
@@ -1933,31 +1978,33 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 	$lastProcessedFile = '';
 	if ($jobApiResponse['response']['jobState'] !== 'completed') {
 
-		wiz_log("Job $jobId is not finished yet. Job state: {$jobApiResponse['response']['jobState']}. Requeuing the job after 5 minutes.");
+		// Create a DateTime object representing the current time
+		$currentTime = new DateTime('now', new DateTimeZone('UTC'));
 
-		// Save the current default timezone
-		$originalTimezone = date_default_timezone_get();
+		// Add 5 minutes to the current time
+		$currentTime->modify('+5 minutes');
 
-		// Set the default timezone to Pacific Time (PT)
-		date_default_timezone_set('America/Los_Angeles');
+		// Set the timezone to Pacific Time (PT)
+		$currentTime->setTimezone(new DateTimeZone('America/Los_Angeles'));
 
-		// Calculate the retryAfter timestamp in Pacific Time
-		$retryAfter = date('Y-m-d H:i:s', time() + (5 * MINUTE_IN_SECONDS));
+		// Format the time in a suitable format
+		$retryAfter = $currentTime->format('Y-m-d H:i:s');
 
-		// Revert the default timezone to the original setting
-		date_default_timezone_set($originalTimezone);
-
-		$wpdb->update($sync_jobs_table_name, [
-			'retryAfter' => $retryAfter,
-		],
+		// Update the database with the retryAfter timestamp
+		$wpdb->update(
+			$sync_jobs_table_name,
+			[
+				'retryAfter' => $retryAfter,
+			],
 			[
 				'jobId' => $jobId,
 			]
 		);
-		
+
+		// Return from the function
 		return;
 	}
-	
+
 	foreach ($jobApiResponse['response']['files'] as $file) {
 		$jsonResponse = file_get_contents($file['url']);
 
@@ -2034,8 +2081,8 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 		wiz_log("Export truncated for job $jobId. Requeueing..");
 	} else {
 
-		// Mark job as finished and schedule deleteAfter for 50 minutes later
-		$deleteAfter = date('Y-m-d H:i:s', strtotime('+ 50 minutes', current_time('timestamp')));
+		// Mark job as finished and schedule deleteAfter for 1 hour later
+		$deleteAfter = date('Y-m-d H:i:s', strtotime('1 hour', current_time('timestamp')));
 		$wpdb->update(
 			$sync_jobs_table_name,
 			['startAfter' => null, 'syncStatus' => 'finished', 'deleteAfter' => $deleteAfter],
@@ -2053,10 +2100,11 @@ function idemailwiz_cleanup_sync_queue()
 
 	$currentTime = current_time('mysql');
 
-	$wpdb->query("DELETE FROM $sync_jobs_table_name WHERE syncStatus = 'finished' AND deleteAfter <= '$currentTime'");
+	$wpdb->query("DELETE FROM $sync_jobs_table_name WHERE deleteAfter <= '$currentTime'");
 }
 
-function get_idwiz_sync_jobs($syncStatus = 'pending', $campaignId = null) {
+function get_idwiz_sync_jobs($syncStatus = 'pending', $campaignId = null)
+{
 	global $wpdb;
 	$sync_jobs_table_name = $wpdb->prefix . 'idemailwiz_sync_jobs';
 	if ($campaignId) {
@@ -2069,13 +2117,22 @@ function get_idwiz_sync_jobs($syncStatus = 'pending', $campaignId = null) {
 	return $jobs;
 }
 
-function sync_single_campaign_data($campaignId, $exportStart = null, $exportEnd = null) {
+function sync_single_campaign_data($campaignId, $exportStart = null, $exportEnd = null)
+{
+	global $wpdb;
+	$sync_jobs_table_name = $wpdb->prefix . 'idemailwiz_sync_jobs';
 	// check for existing pending jobs in queue
 	$jobs = get_idwiz_sync_jobs('pending', $campaignId);
 	if (count($jobs) > 0) {
 		foreach ($jobs as $job) {
-		// Process this job immedietely
-			wiz_log('Campaign found in queue, syncing jobs...');
+			// Process this job immediately
+			wiz_log('Campaign found in queue, prioritizing...');
+			$wpdb->update(
+				$sync_jobs_table_name,
+				['priority' => 100, 'retryAfter' => 0],
+				['jobId' => $job['jobId']]
+			);
+
 			if (!wp_next_scheduled('idemailwiz_sync_engagement_data')) {
 				wp_schedule_single_event(time() + 1, 'idemailwiz_sync_engagement_data');
 			}
@@ -2084,19 +2141,17 @@ function sync_single_campaign_data($campaignId, $exportStart = null, $exportEnd 
 		wiz_log('Campaign not in queue, queuing jobs...');
 		$campaign = get_idwiz_campaign($campaignId);
 		$messageType = strtolower($campaign['messageMedium']);
-		$campaignType = strtolower($campaign['type']);
+		$campaignTypes = [$campaign['type']];
+		$messageMediums = [$campaign['messageMedium']];
 		$metricTypes = ['send', 'open', 'click', 'bounce', 'unsubscribe', 'sendskip', 'complaint'];
-		foreach ($metricTypes as $metricType) {
-			$syncType = $campaignType . '_' . strtolower($metricType) . 's';
-			// Add jobs to queue with high priority
-			wiz_log("Adding $metricType jobs for campaign $campaignId to queue...");
-			idemailwiz_export_and_queue_single_job($campaignId, $messageType, $metricType, $syncType, $exportStart, $exportEnd, 100);
-			sleep(2);
-		}
+
+		// Add jobs to queue with high priority
+		wiz_log("Adding jobs for campaign $campaignId to queue...");
+		idwiz_export_and_store_jobs_to_sync_queue([$campaignId], $campaignTypes, $messageMediums, $metricTypes, $exportStart, $exportEnd, 100, 1);
+
 		wiz_log('Jobs queued successfully. Sync should occur within 2 minutes.');
 		if (!wp_next_scheduled('idemailwiz_sync_engagement_data')) {
 			wp_schedule_single_event(time() + 60, 'idemailwiz_sync_engagement_data');
 		}
-
 	}
 }

@@ -56,8 +56,8 @@ function idemailwiz_register_settings()
         'options' => array('on' => 'On', 'off' => 'Off')
     ));
 
-    add_settings_field('iterable_triggered_sync_toggle', 'Triggered Sync On/Off', 'idemailwiz_render_radio_field', 'idemailwiz_settings', 'idemailwiz_main_section', array(
-        'option_name' => 'iterable_triggered_sync_toggle',
+    add_settings_field('iterable_engagement_data_sync_toggle', 'Engagement Data Sync On/Off', 'idemailwiz_render_radio_field', 'idemailwiz_settings', 'idemailwiz_main_section', array(
+        'option_name' => 'iterable_engagement_data_sync_toggle',
         'options' => array('on' => 'On', 'off' => 'Off')
     ));
 
