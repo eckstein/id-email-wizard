@@ -291,7 +291,7 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 			<td class="id-raw-html" style="<?php echo $msoBackgroundColorCss; ?> padding: <?php echo $chunkPadding; ?>; color: <?php echo $baseTextColor; ?>; font-family: Poppins, Arial, sans-serif!important; font-size: <?php echo $templateFontSize; ?>;">
 			<![endif]-->
 
-		<div class="chunk id-raw-html <?php echo $chunkClasses; ?> <?php echo $visibility['class']; ?>" <?php echo $chunkDataAttr; ?> style="<?php echo $visibility['inlineStyle']; ?> <?php echo $backgroundColorCss; ?> color: <?php echo $baseTextColor; ?>; padding: <?php echo $chunkPadding; ?>; font-size: <?php echo $templateFontSize; ?>; border:1px solid transparent;">
+		<div class="chunk id-raw-html <?php echo $chunkClasses; ?> <?php echo $visibility['class']; ?>" <?php echo $chunkDataAttr; ?> style="<?php echo $visibility['inlineStyle']; ?> <?php echo $backgroundColorCss; ?> color: <?php echo $baseTextColor; ?>; padding: <?php echo $chunkPadding; ?>; font-size: <?php echo $templateFontSize; ?>;">
 			<?php
 			if ($gmailBlendDesktopClass || $gmailBlendMobileClass) {
 				echo '<div class="gmail-blend-screen ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
