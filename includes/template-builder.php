@@ -1581,7 +1581,7 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 		$rowDataAttr = $isEditor ? 'data-row-index=' . $rowIndex : '';
 
 		$return .= "<div class='row' $rowDataAttr style='font-size:0; width: 100%; margin: 0; padding: 0; " . $rowBackgroundCss . "'>";
-		$return .= "<!--[if mso]><table class='row' role='presentation' width='100%' style='$rowBackgroundCssMso white-space:nowrap;text-align:center; '><tr><td><![endif]-->";
+		$return .= "<!--[if mso]><table role='presentation' class='row' role='presentation' width='100%' style='$rowBackgroundCssMso white-space:nowrap;width: 100%; border: 0; border-spacing: 0;margin: 0 auto;text-align:center; '><tr><td><![endif]-->";
 
 		$columnSets = $row['columnSets'] ?? [];
 
@@ -1616,8 +1616,8 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 			$displayTable = $numActiveColumns > 1 ? 'display: table;' : '';
 
 			$return .= "<div class='columnSet $layoutClass' $colSetDataAttr $magicRtl style='$colSetBackgroundCss text-align: center; font-size: 0; width: 100%; " . $displayTable . "'>";
-			$return .= "<!--[if mso]><table class='columnSet' role='presentation' width='100%' style='white-space:nowrap;text-align:center;'><tr><td style='$colSetBackgroundCssMso'><![endif]-->";
-			$return .= "<table role='presentation' width='100%' style='width:100%;'><tr>";
+			$return .= "<!--[if mso]><table role='presentation' class='columnSet' role='presentation' width='100%' style='width: 100%; border: 0; border-spacing: 0;margin: 0 auto;text-align: center;'><tr><td style='$colSetBackgroundCssMso'><![endif]-->";
+			$return .= "<table role='presentation' width='100%' style='width: 100%; border: 0; border-spacing: 0;margin: 0 auto;'><tr>";
 
 
 			foreach ( $columns as $columnIndex => $column ) {
