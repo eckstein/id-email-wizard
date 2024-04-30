@@ -827,6 +827,14 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 					mix-blend-mode: difference;
 				}
 			}
+
+			@media screen and (max-width: 480px) {
+				.column {
+					display: block !important;
+					width: 100% !important;
+					max-width: 100% !important;
+				}
+			}
 		</style>
 
 
