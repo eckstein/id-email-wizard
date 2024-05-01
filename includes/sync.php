@@ -1800,7 +1800,7 @@ function idemailwiz_process_campaign_export_batch($campaignBatches, $currentBatc
 			}
 
 			// Build syncType name to match database name
-			$syncType = $campaignType . '_' . $metricType . 's'; // matches database name after $wpdb->prefix . 'idemailwiz_'
+			$syncType = $campaignType . '_' . strtolower($metricType) . 's'; // matches database name after $wpdb->prefix . 'idemailwiz_'
 
 			// Check if a queued job already exists for this campaign and metric type
 			$existingJob = $wpdb->get_row("SELECT * FROM $sync_jobs_table_name WHERE campaignId = $campaignId AND syncType = '$syncType'");
