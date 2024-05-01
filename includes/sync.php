@@ -1599,7 +1599,7 @@ function idemailwiz_sync_engagement_data_callback()
 				// wiz_log("Now: " . $now->format('Y-m-d H:i:s'));
 				// wiz_log("Retry After: " . $retryAfter->format('Y-m-d H:i:s'));
 
-				if ($now > $retryAfter) {
+				if ($now > $retryAfter && $job['syncStatus'] === 'pending') {
 					wiz_log("Processing {$job['syncType']} job {$job['jobId']} for campaign {$job['campaignId']}");
 					idemailwiz_process_job_from_sync_queue($job['jobId']);
 					wp_schedule_single_event(time() + 1, 'idemailwiz_sync_engagement_data');
