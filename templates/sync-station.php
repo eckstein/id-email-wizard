@@ -21,6 +21,8 @@ if ( isset( $_GET['db-cleanup'] ) ) {
 		idwiz_cleanup_users_database();
 	} else if ( $doCleanup == 'fix-triggered-timestamps' ) {
 		updateTimestampsToMilliseconds();
+	} else if ( $doCleanup == 'requeue-retries' ) {
+		requeue_retry_afters();
 	}
 }
 
@@ -83,6 +85,12 @@ if ( isset( $_GET['db-cleanup'] ) ) {
 					<h2>Database Cleanup Operations</h2>
 					<div class="wizcampaign-sections-row">
 
+						<div class="wizcampaign-section">
+							<a class="wiz-button green"
+								href="<?php echo add_query_arg( 'db-cleanup', 'requeue-retries' ); ?>"
+								id="updateNullUserIds">Re-queue retries</a>
+							<h5>Sets all pending sync jobs to be retried after right now.</h5>
+						</div>
 						<div class="wizcampaign-section">
 							<a class="wiz-button green"
 								href="<?php echo add_query_arg( 'db-cleanup', 'update-null-user-ids' ); ?>"
