@@ -1570,6 +1570,7 @@ function idemailwiz_schedule_sync_process()
 		wiz_log("Engagement data sync is disabled in Wiz Settings.");
 	}
 }
+
 // Callback function for the sync process event
 add_action('idemailwiz_sync_engagement_data', 'idemailwiz_sync_engagement_data_callback');
 function idemailwiz_sync_engagement_data_callback()
@@ -1956,16 +1957,22 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 		wiz_log("Could not find job in queue with id $jobId");
 	}
 
-	if ($job['syncStatus'] == 'finished') {
-		return;
-	}
+	// if ($job['syncStatus'] == 'finished') {
+	// 	return;
+	// }
 
 	$now = new DateTimeImmutable('now', new DateTimeZone('America/Los_Angeles'));
 	$retryAfter = new DateTimeImmutable($job['retryAfter'], new DateTimeZone('America/Los_Angeles'));
 
-	if ($now < $retryAfter) {
-		return;
-	}	
+	// if ($now < $retryAfter) {
+	// 	return;
+	// }
+
+	$wpdb->update(
+		$sync_jobs_table_name,
+		['syncStatus' => 'syncing'],
+		['jobId' => $jobId]
+	);
 
 	$jobId = $job['jobId'];
 	$startAfter = $job['startAfter'] ? '?startAfter=' . $job['startAfter'] : '';
