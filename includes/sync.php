@@ -1842,7 +1842,7 @@ function idemailwiz_export_and_queue_single_job($campaignId, $messageType, $metr
 		"startDateTime" => $exportStart,
 		"endDateTime" => $exportEnd,
 	];
-
+	wiz_log("API URL: " . $apiData['url']);
 	try {
 		$scheduledJob = idemailwiz_iterable_curl_call($apiData['url'], $apiData['args'], 'POST');
 		if (!isset($scheduledJob['response']['jobId'])) {
