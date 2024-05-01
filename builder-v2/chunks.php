@@ -1171,6 +1171,7 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 				.two-col .column,
 				.sidebar-left .column,
 				.sidebar-right .column {
+					width: 100% !important;
 					max-width: 100% !important;
 					min-width: 100% !important;
 					display: block !important;

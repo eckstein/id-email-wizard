@@ -1635,7 +1635,7 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 				$columnWidthPx = $templateWidth;
 				$columnWidthPct = 100;
 
-
+				$columnDataAttr = $isEditor ? 'data-column-index=' . $columnIndex : '';
 
 				if ( $layoutClass === 'two-column' ) {
 					$columnWidthPx = round( $templateWidth / 2, 0 );
@@ -1682,17 +1682,15 @@ function renderTemplateRows( $templateData, $isEditor = false ) {
 					$columnWidthPct = 100;
 				}
 
-				$columnStyle = "width: {$columnWidthPct}%; font-size: {$templateStyles['font-styles']['template_font_size']}; vertical-align: {$colValign};text-align: left;";
-				if ( $numActiveColumns > 1 ) {
-					$columnStyle .= "display: table-cell; ";
+				$columnStyle = "width: {$columnWidthPct}%; max-width: {$columnWidthPx}px; font-size: {$templateStyles['font-styles']['template_font_size']}; vertical-align: {$colValign}; text-align: left;";
+				if ($numActiveColumns > 1) {
+					$columnStyle .= "display: inline-block; ";
 				} else {
 					$columnStyle .= "display: block; ";
 				}
 
-				$columnDataAttr = $isEditor ? 'data-column-index=' . $columnIndex : '';
-
-				$return .= "<!--[if !mso]><!--><div class='column' $columnDataAttr style='$columnStyle width:{$columnWidthPx}px; $colBackgroundCSS' dir='ltr'><!--<![endif]-->";
-				$return .= "<!--[if mso]><td style='width:{$columnWidthPx}px; $msoColBackgroundCSS' width='{$columnWidthPx}'  valign='{$colValign}'><![endif]-->";
+				$return .= "<!--[if mso]><td style='width:{$columnWidthPx}px; $msoColBackgroundCSS' width='{$columnWidthPx}' valign='{$colValign}'><![endif]-->";
+				$return .= "<div class='column' $columnDataAttr style='$columnStyle $colBackgroundCSS' dir='ltr'>";
 
 
 
