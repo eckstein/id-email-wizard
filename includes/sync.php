@@ -1523,28 +1523,7 @@ function idemailwiz_add_cron_intervals($schedules)
 	return $schedules;
 }
 
-// Schedule the queue fill process, if turned on
-add_action('wp_loaded', 'idemailwiz_schedule_queue_fill_process');
 
-function idemailwiz_schedule_queue_fill_process()
-{
-	$wizSettings = get_option('idemailwiz_settings');
-	$engSync = $wizSettings['iterable_engagement_data_sync_toggle'] ?? 'off';
-
-	if ($engSync == 'on') {
-		if (!wp_next_scheduled('idemailwiz_fill_sync_queue')) {
-			wp_schedule_event(time(), 'twicedaily', 'idemailwiz_fill_sync_queue');
-		}
-	} else {
-		$timestamp = wp_next_scheduled('idemailwiz_fill_sync_queue');
-		if ($timestamp) {
-			wp_unschedule_event($timestamp, 'idemailwiz_fill_sync_queue');
-			wiz_log("Engagement data sync fill was deactivated and unscheduled.");
-		}
-	}
-}
-
-add_action('idemailwiz_fill_sync_queue', 'idwiz_export_and_store_jobs_to_sync_queue');
 
 
 // Schedule the sync process. It will continue until cron is deleted
@@ -1618,7 +1597,28 @@ if (!wp_next_scheduled('idemailwiz_sync_queue_cleanup_event')) {
 	wp_schedule_event(time(), 'every_thirty_minutes', 'idemailwiz_sync_queue_cleanup_event');
 }
 
+// Schedule the queue fill process, if turned on
+add_action('wp_loaded', 'idemailwiz_schedule_queue_fill_process');
 
+function idemailwiz_schedule_queue_fill_process()
+{
+	$wizSettings = get_option('idemailwiz_settings');
+	$engSync = $wizSettings['iterable_engagement_data_sync_toggle'] ?? 'off';
+
+	if ($engSync == 'on') {
+		if (!wp_next_scheduled('idemailwiz_fill_sync_queue')) {
+			wp_schedule_event(time(), 'twicedaily', 'idemailwiz_fill_sync_queue');
+		}
+	} else {
+		$timestamp = wp_next_scheduled('idemailwiz_fill_sync_queue');
+		if ($timestamp) {
+			wp_unschedule_event($timestamp, 'idemailwiz_fill_sync_queue');
+			wiz_log("Engagement data sync fill was deactivated and unscheduled.");
+		}
+	}
+}
+
+add_action('idemailwiz_fill_sync_queue', 'idwiz_export_and_store_jobs_to_sync_queue');
 
 // Ajax handler for manual sync form on single campaign page
 add_action('wp_ajax_handle_single_triggered_sync', 'handle_single_triggered_sync');
@@ -1674,55 +1674,6 @@ function maybe_add_to_sync_queue($campaignIds, $metricTypes, $startAt = null, $e
 	}
 }
 
-// Ajax handler for manual sync form on sync station page
-add_action('wp_ajax_handle_sync_station_sync', 'handle_sync_station_sync');
-function handle_sync_station_sync()
-{
-	check_ajax_referer('id-general', 'security');
-
-	// Extract the form fields from the POST data
-	parse_str($_POST['formFields'], $formFields);
-
-	// Check for sync types
-	if (empty($formFields['syncTypes'])) {
-		wp_send_json_error('No sync types were received.');
-		return;
-	}
-
-	// Extract campaign IDs, if provided
-	$campaignIds = !empty($formFields['campaignIds']) ? explode(',', $formFields['campaignIds']) : false;
-
-	// Initiate the sync sequence
-	foreach ($formFields['syncTypes'] as $manualSyncType) {
-		switch ($manualSyncType) {
-			case 'blastMetrics':
-				$blastSyncInProgress = get_transient('idemailwiz_blast_sync_in_progress');
-				if ($blastSyncInProgress) {
-					$syncResult = ['error' => 'Another sync is already in progress!'];
-				} else {
-					$syncResult = idemailwiz_sync_non_triggered_metrics($campaignIds);
-				}
-				break;
-			case 'send':
-			case 'open':
-			case 'click':
-			case 'unSubscribe':
-			case 'complaint':
-			case 'bounce':
-			case 'sendSkip':
-				$metricType = $manualSyncType;
-				maybe_add_to_sync_queue($campaignIds, [$metricType], null, null, 100);
-
-				break;
-		}
-	}
-
-	if ($syncResult === false || isset($syncResult['error'])) {
-		wp_send_json_error('Sync sequence aborted: Another sync is still in progress or there was an error.');
-	} else {
-		wp_send_json_success('Sync sequence successfully initiated.');
-	}
-}
 
 
 
@@ -1817,7 +1768,7 @@ function idemailwiz_process_campaign_export_batch($campaignBatches, $currentBatc
 
 	// If there are more batches to process, schedule the next batch processing event
 	if ($currentBatch + 1 < $totalBatches) {
-		wp_schedule_single_event(time(), 'idemailwiz_process_campaign_batch', [$campaignBatches, $currentBatch + 1, $totalBatches, $metricTypes, $exportStart, $exportEnd, $priority]);
+		wp_schedule_single_event(time(), 'idemailwiz_process_campaign_export_batch', [$campaignBatches, $currentBatch + 1, $totalBatches, $metricTypes, $exportStart, $exportEnd, $priority]);
 	} else {
 		// If all batches have been processed, schedule the sync process
 		wp_schedule_single_event(time() + 1 * MINUTE_IN_SECONDS, 'idemailwiz_sync_engagement_data');
@@ -1916,28 +1867,6 @@ function idemailwiz_add_sync_queue_row($scheduledJob, $campaignId, $syncType, $p
 
 	return $result;
 }
-//requeue_retry_afters();
-function requeue_retry_afters() {
-	global $wpdb;
-	$sync_jobs_table_name = $wpdb->prefix . 'idemailwiz_sync_jobs';
-	// Set retryAfter to right now for all pending jobs
-	$currentTime = new DateTimeImmutable('now', new DateTimeZone('America/Los_Angeles'));
-	$result = $wpdb->update($sync_jobs_table_name, [
-		'retryAfter' => $currentTime->format('Y-m-d H:i:s'),
-	], [
-		'syncStatus' => 'pending',
-	]);
-
-	return $result;
-}
-
-
-
-
-
-
-
-
 
 
 
@@ -1957,16 +1886,7 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 		wiz_log("Could not find job in queue with id $jobId");
 	}
 
-	// if ($job['syncStatus'] == 'finished') {
-	// 	return;
-	// }
-
-	$now = new DateTimeImmutable('now', new DateTimeZone('America/Los_Angeles'));
 	$retryAfter = new DateTimeImmutable($job['retryAfter'], new DateTimeZone('America/Los_Angeles'));
-
-	// if ($now < $retryAfter) {
-	// 	return;
-	// }
 
 	$wpdb->update(
 		$sync_jobs_table_name,
@@ -2176,42 +2096,106 @@ function get_idwiz_sync_jobs($syncStatus = 'pending', $campaignId = null)
 	return $jobs;
 }
 
+// Ajax handler for manual sync form on sync station page
+add_action('wp_ajax_handle_sync_station_sync', 'handle_sync_station_sync');
+function handle_sync_station_sync()
+{
+	check_ajax_referer('id-general', 'security');
 
+	// Extract the form fields from the POST data
+	parse_str($_POST['formFields'], $formFields);
 
-function sync_single_campaign_data($campaignId, $exportStart = null, $exportEnd = null)
+	// Check for sync types
+	if (empty($formFields['syncTypes'])) {
+		wp_send_json_error('No sync types were received.');
+		return;
+	}
+
+	// Extract campaign IDs, if provided
+	$campaignIds = !empty($formFields['campaignIds']) ? explode(',', $formFields['campaignIds']) : false;
+
+	// Initiate the sync sequence
+	foreach ($formFields['syncTypes'] as $manualSyncType) {
+		switch ($manualSyncType) {
+			case 'blastMetrics':
+				$blastSyncInProgress = get_transient('idemailwiz_blast_sync_in_progress');
+				if ($blastSyncInProgress) {
+					$syncResult = ['error' => 'Another sync is already in progress!'];
+				} else {
+					$syncResult = idemailwiz_sync_non_triggered_metrics($campaignIds);
+				}
+				break;
+			case 'send':
+			case 'open':
+			case 'click':
+			case 'unSubscribe':
+			case 'complaint':
+			case 'bounce':
+			case 'sendSkip':
+				$metricType = $manualSyncType;
+				maybe_add_to_sync_queue($campaignIds, [$metricType], null, null, 100);
+
+				break;
+		}
+	}
+
+	if ($syncResult === false || isset($syncResult['error'])) {
+		wp_send_json_error('Sync sequence aborted: Another sync is still in progress or there was an error.');
+	} else {
+		wp_send_json_success('Sync sequence successfully initiated.');
+	}
+}
+
+//requeue_retry_afters();
+function requeue_retry_afters()
 {
 	global $wpdb;
 	$sync_jobs_table_name = $wpdb->prefix . 'idemailwiz_sync_jobs';
-	// check for existing pending jobs in queue
-	$jobs = get_idwiz_sync_jobs('pending', $campaignId);
-	if (count($jobs) > 0) {
-		foreach ($jobs as $job) {
-			// Process this job immediately
-			wiz_log('Campaign found in queue, prioritizing...');
-			$wpdb->update(
-				$sync_jobs_table_name,
-				['priority' => 100, 'retryAfter' => 0],
-				['jobId' => $job['jobId']]
-			);
+	// Set retryAfter to right now for all pending jobs
+	$currentTime = new DateTimeImmutable('now', new DateTimeZone('America/Los_Angeles'));
+	$result = $wpdb->update($sync_jobs_table_name, [
+		'retryAfter' => $currentTime->format('Y-m-d H:i:s'),
+	], [
+		'syncStatus' => 'pending',
+	]);
 
-			if (!wp_next_scheduled('idemailwiz_sync_engagement_data')) {
-				wp_schedule_single_event(time() + 1, 'idemailwiz_sync_engagement_data');
-			}
-		}
-	} else {
-		wiz_log('Campaign not in queue, queuing jobs...');
-		$campaign = get_idwiz_campaign($campaignId);
-		$campaignTypes = [$campaign['type']];
-		$messageMediums = [$campaign['messageMedium']];
-		$metricTypes = ['send', 'open', 'click', 'bounce', 'unsubscribe', 'sendskip', 'complaint'];
-
-		// Add jobs to queue with high priority
-		wiz_log("Adding jobs for campaign $campaignId to queue...");
-		idwiz_export_and_store_jobs_to_sync_queue([$campaignId], $campaignTypes, $messageMediums, $metricTypes, $exportStart, $exportEnd, 100, 1);
-
-		wiz_log('Jobs queued successfully. Sync should occur within 2 minutes.');
-		if (!wp_next_scheduled('idemailwiz_sync_engagement_data')) {
-			wp_schedule_single_event(time() + 60, 'idemailwiz_sync_engagement_data');
-		}
-	}
+	return $result;
 }
+
+// function sync_single_campaign_data($campaignId, $exportStart = null, $exportEnd = null)
+// {
+// 	global $wpdb;
+// 	$sync_jobs_table_name = $wpdb->prefix . 'idemailwiz_sync_jobs';
+// 	// check for existing pending jobs in queue
+// 	$jobs = get_idwiz_sync_jobs('pending', $campaignId);
+// 	if (count($jobs) > 0) {
+// 		foreach ($jobs as $job) {
+// 			// Process this job immediately
+// 			wiz_log('Campaign found in queue, prioritizing...');
+// 			$wpdb->update(
+// 				$sync_jobs_table_name,
+// 				['priority' => 100, 'retryAfter' => 0],
+// 				['jobId' => $job['jobId']]
+// 			);
+
+// 			if (!wp_next_scheduled('idemailwiz_sync_engagement_data')) {
+// 				wp_schedule_single_event(time() + 1, 'idemailwiz_sync_engagement_data');
+// 			}
+// 		}
+// 	} else {
+// 		wiz_log('Campaign not in queue, queuing jobs...');
+// 		$campaign = get_idwiz_campaign($campaignId);
+// 		$campaignTypes = [$campaign['type']];
+// 		$messageMediums = [$campaign['messageMedium']];
+// 		$metricTypes = ['send', 'open', 'click', 'bounce', 'unsubscribe', 'sendskip', 'complaint'];
+
+// 		// Add jobs to queue with high priority
+// 		wiz_log("Adding jobs for campaign $campaignId to queue...");
+// 		idwiz_export_and_store_jobs_to_sync_queue([$campaignId], $campaignTypes, $messageMediums, $metricTypes, $exportStart, $exportEnd, 100, 1);
+
+// 		wiz_log('Jobs queued successfully. Sync should occur within 2 minutes.');
+// 		if (!wp_next_scheduled('idemailwiz_sync_engagement_data')) {
+// 			wp_schedule_single_event(time() + 60, 'idemailwiz_sync_engagement_data');
+// 		}
+// 	}
+// }
