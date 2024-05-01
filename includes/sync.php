@@ -1771,6 +1771,7 @@ function idemailwiz_process_campaign_export_batch($campaignBatches, $currentBatc
 		wp_schedule_single_event(time(), 'idemailwiz_process_campaign_export_batch', [$campaignBatches, $currentBatch + 1, $totalBatches, $metricTypes, $exportStart, $exportEnd, $priority]);
 	} else {
 		// If all batches have been processed, schedule the sync process
+		wiz_log("Batches processing complete, scheduling sync starting in 1 min...");
 		wp_schedule_single_event(time() + 1 * MINUTE_IN_SECONDS, 'idemailwiz_sync_engagement_data');
 	}
 }
