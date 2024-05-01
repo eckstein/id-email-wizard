@@ -18,10 +18,17 @@ if (isset($_GET['startDate']) && $_GET['startDate'] !== '' && isset($_GET['endDa
     $wizYear = $startDateTime->format('Y');
 } else {
     // Default to current month if no parameters are provided
-    $startDate = date("Y-m-01");
-    $endDate = date("Y-m-t");
-    $wizMonth = date("m");
-    $wizYear = date("Y");
+    $startDateObj = new DateTime('first day of this month', new DateTimeZone('America/Los_Angeles'));
+    $startDate = $startDateObj->format('Y-m-d');
+    $endDateObj = new DateTime('today', new DateTimeZone('America/Los_Angeles'));
+    $endDate = $endDateObj->format('Y-m-d');
+    $wizMonth = $startDateObj->format('m');
+    $wizYear = $startDateObj->format('Y');
+
+    // $startDate = date("Y-m-01");
+    // $endDate = date("Y-m-t");
+    // $wizMonth = date("m");
+    // $wizYear = date("Y");
 }
 ?>
 

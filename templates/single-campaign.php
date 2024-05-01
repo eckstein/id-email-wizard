@@ -341,7 +341,7 @@ $linkedExperimentIds = array_map(function ($id) {
 								$purchByDateAttsString = implode(' ', $purchByDateAtts);
 								?>
 
-								<canvas class="purchByDate wiz-canvas" id="purchasesByDate" <?php echo $purchByDateAttsString; ?> data-lazy-load="<?php echo $lazyLoad; ?>"></canvas>
+								<canvas class="purchByDate wiz-canvas" id="purchasesByDate" <?php echo $purchByDateAttsString; ?>></canvas>
 
 							</div>
 						</div>
@@ -449,7 +449,7 @@ $linkedExperimentIds = array_map(function ($id) {
 										// Convert the array to a string for echoing
 										$purchByDivisionAttsString = implode(' ', $purchByDivisionAtts);
 										?>
-										<canvas class="purchByDivision wiz-canvas" data-chartid="purchasesByDivision" data-campaignids='<?php echo json_encode($allCampaignIds); ?>' <?php echo $purchByDivisionAttsString; ?> data-lazy-load="<?php echo $lazyLoad; ?>"></canvas>
+										<canvas class="purchByDivision wiz-canvas" data-chartid="purchasesByDivision" data-campaignids='<?php echo json_encode($allCampaignIds); ?>' <?php echo $purchByDivisionAttsString; ?>></canvas>
 									</div>
 								</div>
 
