@@ -1658,7 +1658,7 @@ function maybe_add_to_sync_queue($campaignIds, $metricTypes, $startAt = null, $e
 		if (!empty($newSyncTypes)) {
 			// Add new sync jobs for the missing syncTypes
 			idwiz_export_and_store_jobs_to_sync_queue([$campaignId], null, ['Email', 'SMS'], array_map(function ($syncType) {
-				return rtrim($syncType, 's');
+				return explode('_', rtrim($syncType, 's'))[1];
 			}, $newSyncTypes), $startAt, $endAt, $priority);
 		}
 
@@ -1775,8 +1775,8 @@ function idemailwiz_process_campaign_export_batch($campaignBatches, $currentBatc
 
 	foreach ($campaignBatch as $campaign) {
 		$campaignId = $campaign['id'];
-		$messageMedium = $campaign['messageMedium'];
-		$messageType = strtolower($messageMedium);
+		$messageMedium = strtolower($campaign['messageMedium']);
+		$campaignType = strtolower($campaign['type']);
 
 		foreach ($metricTypes as $metricType) {
 			// Skip blast campaign send records if the campaign's end time is more than 1 day ago
@@ -1785,9 +1785,9 @@ function idemailwiz_process_campaign_export_batch($campaignBatches, $currentBatc
 			$campaignEndTimestamp = floor($campaignEnd / 1000);  // convert milliseconds to seconds
 
 			if (
-				($campaign['type'] == 'Blast')
+				($campaignType == 'blast')
 				&& ($metricType == 'send')
-				&& ($messageMedium == 'Email')
+				&& ($messageMedium == 'email')
 				&& ($campaignEndTimestamp < strtotime('-1 day'))
 				&& ($priority == 1) // higher priorities indicate manual syncs
 			) {
@@ -1795,17 +1795,12 @@ function idemailwiz_process_campaign_export_batch($campaignBatches, $currentBatc
 			}
 
 			// For SMS we only have sends and clicks
-			if (($campaign['messageMedium'] == 'SMS') && !in_array($metricType, ['send', 'click'])) {
+			if (($messageMedium == 'sms') && !in_array($metricType, ['send', 'click'])) {
 				continue;
 			}
 
 			// Build syncType name to match database name
-			if ($campaign['type'] == 'Blast') {
-				$typePrefix = 'blast';
-			} else {
-				$typePrefix = 'triggered';
-			}
-			$syncType = $typePrefix . '_' . strtolower($metricType) . 's'; // matches database name after $wpdb->prefix . 'idemailwiz_'
+			$syncType = $campaignType . '_' . $metricType . 's'; // matches database name after $wpdb->prefix . 'idemailwiz_'
 
 			// Check if a queued job already exists for this campaign and metric type
 			$existingJob = $wpdb->get_row("SELECT * FROM $sync_jobs_table_name WHERE campaignId = $campaignId AND syncType = '$syncType'");
@@ -1814,7 +1809,8 @@ function idemailwiz_process_campaign_export_batch($campaignBatches, $currentBatc
 			}
 
 			// Schedule a single cron job to export data and add a row to the queue
-			wp_schedule_single_event(time(), 'idemailwiz_export_and_queue_single_job_event', [$campaignId, $messageType, $metricType, $syncType, $exportStart, $exportEnd, $priority]);
+			wp_schedule_single_event(time(), 'idemailwiz_export_and_queue_single_job_event', [$campaignId, $messageMedium, $metricType, $syncType, $exportStart, $exportEnd, $priority
+			]);
 		}
 	}
 
@@ -1830,26 +1826,33 @@ function idemailwiz_process_campaign_export_batch($campaignBatches, $currentBatc
 
 add_action('idemailwiz_export_and_queue_single_job_event', 'idemailwiz_export_and_queue_single_job', 10, 7);
 // Callback function for the single cron job
-function idemailwiz_export_and_queue_single_job($campaignId, $messageType, $metricType, $syncType, $exportStart, $exportEnd, $priority = 1)
+function idemailwiz_export_and_queue_single_job($campaignId, $messageMedium, $metricType, $syncType, $exportStart, $exportEnd, $priority = 1)
 {
 	$apiData['url'] = "https://api.iterable.com/api/export/start";
+
+	// Build dataTypeName in the format {messageMedium}{MetricType}
+	$dataTypeName = $messageMedium . ucfirst($metricType);
+
 	$apiData['args'] = [
 		"outputFormat" => "application/x-json-stream",
-		"dataTypeName" => $messageType . ucfirst($metricType),
+		"dataTypeName" => $dataTypeName,
 		"delimiter" => ",",
 		"onlyFields" => "createdAt,userId,campaignId,templateId,messageId,email",
 		"campaignId" => (int) $campaignId,
 		"startDateTime" => $exportStart,
 		"endDateTime" => $exportEnd,
 	];
-	//wiz_log("API URL: " . $apiData['url']);
-	//wiz_log("URL args: " . print_r($apiData['args'], true)); 
+
 	try {
 		$scheduledJob = idemailwiz_iterable_curl_call($apiData['url'], $apiData['args'], 'POST');
 		if (!isset($scheduledJob['response']['jobId'])) {
 			throw new Exception("No job ID received from API.");
 		}
-		idemailwiz_add_sync_queue_row($scheduledJob, $campaignId, $syncType, $priority);
+		idemailwiz_add_sync_queue_row($scheduledJob,
+			$campaignId,
+			$syncType,
+			$priority
+		);
 	} catch (Exception $e) {
 		wiz_log("Error starting export job for campaign $campaignId: " . $e->getMessage());
 		return;
