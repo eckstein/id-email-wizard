@@ -1579,7 +1579,7 @@ function idemailwiz_sync_engagement_data_callback()
 				// wiz_log("Now: " . $now->format('Y-m-d H:i:s'));
 				// wiz_log("Retry After: " . $retryAfter->format('Y-m-d H:i:s'));
 
-				if ($now > $retryAfter && $job['syncStatus'] === 'pending') {
+				if ($now > $retryAfter && $job['syncStatus'] == 'pending') {
 					wiz_log("Processing {$job['syncType']} job {$job['jobId']} for campaign {$job['campaignId']}");
 					idemailwiz_process_job_from_sync_queue($job['jobId']);
 					wp_schedule_single_event(time() + 1, 'idemailwiz_sync_engagement_data');
@@ -1829,6 +1829,8 @@ function idemailwiz_add_sync_queue_row($scheduledJob, $campaignId, $syncType, $p
 
 		$deleteAfter = $currentTime->modify('+ 12 hours');
 
+		$retryAfter = $currentTime->modify('+1 hour');
+
 		// Set retry after to 12 hours later so that manual syncs an re-queues are still prioritized
 		// We also set deleteAfter to the same time so the job will be deleted if not syned within 12 hours
 		$deleteAfter = $deleteAfter->format('Y-m-d H:i:s');
@@ -1836,7 +1838,7 @@ function idemailwiz_add_sync_queue_row($scheduledJob, $campaignId, $syncType, $p
 		if ($priority > 1) {
 			$retryAfter = $currentTime->format('Y-m-d H:i:s');
 		} else {
-			$retryAfter = $deleteAfter;
+			$retryAfter = $retryAfter;
 		}
 
 		//wiz_log("priority: " . $priority . " retryAfter: " . $retryAfter);
