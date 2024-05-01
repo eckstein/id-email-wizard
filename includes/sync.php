@@ -1843,6 +1843,7 @@ function idemailwiz_export_and_queue_single_job($campaignId, $messageType, $metr
 		"endDateTime" => $exportEnd,
 	];
 	wiz_log("API URL: " . $apiData['url']);
+	wiz_log("URL args: " . print_r($apiData['args'], true));
 	try {
 		$scheduledJob = idemailwiz_iterable_curl_call($apiData['url'], $apiData['args'], 'POST');
 		if (!isset($scheduledJob['response']['jobId'])) {
