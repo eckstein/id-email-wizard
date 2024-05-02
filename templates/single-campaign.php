@@ -30,9 +30,6 @@ if (isset($_GET['endDate']) && $_GET['endDate'] !== '') {
 
 
 
-
-
-
 $metrics = get_idwiz_metric($campaign['id']);
 $template = get_idwiz_template($campaign['templateId']);
 

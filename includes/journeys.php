@@ -31,7 +31,8 @@
 // 	}
 // }
 
-function update_journey_send_times() {
+function update_journey_send_times()
+{
 	global $wpdb;
 	$workflows_table = $wpdb->prefix . 'idemailwiz_workflows';
 	$campaigns_table = $wpdb->prefix . 'idemailwiz_campaigns';
@@ -45,7 +46,7 @@ function update_journey_send_times() {
 		// Retrieve the IDs of all campaigns associated with the current workflow
 		$campaignsWithWorkflows = get_idwiz_campaigns(['workflowId' => [$workflowId], 'fields' => ['id']]);
 		$campaign_ids = array_column($campaignsWithWorkflows, 'id');
-		
+
 
 		if (!empty($campaign_ids)) {
 			// Create a comma-separated string of campaign IDs
@@ -77,205 +78,237 @@ function update_journey_send_times() {
 	}
 }
 
-add_action( 'init', function () {
-	if ( ! wp_next_scheduled( 'update_journey_send_times_hook' ) ) {
-		wp_schedule_event( time(), 'hourly', 'update_journey_send_times_hook' );
+add_action('init', function () {
+	if (!wp_next_scheduled('update_journey_send_times_hook')) {
+		wp_schedule_event(time(), 'hourly', 'update_journey_send_times_hook');
 	}
-} );
+});
 
-add_action( 'update_journey_send_times_hook', 'update_journey_send_times' );
+add_action('update_journey_send_times_hook', 'update_journey_send_times');
 
 
 
-function upsert_workflow( $workflowId, $workflowName = '' ) {
+function upsert_workflow($workflowId, $workflowName = '')
+{
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'idemailwiz_workflows';
 
-	if ( $workflowId > 0 ) {
-		if ( empty( $workflowName ) ) {
+	if ($workflowId > 0) {
+		if (empty($workflowName)) {
 			$workflowName = 'Journey ' . $workflowId;
 		}
 
-		$wpdb->query( $wpdb->prepare( "
+		$wpdb->query($wpdb->prepare(
+			"
 		INSERT INTO $table_name (workflowId, workflowName)
 		VALUES (%d, %s)
 		ON DUPLICATE KEY UPDATE workflowName = %s",
-			$workflowId, $workflowName, $workflowName
-		) );
+			$workflowId,
+			$workflowName,
+			$workflowName
+		));
 	}
 }
 
-function get_workflow( $workflowId ) {
+function get_workflow($workflowId)
+{
 	global $wpdb;
 	$workflows_table = $wpdb->prefix . 'idemailwiz_workflows';
-	$workflow = $wpdb->get_row( $wpdb->prepare( "
+	$workflow = $wpdb->get_row($wpdb->prepare(
+		"
 		SELECT * FROM $workflows_table WHERE workflowId = %d",
 		(int)$workflowId
-	), ARRAY_A );
+	), ARRAY_A);
 
 	return $workflow;
 }
 
-function get_workflow_by_campaign_id( $campaignId ) {
+function get_workflow_by_campaign_id($campaignId)
+{
 	global $wpdb;
 	$workflows_table = $wpdb->prefix . 'idemailwiz_workflows';
 
-	$campaign = get_idwiz_campaigns( [ 'id' => $campaignId, 'fields' => [ 'workflowId' ], 'limit' => 1 ] );
+	$campaign = get_idwiz_campaigns(['id' => $campaignId, 'fields' => ['workflowId'], 'limit' => 1]);
 
-	if ( empty( $campaign ) ) {
+	if (empty($campaign)) {
 		return null;
 	}
 
 	$workflowId = $campaign[0]['workflowId'];
-	$workflow = $wpdb->get_row( $wpdb->prepare( "
+	$workflow = $wpdb->get_row($wpdb->prepare(
+		"
 		SELECT * FROM $workflows_table WHERE workflowId = %d",
 		$workflowId
-	), ARRAY_A );
+	), ARRAY_A);
 
 	return $workflow;
 }
 
-function get_workflow_campaigns($workflowId) {
+function get_workflow_campaigns($workflowId)
+{
 	global $wpdb;
 	$campaigns_table = $wpdb->prefix . 'idemailwiz_campaigns';
-	return $wpdb->get_results( $wpdb->prepare ( "
+	return $wpdb->get_results($wpdb->prepare("
 	SELECT * FROM $campaigns_table
-	WHERE workflowId = %d", $workflowId ), ARRAY_A );
-
+	WHERE workflowId = %d", $workflowId), ARRAY_A);
 }
 
-function add_new_workflows_daily() {
+function add_new_workflows_daily()
+{
 	global $wpdb;
 	$campaigns_table = $wpdb->prefix . 'idemailwiz_campaigns';
 	$workflows_table = $wpdb->prefix . 'idemailwiz_workflows';
 
-	$new_workflow_ids = $wpdb->get_col( "
+	$new_workflow_ids = $wpdb->get_col("
 		SELECT DISTINCT workflowId FROM $campaigns_table
 		WHERE workflowId NOT IN (
 			SELECT workflowId FROM $workflows_table
 		)
-	" );
+	");
 
-	foreach ( $new_workflow_ids as $workflowId ) {
-		upsert_workflow( $workflowId ); // Use the upsert function created earlier
+	foreach ($new_workflow_ids as $workflowId) {
+		upsert_workflow($workflowId); // Use the upsert function created earlier
 	}
 	remove_orphaned_workflows();
 }
-add_action( 'init', function () {
-	if ( ! wp_next_scheduled( 'add_new_workflows_daily_hook' ) ) {
-		wp_schedule_event( time(), 'daily', 'add_new_workflows_daily_hook' );
+add_action('init', function () {
+	if (!wp_next_scheduled('add_new_workflows_daily_hook')) {
+		wp_schedule_event(time(), 'daily', 'add_new_workflows_daily_hook');
 	}
-} );
-add_action( 'add_new_workflows_daily_hook', 'add_new_workflows_daily' );
+});
+add_action('add_new_workflows_daily_hook', 'add_new_workflows_daily');
 
-function remove_orphaned_workflows() {
+function remove_orphaned_workflows()
+{
 	global $wpdb;
 	$campaigns_table = $wpdb->prefix . 'idemailwiz_campaigns';
 	$workflows_table = $wpdb->prefix . 'idemailwiz_workflows';
 
-	$wpdb->query( "
+	$wpdb->query("
 		DELETE FROM $workflows_table
 		WHERE workflowId NOT IN (
 			SELECT DISTINCT workflowId FROM $campaigns_table
 		)
-	" );
+	");
 }
 
-add_action( 'wp_ajax_upsert_workflow', function () {
+add_action('wp_ajax_upsert_workflow', function () {
 
-	$workflowId = isset ( $_POST['workflowId'] ) ? intval( $_POST['workflowId'] ) : null;
-	$workflowName = isset ( $_POST['workflowName'] ) ? sanitize_text_field( $_POST['workflowName'] ) : '';
+	$workflowId = isset($_POST['workflowId']) ? intval($_POST['workflowId']) : null;
+	$workflowName = isset($_POST['workflowName']) ? sanitize_text_field($_POST['workflowName']) : '';
 
-	if ( ! $workflowId ) {
-		wp_send_json_error( 'Missing workflow ID', 400 );
+	if (!$workflowId) {
+		wp_send_json_error('Missing workflow ID', 400);
 	}
 
-	upsert_workflow( $workflowId, $workflowName );
+	upsert_workflow($workflowId, $workflowName);
 	wp_send_json_success();
-} );
+});
 
-function display_workflow_campaigns_table( $workflowId, $campaigns, $startDate = null, $endDate = null ) {
-	$workflow = get_workflow( $workflowId );
-	?>
-		<div class="workflow-campaigns">
-			<table class="wizcampaign-tiny-table">
-				<thead>
-					<tr>
-						<th>Campaign</th>
-	
-						<th>Last Sent</th>
-						<th>Started</th>
-						<th>Total Sent</th>
-						<th>Open %</th>
-						<th>CTR</th>
-						<th>CTO</th>
-						<th>Rev</th>
-						<?php
-						if (!$startDate && !$endDate) {
-							?>
+function display_workflow_campaigns_table($workflowId, $campaigns, $startDate = null, $endDate = null)
+{
+	//$workflow = get_workflow($workflowId);
+?>
+	<div class="workflow-campaigns">
+		<table class="idemailwiz_table journey_campaigns_table">
+			<thead>
+				<tr>
+					<th>Campaign</th>
+					<th>Sent</th>
+					<th>Delivered</th>
+					<th>Opens</th>
+					<th>Open Rate</th>
+					<th>Clicks</th>
+					<th>CTR</th>
+					<th>CTO</th>
+					<th>Purch.</th>
+					<th>CVR</th>
+					<th>Rev</th>
+					<th>Unsubs.</th>
+					<?php
+					if (!$startDate && !$endDate) {
+					?>
 						<th>GA Rev</th>
-						<?php } ?>
-					</tr>
-				</thead>
-				<tbody>
-				<?php foreach ( $campaigns as $campaign ) {
-					if ( $campaign['campaignState'] == 'Running' ) {
+					<?php } ?>
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach ($campaigns as $campaign) {
+					if ($campaign['campaignState'] == 'Running') {
 						if (!$startDate && !$endDate) {
-							$campaignMetrics = get_idwiz_metric( $campaign['id'] );
+							$campaignMetrics = get_idwiz_metric($campaign['id']);
 						} else {
-							$campaignMetrics = get_triggered_campaign_metrics( [$campaign['id']], $startDate, $endDate );
+							$campaignMetrics = get_triggered_campaign_metrics([$campaign['id']], $startDate, $endDate);
 						}
 						$totalSent = $campaignMetrics['uniqueEmailSends'];
+						$uniqueDelivers = $campaignMetrics['uniqueEmailsDelivered'];
+						$uniqueOpens = $campaignMetrics['uniqueEmailOpens'];
 						$openRate = $campaignMetrics['wizOpenRate'];
+						$uniqueClicks = $campaignMetrics['uniqueEmailClicks'];
 						$ctr = $campaignMetrics['wizCtr'];
 						$cto = $campaignMetrics['wizCto'];
+						$uniquePurchases = $campaignMetrics['uniquePurchases'];
+						$wizCvr = $campaignMetrics['wizCvr'];
 						$revenue = $campaignMetrics['revenue'];
 						$gaRevenue = $campaignMetrics['gaRevenue'];
-						?>
+						$wizUnsubRate = $campaignMetrics['wizUnsubRate'];
+				?>
 						<tr>
 							<td>
-								<a href="<?php echo get_bloginfo( 'url' ); ?>/metrics/campaign/?id=<?php echo $campaign['id']; ?>">
+								<a href="<?php echo get_bloginfo('url'); ?>/metrics/campaign/?id=<?php echo $campaign['id']; ?>">
 									<?php echo $campaign['name']; ?>
 								</a>
 							</td>
-	
-	
+
 							<td>
-								<?php echo date( 'm/d/Y', $campaign['startAt'] / 1000 ); ?>
+								<?php echo number_format($totalSent); ?>
 							</td>
 							<td>
-								<?php echo date( 'm/d/Y', $workflow['firstSendAt'] / 1000 ); ?>
-							</td>
-	
-							<td>
-								<?php echo number_format( (int)$totalSent ); ?>
+								<?php echo number_format($uniqueDelivers); ?>
 							</td>
 							<td>
-								<?php echo number_format( (int)$openRate, 2 ); ?>%
+								<?php echo number_format($uniqueOpens); ?>
 							</td>
 							<td>
-								<?php echo number_format( (int)$ctr, 2 ); ?>%
+								<?php echo number_format($openRate, 2); ?>%
 							</td>
 							<td>
-								<?php echo number_format( (int)$cto, 2 ); ?>%
+								<?php echo number_format($uniqueClicks); ?>
+							</td>
+
+							<td>
+								<?php echo number_format($ctr, 2); ?>%
 							</td>
 							<td>
-								<?php echo '$' . number_format( (int)$revenue ); ?>
+								<?php echo number_format($cto, 2); ?>%
 							</td>
+							<td>
+								<?php echo number_format($uniquePurchases); ?>
+							</td>
+							<td>
+								<?php echo '$' . number_format($wizCvr); ?>
+							</td>
+							<td>
+								<?php echo '$' . number_format($revenue); ?>
+							</td>
+							<td>
+								<?php echo number_format($wizUnsubRate, 2); ?>%
+							</td>
+
 							<?php
 							if (!$startDate && !$endDate) {
-								?>
-							<td>
-								<?php echo '$' . number_format( (int)$gaRevenue ); ?>
-							</td>
+							?>
+								<td>
+									<?php echo '$' . number_format((int)$gaRevenue); ?>
+								</td>
 							<?php } ?>
 						</tr>
-						<?php
+				<?php
 					}
 				}
 				?>
 			</tbody>
 		</table>
 	</div>
-	<?php
+<?php
 }

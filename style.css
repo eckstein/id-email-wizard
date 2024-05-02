@@ -24,6 +24,10 @@ body.no-scroll {
 	align-items: center;
 	border: none;
 	display: flex;
+	background-color: #eee;
+}
+.wiz-button:hover {
+	background-color: #dddddd;
 }
 a.wiz-button:hover {
 	text-decoration: none !important;
@@ -2373,7 +2377,12 @@ pre#generatedCode {
 	border-left: 1px solid #fff;
 	border-right: 1px solid #fff;
 	vertical-align: middle;
+	max-width: 200px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-size: 12px;
 }
+
 .dtfc-right-top-blocker {
 	background-color: #f1f1f1 !important;
 }
@@ -2385,6 +2394,7 @@ pre#generatedCode {
 }
 .idemailwiz_table div.dts tbody td {
 	white-space: normal;
+	
 }
 #wiztable_top_wrapper {
 	display: flex;
@@ -3456,7 +3466,28 @@ table.compact th {
 }
 
 
+/* Single Journey */
 
+#journey-timeline-controls {
+	display: flex;
+	flex-direction: row;
+	gap: 30px;
+	justify-content: space-between;
+	margin-bottom: 20px;
+	padding: 20px;
+}
+.journey-timeline-control-set {
+	display: flex;
+	gap: 10px;
+}
+
+.journey_campaigns_table td {
+	border-collapse: collapse;
+	border: 1px solid #eee;
+	padding: 10px;
+	vertical-align: middle;
+	line-height: 1em;
+}
 
 
 
