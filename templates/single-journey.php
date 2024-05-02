@@ -164,7 +164,7 @@ if ($journeyId && get_workflow($journeyId)) {
 										$campaignId = $campaign['id'];
 										$monthIndex = array_search($month, $months);
 										$monthNumber = str_pad($monthIndex + 1, 2, '0', STR_PAD_LEFT);
-										$startDate = $year . '-' . $monthNumber . '-01';
+										$startDate = date('Y-m-d', strtotime($year . '-' . $monthNumber . '-01'));
 										$endDate = date('Y-m-t', strtotime($startDate));
 
 										$campaignMetrics = get_triggered_campaign_metrics([$campaignId], $startDate, $endDate);
