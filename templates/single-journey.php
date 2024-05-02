@@ -150,7 +150,11 @@ if ($journeyId && get_workflow($journeyId)) {
 							<?php
 							$selectedMetric = $_GET['metric'] ?? 'Open Rate';
 							$selectedYears = $_GET['years'] ?? [date('Y')];
+							// de-dupe years
+							$selectedYears = array_unique($selectedYears);
 							$selectedMonths = $_GET['months'] ?? $months;
+							//de-dupe months
+							$selectedMonths = array_unique($selectedMonths);
 
 							$data = [];
 
@@ -158,6 +162,7 @@ if ($journeyId && get_workflow($journeyId)) {
 								foreach ($selectedMonths as $month) {
 									$rowData = [];
 									$rowData['year'] = $year;
+
 									$rowData['month'] = $month;
 
 									foreach ($campaigns as $campaign) {
