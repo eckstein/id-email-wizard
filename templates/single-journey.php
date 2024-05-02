@@ -101,7 +101,7 @@ if ($journeyId && get_workflow($journeyId)) {
 					<div class="journey-timeline-control-set">
 						<select name="metric">
 							<?php
-							
+
 							foreach ($metrics as $metric) {
 								$selected = ($metric === $selectedMetric) ? 'selected' : '';
 							?>
@@ -113,7 +113,7 @@ if ($journeyId && get_workflow($journeyId)) {
 					</div>
 					<div class="journey-timeline-control-set">
 						<?php
-						
+
 						foreach ($fiscalYears as $fiscalYear) {
 							$active = in_array($fiscalYear, $selectedYears) ? 'active green' : '';
 						?>
@@ -124,7 +124,7 @@ if ($journeyId && get_workflow($journeyId)) {
 					</div>
 					<div class="journey-timeline-control-set">
 						<?php
-						
+
 						foreach ($months as $month) {
 							$active = in_array($month, $selectedMonths) ? 'active green' : '';
 						?>
@@ -163,12 +163,20 @@ if ($journeyId && get_workflow($journeyId)) {
 									foreach ($campaigns as $campaign) {
 										$campaignId = $campaign['id'];
 										$monthIndex = array_search($month, $months);
-										$monthNumber = str_pad($monthIndex + 1, 2, '0', STR_PAD_LEFT);
-										$startDate = date('Y-m-d', strtotime($year . '-' . $monthNumber . '-01'));
+
+										if ($monthIndex < 2) {
+											$fiscalYear = $year - 1;
+											$monthNumber = $monthIndex + 11;
+										} else {
+											$fiscalYear = $year;
+											$monthNumber = $monthIndex - 1;
+										}
+
+										$monthNumber = str_pad($monthNumber, 2, '0', STR_PAD_LEFT);
+										$startDate = $fiscalYear . '-' . $monthNumber . '-01';
 										$endDate = date('Y-m-t', strtotime($startDate));
 
 										$campaignMetrics = get_triggered_campaign_metrics([$campaignId], $startDate, $endDate);
-
 										switch ($selectedMetric) {
 											case 'Open Rate':
 												$metricValue = $campaignMetrics['wizOpenRate'];
