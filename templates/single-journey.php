@@ -139,7 +139,7 @@ if ($journeyId && get_workflow($journeyId)) {
 					<table class="idemailwiz_table journey_campaigns_table">
 						<thead>
 							<tr>
-								<th>Year</th>
+								<th>Fisc. Year</th>
 								<th>Month</th>
 								<?php foreach ($campaigns as $campaign) { ?>
 									<th><?php echo $campaign['name']; ?></th>
