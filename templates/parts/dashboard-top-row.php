@@ -1,12 +1,12 @@
 <?php
 
-$currentDate = date('Y-m-d');
+$currentDate = new DateTime();
 
 $startDate = $_GET['startDate'] ?? date('Y-m-01');
 $endDate = $_GET['endDate'] ?? date('Y-m-t'); // Assuming you want the default to be the end of the current month
 
-$startDateTime = new DateTime($startDate);
-$endDateTime = new DateTime($endDate);
+$startDateTime = new DateTime($startDate, new DateTimeZone('America/Los_Angeles'));
+$endDateTime = new DateTime($endDate, new DateTimeZone('America/Los_Angeles'));
 
 $firstDayOfMonth = $startDateTime->format('Y-m-01');
 $lastDayOfMonth = $endDateTime->format('Y-m-t');
@@ -21,7 +21,7 @@ $lastDayOfMonth = $endDateTime->format('Y-m-t');
             <div class="wizcampaign-section-title-area-right wizcampaign-section-icons">
                 <?php
                 if ($startDate === $firstDayOfMonth && ($endDate === $lastDayOfMonth || $endDate === $currentDate)) { ?>
-                    GA Goal: $
+                    <!--GA Goal: $-->
                     <?php 
                     if ($displayGoal && is_int($displayGoal)) {
                         echo number_format($displayGoal, 2); 

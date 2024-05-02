@@ -259,7 +259,10 @@ function idemailwiz_fetch_templates($campaignIds = null)
 		// Initialize URLs for fetching templates of different types and mediums
 
 		// Get a formatted end date of tomorrow
-		$endDate = date('Y-m-d', strtotime('+1 day'));
+		//$endDate = date('Y-m-d', strtotime('+1 day'));
+		$endDate = new DateTime();
+		$endDate->modify('+1 day');
+		$endDate = $endDate->format('Y-m-d');
 		$templateAPIurls = [
 			'blastEmails' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=Email&endDateTime=' . $endDate,
 			'triggeredEmails' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=Email&endDateTime=' . $endDate,
@@ -1627,8 +1630,8 @@ function handle_single_triggered_sync()
 	check_ajax_referer('id-general', 'security');
 
 	$campaignId = $_POST['campaignId'];
-	$startAt = $_POST['startDate'];
-	$endAt = $_POST['endDate'];
+	$startAt = $_POST['startDate'] ?? null;
+	$endAt = $_POST['endDate'] ?? null;
 	$metricTypes = ['send', 'open', 'click', 'unSubscribe', 'complaint', 'bounce', 'sendSkip'];
 
 	// Call the maybe_add_to_sync_queue function

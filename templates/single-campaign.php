@@ -216,15 +216,15 @@ $linkedExperimentIds = array_map(function ($id) {
 						<div class="wizcampaign-section-tabs-wrapper">
 							<?php
 							$displayTemplates = [];
-							$templateName = '';
+							//$templateName = '';
 							if ($experiments) {
 								$experimentTemplateIds = array_column($experiments, 'templateId');
 								foreach ($experimentTemplateIds as $templateId) {
 									$displayTemplates[] = get_idwiz_template($templateId);
 								}
-								$templateName = 'Variation';
+								//$templateName = 'Variation';
 							} else {
-								$templateName = '';
+								//$templateName = '';
 								$displayTemplates = array($template);
 							}
 
