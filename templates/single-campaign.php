@@ -201,277 +201,288 @@ $linkedExperimentIds = array_map(function ($id) {
 			<?php
 			$campaignType = $campaign['type'] == 'Blast' ? 'blast' : 'triggered';
 			//$triggeredSends = get_engagement_data_by_campaign_id($allCampaignIds, $campaignType, 'send');
-			
 
-				
+
+
 			?>
 
 
-				<div class="wizcampaign-sections-row">
-					<div class="wizcampaign-section">
-						<h3>Template(s)</h3>
-						<div class="wizcampaign-section-tabs-wrapper">
-							<?php
-							$displayTemplates = [];
+			<div class="wizcampaign-sections-row">
+				<div class="wizcampaign-section">
+					<h3>Template(s)</h3>
+					<div class="wizcampaign-section-tabs-wrapper">
+						<?php
+						$displayTemplates = [];
+						//$templateName = '';
+						if ($experiments) {
+							$experimentTemplateIds = array_column($experiments, 'templateId');
+							foreach ($experimentTemplateIds as $templateId) {
+								$displayTemplates[] = get_idwiz_template($templateId);
+							}
+							//$templateName = 'Variation';
+						} else {
 							//$templateName = '';
-							if ($experiments) {
-								$experimentTemplateIds = array_column($experiments, 'templateId');
-								foreach ($experimentTemplateIds as $templateId) {
-									$displayTemplates[] = get_idwiz_template($templateId);
-								}
-								//$templateName = 'Variation';
-							} else {
-								//$templateName = '';
-								$displayTemplates = array($template);
-							}
+							$displayTemplates = array($template);
+						}
 
-							if (!empty($displayTemplates)) {
-								if (count($displayTemplates) > 1) {
-							?>
-									<div class="wizcampaign-section-tabs" data-pane="campaign-template-tabs">
-										<ul>
-											<?php foreach ($displayTemplates as $index => $currentTemplate) { ?>
-												<li<?php if ($index === 0) echo ' class="active"'; ?> data-tab="campaignTemplate<?php echo $index + 1; ?>">
-													<?php
-													foreach ($experiments as $experiment) {
-														if ($experiment['templateId'] == $currentTemplate['templateId']) {
-															//echo $experiment['name'];
-															echo $currentTemplate['name'];
-															break;
-														}
-													}
-													?>
-													</li>
-												<?php } ?>
-										</ul>
-									</div>
-									<div class="wizcampaign-section-tabs-pane" id="campaign-template-tabs">
+						if (!empty($displayTemplates)) {
+							if (count($displayTemplates) > 1) {
+						?>
+								<div class="wizcampaign-section-tabs" data-pane="campaign-template-tabs">
+									<ul>
 										<?php foreach ($displayTemplates as $index => $currentTemplate) { ?>
-											<div class="wizcampaign-section inset wizcampagn-section-tab-content<?php if ($index === 0) echo ' active'; ?>" id="campaignTemplate<?php echo $index + 1; ?>">
-												<?php include plugin_dir_path(__FILE__) . 'parts/template-preview-html.php'; ?>
-											</div>
-										<?php } ?>
-									</div>
-								<?php
-								} else {
-									$currentTemplate = $displayTemplates[0];
-								?>
-									<div class="wizcampaign-section wizcampagn-section-tab-content active">
-										<?php include plugin_dir_path(__FILE__) . 'parts/template-preview-html.php'; ?>
-									</div>
+											<li<?php if ($index === 0) echo ' class="active"'; ?> data-tab="campaignTemplate<?php echo $index + 1; ?>">
+												<?php
+												foreach ($experiments as $experiment) {
+													if ($experiment['templateId'] == $currentTemplate['templateId']) {
+														//echo $experiment['name'];
+														echo $currentTemplate['name'];
+														break;
+													}
+												}
+												?>
+												</li>
+											<?php } ?>
+									</ul>
+								</div>
+								<div class="wizcampaign-section-tabs-pane" id="campaign-template-tabs">
+									<?php foreach ($displayTemplates as $index => $currentTemplate) { ?>
+										<div class="wizcampaign-section inset wizcampagn-section-tab-content<?php if ($index === 0) echo ' active'; ?>" id="campaignTemplate<?php echo $index + 1; ?>">
+											<?php include plugin_dir_path(__FILE__) . 'parts/template-preview-html.php'; ?>
+										</div>
+									<?php } ?>
+								</div>
 							<?php
-								}
-							}
+							} else {
+								$currentTemplate = $displayTemplates[0];
 							?>
-						</div>
+								<div class="wizcampaign-section wizcampagn-section-tab-content active">
+									<?php include plugin_dir_path(__FILE__) . 'parts/template-preview-html.php'; ?>
+								</div>
+						<?php
+							}
+						}
+						?>
 					</div>
-					<div class="wizcampaign-section">
-						<h3>Metrics by Date</h3>
-						<div class="wizcampaign-section-tabs-wrapper">
-							<div class="wizcampaign-section-tabs" data-pane="campaign-byDate-tabs">
-								<ul>
-
-									<li class="active" data-tab="sendsByDateSection">Sends</li>
-									<li data-tab="openedByDateSection">Opens</li>
-									<li data-tab="clicksByDateSection">Clicks</li>
-
-								</ul>
-							</div>
-							<div class="wizcampaign-section-tabs-pane" id="campaign-byDate-tabs">
-
-								<div class="wizcampaign-section inset wizcampagn-section-tab-content active" id="sendsByDateSection">
-									<div class="wizChartWrapper">
-										<canvas class="sendsByDate wiz-canvas" data-chartid="sendsByDate" data-campaignids='<?php echo json_encode($allCampaignIds); ?>' data-charttype="bar" data-campaignType="<?php echo strtolower($campaign['type']); ?>" data-startdate="<?php echo $startDate; ?>" data-year-over-year="true" data-enddate="<?php echo $endDate; ?>"></canvas>
-									</div>
-								</div>
-
-								<div class="wizcampaign-section inset wizcampagn-section-tab-content" id="openedByDateSection">
-									<div class="wizChartWrapper">
-										<canvas class="opensByDate wiz-canvas" data-chartid="opensByDate" data-campaignids='<?php echo json_encode($allCampaignIds); ?>' data-charttype="bar" data-campaignType="<?php echo strtolower($campaign['type']); ?>" data-startdate="<?php echo $startDate; ?>" data-enddate="<?php echo $endDate; ?>"></canvas>
-									</div>
-								</div>
-
-								<div class="wizcampaign-section inset wizcampagn-section-tab-content" id="clicksByDateSection">
-									<div class="wizChartWrapper">
-										<canvas class="clicksByDate wiz-canvas" data-chartid="clicksByDate" data-campaignids='<?php echo json_encode($allCampaignIds); ?>' data-charttype="bar" data-campaignType="<?php echo strtolower($campaign['type']); ?>" data-startdate="<?php echo $startDate; ?>" data-enddate="<?php echo $endDate; ?>"></canvas>
-									</div>
-								</div>
-
-							</div>
-						</div>
-						<div class="wizcampaign-section inset" id="purchasesByDateSection">
-							<div class="wizcampaign-section-title-area">
-								<h4>Purchases</h4>
-							</div>
-							<div class="wizChartWrapper">
-								<?php
-								// Set up the data attributes
-								$purchByDateAtts = [];
-
-
-								$purchByDateAtts[] = 'data-chartid="purchasesByDate"';
-
-								if ($allCampaignIds) {
-									$purchByDateAtts[] = 'data-campaignids=\'' . json_encode($allCampaignIds) . '\'';
-								} else {
-									$purchByDateAtts[] = 'data-campaignids=\'' . json_encode('') . '\'';
-								}
-
-								//$purchByDateAtts[] = 'data-campaignids=\'' . json_encode([]) . '\'';
-
-								if (isset($campaignTypes)) {
-									$purchByDateAtts[] = 'data-campaigntypes=\'' . json_encode($campaignTypes) . '\'';
-								}
-
-								$purchByDateAtts[] = "data-startdate='{$startDate}'";
-								$purchByDateAtts[] = "data-enddate='{$endDate}'";
-
-								$purchByDateAtts[] = 'data-charttype="bar"';
-
-								if (isset($campaignTypes)) {
-									$purchByDateAtts[] = 'data-campaigntypes=\'' . json_encode($campaignTypes) . '\'';
-								} else {
-									$purchByDateAtts[] = 'data-campaigntypes=\'' . json_encode(['Blast', 'Triggered']) . '\'';
-								}
-
-								// Convert the array to a string for echoing
-								$purchByDateAttsString = implode(' ', $purchByDateAtts);
-								?>
-
-								<canvas class="purchByDate wiz-canvas" id="purchasesByDate" <?php echo $purchByDateAttsString; ?>></canvas>
-
-							</div>
-						</div>
-					</div>
-
-					<div class="wizcampaign-section">
-						<h3>Purchases</h3>
-						<div class="wizcampaign-section-tabs-wrapper">
-							<div class="wizcampaign-section-tabs" data-pane="campaign-purchases-tabs">
-								<ul>
-
-									<li class="active" data-tab="purchasesByPurchase" data-colAdjust="true">All</li>
-									<li data-tab="purchasesByProduct" data-colAdjust="true">By Product</li>
-									<li data-tab="purchasesByLocation" data-colAdjust="true">By Location</li>
-									<li data-tab="purchasesByDivision">By Division</li>
-
-								</ul>
-							</div>
-							<div class="wizcampaign-section-tabs-pane" id="campaign-purchases-tabs">
-
-								<div class="wizcampaign-section inset wizcampagn-section-tab-content active" id="purchasesByPurchase">
-									<div class="tinyTableWrapper">
-										<?php
-										$byProductHeaders = [
-											'Product' => '40%',
-											'Division' => '15%',
-											'Location' => '30%',
-											'Revenue' => '10%',
-										];
-
-										$purchasesByProduct = generate_purchases_table_data($purchases);
-
-										generate_mini_table($byProductHeaders, $purchasesByProduct);
-
-										?>
-									</div>
-								</div>
-
-								<div class="wizcampaign-section inset wizcampagn-section-tab-content" id="purchasesByProduct">
-									<div class="tinyTableWrapper">
-										<?php
-										$byProductHeaders = [
-											'Product' => '45%',
-											'Topics' => '25%',
-											'Purchases' => '10%',
-											'Revenue' => '20%',
-										];
-
-										$purchasesByProduct = transfigure_purchases_by_product($purchases);
-
-										generate_mini_table($byProductHeaders, $purchasesByProduct);
-
-										?>
-									</div>
-								</div>
-
-								<div class="wizcampaign-section inset wizcampagn-section-tab-content" id="purchasesByLocation">
-									<div class="tinyTableWrapper">
-										<?php
-										// Group purchases by location
-										$locationData = idwiz_group_purchases_by_location($purchases);
-
-										// Convert the grouped data into a format suitable for the table generator
-										$tableData = [];
-										foreach ($locationData as $location => $data) {
-											$tableData[] = [
-												'Location' => $location,
-												'Purchases' => $data['Purchases'],
-												'Revenue' => '$' . number_format($data['Revenue'], 2)
-											];
-										}
-
-										// Define headers for the table
-										$headers = [
-											'Location' => 'auto',
-											'Purchases' => 'auto',
-											'Revenue' => 'auto'
-										];
-
-										// Generate the table
-										generate_mini_table($headers, $tableData);
-										?>
-									</div>
-								</div>
-
-								<div class="wizcampaign-section inset wizcampagn-section-tab-content" id="purchasesByDivision">
-									<div class="wizChartWrapper">
-										<?php
-										// Set up the data attributes
-										$purchByDivisionAtts = [];
-
-										$purchByDivisionAtts[] = 'data-campaignids=\'' . json_encode($allCampaignIds) . '\'';
-
-										$purchByDivisionAtts[] = "data-startdate='{$startDate}'";
-										$purchByDivisionAtts[] = "data-enddate='{$endDate}'";
-
-										$purchByDivisionAtts[] = 'data-charttype="bar"';
-
-										if (isset($campaignTypes)) {
-											$purchByDivisionAtts[] = 'data-campaigntypes=\'' . json_encode($campaignTypes) . '\'';
-										} else {
-											$purchByDivisionAtts[] = 'data-campaigntypes=\'' . json_encode(['Blast', 'Triggered']) . '\'';
-										}
-
-										// Convert the array to a string for echoing
-										$purchByDivisionAttsString = implode(' ', $purchByDivisionAtts);
-										?>
-										<canvas class="purchByDivision wiz-canvas" data-chartid="purchasesByDivision" data-campaignids='<?php echo json_encode($allCampaignIds); ?>' <?php echo $purchByDivisionAttsString; ?>></canvas>
-									</div>
-								</div>
-
-							</div>
-						</div>
-						<div class="wizcampaign-section inset">
-							<div class="wizcampaign-section-title-area">
-								<h4>Promo Code Use</h4>
-								<div>
-									<?php
-
-									$promoCodeData = prepare_promo_code_summary_data($purchases); ?>
-									<?php echo $promoCodeData['ordersWithPromoCount'] ?>/
-									<?php echo $promoCodeData['totalOrderCount'] ?> (
-									<?php echo $promoCodeData['percentageWithPromo'] ?>%)
-								</div>
-							</div>
-							<div class="tinyTableWrapper">
-								<?php generate_mini_table($promoCodeData['promoHeaders'], $promoCodeData['promoData']); ?>
-							</div>
-						</div>
-					</div>
-
 				</div>
-			
+				<div class="wizcampaign-section">
+					<div class="wizcampaign-section-title-area">
+						<h4>Metrics by Date</h4>
+						<div class="wizcampaign-section-icons">
+							<i class="fa-regular fa-calendar-days chart-timescale-switcher active" data-timescale="daily" title="By Day"></i><i class="fa-solid fa-clock chart-timescale-switcher" data-timescale="hourly" title="By Hour"></i>
+						</div>
+					</div>
+					<div class="wizcampaign-section-tabs-wrapper">
+						<div class="wizcampaign-section-tabs" data-pane="campaign-byDate-tabs">
+							<ul>
+
+								<li class="active" data-tab="sendsByDateSection">Sends</li>
+								<li data-tab="openedByDateSection">Opens</li>
+								<li data-tab="clicksByDateSection">Clicks</li>
+
+							</ul>
+						</div>
+						<div class="wizcampaign-section-tabs-pane" id="campaign-byDate-tabs">
+
+							<div class="wizcampaign-section inset wizcampagn-section-tab-content active" id="sendsByDateSection">
+								<div class="wizChartWrapper">
+									<canvas class="sendsByDate wiz-canvas" data-timescale="daily" data-chartid="sendsByDate" data-campaignids='<?php echo json_encode($allCampaignIds); ?>' data-charttype="bar" data-campaignType="<?php echo strtolower($campaign['type']); ?>" data-startdate="<?php echo $startDate; ?>" data-year-over-year="true" data-enddate="<?php echo $endDate; ?>"></canvas>
+								</div>
+							</div>
+
+							<div class="wizcampaign-section inset wizcampagn-section-tab-content" id="openedByDateSection">
+								<div class="wizChartWrapper">
+									<canvas class="opensByDate wiz-canvas" data-timescale="daily" data-chartid="opensByDate" data-campaignids='<?php echo json_encode($allCampaignIds); ?>' data-charttype="bar" data-campaignType="<?php echo strtolower($campaign['type']); ?>" data-startdate="<?php echo $startDate; ?>" data-enddate="<?php echo $endDate; ?>"></canvas>
+								</div>
+							</div>
+
+							<div class="wizcampaign-section inset wizcampagn-section-tab-content" id="clicksByDateSection">
+								<div class="wizChartWrapper">
+									<canvas class="clicksByDate wiz-canvas" data-timescale="daily" data-chartid="clicksByDate" data-campaignids='<?php echo json_encode($allCampaignIds); ?>' data-charttype="bar" data-campaignType="<?php echo strtolower($campaign['type']); ?>" data-startdate="<?php echo $startDate; ?>" data-enddate="<?php echo $endDate; ?>"></canvas>
+								</div>
+							</div>
+
+						</div>
+					</div>
+					<div class="wizcampaign-section inset" id="purchasesByDateSection">
+						<div class="wizcampaign-section-title-area">
+							<h4>Purchases</h4>
+							<div class="wizcampaign-section-icons">
+								<!-- timeScale won't work for purchases since we don't have a time. Maybe in the future we will....-->
+								<!--<i class="fa-regular fa-calendar-days chart-timescale-switcher active" data-timescale="daily" title="By Day"></i><i class="fa-solid fa-clock chart-timescale-switcher" data-timescale="hourly" title="By Hour"></i>-->
+							</div>
+						</div>
+						<div class="wizChartWrapper">
+							<?php
+							// Set up the data attributes
+							$purchByDateAtts = [];
+
+
+							$purchByDateAtts[] = 'data-chartid="purchasesByDate"';
+
+							if ($allCampaignIds) {
+								$purchByDateAtts[] = 'data-campaignids=\'' . json_encode($allCampaignIds) . '\'';
+							} else {
+								$purchByDateAtts[] = 'data-campaignids=\'' . json_encode('') . '\'';
+							}
+
+							//$purchByDateAtts[] = 'data-campaignids=\'' . json_encode([]) . '\'';
+
+							if (isset($campaignTypes)) {
+								$purchByDateAtts[] = 'data-campaigntypes=\'' . json_encode($campaignTypes) . '\'';
+							}
+
+							$purchByDateAtts[] = "data-startdate='{$startDate}'";
+							$purchByDateAtts[] = "data-enddate='{$endDate}'";
+
+							$purchByDateAtts[] = 'data-charttype="bar"';
+
+							//$purchByDateAtts[] = 'data-timescale="daily"';
+
+							if (isset($campaignTypes)) {
+								$purchByDateAtts[] = 'data-campaigntypes=\'' . json_encode($campaignTypes) . '\'';
+							} else {
+								$purchByDateAtts[] = 'data-campaigntypes=\'' . json_encode(['Blast', 'Triggered']) . '\'';
+							}
+
+							// Convert the array to a string for echoing
+							$purchByDateAttsString = implode(' ', $purchByDateAtts);
+							?>
+
+							<canvas class="purchByDate wiz-canvas" id="purchasesByDate" <?php echo $purchByDateAttsString; ?>></canvas>
+
+						</div>
+					</div>
+				</div>
+
+				<div class="wizcampaign-section">
+					<h3>Purchases</h3>
+					<div class="wizcampaign-section-tabs-wrapper">
+						<div class="wizcampaign-section-tabs" data-pane="campaign-purchases-tabs">
+							<ul>
+
+								<li class="active" data-tab="purchasesByPurchase" data-colAdjust="true">All</li>
+								<li data-tab="purchasesByProduct" data-colAdjust="true">By Product</li>
+								<li data-tab="purchasesByLocation" data-colAdjust="true">By Location</li>
+								<li data-tab="purchasesByDivision">By Division</li>
+
+							</ul>
+						</div>
+						<div class="wizcampaign-section-tabs-pane" id="campaign-purchases-tabs">
+
+							<div class="wizcampaign-section inset wizcampagn-section-tab-content active" id="purchasesByPurchase">
+								<div class="tinyTableWrapper">
+									<?php
+									$byProductHeaders = [
+										'Product' => '40%',
+										'Division' => '15%',
+										'Location' => '30%',
+										'Revenue' => '10%',
+									];
+
+									$purchasesByProduct = generate_purchases_table_data($purchases);
+
+									generate_mini_table($byProductHeaders, $purchasesByProduct);
+
+									?>
+								</div>
+							</div>
+
+							<div class="wizcampaign-section inset wizcampagn-section-tab-content" id="purchasesByProduct">
+								<div class="tinyTableWrapper">
+									<?php
+									$byProductHeaders = [
+										'Product' => '45%',
+										'Topics' => '25%',
+										'Purchases' => '10%',
+										'Revenue' => '20%',
+									];
+
+									$purchasesByProduct = transfigure_purchases_by_product($purchases);
+
+									generate_mini_table($byProductHeaders, $purchasesByProduct);
+
+									?>
+								</div>
+							</div>
+
+							<div class="wizcampaign-section inset wizcampagn-section-tab-content" id="purchasesByLocation">
+								<div class="tinyTableWrapper">
+									<?php
+									// Group purchases by location
+									$locationData = idwiz_group_purchases_by_location($purchases);
+
+									// Convert the grouped data into a format suitable for the table generator
+									$tableData = [];
+									foreach ($locationData as $location => $data) {
+										$tableData[] = [
+											'Location' => $location,
+											'Purchases' => $data['Purchases'],
+											'Revenue' => '$' . number_format($data['Revenue'], 2)
+										];
+									}
+
+									// Define headers for the table
+									$headers = [
+										'Location' => 'auto',
+										'Purchases' => 'auto',
+										'Revenue' => 'auto'
+									];
+
+									// Generate the table
+									generate_mini_table($headers, $tableData);
+									?>
+								</div>
+							</div>
+
+							<div class="wizcampaign-section inset wizcampagn-section-tab-content" id="purchasesByDivision">
+								<div class="wizChartWrapper">
+									<?php
+									// Set up the data attributes
+									$purchByDivisionAtts = [];
+
+									$purchByDivisionAtts[] = 'data-campaignids=\'' . json_encode($allCampaignIds) . '\'';
+
+									$purchByDivisionAtts[] = "data-startdate='{$startDate}'";
+									$purchByDivisionAtts[] = "data-enddate='{$endDate}'";
+
+									$purchByDivisionAtts[] = 'data-charttype="bar"';
+
+									if (isset($campaignTypes)) {
+										$purchByDivisionAtts[] = 'data-campaigntypes=\'' . json_encode($campaignTypes) . '\'';
+									} else {
+										$purchByDivisionAtts[] = 'data-campaigntypes=\'' . json_encode(['Blast', 'Triggered']) . '\'';
+									}
+
+									// Convert the array to a string for echoing
+									$purchByDivisionAttsString = implode(' ', $purchByDivisionAtts);
+									?>
+									<canvas class="purchByDivision wiz-canvas" data-chartid="purchasesByDivision" data-campaignids='<?php echo json_encode($allCampaignIds); ?>' <?php echo $purchByDivisionAttsString; ?>></canvas>
+								</div>
+							</div>
+
+						</div>
+					</div>
+					<div class="wizcampaign-section inset">
+						<div class="wizcampaign-section-title-area">
+							<h4>Promo Code Use</h4>
+							<div>
+								<?php
+
+								$promoCodeData = prepare_promo_code_summary_data($purchases); ?>
+								<?php echo $promoCodeData['ordersWithPromoCount'] ?>/
+								<?php echo $promoCodeData['totalOrderCount'] ?> (
+								<?php echo $promoCodeData['percentageWithPromo'] ?>%)
+							</div>
+						</div>
+						<div class="tinyTableWrapper">
+							<?php generate_mini_table($promoCodeData['promoHeaders'], $promoCodeData['promoData']); ?>
+						</div>
+					</div>
+				</div>
+
+			</div>
+
 		</div>
 		<?php
 

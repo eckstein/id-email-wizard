@@ -225,6 +225,8 @@ function idwiz_get_byPurchaseField_chartdata($chartOptions) {
         $purchaseArgs['campaignIds'] = $chartOptions['campaignIds'];
     }
 
+    $timeScale = $chartOptions['timeScale'] ?? 'daily';
+
     // Limit fields to what we need
     $purchaseArgs['fields'] = ['campaignId', 'total', 'purchaseDate', 'shoppingCartItems_categories', 'shoppingCartItems_locationName', 'shoppingCartItems_divisionName'];
 
@@ -267,7 +269,7 @@ function idwiz_get_byPurchaseField_chartdata($chartOptions) {
     $groupedData = [];
     switch ($chartId) {
         case 'purchasesByDate':
-            $groupedData = idwiz_group_purchases_by_date($filteredPurchases);
+            $groupedData = idwiz_group_purchases_by_date($filteredPurchases, $timeScale);
             break;
 
         case 'purchasesByDivision':
@@ -378,6 +380,8 @@ function idwiz_get_eventBydate_chartdata($chartOptions)
 
     $campaignType = $chartOptions['campaignType'] ?? 'triggered';
 
+    $timeScale = $chartOptions['timeScale'] ?? 'daily';
+
     //$campaignTypes = $chartOptions['campaignTypes'] ?? ['Blast', 'Triggered'];
 
     $startDate = $chartOptions['startDate'] ?? false;
@@ -420,7 +424,15 @@ function idwiz_get_eventBydate_chartdata($chartOptions)
         $chartDates = [];
 
         foreach ($triggeredData as $event) {
-            $eventDate = date('m/d/Y', $event['startAt'] / 1000);
+            $utcTimestamp = $event['startAt'] / 1000;
+            $utcDateTime = new DateTime('@' . $utcTimestamp);
+            $utcDateTime->setTimezone(new DateTimeZone('America/Los_Angeles'));
+
+            if ($timeScale === 'daily') {
+                $eventDate = $utcDateTime->format('m/d/Y');
+            } else if ($timeScale === 'hourly') {
+                $eventDate = $utcDateTime->format('m/d/Y H:00');
+            }
 
             if (!isset($chartDates[$eventDate])) {
                 $chartDates[$eventDate] = 0;
@@ -429,8 +441,12 @@ function idwiz_get_eventBydate_chartdata($chartOptions)
         }
 
         // Convert the dates from strings to date objects for sorting
-        $chartDateObjects = array_map(function ($date) {
-            return DateTime::createFromFormat('m/d/Y', $date);
+        $chartDateObjects = array_map(function ($date) use ($timeScale) {
+            if ($timeScale === 'daily') {
+                return DateTime::createFromFormat('m/d/Y', $date);
+            } else if ($timeScale === 'hourly') {
+                return DateTime::createFromFormat('m/d/Y H:i', $date);
+            }
         }, array_keys($chartDates));
 
         // Sort the dates
@@ -442,8 +458,14 @@ function idwiz_get_eventBydate_chartdata($chartOptions)
         $labels = [];
         $data = [];
         foreach ($chartDateObjects as $dateObject) {
-            $date = $dateObject->format('m/d/Y');
-            $labels[] = $date;
+            if ($timeScale === 'daily') {
+                $date = $dateObject->format('m/d/Y');
+                $displayDate = $dateObject->format('m/d/Y');
+            } else if ($timeScale === 'hourly') {
+                $displayDate = $dateObject->format('m/d g:ia');
+                $date = $dateObject->format('m/d/Y H:i');
+            }
+            $labels[] = $displayDate;
             $data[] = $chartDates[$date];
         }
 
@@ -737,18 +759,27 @@ function idwiz_group_purchases_by_location($purchases)
 }
 
 
-function idwiz_group_purchases_by_date($purchases)
+function idwiz_group_purchases_by_date($purchases, $timeScale)
 {
     $dateData = [];
 
     foreach ($purchases as $purchase) {
+        // Using purchaseDate here means we only get the day (not the time).
+        // In the future, if we start syncing the time, we can use the timeScale option to switch these on the chart
         $dateObject = new DateTime($purchase['purchaseDate']);
 
-        // Use Y-m-d format for sorting purposes.
-        $sortableDate = $dateObject->format('Y-m-d');
+        if ($timeScale === 'daily') {
+            // Use Y-m-d format for sorting purposes.
+            $sortableDate = $dateObject->format('Y-m-d');
+            $formattedDate = $dateObject->format('m/d/Y');
+        } else {
+            // Use Y-m-d H:i format for sorting purposes.
+            $sortableDate = $dateObject->format('Y-m-d H:i');
+            $formattedDate = $dateObject->format('m/d/Y H:i');
+        }
 
         if (!isset($dateData[$sortableDate])) {
-            $dateData[$sortableDate] = ['Purchases' => 0, 'Revenue' => 0];
+            $dateData[$sortableDate] = ['Purchases' => 0, 'Revenue' => 0, 'FormattedDate' => $formattedDate];
         }
 
         $dateData[$sortableDate]['Purchases'] += 1;
@@ -762,9 +793,11 @@ function idwiz_group_purchases_by_date($purchases)
 
     // Convert the sorted dates back to the desired format for display.
     $sortedDateData = [];
-    foreach ($dateData as $date => $data) {
-        $formattedDate = (new DateTime($date))->format('m/d/Y');
-        $sortedDateData[$formattedDate] = $data;
+    foreach ($dateData as $data) {
+        $sortedDateData[$data['FormattedDate']] = [
+            'Purchases' => $data['Purchases'],
+            'Revenue' => $data['Revenue']
+        ];
     }
 
     return $sortedDateData;

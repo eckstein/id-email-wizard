@@ -2827,10 +2827,14 @@ h2.wizArticle-title {
 .wizcampaign-section-icons {
 	display: flex;
 	gap: 10px;
-	color: #343434;
+	color: #666666;
+	cursor: pointer;
 }
 .wizcampaign-section-icons .active {
 	color: #94c52a;
+}
+.wizcampaign-section-icons i:not(.active):hover {
+	color: #343434;
 }
 
 .wizcampaign-section.shadow {

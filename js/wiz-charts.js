@@ -14,6 +14,23 @@ jQuery(document).ready(function ($) {
 		idwiz_fill_chart_canvas(canvas);
 	});
 
+	$(document).on("click", ".chart-timescale-switcher", function () {
+		$(this).closest(".wizcampaign-section").find(".chart-timescale-switcher.active").removeClass("active");
+		$(this).addClass("active");
+		var switchTo = $(this).data("timescale");
+		var canvases = $(this).closest(".wizcampaign-section").find("canvas[data-timescale]");
+
+		canvases.each(function () {
+			var canvas = this;
+			if (canvas.chartInstance) {
+				canvas.chartInstance.destroy();
+			}
+
+			$(canvas).attr("data-timescale", switchTo);
+			idwiz_fill_chart_canvas(canvas);
+		});
+	});
+
 	// On page load, fill canvases with their charts
 	$("canvas.wiz-canvas").each(function () {
 		if ($(this).attr("data-lazy-load") == "true") {
@@ -39,29 +56,29 @@ jQuery(document).ready(function ($) {
 
 	
 
-	$(document).on("change", "#limit30Days", function () {
-		var startDate = $('#purchasesByDate').data('startdate');
-		var newEndDate = new Date(startDate);
-		if ($(this).is(':checked')) {
-			newEndDate.setDate(newEndDate.getDate() + 30);
-		} else {
-			newEndDate = new Date(); // Default back to today's date
-		}
-		var formattedEndDate = newEndDate.getFullYear() + '-' +
-							   ('0' + (newEndDate.getMonth() + 1)).slice(-2) + '-' +
-							   ('0' + newEndDate.getDate()).slice(-2);
+	// $(document).on("change", "#limit30Days", function () {
+	// 	var startDate = $('#purchasesByDate').data('startdate');
+	// 	var newEndDate = new Date(startDate);
+	// 	if ($(this).is(':checked')) {
+	// 		newEndDate.setDate(newEndDate.getDate() + 30);
+	// 	} else {
+	// 		newEndDate = new Date(); // Default back to today's date
+	// 	}
+	// 	var formattedEndDate = newEndDate.getFullYear() + '-' +
+	// 						   ('0' + (newEndDate.getMonth() + 1)).slice(-2) + '-' +
+	// 						   ('0' + newEndDate.getDate()).slice(-2);
 
-		$('#purchasesByDate').data('enddate', formattedEndDate).attr('data-enddate', formattedEndDate);
+	// 	$('#purchasesByDate').data('enddate', formattedEndDate).attr('data-enddate', formattedEndDate);
 
-		// Assuming the canvas is within the same section as the #limit30Days checkbox
-		var canvas = $(this).closest(".wizcampaign-section").find("canvas")[0];
-		if (canvas && typeof idwiz_fill_chart_canvas === "function") {
-			if (canvas.chartInstance) {
-				canvas.chartInstance.destroy();
-			}
-			idwiz_fill_chart_canvas(canvas);
-		}
-	});
+	// 	// Assuming the canvas is within the same section as the #limit30Days checkbox
+	// 	var canvas = $(this).closest(".wizcampaign-section").find("canvas")[0];
+	// 	if (canvas && typeof idwiz_fill_chart_canvas === "function") {
+	// 		if (canvas.chartInstance) {
+	// 			canvas.chartInstance.destroy();
+	// 		}
+	// 		idwiz_fill_chart_canvas(canvas);
+	// 	}
+	// });
 
 
 	function idwiz_fill_chart_canvas(canvas) {
@@ -97,6 +114,9 @@ jQuery(document).ready(function ($) {
 		}
 		if ($(canvas).attr("data-year-over-year")) {
 			additionalData.yearOverYear = $(canvas).attr("data-year-over-year");
+		}
+		if ($(canvas).attr("data-timescale")) {
+			additionalData.timeScale = $(canvas).attr("data-timescale");
 		}
 
 		if ($(canvas).attr("data-campaigntypes")) {
