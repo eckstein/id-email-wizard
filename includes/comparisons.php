@@ -216,175 +216,175 @@ function idemailwiz_add_compare_set_spacer() {
 }
 add_action( 'wp_ajax_idemailwiz_add_compare_set_spacer', 'idemailwiz_add_compare_set_spacer' );
 
-function idemailwiz_handle_ajax_add_compare_campaign() {
+function idemailwiz_handle_ajax_add_compare_campaign()
+{
 	// Check the nonce for security
-	if ( ! check_ajax_referer( 'comparisons', 'security', false ) ) {
-		error_log( 'Nonce check failed' );
-		wp_send_json_error( 'Nonce check failed' );
+	if (!check_ajax_referer('comparisons', 'security', false)) {
+		error_log('Nonce check failed');
+		wp_send_json_error('Nonce check failed');
 		return;
 	}
 
-	// Retrieve the AJAX sent data
-	$mode = isset( $_POST['mode'] ) ? sanitize_text_field( $_POST['mode'] ) : '';
-	$setId = isset( $_POST['setId'] ) ? intval( $_POST['setId'] ) : 0;
-	$postId = isset( $_POST['postId'] ) ? intval( $_POST['postId'] ) : 0;
-	$addBefore = isset( $_POST['addBefore'] ) ? $_POST['addBefore'] : false;
-	$replaceWith = isset( $_POST['replaceWith'] ) ? $_POST['replaceWith'] : false;
-	$refreshOnly = isset( $_POST['refreshOnly'] ) ? $_POST['refreshOnly'] : false;
-	//$siblingCard = isset( $_POST['siblingCard'] ) ? $_POST['siblingCard'] : false; //ID of the sibling card
+	// Retrieve and validate the AJAX sent data
+	$mode = isset($_POST['mode']) ? sanitize_text_field($_POST['mode']) : '';
+	$setId = isset($_POST['setId']) ? intval($_POST['setId']) : 0;
+	$postId = isset($_POST['postId']) ? intval($_POST['postId']) : 0;
+	$addBefore = isset($_POST['addBefore']) ? $_POST['addBefore'] : false;
+	$replaceWith = isset($_POST['replaceWith']) ? $_POST['replaceWith'] : false;
+	$refreshOnly = isset($_POST['refreshOnly']) ? $_POST['refreshOnly'] : false;
 
 	// Check if a valid post ID is provided
-	if ( ! $postId ) {
-		wp_send_json_error( 'Invalid post ID' );
+	if (!$postId) {
+		wp_send_json_error('Invalid post ID');
 		return;
 	}
 
-	// Initialize an array to store new campaign IDs
+	if ($refreshOnly) {
+		$response = handle_refresh_campaign($setId, $replaceWith, $postId);
+		wp_send_json_success($response);
+		return;
+	}
+
 	$newCampaignIds = [];
 
-	if ( $refreshOnly ) {
-		$newCampaignIds[] = $replaceWith;
-	} else {
-
-		// Handle 'byCampaign' mode - Specific Campaigns
-		if ( $mode === 'byCampaign' && isset( $_POST['campaigns'] ) ) {
-			$newCampaignIds = array_map( 'intval', $_POST['campaigns'] );
-		} else if ( $mode === 'byInitiative' && isset($_POST['initiatives'] ) ) {
-			$initiativeIds = array_map( 'intval', $_POST['initiatives'] );
-			$initCampaigns = [];
-			foreach ( $initiativeIds as $initiativeId ) {
-				$initCampaigns = array_merge(idemailwiz_get_campaign_ids_for_initiative( $initiativeId ), $initCampaigns);
+	// Handle different modes
+	switch ($mode) {
+		case 'byCampaign':
+			if (isset($_POST['campaigns'])) {
+				$newCampaignIds = array_map('intval', $_POST['campaigns']);
 			}
-			$newCampaignIds = array_unique(array_merge( $initCampaigns , $newCampaignIds));
-		} else if ( $mode === 'byDate' && isset( $_POST['startDate'], $_POST['endDate'] ) ) {
-			// Handle 'byDate' mode - Date Range
-			$startDate = sanitize_text_field( $_POST['startDate'] );
-			$endDate = sanitize_text_field( $_POST['endDate'] );
-			$dateRangeCampaigns = get_idwiz_campaigns( [ 'type' => 'Blast', 'startAt_start' => $startDate, 'startAt_end' => $endDate, 'sortBy' => 'startAt', 'sort' => 'DESC' ] );
+			break;
+		case 'byInitiative':
+			if (isset($_POST['initiatives'])) {
+				$initiativeIds = array_map('intval', $_POST['initiatives']);
+				$initCampaigns = [];
+				foreach ($initiativeIds as $initiativeId) {
+					$initCampaigns = array_merge(idemailwiz_get_campaign_ids_for_initiative($initiativeId), $initCampaigns);
+				}
+				$newCampaignIds = array_unique(array_merge($initCampaigns, $newCampaignIds));
+			}
+			break;
+		case 'byDate':
+			if (isset($_POST['startDate'], $_POST['endDate'])) {
+				$startDate = sanitize_text_field($_POST['startDate']);
+				$endDate = sanitize_text_field($_POST['endDate']);
+				$dateRangeCampaigns = get_idwiz_campaigns([
+					'type' => 'Blast',
+					'startAt_start' => $startDate,
+					'startAt_end' => $endDate,
+					'sortBy' => 'startAt',
+					'sort' => 'DESC'
+				]);
 
-			if ( $dateRangeCampaigns ) {
-				foreach ( $dateRangeCampaigns as $campaign ) {
-					$newCampaignIds[] = $campaign['id'];
+				if ($dateRangeCampaigns) {
+					foreach ($dateRangeCampaigns as $campaign) {
+						$newCampaignIds[] = $campaign['id'];
+					}
 				}
 			}
-		}
+			break;
 	}
 
-	if ( ! empty( $newCampaignIds ) ) {
-		// Fetch existing campaign sets or initialize if not set
-		$campaignSets = get_post_meta( $postId, 'compare_campaign_sets', true );
-		if ( ! is_array( $campaignSets ) || ! isset( $campaignSets['sets'] ) ) {
+	if (empty($newCampaignIds)) {
+		wp_send_json_error('No campaigns found to add');
+		return;
+	}
 
-			$campaignSets = [ 'sets' => [] ];
-		}
+	$response = handle_add_campaign($postId, $setId, $newCampaignIds, $addBefore);
+	wp_send_json_success($response);
+}
 
-		$setFound = false;
-		$setValid = false;
-		$html = '';
+function handle_refresh_campaign($setId, $replaceWith, $postId)
+{
+	$newCampaignIds = [$replaceWith];
+	$newCampaignIds = array_unique($newCampaignIds);
 
-		// Find the specific set and append or insert new campaign IDs
-		foreach ( $campaignSets['sets'] as &$set ) {
-			if ( isset( $set['setId'] ) && $set['setId'] === $setId ) {
-				$setFound = true;
+	$html = '';
+	foreach ($newCampaignIds as $campaignId) {
+		$html .= generate_compare_campaign_card_html($setId, $campaignId, $postId, true, null, true);
+	}
 
-				if ( count( $set['campaigns'] ) > 1 ) {
-					$setValid = true;
-				}
+	return [
+		'message' => 'Campaign refreshed successfully',
+		'replaceWith' => $replaceWith,
+		'html' => $html
+	];
+}
 
-				if ( $replaceWith !== false ) {
-					$replaceIndex = array_search( $replaceWith, $set['campaigns'] );
-					if ( $replaceIndex !== false ) {
-						$set['campaigns'][ $replaceIndex ] = $newCampaignIds[0];
-					}
-				} else if ( $addBefore !== false ) {
-					// Find position to insert before
-					$insertPosition = array_search( $addBefore, $set['campaigns'] );
-					if ( $insertPosition !== false ) {
-						array_splice( $set['campaigns'], $insertPosition, 0, $newCampaignIds );
-					} else {
-						// If $addBefore ID not found, append to end
-						$set['campaigns'] = array_merge( $set['campaigns'], $newCampaignIds );
-					}
+function handle_add_campaign($postId, $setId, $newCampaignIds, $addBefore)
+{
+	// Fetch existing campaign sets or initialize if not set
+	$campaignSets = get_post_meta($postId, 'compare_campaign_sets', true);
+	if (!is_array($campaignSets) || !isset($campaignSets['sets'])) {
+		$campaignSets = ['sets' => []];
+	}
+
+	$isSetFound = false;
+	$isSetValid = false;
+	$html = '';
+	$addedCampaignIds = [];
+	$dupedCampaignIds = [];
+
+	// Find the specific set and append or insert new campaign IDs
+	foreach ($campaignSets['sets'] as &$set) {
+		if (isset($set['setId']) && $set['setId'] === $setId) {
+			$isSetFound = true;
+			$isSetValid = count($set['campaigns']) > 1;
+
+			if ($addBefore !== false) {
+				$insertPosition = array_search($addBefore, $set['campaigns']);
+				if ($insertPosition !== false) {
+					array_splice($set['campaigns'], $insertPosition, 0, $newCampaignIds);
 				} else {
-					// Append new campaign IDs to existing ones
-					$set['campaigns'] = array_merge( $set['campaigns'], $newCampaignIds );
+					$set['campaigns'] = array_merge($set['campaigns'], $newCampaignIds);
 				}
-
-
-
-				if ( ! $refreshOnly ) {
-					// Remove duplicates and track duped IDs
-					$originalCampaigns = $set['campaigns'];
-					$set['campaigns'] = array_unique( $set['campaigns'] );
-					$dupedCampaignIds = array_diff( $originalCampaigns, $set['campaigns'] );
-					$addedCampaignIds = array_diff( $newCampaignIds, $dupedCampaignIds );
-				}
-
-				if ( ! empty( $addedCampaignIds ) ) {
-					foreach ( $addedCampaignIds as $addedCampaignId ) {
-						$html .= generate_compare_campaign_card_html( $set['setId'], $addedCampaignId, $postId, true, null, true );
-					}
-				}
-
-				break;
-			}
-		}
-
-
-		if ( $refreshOnly ) {
-			$newCampaignIds[] = $replaceWith;
-			$newCampaignIds = array_unique( $newCampaignIds );
-
-			// Generate HTML for the refreshed campaign
-			foreach ( $newCampaignIds as $campaignId ) {
-				$html .= generate_compare_campaign_card_html( $setId, $campaignId, $postId, true, null, true );
-			}
-
-			wp_send_json_success( [ 
-				'message' => 'Campaign refreshed successfully',
-				'replaceWith' => $replaceWith,
-				'html' => $html
-			] );
-			return; // Make sure to return after sending the response
-		} else {
-			// If the set was not found, create a new one
-			if ( ! $setFound ) {
-				// If the set was not found, create and add a new one
-				$campaignSets['sets'][] = [ 
-					'setId' => $setId,
-					'campaigns' => $newCampaignIds
-				];
-				// Generate HTML for the new set
-				foreach ( $newCampaignIds as $addedCampaignId ) {
-					$html .= generate_compare_campaign_card_html( $setId, $addedCampaignId, $postId, true, null, true );
-				}
-			}
-
-			// Save the updated campaign sets
-			$updateSuccess = update_post_meta( $postId, 'compare_campaign_sets', $campaignSets );
-
-			if ( $updateSuccess ) {
-				$successMessage = count( $addedCampaignIds ) . ' campaigns were added successfully';
-				if ( count( $dupedCampaignIds ) > 0 ) {
-					$successMessage .= '. ' . count( $dupedCampaignIds ) . ' already existed and were not added';
-				}
-				wp_send_json_success( [ 
-					'message' => $successMessage,
-					'addBefore' => $addBefore,
-					'replaceWith' => $replaceWith,
-					'html' => $html,
-					'firstAddition' => $setValid ? false : true
-				] );
 			} else {
-				wp_send_json_error( 'Campaign list was not updated! Perhaps that campaign is already added?' );
+				$set['campaigns'] = array_merge($set['campaigns'], $newCampaignIds);
 			}
+
+			$originalCampaigns = $set['campaigns'];
+			$set['campaigns'] = array_unique($set['campaigns']);
+			$dupedCampaignIds = array_diff($originalCampaigns, $set['campaigns']);
+			$addedCampaignIds = array_diff($newCampaignIds, $dupedCampaignIds);
+
+			if (!empty($addedCampaignIds)) {
+				foreach ($addedCampaignIds as $addedCampaignId) {
+					$html .= generate_compare_campaign_card_html($set['setId'], $addedCampaignId, $postId, true, null, true);
+				}
+			}
+
+			break;
 		}
-
-
-	} else {
-		wp_send_json_error( 'No campaigns found to add' );
 	}
 
+	if (!$isSetFound) {
+		$campaignSets['sets'][] = [
+			'setId' => $setId,
+			'campaigns' => $newCampaignIds
+		];
+
+		$addedCampaignIds = $newCampaignIds;
+		foreach ($newCampaignIds as $addedCampaignId) {
+			$html .= generate_compare_campaign_card_html($setId, $addedCampaignId, $postId, true, null, true);
+		}
+	}
+
+	$updateSuccess = update_post_meta($postId, 'compare_campaign_sets', $campaignSets);
+
+	if ($updateSuccess) {
+		$successMessage = count($addedCampaignIds) . ' campaigns were added successfully';
+		if (count($dupedCampaignIds) > 0) {
+			$successMessage .= '. ' . count($dupedCampaignIds) . ' already existed and were not added';
+		}
+		return [
+			'message' => $successMessage,
+			'addBefore' => $addBefore,
+			'html' => $html,
+			'firstAddition' => !$isSetValid
+		];
+	} else {
+		wp_send_json_error('Campaign list was not updated! Perhaps that campaign is already added?');
+	}
 }
 
 add_action( 'wp_ajax_idemailwiz_handle_ajax_add_compare_campaign', 'idemailwiz_handle_ajax_add_compare_campaign' );
