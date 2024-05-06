@@ -2954,10 +2954,6 @@ h2.wizArticle-title {
 	overflow-y: auto;
 }
 
-/* Dashboard Campaigns Table */
-#dashboard-campaigns td.campaignName {
-	white-space: nowrap;
-}
 
 
 /* Reports Pages */

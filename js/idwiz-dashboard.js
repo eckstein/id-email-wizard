@@ -173,9 +173,7 @@
 		}
 
 		if ($("#dashboard-campaigns").length) {
-			if ($.fn.dataTable.isDataTable('#dashboard-campaigns')) {
-				$('#dashboard-campaigns').DataTable().destroy();
-			}
+			
 			// Custom sorting for date format 'm/d/Y'
 			$.fn.dataTable.ext.type.order["date-mdy-pre"] = function (dateString) {
 				var dateParts = dateString.split("/");
@@ -187,7 +185,7 @@
 				columnDefs: [
 					{ targets: "campaignDate", type: "date-mdy" },
 					{ targets: "campaignId", visible: false },
-					{ targets: "dtNumVal", type: "num" },
+					//{ targets: "dtNumVal", type: "num" },
 				],
 				order: [[0, "desc"]],
 				autoWidth: false,
@@ -301,12 +299,6 @@
 		});
 	}
 
-	// Utility function to get the current URL parameters for month/year
-	function getQueryParam(param) {
-		var urlParams = new URLSearchParams(window.location.search);
-		return urlParams.get(param);
-	}
-
 	// Utility function to format as money
 	function formatMoney(amount) {
 		return (
@@ -317,21 +309,5 @@
 		);
 	}
 
-	// Utility function to get the appropriate format function based on the data type
-	function getFormatFunction(dataType) {
-		if (dataType === "money") {
-			return formatMoney;
-		} else if (dataType === "percent") {
-			return function (value) {
-				return value.toFixed(2) + "%";
-			};
-		} else if (dataType === "number") {
-			return function (value) {
-				return value.toLocaleString();
-			};
-		}
-		return function (value) {
-			return value;
-		};
-	}
+	
 })(jQuery);
