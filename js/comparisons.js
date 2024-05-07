@@ -750,7 +750,7 @@ jQuery(document).ready(function ($) {
 		var isBaseMetric = $(this).data("is-base-metric");
 
 		idemailwiz_do_ajax(
-			"idemailwiz_generate_campaign_card_ajax",
+			"idemailwiz_regenerate_experiment_compare_tab",
 			idAjax_comparisons.nonce,
 			{ setId, postId, campaignId, asNew: false, templateId, isBaseMetric },
 			function (response) {

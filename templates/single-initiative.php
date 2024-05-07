@@ -107,6 +107,102 @@
 
 
 				</div>
+
+
+				<div class="wizcampaign-sections-row">
+
+					<div class="wizcampaign-section inset">
+						<div class="initiative-about">
+							<h4>About
+								<?php the_title(); ?>
+							</h4>
+						</div>
+						<textarea id="initiative-content-editable" data-initUpdateType="content"><?php echo strip_tags(get_the_content()); ?></textarea>
+					</div>
+					<div id="initiativeTemplate" class="wizcampaign-section inset">
+						<?php $initBaseTemplate = get_field('base_template');
+						?>
+						<div class="wizcampaign-section-title-area">
+							<h4>Initiative Base Template</h4>
+							<div class="wizcampaign-section-icons">
+								<?php if ($initBaseTemplate) { ?>
+									<button data-postid="<?php echo $initBaseTemplate->ID; ?>" data-frombase="true" class="duplicate-template wiz-button green"><i class="fa-solid fa-plus"></i> Start New
+										Template</button>
+								<?php } ?>
+							</div>
+						</div>
+
+						<div id="initTemplateTools">
+							<?php if (!$initBaseTemplate) { ?>
+								<br />
+								<em>No base template set</em><br /><button class="wiz-button green attachBaseTemplate"><i class="fa-solid fa-plus"></i> Attach Base Template</button>
+							<?php } ?>
+							<div id="showAttachBaseTemplate">
+								<?php
+								acf_form(array('fields' => array('field_65032b84c2f62'), 'updated_message' => false, 'html_submit_button' => '<input type="submit" class="acf-button wiz-button green" value="%s" />'));
+								?>
+							</div>
+							<?php if ($initBaseTemplate) { ?>
+
+								<?php
+								$mockups = get_field('template_mock-ups', $initBaseTemplate->ID);
+								if ($mockups) {
+									echo '<div class="init-template-mock-ups">';
+									$dtMockup = $mockups['mock-up-image-desktop'];
+									$mobMockup = $mockups['mock-up-image-mobile'];
+									if ($dtMockup) {
+										echo '<div class="init-template-mock-up"><strong>Desktop</strong><br/><img src="' . $dtMockup . '"/></div>';
+									}
+									if ($mobMockup) {
+										echo '<div class="init-template-mock-up"><strong>Mobile</strong><br/><img src="' . $mobMockup . '"/></div>';
+									}
+									echo '</div>';
+								} else {
+									echo 'Base Template:<br/><strong>' . $initBaseTemplate->post_title . '</strong><br/><em>No mock-ups were found for this base template.</em>';
+								}
+								?>
+								<button class="wiz-button outline attachBaseTemplate" id="replaceBaseTemplate"><i class="fa-solid fa-shuffle"></i> Replace Base Template</button>
+							<?php } ?>
+
+						</div>
+
+					</div>
+					<div id="initiativeAssets" class="wizcampaign-section short inset span2">
+						<div class="wizcampaign-section-title-area">
+							<h4>Initiative Assets</h4>
+
+						</div>
+						<div id="initAssetsUI">
+							<div class="initAssetsLibrary">
+								<?php
+								$initAssets = get_post_meta($post->ID, 'wizinitiative_assets', true);
+								if (is_array($initAssets)) {
+									foreach ($initAssets as $asset) {
+										echo '<div class="init_asset_wrap"><img src="' . $asset['src'] . '" alt="' . $asset['alt'] . '" /></div>';
+									}
+								}
+								?>
+							</div>
+
+						</div>
+					</div>
+				</div>
+
+				<?php
+				if (!empty($associated_campaign_ids)) {
+					// Setup standard chart variables
+					$standardChartCampaignIds = $associated_campaign_ids;
+					$standardChartPurchases = $purchases;
+
+					$startAts = array_column($initCampaigns, 'startAt');
+					$earliestDate = min($startAts);
+					$startDate = date('Y-m-d', $earliestDate / 1000);
+
+					$endDate = date('Y-m-d');
+					include plugin_dir_path(__FILE__) . 'parts/standard-charts.php';
+				}
+				?>
+
 				<div class="wizcampaign-sections-row">
 					<div id="initiative-campaigns-table" class="wizcampaign-section inset span4">
 
@@ -202,100 +298,6 @@
 
 					</div>
 				</div>
-
-				<div class="wizcampaign-sections-row">
-
-					<div class="wizcampaign-section inset">
-						<div class="initiative-about">
-							<h4>About
-								<?php the_title(); ?>
-							</h4>
-						</div>
-						<textarea id="initiative-content-editable" data-initUpdateType="content"><?php echo strip_tags(get_the_content()); ?></textarea>
-					</div>
-					<div id="initiativeTemplate" class="wizcampaign-section inset">
-						<?php $initBaseTemplate = get_field('base_template');
-						?>
-						<div class="wizcampaign-section-title-area">
-							<h4>Initiative Base Template</h4>
-							<div class="wizcampaign-section-icons">
-								<?php if ($initBaseTemplate) { ?>
-									<button data-postid="<?php echo $initBaseTemplate->ID; ?>" data-frombase="true" class="duplicate-template wiz-button green"><i class="fa-solid fa-plus"></i> Start New
-										Template</button>
-								<?php } ?>
-							</div>
-						</div>
-
-						<div id="initTemplateTools">
-							<?php if (!$initBaseTemplate) { ?>
-								<br />
-								<em>No base template set</em><br /><button class="wiz-button green attachBaseTemplate"><i class="fa-solid fa-plus"></i> Attach Base Template</button>
-							<?php } ?>
-							<div id="showAttachBaseTemplate">
-								<?php
-								acf_form(array('fields' => array('field_65032b84c2f62'), 'updated_message' => false, 'html_submit_button' => '<input type="submit" class="acf-button wiz-button green" value="%s" />'));
-								?>
-							</div>
-							<?php if ($initBaseTemplate) { ?>
-
-								<?php
-								$mockups = get_field('template_mock-ups', $initBaseTemplate->ID);
-								if ($mockups) {
-									echo '<div class="init-template-mock-ups">';
-									$dtMockup = $mockups['mock-up-image-desktop'];
-									$mobMockup = $mockups['mock-up-image-mobile'];
-									if ($dtMockup) {
-										echo '<div class="init-template-mock-up"><strong>Desktop</strong><br/><img src="' . $dtMockup . '"/></div>';
-									}
-									if ($mobMockup) {
-										echo '<div class="init-template-mock-up"><strong>Mobile</strong><br/><img src="' . $mobMockup . '"/></div>';
-									}
-									echo '</div>';
-								} else {
-									echo 'Base Template:<br/><strong>' . $initBaseTemplate->post_title . '</strong><br/><em>No mock-ups were found for this base template.</em>';
-								}
-								?>
-								<button class="wiz-button outline attachBaseTemplate" id="replaceBaseTemplate"><i class="fa-solid fa-shuffle"></i> Replace Base Template</button>
-							<?php } ?>
-
-						</div>
-
-					</div>
-					<div id="initiativeAssets" class="wizcampaign-section short inset span2">
-						<div class="wizcampaign-section-title-area">
-							<h4>Initiative Assets</h4>
-
-						</div>
-						<div id="initAssetsUI">
-							<div class="initAssetsLibrary">
-								<?php
-								$initAssets = get_post_meta($post->ID, 'wizinitiative_assets', true);
-								if (is_array($initAssets)) {
-									foreach ($initAssets as $asset) {
-										echo '<div class="init_asset_wrap"><img src="' . $asset['src'] . '" alt="' . $asset['alt'] . '" /></div>';
-									}
-								}
-								?>
-							</div>
-
-						</div>
-					</div>
-				</div>
-
-				<?php
-				if (!empty($associated_campaign_ids)) {
-					// Setup standard chart variables
-					$standardChartCampaignIds = $associated_campaign_ids;
-					$standardChartPurchases = $purchases;
-
-					$startAts = array_column($initCampaigns, 'startAt');
-					$earliestDate = min($startAts);
-					$startDate = date('Y-m-d', $earliestDate / 1000);
-
-					$endDate = date('Y-m-d');
-					include plugin_dir_path(__FILE__) . 'parts/standard-charts.php';
-				}
-				?>
 
 
 

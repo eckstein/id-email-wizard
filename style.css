@@ -3218,10 +3218,7 @@ h2.wizArticle-title {
 	color: #94c52a;
 }
 
-#initiative-campaigns-table tbody th,
-#initiative-campaigns-table tbody td {
-	white-space: nowrap;
-}
+
 .single-idwiz_initiative #initiative-campaigns-table > .wizcampaign-section {
 	width: 100%;
 	margin-top: 30px;
@@ -4054,24 +4051,26 @@ color: #eee;
 }
 .wiztemplate-image-spinner {
 	display: flex;
-	height: 90%;
 	justify-content: center;
 	align-items: center;
 	color: #cfcfcf;
+	padding: 20px;
 }
 .compare-template-preview img {
 	width: 100%;
 	height: auto;
 }
-.compare-campaign-missing-preview .wiztemplate-image-spinner {
-	margin-top: 20px;
-}
+
 .compare-campaign-missing-preview {
 	text-align: center;
-
+	display: flex;
+	align-items: center;
+	flex-direction: column;
+	gap: 20px;
 }
-.compare-campaign-missing-preview.wiz-button {
-	margin-top: 10px;
+.compare-campaign-missing-preview .wiz-button {
+	display: block;
+	margin: 0 auto;
 }
 .compare-campaign-info {
 	height: 270px;

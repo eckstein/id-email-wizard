@@ -232,37 +232,41 @@ add_filter( 'acf/settings/remove_wp_meta_box', '__return_false' );
 
 
 // Extract Image URLs and alt values from a set of campaigns
-function idwiz_extract_campaigns_images( $campaignIds = [] ) {
-	if ( ! $campaignIds || empty( $campaignIds ) ) {
+function idwiz_extract_campaigns_images($campaignIds = [])
+{
+	if (!$campaignIds || empty($campaignIds)) {
 		return array();
 	}
 	// Initialize an array to store image data for all campaigns
 	$allCampaignImageData = [];
 
 	// Fetch templates for the given campaign IDs
-	$templates = get_idwiz_templates( [ 'campaignIds' => $campaignIds ] );
+	$templates = get_idwiz_templates(['campaignIds' => $campaignIds]);
 
 	// Loop through each template to extract image information
-	foreach ( $templates as $template ) {
+	foreach ($templates as $template) {
 		$templateHTML = $template['html'];
 
-		// Load HTML content into a DOMDocument object
-		$dom = new DOMDocument;
-		@$dom->loadHTML( $templateHTML );
+		// Check if $templateHTML is not empty before loading it into DOMDocument
+		if (!empty($templateHTML)) {
+			// Load HTML content into a DOMDocument object
+			$dom = new DOMDocument;
+			@$dom->loadHTML($templateHTML);
 
-		// Initialize an array to store image data for this specific template
-		$templateImageData = [];
+			// Initialize an array to store image data for this specific template
+			$templateImageData = [];
 
-		// Loop through all the <img> tags in this template
-		$images = $dom->getElementsByTagName( 'img' );
-		foreach ( $images as $image ) {
-			$src = $image->getAttribute( 'src' );
-			$alt = $image->getAttribute( 'alt' ) ?? '';
-			$templateImageData[] = [ 'src' => $src, 'alt' => $alt ];
+			// Loop through all the <img> tags in this template
+			$images = $dom->getElementsByTagName('img');
+			foreach ($images as $image) {
+				$src = $image->getAttribute('src');
+				$alt = $image->getAttribute('alt') ?? '';
+				$templateImageData[] = ['src' => $src, 'alt' => $alt];
+			}
+
+			// Save the image data for this campaign
+			$allCampaignImageData[$template['templateId']] = $templateImageData;
 		}
-
-		// Save the image data for this campaign
-		$allCampaignImageData[ $template['templateId'] ] = $templateImageData;
 	}
 
 	return $allCampaignImageData;

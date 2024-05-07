@@ -257,11 +257,16 @@ function idemailwiz_handle_ajax_add_compare_campaign()
 		case 'byInitiative':
 			if (isset($_POST['initiatives'])) {
 				$initiativeIds = array_map('intval', $_POST['initiatives']);
-				$initCampaigns = [];
-				foreach ($initiativeIds as $initiativeId) {
-					$initCampaigns = array_merge(idemailwiz_get_campaign_ids_for_initiative($initiativeId), $initCampaigns);
+				$showAsSingle = isset($_POST['init_as_single_card']) ? $_POST['init_as_single_card'] : false;
+				if ($showAsSingle) {
+					$newCampaignIds = $initiativeIds;
+				} else {
+					$initCampaigns = [];
+					foreach ($initiativeIds as $initiativeId) {
+						$initCampaigns = array_merge(idemailwiz_get_campaign_ids_for_initiative($initiativeId), $initCampaigns);
+					}
+					$newCampaignIds = array_unique(array_merge($initCampaigns, $newCampaignIds));
 				}
-				$newCampaignIds = array_unique(array_merge($initCampaigns, $newCampaignIds));
 			}
 			break;
 		case 'byDate':
@@ -290,7 +295,7 @@ function idemailwiz_handle_ajax_add_compare_campaign()
 		return;
 	}
 
-	$response = handle_add_campaign($postId, $setId, $newCampaignIds, $addBefore);
+	$response = handle_add_campaigns($postId, $setId, $newCampaignIds, $addBefore);
 	wp_send_json_success($response);
 }
 
@@ -311,7 +316,7 @@ function handle_refresh_campaign($setId, $replaceWith, $postId)
 	];
 }
 
-function handle_add_campaign($postId, $setId, $newCampaignIds, $addBefore)
+function handle_add_campaigns($postId, $setId, $newCampaignIds, $addBefore)
 {
 	// Fetch existing campaign sets or initialize if not set
 	$campaignSets = get_post_meta($postId, 'compare_campaign_sets', true);
@@ -551,7 +556,7 @@ add_action( 'wp_ajax_idemailwiz_remove_comparision_campaign', 'idemailwiz_remove
 
 
 
-function idemailwiz_generate_campaign_card_ajax() {
+function idemailwiz_regenerate_experiment_compare_tab() {
 	// Check the nonce for security
 	check_ajax_referer( 'comparisons', 'security' );
 
@@ -579,7 +584,7 @@ function idemailwiz_generate_campaign_card_ajax() {
 	}
 }
 
-add_action( 'wp_ajax_idemailwiz_generate_campaign_card_ajax', 'idemailwiz_generate_campaign_card_ajax' );
+add_action('wp_ajax_idemailwiz_regenerate_experiment_compare_tab', 'idemailwiz_regenerate_experiment_compare_tab' );
 
 
 function generate_compare_campaign_card_html( $setId, $campaignId, $postId, $asNew = false, $templateId = false, $isBaseMetric = false ) {
@@ -648,23 +653,6 @@ function generate_experiment_tabs( $campaign, $templateId, $isBaseMetric = false
 	return array( $experimentTabs, $templateId );
 }
 
-function generate_spacer_html( $setId, $campaignId, $postId ) {
-	// Building the HTML for the spacer campaign
-	$html = '<div class="wizcampaign-sections-row compare-campaign-wrapper compare-campaign-spacer" data-setid="' . htmlspecialchars( $setId ) . '" data-campaignid="' . htmlspecialchars( $campaignId ) . '" data-postid="' . htmlspecialchars( $postId ) . '">';
-	$html .= '<div class="wizcampaign-section dotted">';
-	$html .= '<div class="wizcampaign-section-title-area">';
-	$html .= '<h4>&nbsp;</h4>'; // Empty header for spacer
-	$html .= '<div class="wizcampaign-section-title-area-right wizcampaign-section-icons compare-campaign-actions" data-set-id="' . htmlspecialchars( $setId ) . '" data-campaign-id="' . htmlspecialchars( $campaignId ) . '">';
-	$html .= '<i class="fa-solid fa-up-down sortable-handle" title="Drag campaign up or down to change order"></i>';
-	$html .= "<i class='fa-solid fa-chevron-up collapse-compare-row'></i>";
-	$html .= '<i class="fa-solid fa-xmark remove-comparison-campaign"></i>';
-	$html .= '</div>'; // Close title area right
-	$html .= '</div>'; // Close title area
-	$html .= '</div>'; // Close campaign section
-	$html .= '</div>'; // Close wrapper
-
-	return $html;
-}
 
 
 
@@ -905,6 +893,24 @@ function build_campaign_card_html( $setId, $campaignId, $postId, $asNew, $campai
 }
 
 
+function generate_spacer_html($setId, $campaignId, $postId)
+{
+	// Building the HTML for the spacer campaign
+	$html = '<div class="wizcampaign-sections-row compare-campaign-wrapper compare-campaign-spacer" data-setid="' . htmlspecialchars($setId) . '" data-campaignid="' . htmlspecialchars($campaignId) . '" data-postid="' . htmlspecialchars($postId) . '">';
+	$html .= '<div class="wizcampaign-section dotted">';
+	$html .= '<div class="wizcampaign-section-title-area">';
+	$html .= '<h4>&nbsp;</h4>'; // Empty header for spacer
+	$html .= '<div class="wizcampaign-section-title-area-right wizcampaign-section-icons compare-campaign-actions" data-set-id="' . htmlspecialchars($setId) . '" data-campaign-id="' . htmlspecialchars($campaignId) . '">';
+	$html .= '<i class="fa-solid fa-up-down sortable-handle" title="Drag campaign up or down to change order"></i>';
+	$html .= "<i class='fa-solid fa-chevron-up collapse-compare-row'></i>";
+	$html .= '<i class="fa-solid fa-xmark remove-comparison-campaign"></i>';
+	$html .= '</div>'; // Close title area right
+	$html .= '</div>'; // Close title area
+	$html .= '</div>'; // Close campaign section
+	$html .= '</div>'; // Close wrapper
+
+	return $html;
+}
 
 
 
