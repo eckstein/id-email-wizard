@@ -3860,6 +3860,12 @@ color: #eee;
 	flex: 0 0 60px;
 	background-color: #eee;
 }
+.comparison-column-settings {
+	background-color: #fff;
+	position: sticky;
+	top: 40px;
+	z-index: 100;
+}
 .comparison-column-settings .wizcampaign-section-title-area,
 .comparison-column-settings .wizcampaign-section-title-area h4 {
 	margin-bottom: 0;
