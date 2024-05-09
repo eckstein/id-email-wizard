@@ -194,8 +194,11 @@ $linkedExperimentIds = array_map(function ($id) {
 		?>
 
 		<?php
-		
-		$metricRates = get_idwiz_metric_rates($allCampaignIds, $startDate, $endDate, [$campaign['type']]);
+		if ($campaign['type'] == 'Blast') {
+			$metricRates = get_idwiz_metric_rates($allCampaignIds, $startDate, $endDate, [$campaign['type']], 'campaignsInDate');
+		} else {
+			$metricRates = get_idwiz_metric_rates($allCampaignIds, $startDate, $endDate, [$campaign['type']], 'allPurchasesInDate');
+		}
 		echo get_idwiz_rollup_row($metricRates);
 		?>
 		<div>
@@ -287,7 +290,7 @@ $linkedExperimentIds = array_map(function ($id) {
 
 							<div class="wizcampaign-section inset wizcampagn-section-tab-content active" id="sendsByDateSection">
 								<div class="wizChartWrapper">
-									<canvas class="sendsByDate wiz-canvas" data-timescale="daily" data-chartid="sendsByDate" data-campaignids='<?php echo json_encode($allCampaignIds); ?>' data-charttype="bar" data-campaignType="<?php echo strtolower($campaign['type']); ?>" data-startdate="<?php echo $startDate; ?>" data-year-over-year="true" data-enddate="<?php echo $endDate; ?>"></canvas>
+									<canvas class="sendsByDate wiz-canvas" data-timescale="daily" data-chartid="sendsByDate" data-campaignids='<?php echo json_encode($allCampaignIds); ?>' data-charttype="bar" data-campaignType="<?php echo strtolower($campaign['type']); ?>" data-startdate="<?php echo $startDate; ?>" data-enddate="<?php echo $endDate; ?>"></canvas>
 								</div>
 							</div>
 

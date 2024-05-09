@@ -214,6 +214,8 @@ function idwiz_get_report_chartdata($chartOptions)
 
 function idwiz_get_byPurchaseField_chartdata($chartOptions) {
 
+    //error_log(print_r($chartOptions, true));
+
     $chartId = $chartOptions['chartId'];
     $chartType = $chartOptions['chartType'];
 
@@ -263,7 +265,7 @@ function idwiz_get_byPurchaseField_chartdata($chartOptions) {
     }
 
     if (empty($filteredPurchases)) {
-        return ['error' => 'No purchases were returned from the query.'];
+        return ['error' => 'Zero purchases were returned from the query.'];
     }
 
     $groupedData = [];
