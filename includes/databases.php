@@ -492,13 +492,25 @@ function build_idwiz_query($args, $table_name)
 		$currentUser = wp_get_current_user();
 		$currentUserId = $currentUser->ID;
 		$userAttMode = get_user_meta($currentUserId, 'purchase_attribution_mode', true);
+
+		// default mode is campaign-id, which gets no extra parameters here
+		if ($userAttMode == 'broad-channel-match') {
+			$placeholders = implode(', ', array_fill(0, count(['email', '']), '%s'));
+			$sql .= $wpdb->prepare(" AND shoppingCartItems_utmMedium IN ($placeholders)", ['email', '']);
+		} elseif ($userAttMode == 'email-channel-match') {
+			$sql .= $wpdb->prepare(" AND shoppingCartItems_utmMedium = %s", 'email');
+		}
+
+
+		// Attribution length
 		$userAttLength = get_user_meta($currentUserId, 'purchase_attribution_length', true);
 
+		// Apply user attribution settings
 		if ($userAttLength && $userAttLength != 'allTime') {
 			$interval = '';
 			switch ($userAttLength) {
 				case '72Hours':
-					$interval = 'INTERVAL 72 HOUR';
+					$interval = 'INTERVAL 3 DAY';
 					break;
 				case '30Days':
 					$interval = 'INTERVAL 30 DAY';
@@ -512,21 +524,35 @@ function build_idwiz_query($args, $table_name)
 			}
 
 			if ($interval) {
-				// Convert campaignStartAt from milliseconds to a date
-				$sql .= " AND purchaseDate <= DATE_ADD(DATE(FROM_UNIXTIME(campaignStartAt / 1000)), $interval)";
-				$sql .= " AND purchaseDate >= DATE(FROM_UNIXTIME(campaignStartAt / 1000))"; // Ensure the purchase is after the campaign started
+				// Convert campaignStartAt from milliseconds to a date in the Pacific timezone
+				$campaignStartDate = "CONVERT_TZ(FROM_UNIXTIME(campaignStartAt / 1000), '+00:00', '-07:00')";
+
+				// Include purchases that occur after the campaignStartAt date and within the attribution interval
+				$sql .= " AND purchaseDate >= DATE($campaignStartDate)";
+
+				// Check if startAt_start and startAt_end are provided
+				if (isset($args['startAt_start']) && isset($args['startAt_end'])) {
+					$startAtStart = DateTime::createFromFormat('Y-m-d', $args['startAt_start'], new DateTimeZone('America/Los_Angeles'));
+					$startAtEnd = DateTime::createFromFormat('Y-m-d', $args['startAt_end'], new DateTimeZone('America/Los_Angeles'));
+
+					if ($startAtStart && $startAtEnd) {
+						$formattedStartAtStart = $startAtStart->format('Y-m-d');
+						$formattedStartAtEnd = $startAtEnd->format('Y-m-d');
+
+						// Use the minimum of the attribution end date and startAt_end, but not earlier than startAt_start
+						$sql .= " AND purchaseDate <= LEAST(DATE_ADD(DATE($campaignStartDate), $interval), '$formattedStartAtEnd')";
+						$sql .= " AND purchaseDate >= '$formattedStartAtStart'";
+					}
+				} else {
+					// If startAt_start and startAt_end are not provided, use the attribution end date
+					$sql .= " AND purchaseDate <= DATE_ADD(DATE($campaignStartDate), $interval)";
+				}
 			}
 		}
 
 
 
-		// default mode is campaign-id, which gets no extra parameters here
-		if ($userAttMode == 'broad-channel-match') {
-			$placeholders = implode(', ', array_fill(0, count(['email', '']), '%s'));
-			$sql .= $wpdb->prepare(" AND shoppingCartItems_utmMedium IN ($placeholders)", ['email', '']);
-		} elseif ($userAttMode == 'email-channel-match') {
-			$sql .= $wpdb->prepare(" AND shoppingCartItems_utmMedium = %s", 'email');
-		}
+		
 	}
 
 	// CampaignIds are under "id" for campaigns and metrics and under "campaignId" for everything else
@@ -536,10 +562,11 @@ function build_idwiz_query($args, $table_name)
 		$campaignKey = 'campaignId';
 	}
 
+	// Every purchase should have a campaignId
+	$sql .= " AND $campaignKey IS NOT NULL";
+
 	foreach ($where_args as $key => $value) {
 		if ($value !== null && $value !== '') {
-
-
 
 			if ($key === 'purchaseId') {
 				$sql .= $wpdb->prepare(" AND id = %d", $value);
@@ -564,13 +591,14 @@ function build_idwiz_query($args, $table_name)
 					if ($dateKey === 'purchaseDate') {
 						// If it's a purchase date, format as 'Y-m-d'
 						$formattedValue = $dt->format('Y-m-d');
+						$sql .= $wpdb->prepare(" AND $dateKey >= %s", $formattedValue);
 					} else {
 						// For other dates, adjust the format as needed
 						$dt->setTime(0, 0, 0); // Set the time to the beginning of the day
 						$dt->setTimezone(new DateTimeZone('UTC')); // Convert to UTC
 						$formattedValue = $dt->getTimestamp() * 1000; // For example, if they're stored as timestamps
+						$sql .= $wpdb->prepare(" AND $dateKey >= %s", $formattedValue);
 					}
-					$sql .= $wpdb->prepare(" AND $dateKey >= %s", $formattedValue);
 				} else {
 					return ['error' => 'Invalid date format for startAt_start'];
 				}
@@ -579,16 +607,15 @@ function build_idwiz_query($args, $table_name)
 				if ($dt) {
 					if ($dateKey === 'purchaseDate') {
 						// If it's a purchase date, format as 'Y-m-d'
-						//$dt->setTime( 23, 59, 59 ); // Set time to the end of the day 
 						$formattedValue = $dt->format('Y-m-d');
+						$sql .= $wpdb->prepare(" AND $dateKey <= %s", $formattedValue);
 					} else {
 						// For other dates, adjust the format
-						//$dt->setTime( 23, 59, 59 ); // Set the time to the end of the day
 						$dt->setTimezone(new DateTimeZone('UTC')); // Convert to UTC
 						$adjustedTimestamp = $dt->getTimestamp() + (7 * 60 * 60); // Add 7 hours offset
 						$formattedValue = $adjustedTimestamp * 1000; // Adjusted for timestamps in milliseconds
+						$sql .= $wpdb->prepare(" AND $dateKey <= %s", $formattedValue);
 					}
-					$sql .= $wpdb->prepare(" AND $dateKey <= %s", $formattedValue);
 				} else {
 					return ['error' => 'Invalid date format for startAt_end'];
 				}
@@ -635,7 +662,7 @@ function build_idwiz_query($args, $table_name)
 		$sql .= $wpdb->prepare(" OFFSET %d", (int) $args['offset']);
 	}
 
-
+	//error_log('Query args: ' . print_r($sql, true));
 	return $sql;
 }
 
@@ -817,6 +844,12 @@ function get_idemailwiz_triggered_data($database, $args = [], $batchSize = 20000
 		$placeholders = array_fill(0, count($args['campaignIds']), '%d');
 		$where_clauses[] = "campaignId IN (" . implode(", ", $placeholders) . ")";
 		$query_params = array_merge($query_params, $args['campaignIds']);
+	}
+
+	// Check if userId is provided
+	if (isset($args['userId'])) {
+		$where_clauses[] = "userId = %s";
+		$query_params[] = $args['userId'];
 	}
 
 	// Check if startAt_start is provided

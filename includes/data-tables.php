@@ -1,4 +1,6 @@
 <?php
+
+
 // Ajax handler for the main campaigns datatable call
 function idwiz_get_campaign_table_view() {
     global $wpdb;
@@ -33,6 +35,13 @@ function idwiz_get_campaign_table_view() {
         if ($row['ga_revenue'] === null || !$row['ga_revenue']) {
             $row['ga_revenue'] = '0';
         }
+        // Replace purchases and revenue data to accomodate attribution settings
+        $purchases = get_idwiz_purchases(['campaignIds' => [$row['campaign_id']]]);
+        $campaignPurchaseCount = count($purchases);
+        $campaignRev = array_sum(array_column($purchases, 'total'));
+        $row['unique_purchases'] = $campaignPurchaseCount;
+        $row['revenue'] = $campaignRev;
+
         // Unserialize specific columns
         $checkSerialized = ['campaign_labels', 'experiment_ids'];  // Add more column names as needed
         foreach ($checkSerialized as $columnName) {

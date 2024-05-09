@@ -58,7 +58,7 @@ jQuery(document).ready(function ($) {
 			buttons: get_wiz_campaign_buttons(),
 			language: get_wiz_campaign_languages(),
 			dom: '<"#wiztable_top_wrapper"><"wiztable_toolbar" <"#wiztable_top_search" f><"#wiztable_top_dates">  B>rptp',
-			fixedHeader: { header: true, footer: false },
+			fixedHeader: { header: false, footer: false },
 			colReorder: { realtime: false },
 			//scroller: true,
 			scrollX: true,

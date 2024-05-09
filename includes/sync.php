@@ -1548,8 +1548,6 @@ function idemailwiz_schedule_sync_process()
 
 			//wp_schedule_single_event(time(), 'idemailwiz_sync_engagement_data');
 		}
-	} else {
-		wiz_log("Engagement data sync is disabled in Wiz Settings.");
 	}
 }
 
@@ -1560,37 +1558,45 @@ function idemailwiz_sync_engagement_data_callback()
 	global $wpdb;
 	$sync_jobs_table_name = $wpdb->prefix . 'idemailwiz_sync_jobs';
 
-	set_transient('data_sync_in_progress', 'true', 2 * HOUR_IN_SECONDS);
-	$jobs = $wpdb->get_results("SELECT * FROM $sync_jobs_table_name WHERE syncStatus = 'pending' ORDER BY syncPriority DESC, retryAfter ASC LIMIT 1", ARRAY_A);
+	// Get the Wiz Settings to check if the sync is turned on
+	$wizSettings = get_option('idemailwiz_settings');
+	$engSync = $wizSettings['iterable_engagement_data_sync_toggle'] ?? 'off';
 
-	if (empty($jobs)) {
-		wiz_log("No pending jobs found in the sync queue.");
-		wp_clear_scheduled_hook('idemailwiz_sync_engagement_data');
-		wp_schedule_single_event(time() + 2 * HOUR_IN_SECONDS, 'idemailwiz_sync_engagement_data');
-		delete_transient('data_sync_in_progress');
-		return;
-	} else {
+	if ($engSync == 'on') {
+		// If the sync is turned on, proceed with processing jobs
+		set_transient('data_sync_in_progress', 'true', 2 * HOUR_IN_SECONDS);
+		$jobs = $wpdb->get_results("SELECT * FROM $sync_jobs_table_name WHERE syncStatus = 'pending' ORDER BY syncPriority DESC, retryAfter ASC LIMIT 1", ARRAY_A);
 
-		$now = new DateTimeImmutable('now', new DateTimeZone('America/Los_Angeles'));
+		if (empty($jobs)) {
+			wiz_log("No pending jobs found in the sync queue.");
+			wp_clear_scheduled_hook('idemailwiz_sync_engagement_data');
+			wp_schedule_single_event(time() + 2 * HOUR_IN_SECONDS, 'idemailwiz_sync_engagement_data');
+			delete_transient('data_sync_in_progress');
+			return;
+		} else {
+			$now = new DateTimeImmutable('now', new DateTimeZone('America/Los_Angeles'));
 
-		foreach ($jobs as $job) {
-			$retryAfter = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $job['retryAfter'], new DateTimeZone('UTC'));
+			foreach ($jobs as $job) {
+				$retryAfter = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $job['retryAfter'], new DateTimeZone('UTC'));
 
-			if ($retryAfter !== false) {
-				$retryAfter->setTimezone(new DateTimeZone('America/Los_Angeles'));
+				if ($retryAfter !== false) {
+					$retryAfter->setTimezone(new DateTimeZone('America/Los_Angeles'));
 
-				// wiz_log("Now: " . $now->format('Y-m-d H:i:s'));
-				// wiz_log("Retry After: " . $retryAfter->format('Y-m-d H:i:s'));
-
-				if ($now > $retryAfter && $job['syncStatus'] == 'pending') {
-					wiz_log("Processing {$job['syncType']} job {$job['jobId']} for campaign {$job['campaignId']}");
-					idemailwiz_process_job_from_sync_queue($job['jobId']);
-					wp_schedule_single_event(time() + 1, 'idemailwiz_sync_engagement_data');
+					if ($now > $retryAfter && $job['syncStatus'] == 'pending') {
+						wiz_log("Processing {$job['syncType']} job {$job['jobId']} for campaign {$job['campaignId']}");
+						idemailwiz_process_job_from_sync_queue($job['jobId']);
+						wp_schedule_single_event(time() + 1, 'idemailwiz_sync_engagement_data');
+					}
+				} else {
+					wiz_log("Invalid retryAfter value: " . $job['retryAfter']);
 				}
-			} else {
-				wiz_log("Invalid retryAfter value: " . $job['retryAfter']);
 			}
 		}
+	} else {
+		// If the sync is turned off, log a message and clear the scheduled hook
+		wiz_log("Engagement data sync is disabled in Wiz Settings.");
+		wp_clear_scheduled_hook('idemailwiz_sync_engagement_data');
+		delete_transient('data_sync_in_progress');
 	}
 }
 

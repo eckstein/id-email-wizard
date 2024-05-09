@@ -166,34 +166,69 @@ function remove_apostrophes_from_column($table_suffix, $column_name)
     }
 }
 
-function idemailwiz_backfill_campaign_start_dates()
+function idemailwiz_backfill_campaign_start_dates($purchases = false)
 {
     global $wpdb;
     $purchases_table = $wpdb->prefix . 'idemailwiz_purchases';
     $campaigns_table = $wpdb->prefix . 'idemailwiz_campaigns';
+    $triggered_sends_table = $wpdb->prefix . 'idemailwiz_triggered_sends';
 
     // Fetch all purchases that have a campaignId and an empty or null campaignStartAt
-    $purchases = $wpdb->get_results("SELECT id, campaignId FROM $purchases_table WHERE campaignId IS NOT NULL AND (campaignStartAt IS NULL OR campaignStartAt = '')");
-    $countUpdates = 0;
-    foreach ($purchases as $purchase) {
-        // Fetch the campaign's startAt date
-        $campaignStartAt = $wpdb->get_var($wpdb->prepare("SELECT startAt FROM $campaigns_table WHERE id = %d", $purchase->campaignId));
-
-        if ($campaignStartAt) {
-            // Update the purchase record with the campaignStartAt date
-            $updateRecord = $wpdb->update(
-                $purchases_table,
-                ['campaignStartAt' => $campaignStartAt],
-                ['id' => $purchase->id]
-            );
-            if ($updateRecord && $updateRecord > 0) {
-                $countUpdates++;
-            }
-        }
+    if (!$purchases) {
+        $purchases = $wpdb->get_results("SELECT id, campaignId, userId, purchaseDate FROM $purchases_table WHERE campaignId IS NOT NULL AND (campaignStartAt IS NULL OR campaignStartAt = '')");
+    } else {
+        $purchases = (array)$purchases;
     }
 
-    wiz_log("Purchase campaign start date backfill completed for {$countUpdates} records.");
-    return "Purchase campaign start date backfill completed for {$countUpdates} records.";
+    // Fetch all required campaign data in bulk
+    $campaignIds = array_unique(array_column($purchases, 'campaignId'));
+    $campaignTypes = $wpdb->get_results("SELECT id, type, startAt FROM $campaigns_table WHERE id IN (" . implode(',', $campaignIds) . ")");
+    $campaignTypesMap = array_column($campaignTypes, 'type', 'id');
+    $blastCampaignStartAtMap = array_column($campaignTypes, 'startAt', 'id');
+
+    // Fetch all required triggered sends data in bulk
+    $triggeredSends = $wpdb->get_results("
+        SELECT campaignId, userId, MAX(startAt) AS startAt
+        FROM $triggered_sends_table
+        WHERE campaignId IN (" . implode(',', $campaignIds) . ")
+        GROUP BY campaignId, userId
+    ");
+    $triggeredSendsMap = [];
+    foreach ($triggeredSends as $send) {
+        $triggeredSendsMap[$send->campaignId][$send->userId] = $send->startAt;
+    }
+
+    // Prepare the SQL statement for bulk update
+    $updateCases = [];
+    $purchaseIds = [];
+    foreach ($purchases as $purchase) {
+        $campaignType = $campaignTypesMap[$purchase->campaignId] ?? null;
+        $purchaseTimestamp = strtotime($purchase->purchaseDate . ' 23:59:59') * 1000;
+
+        if ($campaignType === 'Blast') {
+            $campaignStartAt = $blastCampaignStartAtMap[$purchase->campaignId] ?? null;
+        } elseif ($campaignType === 'Triggered' || $campaignType === 'FromWorkflow') {
+            $campaignStartAt = $triggeredSendsMap[$purchase->campaignId][$purchase->userId] ?? null;
+            if ($campaignStartAt !== null && $campaignStartAt > $purchaseTimestamp) {
+                $campaignStartAt = null;
+            }
+        } else {
+            $campaignStartAt = null;
+        }
+
+        $updateCases[] = "WHEN id = '{$purchase->id}' THEN " . ($campaignStartAt !== null ? $campaignStartAt : 'NULL');
+        $purchaseIds[] = "'{$purchase->id}'";
+    }
+
+    if (!empty($updateCases)) {
+        $updateSql = "UPDATE $purchases_table SET campaignStartAt = CASE " . implode(' ', $updateCases) . " END WHERE id IN (" . implode(',', $purchaseIds) . ")";
+        $countUpdates = $wpdb->query($updateSql);
+        wiz_log("Purchase campaign start date backfill completed for {$countUpdates} records.");
+        return "Purchase campaign start date backfill completed for {$countUpdates} records.";
+    } else {
+        wiz_log("No records found to update.");
+        return "No records found to update.";
+    }
 }
 
 function idwiz_cleanup_users_database($batchSize = 10000)

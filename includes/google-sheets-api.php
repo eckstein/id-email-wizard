@@ -155,6 +155,7 @@ function idwiz_google_sheet_api_curl_call($url)
 // Function to fetch GA data based on query args
 function get_idwiz_ga_data($args = [])
 {
+    //error_log('get_idwiz_ga_data args: ' . json_encode($args));
     global $wpdb;
     date_default_timezone_set('America/Los_Angeles');
     $ga_campaign_rev_table_name = $wpdb->prefix . 'idemailwiz_ga_campaign_revenue';
@@ -199,7 +200,9 @@ function get_idwiz_ga_data($args = [])
 
     // Execute the query
     $query = "SELECT * FROM $ga_campaign_rev_table_name $where_sql";
+    //error_log($query);
     $results = $wpdb->get_results($query, ARRAY_A);
+    //error_log(print_r($results, true));
 
     return $results;
 }
