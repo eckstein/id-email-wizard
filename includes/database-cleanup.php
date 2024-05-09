@@ -175,60 +175,55 @@ function idemailwiz_backfill_campaign_start_dates($purchases = false)
 
     // Fetch all purchases that have a campaignId and an empty or null campaignStartAt
     if (!$purchases) {
-        $purchases = $wpdb->get_results("SELECT id, campaignId, userId, purchaseDate FROM $purchases_table WHERE campaignId IS NOT NULL AND (campaignStartAt IS NULL OR campaignStartAt = '')");
+        $purchases = $wpdb->get_results("SELECT id, campaignId, userId, purchaseDate FROM $purchases_table WHERE campaignId IS NOT NULL AND (campaignStartAt IS NULL OR campaignStartAt = '') LIMIT 1000");
     } else {
         $purchases = (array)$purchases;
     }
 
-    // Fetch all required campaign data in bulk
-    $campaignIds = array_unique(array_column($purchases, 'campaignId'));
-    $campaignTypes = $wpdb->get_results("SELECT id, type, startAt FROM $campaigns_table WHERE id IN (" . implode(',', $campaignIds) . ")");
-    $campaignTypesMap = array_column($campaignTypes, 'type', 'id');
-    $blastCampaignStartAtMap = array_column($campaignTypes, 'startAt', 'id');
-
-    // Fetch all required triggered sends data in bulk
-    $triggeredSends = $wpdb->get_results("
-        SELECT campaignId, userId, MAX(startAt) AS startAt
-        FROM $triggered_sends_table
-        WHERE campaignId IN (" . implode(',', $campaignIds) . ")
-        GROUP BY campaignId, userId
-    ");
-    $triggeredSendsMap = [];
-    foreach ($triggeredSends as $send) {
-        $triggeredSendsMap[$send->campaignId][$send->userId] = $send->startAt;
-    }
-
-    // Prepare the SQL statement for bulk update
-    $updateCases = [];
-    $purchaseIds = [];
+    // Process purchases one by one
+    $countUpdates = 0;
     foreach ($purchases as $purchase) {
-        $campaignType = $campaignTypesMap[$purchase->campaignId] ?? null;
-        $purchaseTimestamp = strtotime($purchase->purchaseDate . ' 23:59:59') * 1000;
+        // Fetch required campaign data
+        $campaignType = $wpdb->get_var("SELECT type FROM $campaigns_table WHERE id = {$purchase->campaignId}");
+        $purchaseTimestamp = strtotime($purchase->purchaseDate . ' 23:59:59 America/Los_Angeles') * 1000;
 
         if ($campaignType === 'Blast') {
-            $campaignStartAt = $blastCampaignStartAtMap[$purchase->campaignId] ?? null;
+            $campaignStartAt = $wpdb->get_var("SELECT startAt FROM $campaigns_table WHERE id = {$purchase->campaignId}");
         } elseif ($campaignType === 'Triggered' || $campaignType === 'FromWorkflow') {
-            $campaignStartAt = $triggeredSendsMap[$purchase->campaignId][$purchase->userId] ?? null;
-            if ($campaignStartAt !== null && $campaignStartAt > $purchaseTimestamp) {
-                $campaignStartAt = null;
+            // Find the most recent triggered send before the purchase timestamp
+            $triggeredSend = $wpdb->get_row("
+                SELECT startAt
+                FROM $triggered_sends_table
+                WHERE campaignId = {$purchase->campaignId} AND userId = '{$purchase->userId}' AND startAt <= {$purchaseTimestamp}
+                ORDER BY startAt DESC
+                LIMIT 1
+            ");
+
+            if ($triggeredSend !== null) {
+                $campaignStartAt = $triggeredSend->startAt;
+            } else {
+                // Find the most recent triggered send for the campaign before the purchase timestamp
+                $triggeredSend = $wpdb->get_row("
+                    SELECT startAt
+                    FROM $triggered_sends_table
+                    WHERE campaignId = {$purchase->campaignId} AND startAt <= {$purchaseTimestamp}
+                    ORDER BY startAt DESC
+                    LIMIT 1
+                ");
+
+                $campaignStartAt = $triggeredSend !== null ? $triggeredSend->startAt : null;
             }
         } else {
             $campaignStartAt = null;
         }
 
-        $updateCases[] = "WHEN id = '{$purchase->id}' THEN " . ($campaignStartAt !== null ? $campaignStartAt : 'NULL');
-        $purchaseIds[] = "'{$purchase->id}'";
+        // Update the purchase record
+        $updateSql = "UPDATE $purchases_table SET campaignStartAt = " . ($campaignStartAt !== null ? $campaignStartAt : 'NULL') . " WHERE id = '{$purchase->id}'";
+        $countUpdates += $wpdb->query($updateSql);
     }
 
-    if (!empty($updateCases)) {
-        $updateSql = "UPDATE $purchases_table SET campaignStartAt = CASE " . implode(' ', $updateCases) . " END WHERE id IN (" . implode(',', $purchaseIds) . ")";
-        $countUpdates = $wpdb->query($updateSql);
-        wiz_log("Purchase campaign start date backfill completed for {$countUpdates} records.");
-        return "Purchase campaign start date backfill completed for {$countUpdates} records.";
-    } else {
-        wiz_log("No records found to update.");
-        return "No records found to update.";
-    }
+    wiz_log("Purchase campaign start date backfill completed for {$countUpdates} records.");
+    return "Purchase campaign start date backfill completed for {$countUpdates} records.";
 }
 
 function idwiz_cleanup_users_database($batchSize = 10000)

@@ -559,7 +559,7 @@ function idwiz_get_orders_from_purchases( $purchases ) {
 	return $orders;
 }
 
-function get_idwiz_revenue( $startDate, $endDate, $campaignTypes = [ 'Triggered', 'Blast' ], $wizCampaignIds = [], $useGa = false ) {
+function get_idwiz_revenue( $startDate, $endDate, $campaignTypes = [ 'Triggered', 'Blast', 'FromWorkflow' ], $wizCampaignIds = [], $useGa = false ) {
 
 	
 	if ( ! is_array( $wizCampaignIds ) || empty( $wizCampaignIds ) ) {
@@ -833,94 +833,70 @@ function transfigure_purchases_by_product( $purchases ) {
  * @param string $purchaseMode Purchase attribution mode. 'campaignsInDate' or 'allPurchasesInDate'. Default is 'campaignsInDate'.
  * @return array Array of metrics with calculated rates.
  */
-function get_idwiz_metric_rates( $campaignIds = [], $startDate = null, $endDate = null, $campaignTypes = [ 'Blast', 'Triggered' ], $purchaseMode = 'campaignsInDate' ) {
-
-	
+function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate = null, $campaignTypes = ['Blast', 'Triggered'], $purchaseMode = 'campaignsInDate')
+{
 	$startDate = $startDate ?? '2021-11-01';
-	$endDate = $endDate ?? date( 'Y-m-d' );
+	$endDate = $endDate ?? date('Y-m-d');
 
-	// Determine campaign IDs for Blast and Triggered campaigns
-	if ( empty( $campaignIds ) ) {
-		$blastCampaigns = get_idwiz_campaigns( [ 'type' => 'Blast', 'fields' => 'id', 'startAt_start' => $startDate, 'startAt_end' => $endDate ] );
-		$blastCampaignIds = array_column( $blastCampaigns, 'id' );
+	$allIncludedIds = [];
+	$blastCampaignIds = [];
+	$triggeredCampaignIds = [];
 
-		
-
-		$triggeredCampaigns = get_idwiz_campaigns( [ 'type' => 'Triggered', 'fields' => 'id' ] );
-		$triggeredCampaignIds = array_column( $triggeredCampaigns, 'id' );
-
-		$allIncludedIds = array_merge( $blastCampaignIds, $triggeredCampaignIds );
-	} else {
-		
-		$blastCampaignIds = $triggeredCampaignIds = $allIncludedIds = [];
-		
-		foreach ( $campaignIds as $campaignId ) {
-			$campaign = get_idwiz_campaign( $campaignId );
-			if ( $campaign['type'] == 'Blast' ) {
-				$blastCampaignIds[] = (int)$campaignId;
-			} else {
-				$triggeredCampaignIds[] = (int)$campaignId;
-			}
-			$allIncludedIds[] = (int)$campaignId;
-			
+	if (empty($campaignIds)) {
+		if (in_array('Blast', $campaignTypes)) {
+			$blastCampaigns = get_idwiz_campaigns(['type' => 'Blast', 'fields' => 'id,type', 'startAt_start' => $startDate, 'startAt_end' => $endDate]);
+			$blastCampaignIds = array_column($blastCampaigns, 'id');
 		}
-		
+		if (in_array('Triggered', $campaignTypes)) {
+
+			$triggeredCampaigns = get_idwiz_campaigns(['type' => 'Triggered', 'fields' => 'id,type']);
+			$triggeredCampaignIds = array_column($triggeredCampaigns, 'id');
+		}
+
+		$allIncludedIds = array_merge($blastCampaignIds, $triggeredCampaignIds);
+	} else {
+		$campaigns = get_idwiz_campaigns(['id' => $campaignIds, 'fields' => 'id,type']);
+		foreach ($campaigns as $campaign) {
+			if ($campaign['type'] === 'Blast') {
+				$blastCampaignIds[] = $campaign['id'];
+			} elseif ($campaign['type'] === 'Triggered') {
+				$triggeredCampaignIds[] = $campaign['id'];
+			}
+		}
+		$allIncludedIds = $campaignIds;
 	}
 
-	
-	// Retrieve metrics for Blast and (optional) Triggered campaigns
-	$blastMetrics = in_array( 'Blast', $campaignTypes ) && ! empty( $blastCampaignIds ) ? get_idwiz_metrics( [ 'campaignIds' => $blastCampaignIds ] ) : [];
-	$triggeredMetrics = in_array( 'Triggered', $campaignTypes ) && ! empty( $triggeredCampaignIds ) ? get_triggered_campaign_metrics( $triggeredCampaignIds, $startDate, $endDate ) : [];
-	$purchaseArgs = [];
+	// Retrieve metrics for Blast and Triggered campaigns
+	$blastMetrics = !empty($blastCampaignIds) ? get_idwiz_metrics(['campaignIds' => $blastCampaignIds]) : [];
+	$triggeredMetrics = !empty($triggeredCampaignIds) ? get_triggered_campaign_metrics($triggeredCampaignIds, $startDate, $endDate) : [];
 
-
-	$purchaseArgs = [ 
+	$purchaseArgs = [
 		'startAt_start' => $startDate,
 		'startAt_end' => $endDate,
-		'fields' => 'accountNumber,OrderId' // limit fields for faster query
+		'fields' => 'accountNumber,OrderId,purchaseDate,campaignId,total',
 	];
 
-	// Set attribution mode
-	// $currentUser = wp_get_current_user();
-	// $currentUserId = $currentUser->ID;
-	// $userAttMode = get_user_meta( $currentUserId, 'purchase_attribution_mode', true );
-	// // default mode is campaign-id, which gets no extra parameters here
-	// if ( $userAttMode == 'broad-channel-match' ) {
-	// 	$purchaseArgs['shoppingCartItems_utmMedium'] = [ 'email', '' ];
-	// } elseif ( $userAttMode == 'email-channel-match' ) {
-	// 	$purchaseArgs['shoppingCartItems_utmMedium'] = [ 'email' ];
-	// }
-
-	// If the mode is set to getting purchases only for specific campaigns, we pass the campaignIds
-	if ( $purchaseMode == 'campaignsInDate' ) {
-		if ( in_array( 'Triggered', $campaignTypes ) ) {
-			$purchaseArgs['campaignIds'] = $allIncludedIds;
-		} else {
-			$purchaseArgs['campaignIds'] = $blastCampaignIds;
-		}
-	} else {
-		// If the mode is set to getting purchases between dates (without regard to campaign) we don't pass campaignIds
+	if ($purchaseMode === 'campaignsInDate') {
+		$purchaseArgs['campaignIds'] = $allIncludedIds;
+	} elseif ($purchaseMode === 'allPurchasesInDate') {
+		$purchaseArgs['campaignIds'] = [];
 	}
 
-
-
-	
-	$purchases = get_idwiz_purchases( $purchaseArgs );
+	$purchases = get_idwiz_purchases($purchaseArgs);
 
 	// Initialize variables for summable metrics
-	$totalSends = $totalOpens = $totalClicks = $totalUnsubscribes = $totalDeliveries = $totalPurchases = $totalComplaints = $totalRevenue = 0;
+	$totalSends = $totalOpens = $totalClicks = $totalUnsubscribes = $totalDeliveries = $totalPurchases = $totalComplaints = $totalRevenue = $gaRevenue = 0;
 
-	// Purchases and revenue using our custom functions
-	$totalPurchases = is_array( $purchases ) ? count( $purchases ) : 0;
+	// Purchases and revenue using the existing purchase data
+	$totalPurchases = is_array($purchases) ? count($purchases) : 0;
+	$totalRevenue = array_sum(array_column($purchases, 'total'));
 
-	$purchaseCampaigns = $allIncludedIds ?? null;
-	$totalRevenue = get_idwiz_revenue( $startDate, $endDate, $campaignTypes, $purchaseCampaigns );
-
-	$gaRevenue = get_idwiz_revenue( $startDate, $endDate, $campaignTypes, $purchaseCampaigns, true );
-
+	// Calculate gaRevenue
+	$gaPurchases = get_idwiz_ga_data(['startDate' => $startDate, 'endDate' => $endDate, 'campaignIds' => $allIncludedIds]);
+	$gaRevenue = array_sum(array_column($gaPurchases, 'revenue'));
 
 	// Process Blast metrics
-	foreach ( $blastMetrics as $blastMetricSet ) {
+	foreach ($blastMetrics as $blastMetricSet) {
 		$totalSends += $blastMetricSet['uniqueEmailSends'] ?? 0;
 		$totalOpens += $blastMetricSet['uniqueEmailOpens'] ?? 0;
 		$totalClicks += $blastMetricSet['uniqueEmailClicks'] ?? 0;
@@ -937,15 +913,10 @@ function get_idwiz_metric_rates( $campaignIds = [], $startDate = null, $endDate 
 		$totalUnsubscribes += $triggeredMetrics['uniqueUnsubscribes'] ?? 0;
 		$totalComplaints += $triggeredMetrics['totalComplaints'] ?? 0;
 		$totalDeliveries += $triggeredMetrics['uniqueEmailsDelivered'] ?? 0;
-
-		// Combine purchase-related metrics
-		$totalPurchases += $triggeredMetrics['uniquePurchases'] ?? 0;
-		$totalRevenue += $triggeredMetrics['revenue'] ?? 0;
-		$gaRevenue += $triggeredMetrics['gaRevenue'] ?? 0;
 	}
 
 	// Calculate and return all metrics
-	return [ 
+	return [
 		'uniqueEmailSends' => $totalSends,
 		'uniqueEmailOpens' => $totalOpens,
 		'uniqueEmailClicks' => $totalClicks,
@@ -953,14 +924,14 @@ function get_idwiz_metric_rates( $campaignIds = [], $startDate = null, $endDate 
 		'totalComplaints' => $totalUnsubscribes,
 		'uniqueEmailsDelivered' => $totalDeliveries,
 		'uniquePurchases' => $totalPurchases,
-		'wizDeliveryRate' => ( $totalSends > 0 ) ? ( $totalDeliveries / $totalSends ) * 100 : 0,
-		'wizOpenRate' => ( $totalOpens > 0 && $totalSends > 0 ) ? ( $totalOpens / $totalSends ) * 100 : 0,
-		'wizCtr' => ( $totalClicks > 0 ) ? ( $totalClicks / $totalSends ) * 100 : 0,
-		'wizCto' => ( $totalOpens > 0 ) ? ( $totalClicks / $totalOpens ) * 100 : 0,
-		'wizCvr' => ( $totalPurchases > 0 && $totalDeliveries > 0 ) ? ( $totalPurchases / $totalDeliveries ) * 100 : 0,
-		'wizAov' => ( $totalPurchases > 0 && $totalRevenue > 0 ) ? ( $totalRevenue / $totalPurchases ) : 0,
-		'wizUnsubRate' => ( $totalSends > 0 ) ? ( $totalUnsubscribes / $totalSends ) * 100 : 0,
-		'wizCompRate' => ( $totalSends > 0 ) ? ( $totalComplaints / $totalSends ) * 100 : 0,
+		'wizDeliveryRate' => ($totalSends > 0) ? ($totalDeliveries / $totalSends) * 100 : 0,
+		'wizOpenRate' => ($totalOpens > 0 && $totalSends > 0) ? ($totalOpens / $totalSends) * 100 : 0,
+		'wizCtr' => ($totalClicks > 0) ? ($totalClicks / $totalSends) * 100 : 0,
+		'wizCto' => ($totalOpens > 0) ? ($totalClicks / $totalOpens) * 100 : 0,
+		'wizCvr' => ($totalPurchases > 0 && $totalDeliveries > 0) ? ($totalPurchases / $totalDeliveries) * 100 : 0,
+		'wizAov' => ($totalPurchases > 0 && $totalRevenue > 0) ? ($totalRevenue / $totalPurchases) : 0,
+		'wizUnsubRate' => ($totalSends > 0) ? ($totalUnsubscribes / $totalSends) * 100 : 0,
+		'wizCompRate' => ($totalSends > 0) ? ($totalComplaints / $totalSends) * 100 : 0,
 		'revenue' => $totalRevenue,
 		'gaRevenue' => $gaRevenue
 	];
@@ -1020,7 +991,12 @@ function get_triggered_campaign_metrics_single($campaignId, $startDate, $endDate
 	$metrics['uniquePurchases'] = count($allPurchases);
 	$metrics['revenue'] = array_sum(array_column($allPurchases, 'total'));
 
-	$metrics['gaRevenue'] = get_idwiz_revenue($startDate, $endDate, ['Triggered'], [$campaignId], true);
+	$allGaEmailPurchases = get_idwiz_ga_data(['startDate' => $startDate, 'endDate' => $endDate, 'campaignIds' => [$campaignId]]);
+	$purchases = array_filter($allGaEmailPurchases, fn ($purchase) => in_array($purchase['campaignId'], [$campaignId]));
+	if (!$purchases) {
+		return 0;
+	}
+	$metrics['gaRevenue'] = array_sum(array_column($purchases, 'revenue'));
 
 	$metrics['wizCvr'] = $metrics['uniquePurchases'] > 0 && $metrics['uniqueEmailsDelivered'] > 0 ? $metrics['uniquePurchases'] / $metrics['uniqueEmailsDelivered'] * 100 : 0;
 	$metrics['wizAov'] = $metrics['revenue'] > 0 && $metrics['uniquePurchases'] > 0 ? $metrics['revenue'] / $metrics['uniquePurchases'] : 0;

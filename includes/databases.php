@@ -487,6 +487,7 @@ function build_idwiz_query($args, $table_name)
 		$sql .= $wpdb->prepare(" AND shoppingCartItems_productCategory != %s", '17004');
 		$sql .= $wpdb->prepare(" AND shoppingCartItems_productCategory != %s", '17003');
 		$sql .= $wpdb->prepare(" AND shoppingCartItems_productCategory != %s", '17001');
+		$sql .= $wpdb->prepare(" AND campaignId != %d", -12345);
 
 		// Set attribution mode
 		$currentUser = wp_get_current_user();

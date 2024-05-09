@@ -1693,10 +1693,10 @@ function idwiz_export_and_store_jobs_to_sync_queue($campaignIds = null, $campaig
 	// Clean up the sync queue to get rid of old jobs
 	idemailwiz_cleanup_sync_queue();
 
-	if ($exportStart === null) {
+	if (!$exportStart) {
 		$exportStart = date('Y-m-d H:i:s', strtotime('-1 days'));
 	}
-	if ($exportEnd === null) {
+	if (!$exportEnd) {
 		$exportEnd = date('Y-m-d H:i:s', strtotime('+1 day'));
 	}
 
