@@ -21,7 +21,7 @@ global $wpdb;
 	</header>
 	<div class="entry-content" itemprop="mainContentOfPage">
 		<?php
-		sync_single_campaign_data(5555153);
+backfill_blast_engagment_data();
 		//idemailwiz_process_job_from_sync_queue('2687542');
 		//idwiz_export_and_store_jobs_to_sync_queue();
 		//get_campaigns_to_sync();

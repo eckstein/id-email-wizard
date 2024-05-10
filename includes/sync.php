@@ -1646,6 +1646,8 @@ function handle_single_triggered_sync()
 	wp_send_json_success('Sync queued successfully.');
 }
 
+
+
 function maybe_add_to_sync_queue($campaignIds, $metricTypes, $startAt = null, $endAt = null, $priority = 1)
 {
 	global $wpdb;
@@ -1694,7 +1696,7 @@ function idwiz_export_and_store_jobs_to_sync_queue($campaignIds = null, $campaig
 	idemailwiz_cleanup_sync_queue();
 
 	if (!$exportStart) {
-		$exportStart = date('Y-m-d H:i:s', strtotime('-1 days'));
+		$exportStart = date('Y-m-d H:i:s', strtotime('2021-11-01'));
 	}
 	if (!$exportEnd) {
 		$exportEnd = date('Y-m-d H:i:s', strtotime('+1 day'));
@@ -2107,7 +2109,13 @@ function get_idwiz_sync_jobs($syncStatus = 'pending', $campaignId = null)
 
 	return $jobs;
 }
-
+function backfill_blast_engagment_data($campaignIds = [])
+{
+	if (empty($campaignIds)) {
+		$campaignIds = array_column(get_idwiz_campaigns(['type' => 'Blast', 'fields' => 'id', 'startAt_start'=>'2021-11-01']), 'id');
+	}
+	maybe_add_to_sync_queue($campaignIds, ['send'], '2021-11-01', null, 100);
+}
 // Ajax handler for manual sync form on sync station page
 add_action('wp_ajax_handle_sync_station_sync', 'handle_sync_station_sync');
 function handle_sync_station_sync()
@@ -2123,8 +2131,18 @@ function handle_sync_station_sync()
 		return;
 	}
 
-	// Extract campaign IDs, if provided
-	$campaignIds = !empty($formFields['campaignIds']) ? explode(',', $formFields['campaignIds']) : false;
+	// Check if we're syncing all campaigns
+	if (empty($formFields['campaignIds'])) {
+		
+		$campaigns = get_idwiz_campaigns(['type' => 'Blast', 'fields' => 'id', 'startAt_end'=> '2024-04-28']);
+		
+		$campaignIds = array_column($campaigns, 'id');
+	} else {
+		// Extract campaign IDs, if provided
+		$campaignIds = explode(',', $formFields['campaignIds']);
+	}
+
+	
 
 	// Initiate the sync sequence
 	foreach ($formFields['syncTypes'] as $manualSyncType) {
