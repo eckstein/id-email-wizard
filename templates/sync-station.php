@@ -23,6 +23,8 @@ if (isset($_GET['db-cleanup'])) {
 		updateTimestampsToMilliseconds();
 	} else if ($doCleanup == 'requeue-retries') {
 		requeue_retry_afters();
+	} else if ($doCleanup == 'backfill-blast-data') {
+		backfill_blast_engagment_data();
 	}
 }
 
@@ -116,6 +118,10 @@ if (isset($_GET['db-cleanup'])) {
 						<div class="wizcampaign-section">
 							<a class="wiz-button green" href="<?php echo add_query_arg('db-cleanup', 'fix-triggered-timestamps'); ?>" id="fixTriggeredTimestamps">Fix Triggered Timestamps</a>
 							<h5>Converts timestamps in seconds to milliseconds, where needed.</h5>
+						</div>
+						<div class="wizcampaign-section">
+							<a class="wiz-button green" href="<?php echo add_query_arg('db-cleanup', 'backfill-blast-data'); ?>" id="backfullBlastData">Backfill Blast Data</a>
+							<h5>Backfill engagement data for all blast campaigns</h5>
 						</div>
 					</div>
 				</div>
