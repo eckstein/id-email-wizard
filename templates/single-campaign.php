@@ -290,7 +290,7 @@ $linkedExperimentIds = array_map(function ($id) {
 							<?php
 							// For blast campaigns, lock the endDate to 30 days after the startDate
 							if ($campaign['type'] == 'Blast') {
-								$chartEndDate = date('Y-m-d', strtotime($startDate.'+ 30 days'));
+								$chartEndDate = date('Y-m-d', strtotime($startDate.'+ 10 days'));
 								
 							}
 							?>
