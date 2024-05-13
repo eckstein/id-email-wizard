@@ -287,22 +287,29 @@ $linkedExperimentIds = array_map(function ($id) {
 							</ul>
 						</div>
 						<div class="wizcampaign-section-tabs-pane" id="campaign-byDate-tabs">
+							<?php
+							// For blast campaigns, lock the endDate to 30 days after the startDate
+							if ($campaign['type'] == 'Blast') {
+								$chartEndDate = date('Y-m-d', strtotime($startDate.'+ 30 days'));
+								
+							}
+							?>
 
 							<div class="wizcampaign-section inset wizcampagn-section-tab-content active" id="sendsByDateSection">
 								<div class="wizChartWrapper">
-									<canvas class="sendsByDate wiz-canvas" data-timescale="daily" data-chartid="sendsByDate" data-campaignids='<?php echo json_encode($allCampaignIds); ?>' data-charttype="bar" data-campaignType="<?php echo strtolower($campaign['type']); ?>" data-startdate="<?php echo $startDate; ?>" data-enddate="<?php echo $endDate; ?>"></canvas>
+									<canvas class="sendsByDate wiz-canvas" data-timescale="daily" data-chartid="sendsByDate" data-campaignids='<?php echo json_encode($allCampaignIds); ?>' data-charttype="bar" data-campaignType="<?php echo strtolower($campaign['type']); ?>" data-startdate="<?php echo $startDate; ?>" data-enddate="<?php echo $chartEndDate; ?>"></canvas>
 								</div>
 							</div>
 
 							<div class="wizcampaign-section inset wizcampagn-section-tab-content" id="openedByDateSection">
 								<div class="wizChartWrapper">
-									<canvas class="opensByDate wiz-canvas" data-timescale="daily" data-chartid="opensByDate" data-campaignids='<?php echo json_encode($allCampaignIds); ?>' data-charttype="bar" data-campaignType="<?php echo strtolower($campaign['type']); ?>" data-startdate="<?php echo $startDate; ?>" data-enddate="<?php echo $endDate; ?>"></canvas>
+									<canvas class="opensByDate wiz-canvas" data-timescale="daily" data-chartid="opensByDate" data-campaignids='<?php echo json_encode($allCampaignIds); ?>' data-charttype="bar" data-campaignType="<?php echo strtolower($campaign['type']); ?>" data-startdate="<?php echo $startDate; ?>" data-enddate="<?php echo $chartEndDate; ?>"></canvas>
 								</div>
 							</div>
 
 							<div class="wizcampaign-section inset wizcampagn-section-tab-content" id="clicksByDateSection">
 								<div class="wizChartWrapper">
-									<canvas class="clicksByDate wiz-canvas" data-timescale="daily" data-chartid="clicksByDate" data-campaignids='<?php echo json_encode($allCampaignIds); ?>' data-charttype="bar" data-campaignType="<?php echo strtolower($campaign['type']); ?>" data-startdate="<?php echo $startDate; ?>" data-enddate="<?php echo $endDate; ?>"></canvas>
+									<canvas class="clicksByDate wiz-canvas" data-timescale="daily" data-chartid="clicksByDate" data-campaignids='<?php echo json_encode($allCampaignIds); ?>' data-charttype="bar" data-campaignType="<?php echo strtolower($campaign['type']); ?>" data-startdate="<?php echo $startDate; ?>" data-enddate="<?php echo $chartEndDate; ?>"></canvas>
 								</div>
 							</div>
 

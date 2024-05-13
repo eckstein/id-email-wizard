@@ -1,7 +1,7 @@
 jQuery(document).ready(function ($) {
 
 	//Tiny Tables
-	if ($(".wizcampaign-tiny-table").length) {
+	if ($(".wizcampaign-tiny-table:not(.static)").length) {
 
 	// Initialize DataTables with the parsed data
 	table = $(".wizcampaign-tiny-table").DataTable({

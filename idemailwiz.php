@@ -565,9 +565,7 @@ function idemailwiz_template_chooser($template)
             return dirname(__FILE__) . '/templates/reports.php';
         }
 
-        if (wp_get_post_parent_id(get_the_ID()) == $reports_page) {
-            // define reports pages here
-        }
+        
     }
 
 

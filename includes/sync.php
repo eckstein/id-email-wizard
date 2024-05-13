@@ -608,7 +608,7 @@ function idemailwiz_fetch_users($startDate = null, $endDate = null)
 	];
 
 	// Define the start and end date time for the API call
-	$startDateTime = $startDate ? $startDate : date('Y-m-d', strtotime('-2 days'));
+	$startDateTime = $startDate ? $startDate : '2021-11-01';
 	$endDateTime = $endDate ? $endDate : date('Y-m-d', strtotime('+1 day')); // assurance against timezone weirdness
 
 	// Add the start and end datetime to the query parameters
@@ -727,6 +727,7 @@ function wiz_decrypt_email($iv_ciphertext)
 }
 
 // Schedule sync users on cron twice daily.
+add_action('init', 'schedule_sync_users');
 function schedule_sync_users()
 {
 	if (!wp_next_scheduled('idemailwiz_sync_users')) {
@@ -2109,13 +2110,7 @@ function get_idwiz_sync_jobs($syncStatus = 'pending', $campaignId = null)
 
 	return $jobs;
 }
-function backfill_blast_engagment_data($campaignIds = [])
-{
-	if (empty($campaignIds)) {
-		$campaignIds = array_column(get_idwiz_campaigns(['type' => 'Blast', 'fields' => 'id', 'startAt_start'=>'2021-11-01']), 'id');
-	}
-	maybe_add_to_sync_queue($campaignIds, ['send'], '2021-11-01', null, 100);
-}
+
 // Ajax handler for manual sync form on sync station page
 add_action('wp_ajax_handle_sync_station_sync', 'handle_sync_station_sync');
 function handle_sync_station_sync()

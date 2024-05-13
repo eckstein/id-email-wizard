@@ -331,3 +331,11 @@ function updateTimestampsToMilliseconds()
     }
     wiz_log("Timestamps updated successfully.");
 }
+
+function backfill_blast_engagment_data($campaignIds = [])
+{
+    if (empty($campaignIds)) {
+        $campaignIds = array_column(get_idwiz_campaigns(['type' => 'Blast', 'fields' => 'id', 'startAt_start' => '2021-11-01']), 'id');
+    }
+    maybe_add_to_sync_queue($campaignIds, ['send'], '2021-11-01', null, 100);
+}

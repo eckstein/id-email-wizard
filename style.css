@@ -2957,63 +2957,6 @@ h2.wizArticle-title {
 
 
 /* Reports Pages */
-#reportsOverview .wizcampaign-section-content {
-	display: flex;
-	flex-direction: column;
-	justify-content: space-between;
-	gap: 20px;
-	min-height: 140px;
-}
-#reportsOverview .wizcampaign-section-content .wiz-button {
-	margin-right: auto;
-}
-.report-controls-form {
-	display: flex;
-	flex-wrap: wrap;
-	justify-content: center;
-	align-items: center;
-	gap: 30px;
-	margin-bottom: 20px;
-}
-.report-controls-form .form-group {
-	display: flex;
-	flex-direction: column;
-}
-
-.report-controls-form .field-group-wrap {
-	margin-bottom: 5px;
-}
-.report-controls-form .field-group-wrap.flex {
-	display: flex;
-	gap: 5px;
-}
-.report-controls-form .form-group label {
-	font-size: 14px;
-	display: block;
-	margin-bottom: 5px;
-}
-.report-controls-form .form-group input#day-of-year {
-	padding: 8px;
-	font-size: 18px;
-}
-.report-controls-form .form-group .check-group {
-	display: flex;
-	align-items: baseline;
-	gap: 4px;
-}
-.report-controls-form input[type="number"] {
-	max-width: 80px;
-}
-.report-controls-form .select2-container {
-	min-width: 700px !important;
-}
-.report-controls-form .select2-container--default .select2-selection--multiple .select2-selection__choice__display {
-	padding-left: 20px;
-}
-.report-controls-form .select2-container--default .select2-selection--multiple .select2-selection__choice__remove > span {
-	position: relative;
-	top: 4px;
-}
 
 
 /* Wizcharts */
@@ -3177,19 +3120,21 @@ h2.wizArticle-title {
 	text-align: left;
 	background-color: #343434;
 	color: #fff;
-	padding: 3px 7px;
+	padding: 7px 12px;
 	font-size: 12px;
 	border: 1px solid #000;
 }
 
 .wizcampaign-tiny-table td {
-	padding: 3px 7px;
+	padding: 7px 12px;
 	border: 1px solid #343434;
 	font-size: 12px;
-	max-width: 200px;
+	
 	color: #000;
 }
-
+.wizcampaign-tiny-table tfoot td {
+	background-color: #eee;
+}
 .wizcampaign-mobile-template {
 	padding: 30px;
 	max-width: 360px;

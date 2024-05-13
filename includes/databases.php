@@ -124,23 +124,40 @@ function idemailwiz_create_databases()
 
 	$users_table_name = $wpdb->prefix . 'idemailwiz_users';
 	$wizTablesSql[$users_table_name] = "CREATE TABLE IF NOT EXISTS $users_table_name (
-        wizId VARCHAR(100),
-        accountNumber VARCHAR(20),
-        userId VARCHAR(40),
-        signupDate VARCHAR(255),
-        postalCode VARCHAR(20),
-        timeZone VARCHAR(255),
-        studentArray LONGTEXT,
-        unsubscribedChannelIds MEDIUMTEXT,
-        subscribedMessageTypeIds MEDIUMTEXT,
-        unsubscribedMessageTypeIds MEDIUMTEXT,
-        campaignSends LONGTEXT,
-        campaignClicks LONGTEXT,
-        campaignOpens LONGTEXT,
-        wizSalt VARCHAR(255),
-        INDEX wizId (wizId)
-    ) ENGINE=InnoDB $charset_collate;";
+		wizId VARCHAR(100),
+		accountNumber VARCHAR(20),
+		userId VARCHAR(40),
+		signupDate DATETIME,
+		postalCode VARCHAR(20),
+		timeZone VARCHAR(255),
+		studentArray LONGTEXT,
+		unsubscribedChannelIds MEDIUMTEXT,
+		subscribedMessageTypeIds MEDIUMTEXT,
+		unsubscribedMessageTypeIds MEDIUMTEXT,
+		campaignSends LONGTEXT,
+		campaignClicks LONGTEXT,
+		campaignOpens LONGTEXT,
+		wizSalt VARCHAR(255),
+		INDEX wizId (wizId),
+		INDEX userId (userId),
+		INDEX signupDate (signupDate)
+	)
+	ENGINE=InnoDB $charset_collate
+	PARTITION BY RANGE (YEAR(signupDate)) (
+		PARTITION 2021 VALUES LESS THAN (2022),
+		PARTITION 2022 VALUES LESS THAN (2023),
+		PARTITION 2023 VALUES LESS THAN (2024),
+		PARTITION 2024 VALUES LESS THAN (2025),
+		PARTITION 2025 VALUES LESS THAN (2026),
+		PARTITION 2026 VALUES LESS THAN (2027),
+		PARTITION 2027 VALUES LESS THAN (2028),
+		PARTITION 2028 VALUES LESS THAN (2029),
+		PARTITION 2029 VALUES LESS THAN (2030),
+		PARTITION 2030 VALUES LESS THAN (2031),
+		PARTITION future VALUES LESS THAN MAXVALUE
+	);";
 
+	
 
 	$wizTemplateTableName = $wpdb->prefix . 'wiz_templates';
 	$wizTablesSql[$wizTemplateTableName] = "CREATE TABLE IF NOT EXISTS $wizTemplateTableName (
@@ -586,6 +603,9 @@ function build_idwiz_query($args, $table_name)
 			} elseif ($key === 'purchaseIds') {
 				$placeholders = implode(',', array_fill(0, count($value), '%s'));
 				$sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND id IN ($placeholders)"), $args['purchaseIds']));
+			} elseif ($key === 'userIds') {
+				$placeholders = implode(',', array_fill(0, count($value), '%s'));
+				$sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND userId IN ($placeholders)"), $args['userIds']));
 			} elseif ($key === 'startAt_start') {
 				$dt = DateTime::createFromFormat('Y-m-d', $value, new DateTimeZone('America/Los_Angeles'));
 				if ($dt) {
