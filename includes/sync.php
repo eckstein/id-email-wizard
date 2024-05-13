@@ -608,7 +608,7 @@ function idemailwiz_fetch_users($startDate = null, $endDate = null)
 	];
 
 	// Define the start and end date time for the API call
-	$startDateTime = $startDate ? $startDate : '2024-01-01';
+	$startDateTime = $startDate ? $startDate : '2024-04-01';
 	$endDateTime = $endDate ? $endDate : date('Y-m-d', strtotime('+1 day')); // assurance against timezone weirdness
 
 	// Add the start and end datetime to the query parameters
