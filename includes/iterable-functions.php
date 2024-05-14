@@ -29,14 +29,13 @@ function idemailwiz_get_template_data_for_iterable()
 	$current_user = wp_get_current_user();
 
 	$templateFields = array(
-		'preheader' => html_entity_decode($messageSettings['preview_text']) ?? '',
+		'preheader' => html_entity_decode($messageSettings['preview_text'], ENT_QUOTES, 'UTF-8') ?? '',
 		'fromName' => $messageSettings['from_name'] ?? 'iD Tech Camps',
 		'utmTerm' => $messageSettings['utm_term'] ?? '',
 	);
 	$reqTemplateFields = array(
-		'templateName' => html_entity_decode(get_the_title($post_id)),
-		'emailSubject' =>  html_entity_decode($messageSettings['subject_line'])  ?? '',
-
+		'templateName' => html_entity_decode(get_the_title($post_id), ENT_QUOTES, 'UTF-8'),
+		'emailSubject' =>  html_entity_decode($messageSettings['subject_line'], ENT_QUOTES, 'UTF-8')  ?? '',
 		'messageType' => $messageSettings['email_type'] ?? 'promotional',
 		'fromEmail' => $messageSettings['from_email'] ?? 'info@idtechonline.com',
 		'replyToEmail' => $messageSettings['reply_to'] ?? 'hello@idtechonline.com',
@@ -49,7 +48,6 @@ function idemailwiz_get_template_data_for_iterable()
 	foreach ($reqTemplateFields as $key => $field) {
 		if (!$field) {
 			$missing[] = $key;
-
 		}
 	}
 
@@ -74,10 +72,7 @@ function idemailwiz_get_template_data_for_iterable()
 					$response['alreadySent'] = true;
 				}
 			}
-			
-			
 		}
-
 	} else {
 		$response = array(
 			'status' => 'error',
@@ -92,7 +87,8 @@ function idemailwiz_get_template_data_for_iterable()
 }
 add_action('wp_ajax_idemailwiz_get_template_data_for_iterable', 'idemailwiz_get_template_data_for_iterable');
 
-function check_duplicate_itTemplateId() {
+function check_duplicate_itTemplateId()
+{
 	// Iterable template ID from POST request
 	$templateId = $_POST['template_id'] ?? false;
 	// WizTemplate post ID from POST request
@@ -101,8 +97,8 @@ function check_duplicate_itTemplateId() {
 	if ($post_id) {
 		// Fetch all wizTemplate posts
 		$args = array(
-			'post_type' => 'idemailwiz_template', // Ensure this is your correct custom post type
-			'posts_per_page' => -1, // Consider limiting this if you have many posts
+			'post_type' => 'idemailwiz_template',
+			'posts_per_page' => -1,
 			'post__not_in' => array($post_id), // Exclude the current post 
 			//TODO: This won't work when we need to look at variations from the same post
 		);
@@ -149,7 +145,7 @@ function update_template_after_sync()
 	//check nonce
 	check_ajax_referer('iterable-actions', 'security');
 
-	
+
 	$template_id = $_POST['template_id'];
 	$post_id = $_POST['post_id'] ?? null;
 
@@ -157,7 +153,7 @@ function update_template_after_sync()
 
 	$template_name = $_POST['template_name'] ?? $wizTemplate['name'];
 
-	
+
 
 	// Update the custom database table
 	$wpdb->update(
@@ -175,9 +171,3 @@ function update_template_after_sync()
 	wp_send_json($response);
 }
 add_action('wp_ajax_update_template_after_sync', 'update_template_after_sync');
-
-
-
-
-
-
