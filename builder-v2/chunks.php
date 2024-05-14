@@ -784,7 +784,14 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 		<?php } ?>
 		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 		<title>
-			<?php echo $templateSettings['subject_line'] ?? ''; ?>
+			<?php 
+			
+			$subjectLine = $templateSettings['subject_line'] ?? '';
+			// re-convert back to non-html-entities
+			echo html_entity_decode($subjectLine);
+			
+			
+			?>
 		</title>
 
 
