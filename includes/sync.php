@@ -747,6 +747,8 @@ function idemailwiz_sync_users($startDate = null, $endDate = null)
 	while (true) {
 		$users = [];
 
+		wiz_log("Processing batch of $batchSize users...");
+
 		// Collect a batch of users
 		for ($i = 0; $i < $batchSize && $userGenerator->valid(); $i++) {
 			$users[] = $userGenerator->current();
@@ -779,10 +781,10 @@ function idemailwiz_sync_users($startDate = null, $endDate = null)
 				$records_to_insert[] = $user;
 			}
 		}
-
-		// Process and log the sync operation
-		idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update);
+		
 	}
+	// Process and log the sync operation
+	idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update);
 
 	$wpdb->query('COMMIT');
 }
