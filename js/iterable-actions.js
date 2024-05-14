@@ -201,7 +201,10 @@ jQuery(document).ready(function ($) {
 			function getHTMLsuccessCallback(response) {
 
 				let templateHtml = $('<div/>').html(response).text();
-				
+
+				 // Replace curly quotes with straight quotes
+				  templateHtml = templateHtml.replace(/[\u201C\u201D]/g, '"');
+				  
 				// Replace curly quotes with straight quotes
 				templateHtml = decodeHtml(templateHtml);
 
