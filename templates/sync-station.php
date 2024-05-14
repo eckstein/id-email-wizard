@@ -94,8 +94,8 @@ if (isset($_GET['sync']) && $_GET['sync'] == 'users') {
 				<div class="wizcampaign-section">
 					<form id="syncUsersByDateForm" method="get">
 						<input type="hidden" name="sync" value="users" />
-						<input type="date" name="syncUsersStart" id="syncUsersStart" value="<?php echo date('Y-m-d', strtotime('-3 days')); ?>" />
-						<input type="date" name="syncUsersEnd" id="syncUsersStart" value="<?php echo date('Y-m-d'); ?>" />
+						<input type="date" name="syncUsersStart" id="syncUsersStart" value="<?php echo $syncUsersStart ?? date('Y-m-d', strtotime('-3 days')); ?>" />
+						<input type="date" name="syncUsersEnd" id="syncUsersStart" value="<?php echo $syncUsersEnd ?? date('Y-m-d'); ?>" />
 						<!-- submit $_GET with start and end date for users-->
 						<input type="submit" class="wiz-button green" value="Sync Users" />
 					</form>
