@@ -608,7 +608,7 @@ function idemailwiz_fetch_users($startDate = null, $endDate = null)
 	];
 
 	// Define the start and end date time for the API call
-	$startDateTime = $startDate ? $startDate : '2024-05-07';
+	$startDateTime = $startDate ? $startDate : date('Y-m-d', strtotime('-1 days'));
 	$endDateTime = $endDate ? $endDate : date('Y-m-d', strtotime('+1 day')); // assurance against timezone weirdness
 
 	// Add the start and end datetime to the query parameters
@@ -632,7 +632,6 @@ function idemailwiz_fetch_users($startDate = null, $endDate = null)
 		// Log the error with more details
 		wiz_log("Error encountered for fetch users curl call to : " . $url . " - " . $e->getMessage());
 
-
 		// Specific check for the "CONSECUTIVE_400_ERRORS" message
 		if ($e->getMessage() === "CONSECUTIVE_400_ERRORS") {
 			// Specific action for this type of error
@@ -642,8 +641,6 @@ function idemailwiz_fetch_users($startDate = null, $endDate = null)
 		// Optionally, you can rethrow the exception or handle it differently
 		// throw $e;
 	}
-
-	$allUsers = []; // Initialize $allUsers as an array
 
 	// Open a memory-based stream for reading and writing
 	if (($handle = fopen("php://temp", "r+")) !== FALSE) {
@@ -687,21 +684,16 @@ function idemailwiz_fetch_users($startDate = null, $endDate = null)
 					$userData['wizSalt'] = $salt;
 				}
 
-				// If there's data to add, append it to all users
+				// If there's data to add, yield the user data
 				if (!empty($userData)) {
-					$allUsers[] = $userData;
+					yield $userData;
 				}
 			}
 		}
 
-
 		// Close the file handle
 		fclose($handle);
 	}
-
-
-	// Return the data array
-	return $allUsers;
 }
 
 
@@ -742,41 +734,57 @@ function idemailwiz_sync_users($startDate = null, $endDate = null)
 	// Fetch the users
 	// Also cleans data and encrypts email
 	wiz_log('Fetching users from iterable...');
-	$users = idemailwiz_fetch_users($startDate, $endDate);
 
-	if (empty($users)) {
-		wiz_log('error: No users fetched from Iterable;');
-		return;
-	}
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'idemailwiz_users';
 
-	// Prepare arrays for comparison
-	$records_to_update = [];
-	$records_to_insert = [];
+	$batchSize = 1000; // Adjust the batch size as needed
 
-	foreach ($users as $user) {
+	$userGenerator = idemailwiz_fetch_users($startDate, $endDate);
 
-		// Check if the user exists in the database
-		$existingWizId = $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT COUNT(*) FROM $table_name WHERE wizId = %s",
-				$user['wizId']
-			)
-		);
+	$wpdb->query('START TRANSACTION');
 
-		// Set update or insert designations
-		if ($existingWizId > 0) {
-			// User exists, prepare to update
-			$records_to_update[] = $user;
-		} else {
-			// User not in the database, prepare to insert
-			$records_to_insert[] = $user;
+	while (true) {
+		$users = [];
+
+		// Collect a batch of users
+		for ($i = 0; $i < $batchSize && $userGenerator->valid(); $i++) {
+			$users[] = $userGenerator->current();
+			$userGenerator->next();
 		}
+
+		if (empty($users)) {
+			break; // No more users to process
+		}
+
+		// Prepare arrays for comparison
+		$records_to_update = [];
+		$records_to_insert = [];
+
+		foreach ($users as $user) {
+			// Check if the user exists in the database
+			$existingWizId = $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT COUNT(*) FROM $table_name WHERE wizId = %s",
+					$user['wizId']
+				)
+			);
+
+			// Set update or insert designations
+			if ($existingWizId > 0) {
+				// User exists, prepare to update
+				$records_to_update[] = $user;
+			} else {
+				// User not in the database, prepare to insert
+				$records_to_insert[] = $user;
+			}
+		}
+
+		// Process and log the sync operation
+		idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update);
 	}
 
-	// Process and log the sync operation
-	return idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update);
+	$wpdb->query('COMMIT');
 }
 
 function idemailwiz_fetch_purchases($campaignIds = [])

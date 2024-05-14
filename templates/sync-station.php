@@ -3,10 +3,6 @@ get_header();
 
 global $wpdb;
 
-//print_r(idemailwiz_fetch_experiments([6027838]));
-
-
-
 if (isset($_GET['db-cleanup'])) {
 	$doCleanup = $_GET['db-cleanup'];
 	if ($doCleanup == 'update-null-user-ids') {
@@ -25,6 +21,16 @@ if (isset($_GET['db-cleanup'])) {
 		requeue_retry_afters();
 	} else if ($doCleanup == 'backfill-blast-data') {
 		backfill_blast_engagment_data();
+	}
+}
+
+if (isset($_GET['sync']) && $_GET['sync'] == 'users') {
+	$syncUsersStart = $_GET['syncUsersStart'] ?? null;
+	$syncUsersEnd = $_GET['syncUsersEnd'] ?? null;
+	if ($syncUsersStart && $syncUsersEnd) {
+		idemailwiz_sync_users($syncUsersStart, $syncUsersEnd);
+	} else {
+		wiz_log('No start or end date provided for syncing users');
 	}
 }
 
@@ -83,6 +89,15 @@ if (isset($_GET['db-cleanup'])) {
 						<div class="syncForm-overlay <?php echo $overlayClass; ?>">
 							<div class="syncForm-overlayContent">Sync in progress...</div>
 						</div>
+					</form>
+				</div>
+				<div class="wizcampaign-section">
+					<form id="syncUsersByDateForm" method="get">
+						<input type="hidden" name="sync" value="users" />
+						<input type="date" name="syncUsersStart" id="syncUsersStart" value="<?php echo date('Y-m-d', strtotime('-3 days')); ?>" />
+						<input type="date" name="syncUsersEnd" id="syncUsersStart" value="<?php echo date('Y-m-d'); ?>" />
+						<!-- submit $_GET with start and end date for users-->
+						<input type="submit" class="wiz-button green" value="Sync Users" />
 					</form>
 				</div>
 				<div class="wizcampaign-section">
