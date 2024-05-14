@@ -1017,7 +1017,7 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 			}
 
 			ul>li {
-				line-height: 1;
+				line-height: 1.5;
 				padding-bottom: .7em;
 			}
 
