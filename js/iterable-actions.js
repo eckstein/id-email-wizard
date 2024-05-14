@@ -203,7 +203,7 @@ jQuery(document).ready(function ($) {
 				let templateHtml = $('<div/>').html(response).text();
 				
 				// Replace curly quotes with straight quotes
-				templateHtml = templateHtml.replace(/[\u201C\u201D]/g, '"');
+				templateHtml = decodeHtml(templateHtml);
 
 				const apiData = {
 					name: templateName,
@@ -272,6 +272,13 @@ jQuery(document).ready(function ($) {
 				reject("Failed to fetch template HTML");
 			}
 		});
+	}
+
+	// Function to decode HTML entities
+	function decodeHtml(html) {
+	  var txt = document.createElement("textarea");
+	  txt.innerHTML = html;
+	  return txt.value;
 	}
 
 
