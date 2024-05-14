@@ -744,6 +744,10 @@ function idemailwiz_sync_users($startDate = null, $endDate = null)
 
 	$wpdb->query('START TRANSACTION');
 
+	// Prepare arrays for comparison
+	$records_to_update = [];
+	$records_to_insert = [];
+	
 	while (true) {
 		$users = [];
 
@@ -759,9 +763,7 @@ function idemailwiz_sync_users($startDate = null, $endDate = null)
 			break; // No more users to process
 		}
 
-		// Prepare arrays for comparison
-		$records_to_update = [];
-		$records_to_insert = [];
+		
 
 		foreach ($users as $user) {
 			// Check if the user exists in the database
