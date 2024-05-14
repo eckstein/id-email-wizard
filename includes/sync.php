@@ -651,42 +651,44 @@ function idemailwiz_fetch_users($startDate = null, $endDate = null)
 		// Parse the header line into headers
 		$headers = fgetcsv($handle);
 
-		// Prepare the headers
-		$processedHeaders = array_map(function ($header) {
-			return lcfirst($header);
-		}, $headers);
+		if (is_array($headers) && !empty($values)) {
+			// Prepare the headers
+			$processedHeaders = array_map(function ($header) {
+				return lcfirst($header);
+			}, $headers);
 
-		// Iterate over each line of the file
-		while (($values = fgetcsv($handle)) !== FALSE) {
-			$userData = []; // Initialize as empty array
+			// Iterate over each line of the file
+			while (($values = fgetcsv($handle)) !== FALSE) {
+				$userData = []; // Initialize as empty array
 
-			// Only process lines with the correct number of columns
-			if (count($values) === count($processedHeaders)) {
-				// Iterate over the values and headers simultaneously
-				foreach ($values as $index => $value) {
-					$header = $processedHeaders[$index];
-					$userData[$header] = $value;
-				}
+				// Only process lines with the correct number of columns
+				if (count($values) === count($processedHeaders)) {
+					// Iterate over the values and headers simultaneously
+					foreach ($values as $index => $value) {
+						$header = $processedHeaders[$index];
+						$userData[$header] = $value;
+					}
 
-				// Check if the necessary data is present
-				if (isset($userData['email']) && !empty($userData['email']) && isset($userData['signupDate']) && !empty($userData['signupDate'])) {
-					// Use the signup date as the salt
-					$salt = $userData['signupDate'];
+					// Check if the necessary data is present
+					if (isset($userData['email']) && !empty($userData['email']) && isset($userData['signupDate']) && !empty($userData['signupDate'])) {
+						// Use the signup date as the salt
+						$salt = $userData['signupDate'];
 
-					// Hash the email with the signup date salt and the pepper
-					$pepperedEmail = $userData['email'] . $salt . WIZ_PEPPER;
-					$userData['wizId'] = hash('sha256', $pepperedEmail);
+						// Hash the email with the signup date salt and the pepper
+						$pepperedEmail = $userData['email'] . $salt . WIZ_PEPPER;
+						$userData['wizId'] = hash('sha256', $pepperedEmail);
 
-					// Remove the plan text email from the data
-					unset($userData['email']);
+						// Remove the plan text email from the data
+						unset($userData['email']);
 
-					// Store the salt to reproduce this hash in the future
-					$userData['wizSalt'] = $salt;
-				}
+						// Store the salt to reproduce this hash in the future
+						$userData['wizSalt'] = $salt;
+					}
 
-				// If there's data to add, yield the user data
-				if (!empty($userData)) {
-					yield $userData;
+					// If there's data to add, yield the user data
+					if (!empty($userData)) {
+						yield $userData;
+					}
 				}
 			}
 		}
@@ -747,7 +749,7 @@ function idemailwiz_sync_users($startDate = null, $endDate = null)
 	// Prepare arrays for comparison
 	$records_to_update = [];
 	$records_to_insert = [];
-	
+
 	while (true) {
 		$users = [];
 
@@ -763,7 +765,7 @@ function idemailwiz_sync_users($startDate = null, $endDate = null)
 			break; // No more users to process
 		}
 
-		
+
 
 		foreach ($users as $user) {
 			// Check if the user exists in the database
@@ -783,7 +785,6 @@ function idemailwiz_sync_users($startDate = null, $endDate = null)
 				$records_to_insert[] = $user;
 			}
 		}
-		
 	}
 	// Process and log the sync operation
 	idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update);
@@ -1785,7 +1786,8 @@ function idemailwiz_process_campaign_export_batch($campaignBatches, $currentBatc
 			}
 
 			// Schedule a single cron job to export data and add a row to the queue
-			wp_schedule_single_event(time(), 'idemailwiz_export_and_queue_single_job_event', [$campaignId, $messageMedium, $metricType, $syncType, $exportStart, $exportEnd, $priority
+			wp_schedule_single_event(time(), 'idemailwiz_export_and_queue_single_job_event', [
+				$campaignId, $messageMedium, $metricType, $syncType, $exportStart, $exportEnd, $priority
 			]);
 		}
 	}
@@ -1825,7 +1827,8 @@ function idemailwiz_export_and_queue_single_job($campaignId, $messageMedium, $me
 		if (!isset($scheduledJob['response']['jobId'])) {
 			throw new Exception("No job ID received from API.");
 		}
-		idemailwiz_add_sync_queue_row($scheduledJob,
+		idemailwiz_add_sync_queue_row(
+			$scheduledJob,
 			$campaignId,
 			$syncType,
 			$priority
@@ -1963,8 +1966,8 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 		return;
 	}
 
-	
-	
+
+
 	foreach ($jobApiResponse['response']['files'] as $file) {
 		$jsonResponse = file_get_contents($file['url']);
 
@@ -2140,16 +2143,16 @@ function handle_sync_station_sync()
 
 	// Check if we're syncing all campaigns
 	if (empty($formFields['campaignIds'])) {
-		
-		$campaigns = get_idwiz_campaigns(['type' => 'Blast', 'fields' => 'id', 'startAt_end'=> '2024-04-28']);
-		
+
+		$campaigns = get_idwiz_campaigns(['type' => 'Blast', 'fields' => 'id', 'startAt_end' => '2024-04-28']);
+
 		$campaignIds = array_column($campaigns, 'id');
 	} else {
 		// Extract campaign IDs, if provided
 		$campaignIds = explode(',', $formFields['campaignIds']);
 	}
 
-	
+
 
 	// Initiate the sync sequence
 	foreach ($formFields['syncTypes'] as $manualSyncType) {
