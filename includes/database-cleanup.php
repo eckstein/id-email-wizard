@@ -75,7 +75,7 @@ function update_missing_purchase_dates() {
         $result = $wpdb->query("
             UPDATE {$table_name}
             SET purchaseDate = DATE(createdAt)
-            WHERE purchaseDate IS NULL
+            WHERE purchaseDate IS NULL OR purchaseDate = '0000-00-00'
         ");
 
         // Check for the result to determine if rows were affected

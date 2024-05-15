@@ -174,7 +174,7 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 			$sql = "UPDATE `{$table_name}` SET {$updates} WHERE `{$id_field}` = %s";
 			$prepared_sql = $wpdb->prepare($sql, array_merge($prepared_values, [$item[$id_field]]));
 		}
-
+		
 		// Do the insert/update
 		$query_result = $wpdb->query($prepared_sql);
 
@@ -901,6 +901,7 @@ function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDa
 	if (($handle = fopen("php://temp", "r+")) !== FALSE) {
 		// Write the CSV content to the stream and rewind the pointer
 		fwrite($handle, $response['response']);
+		//error_log(print_r($response['response'], true));
 		rewind($handle);
 
 		// Parse the header line into headers
