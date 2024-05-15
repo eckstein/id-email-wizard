@@ -24,13 +24,19 @@ if (isset($_GET['db-cleanup'])) {
 	}
 }
 
-if (isset($_GET['sync']) && $_GET['sync'] == 'users') {
-	$syncUsersStart = $_GET['syncUsersStart'] ?? null;
-	$syncUsersEnd = $_GET['syncUsersEnd'] ?? null;
-	if ($syncUsersStart && $syncUsersEnd) {
-		idemailwiz_sync_users($syncUsersStart, $syncUsersEnd);
-	} else {
-		wiz_log('No start or end date provided for syncing users');
+if (isset($_GET['sync'])) {
+	if ($_GET['sync'] == 'users') {
+		$syncUsersStart = $_GET['syncUsersStart'] ?? null;
+		$syncUsersEnd = $_GET['syncUsersEnd'] ?? null;
+		if ($syncUsersStart && $syncUsersEnd) {
+			idemailwiz_sync_users($syncUsersStart, $syncUsersEnd);
+		} else {
+			wiz_log('No start or end date provided for syncing users');
+		}
+	} else if ($_GET['sync'] == 'purchases') {
+		$syncPurchasesStart = $_GET['syncPurchasesStart'] ?? null;
+		$syncPurchasesEnd = $_GET['syncPurchasesEnd'] ?? null;
+		idemailwiz_sync_purchases(null, $syncPurchasesStart, $syncPurchasesEnd);
 	}
 }
 
@@ -98,6 +104,15 @@ if (isset($_GET['sync']) && $_GET['sync'] == 'users') {
 						<input type="date" name="syncUsersEnd" id="syncUsersStart" value="<?php echo $syncUsersEnd ?? date('Y-m-d'); ?>" />
 						<!-- submit $_GET with start and end date for users-->
 						<input type="submit" class="wiz-button green" value="Sync Users" />
+					</form>
+				</div>
+				<div class="wizcampaign-section">
+					<form id="syncPurchasesByDate" method="get">
+						<input type="hidden" name="sync" value="purchases" />
+						<input type="date" name="syncPurchasesStart" id="syncPurchasesStart" value="<?php echo $syncPurchasesStart ?? date('Y-m-d', strtotime('-3 days')); ?>" />
+						<input type="date" name="syncPurchasesEnd" id="syncPurchasesEnd" value="<?php echo $syncPurchasesEnd ?? date('Y-m-d'); ?>" />
+						<!-- submit $_GET with start and end date for users-->
+						<input type="submit" class="wiz-button green" value="Sync Purchases" />
 					</form>
 				</div>
 				<div class="wizcampaign-section">

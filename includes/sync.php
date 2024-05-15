@@ -791,7 +791,7 @@ function idemailwiz_sync_users($startDate = null, $endDate = null)
 	$wpdb->query('COMMIT');
 }
 
-function idemailwiz_fetch_purchases($campaignIds = [])
+function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDate = null)
 {
 	date_default_timezone_set('UTC'); // Set timezone to UTC to match Iterable
 
@@ -829,8 +829,8 @@ function idemailwiz_fetch_purchases($campaignIds = [])
 
 
 	// Define the start and end date time for the API call
-	$startDateTime = date('Y-m-d', strtotime('-3 days')); // defaults to past 3 days, unless altered below
-	$endDateTime = date('Y-m-d', strtotime('+1 day')); // End date is always today
+	$startDateTime = $startDate ?? date('Y-m-d', strtotime('-3 days'));
+	$endDateTime = $endDate ?? date('Y-m-d', strtotime('+1 day'));
 
 	// Handle the campaign IDs if provided
 	if (!empty($campaignIds)) {
@@ -1076,13 +1076,12 @@ function idemailwiz_sync_templates($passedCampaigns = null)
 
 
 
-function idemailwiz_sync_purchases($campaignIds = null)
+function idemailwiz_sync_purchases($campaignIds = null, $startDate = null, $endDate = null)
 {
-	$purchases = idemailwiz_fetch_purchases($campaignIds);
+	$purchases = idemailwiz_fetch_purchases($campaignIds, $startDate, $endDate);
 
 	global $wpdb;
 	$purchases_table = $wpdb->prefix . 'idemailwiz_purchases';
-	$campaigns_table = $wpdb->prefix . 'idemailwiz_campaigns';
 
 	$records_to_insert = [];
 	$records_to_update = [];
