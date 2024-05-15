@@ -50,6 +50,7 @@ foreach ($userPurchases as $purchase) {
     $userId = $purchase['userId'];
     $signupDate = $users[$userId];
     $firstPurchaseDate = $purchase['firstPurchaseDate'];
+    error_log("User $userId signed up on $signupDate and has first purchase on $firstPurchaseDate");
 
     // Calculate the length of time between signup and first purchase
     $lengthToPurchase = round((strtotime($firstPurchaseDate) - strtotime($signupDate)) / (60 * 60 * 24)); // Convert seconds to days
