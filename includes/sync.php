@@ -1955,7 +1955,7 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 
 	$updateSyncing = $wpdb->update(
 		$sync_jobs_table_name,
-		['syncStatus' => 'syncing'],
+		['syncStatus' => 'syncing', 'retryAfter' => $retryAfter->format('Y-m-d H:i:s')],
 		['jobId' => $jobId]
 	);
 
