@@ -1969,7 +1969,16 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 			wiz_log("Error updating retryAfter timestamp for job $jobId. Error: " . $wpdb->last_error);
 		}
 
-		// Return from the function
+		// Change status back to pending
+		$updatePending = $wpdb->update(
+			$sync_jobs_table_name,
+			['syncStatus' => 'pending'],
+			['jobId' => $jobId]
+		);
+		if ($updatePending === false) {
+			wiz_log("Error updating sync status back to pending for requeued job $jobId");
+		}
+
 		return;
 	}
 
@@ -2050,7 +2059,16 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 			wiz_log("Inserted $insertResult records for job $jobId");
 		}
 	} else {
-		//wiz_log("Batch insert data is empty");
+		wiz_log("Batch insert data is empty, reverting job to pending");
+		// Change status back to pending
+		$updatePending = $wpdb->update(
+			$sync_jobs_table_name,
+			['syncStatus' => 'pending'],
+			['jobId' => $jobId]
+		);
+		if ($updatePending === false) {
+			wiz_log("Error updating sync status back to pending for requeued job $jobId");
+		}
 	}
 
 	if ($jobApiResponse['response']['exportTruncated'] === true) {
