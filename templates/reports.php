@@ -36,6 +36,8 @@ $reportType = $_GET['reportType'] ?? 'home';
             include plugin_dir_path( __FILE__  ) . 'parts/reports/reports-home.php'; 
         } else if ($reportType == 'frequency') {
             include plugin_dir_path(__FILE__) . 'parts/reports/frequency.php'; 
+        } else if ($reportType == 'signup-to-purchase') {
+            include plugin_dir_path(__FILE__) . 'parts/reports/signup-to-purchase.php';
         }
         ?>  
 

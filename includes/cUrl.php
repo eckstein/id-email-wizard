@@ -42,6 +42,7 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
         if ($response === false) {
             $error = curl_error($ch);
             error_log("cURL Error: $error");
+            wiz_log("CURL Error:  $error");
             
             // Check for timeout error
             if (curl_errno($ch) === CURLE_OPERATION_TIMEDOUT) {
@@ -65,6 +66,7 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
         // Check for rate limit
         if ($httpCode === 429) {
             error_log("Rate limit hit. Waiting 5 seconds before retrying...");
+            wiz_log("Rate limit hit. Waiting 5 seconds before retrying...");
             sleep(5); // Adjust this delay as needed.
             continue;
         }
@@ -72,6 +74,7 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
         // Check for authentication error
         if ($httpCode === 401) {
             error_log("Error fetching data from the API. HTTP Code: $httpCode. Response: $response");
+            wiz_log("Error fetching data from the API. HTTP Code: $httpCode. Response: $response");
             throw new Exception("Authentication failed for API endpoint $apiURL. Check your API Key.");
         }
 
@@ -80,6 +83,7 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
             $consecutive400Errors++;
             sleep(3); // Wait for 3 seconds before retrying
             if ($consecutive400Errors > $maxConsecutive400Errors) {
+                wiz_log("Consecutive HTTP Errors exceeded limit. Stopping execution. HTTP Error: $httpCode");
                 throw new Exception("Consecutive HTTP Errors exceeded limit. Stopping execution. HTTP Error: $httpCode");
             }
         } else {
@@ -90,6 +94,7 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
 
         // If maximum attempts reached, throw an exception
         if ($attempts > $retryAttempts) {
+            wiz_log("HTTP 400 Error after $retryAttempts attempts. Stopping execution.");
             throw new Exception("HTTP 400 Error after $retryAttempts attempts. Stopping execution.");
         }
 

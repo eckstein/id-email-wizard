@@ -1,29 +1,47 @@
 jQuery(document).ready(function ($) {
 
-	//Tiny Tables
-	if ($(".wizcampaign-tiny-table:not(.static)").length) {
+	// Tiny Tables
+	if ($(".wizcampaign-tiny-table").length) {
+		// Define the DataTables options based on classes
+		var tableOptions = {
+			dom: 'ltp',
+			scrollCollapse: true,
+			pageLength: 50,
+			fnDrawCallback: function(oSettings) {
+				if (oSettings._iDisplayLength > oSettings.fnRecordsDisplay()) {
+					$(oSettings.nTableWrapper).find('.dataTables_paginate').hide();
+					$(oSettings.nTableWrapper).find('.dataTables_length').hide();
+				} else {
+					$(oSettings.nTableWrapper).find('.dataTables_paginate').show();
+					$(oSettings.nTableWrapper).find('.dataTables_length').show();
+				}
 
-	// Initialize DataTables with the parsed data
-	table = $(".wizcampaign-tiny-table").DataTable({
-		dom: 'ltp',
-		scrollY: '250px',
-		scrollCollapse: true,
-		pageLength: 50,
-		fnDrawCallback: function(oSettings) {
-			if (oSettings._iDisplayLength > oSettings.fnRecordsDisplay()) {
-				$(oSettings.nTableWrapper).find('.dataTables_paginate').hide();
-				$(oSettings.nTableWrapper).find('.dataTables_length').hide();
+				
+			}
+		};
+
+		// Initialize DataTables for each table
+		$(".wizcampaign-tiny-table").each(function() {
+			var $table = $(this);
+			var options = $.extend({}, tableOptions);
+
+			// Modify options based on classes
+			if ($table.hasClass("static")) {
+				options.sort = false;
+			}
+			if ($table.hasClass("tall")) {
+				options.scrollY = '400px'; // Set the desired height for tall tables
 			} else {
-				 $(oSettings.nTableWrapper).find('.dataTables_paginate').show();
-				 $(oSettings.nTableWrapper).find('.dataTables_length').show();
+				options.scrollY = '250px'; // Default height for other tables
 			}
 
-					$('[data-colAdjust="true"]').on('click', function () {
-					table.columns.adjust();
-					});
-		}
-	});
+			// Initialize DataTable with the modified options
+			var table = $table.DataTable(options);
 
+			$(document).on('click', '[data-coladjust="true"]', function () {
+				table.columns.adjust();
+			});
+		});
 	}
 
 
