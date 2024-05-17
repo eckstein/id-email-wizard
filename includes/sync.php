@@ -2059,11 +2059,11 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 			wiz_log("Inserted $insertResult records for job $jobId");
 		}
 	} else {
-		wiz_log("Batch insert data is empty, reverting job to pending");
+		wiz_log("Batch insert data is empty, marking job as finished");
 		// Change status back to pending
 		$updatePending = $wpdb->update(
 			$sync_jobs_table_name,
-			['syncStatus' => 'pending'],
+			['syncStatus' => 'finished'],
 			['jobId' => $jobId]
 		);
 		if ($updatePending === false) {
