@@ -1971,6 +1971,7 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 	$jobApiResponse = idemailwiz_iterable_curl_call("https://api.iterable.com/api/export/" . $jobId . "/files{$startAfter}");
 	if (!isset($jobApiResponse['httpCode']) && $jobApiResponse['httpCode']  !== 200) {
 		// Update job back to pending
+		wiz_log("Error getting export link for job $jobId. Response: " . json_encode($jobApiResponse));
 		$wpdb->update(
 			$sync_jobs_table_name,
 			['syncStatus' => 'pending'],
