@@ -1814,7 +1814,11 @@ function idemailwiz_process_campaign_export_batch($campaignBatches, $currentBatc
 	} else {
 		// If all batches have been processed, schedule the sync process
 		wiz_log("Batches processing complete, sync starting in 30 seconds...");
-		if (!wp_next_scheduled('idemailwiz_sync_engagement_data')) {
+
+		// Check for upcoming sync event in next 30 seconds, and if later or not scheduled, schedule it
+		$nextSyncCheck = wp_next_scheduled('idemailwiz_sync_engagement_data');
+		if ($nextSyncCheck && $nextSyncCheck > time() + 30) {
+			wp_unschedule_event($nextSyncCheck, 'idemailwiz_sync_engagement_data');
 			wp_schedule_single_event(time() + 30, 'idemailwiz_sync_engagement_data');
 		}
 	}
@@ -1965,6 +1969,15 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 	$table_name = $wpdb->prefix . 'idemailwiz_' . $job['syncType'];
 
 	$jobApiResponse = idemailwiz_iterable_curl_call("https://api.iterable.com/api/export/" . $jobId . "/files{$startAfter}");
+	if (!isset($jobApiResponse['httpCode']) && $jobApiResponse['httpCode']  !== 200) {
+		// Update job back to pending
+		$wpdb->update(
+			$sync_jobs_table_name,
+			['syncStatus' => 'pending'],
+			['jobId' => $jobId]
+		);
+		return;
+	}
 
 	if (!isset($jobApiResponse['response']['files'])) {
 		wiz_log("No files found at export link for job $jobId.");
