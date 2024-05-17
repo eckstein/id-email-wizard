@@ -48,7 +48,7 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
             if (curl_errno($ch) === CURLE_OPERATION_TIMEDOUT) {
                 $consecutiveTimeouts++;
                 if ($consecutiveTimeouts > 3 ) {
-                    throw new Exception("Consecutive timeouts exceeded limit. Stopping execution.");
+                    throw new Exception("3 consecutive timeouts exceeded limit. Stopping execution.");
                 }
                 sleep(5); // Wait for 5 seconds before retrying
                 continue;

@@ -1580,16 +1580,18 @@ function idemailwiz_sync_engagement_data_callback()
 	if ($engSync == 'on') {
 		// If the sync is turned on, proceed with processing jobs
 		set_transient('data_sync_in_progress', 'true', 2 * HOUR_IN_SECONDS);
-		$jobs = $wpdb->get_results("SELECT * FROM $sync_jobs_table_name WHERE syncStatus = 'pending' ORDER BY syncPriority DESC, retryAfter ASC LIMIT 1", ARRAY_A);
+		$jobs = $wpdb->get_results("SELECT * FROM $sync_jobs_table_name WHERE syncStatus IN ('pending', 'requeued') ORDER BY syncPriority DESC, retryAfter ASC", ARRAY_A);
 
 		if (empty($jobs)) {
-			wiz_log("No pending jobs found in the sync queue.");
+			wiz_log("No pending or requeued jobs found in the queue.");
 			wp_clear_scheduled_hook('idemailwiz_sync_engagement_data');
 			wp_schedule_single_event(time() + 2 * HOUR_IN_SECONDS, 'idemailwiz_sync_engagement_data');
 			delete_transient('data_sync_in_progress');
 			return;
 		} else {
 			$now = new DateTimeImmutable('now', new DateTimeZone('America/Los_Angeles'));
+			$jobsProcessed = false;
+			$earliestFutureRetryAfter = null;
 
 			foreach ($jobs as $job) {
 				$retryAfter = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $job['retryAfter'], new DateTimeZone('UTC'));
@@ -1597,14 +1599,28 @@ function idemailwiz_sync_engagement_data_callback()
 				if ($retryAfter !== false) {
 					$retryAfter->setTimezone(new DateTimeZone('America/Los_Angeles'));
 
-					if ($now > $retryAfter && $job['syncStatus'] == 'pending') {
+					if ($now >= $retryAfter) {
 						wiz_log("Processing {$job['syncType']} job {$job['jobId']} for campaign {$job['campaignId']}");
 						idemailwiz_process_job_from_sync_queue($job['jobId']);
-						wp_schedule_single_event(time() + 1, 'idemailwiz_sync_engagement_data');
+						$jobsProcessed = true;
+					} else {
+						if ($earliestFutureRetryAfter === null || $retryAfter < $earliestFutureRetryAfter) {
+							$earliestFutureRetryAfter = $retryAfter;
+						}
 					}
 				} else {
 					wiz_log("Invalid retryAfter value: " . $job['retryAfter']);
 				}
+			}
+
+			if ($jobsProcessed) {
+				wp_schedule_single_event(time() + 1, 'idemailwiz_sync_engagement_data');
+			} elseif ($earliestFutureRetryAfter !== null) {
+				$secondsUntilNextRetry = $earliestFutureRetryAfter->getTimestamp() - $now->getTimestamp();
+				wp_schedule_single_event(time() + $secondsUntilNextRetry + 1, 'idemailwiz_sync_engagement_data');
+			} else {
+				wp_clear_scheduled_hook('idemailwiz_sync_engagement_data');
+				wp_schedule_single_event(time() + 2 * HOUR_IN_SECONDS, 'idemailwiz_sync_engagement_data');
 			}
 		}
 	} else {
@@ -1798,7 +1814,9 @@ function idemailwiz_process_campaign_export_batch($campaignBatches, $currentBatc
 	} else {
 		// If all batches have been processed, schedule the sync process
 		wiz_log("Batches processing complete, sync starting in 30 seconds...");
-		wp_schedule_single_event(time() + 30, 'idemailwiz_sync_engagement_data');
+		if (!wp_next_scheduled('idemailwiz_sync_engagement_data')) {
+			wp_schedule_single_event(time() + 30, 'idemailwiz_sync_engagement_data');
+		}
 	}
 }
 
@@ -1840,7 +1858,7 @@ function idemailwiz_export_and_queue_single_job($campaignId, $messageMedium, $me
 
 
 
-function idemailwiz_add_sync_queue_row($scheduledJob, $campaignId, $syncType, $priority = 1)
+function idemailwiz_add_sync_queue_row($scheduledJob, $campaignId, $syncType, $priority = 1, $retries = 3)
 {
 	global $wpdb;
 
@@ -1851,14 +1869,10 @@ function idemailwiz_add_sync_queue_row($scheduledJob, $campaignId, $syncType, $p
 
 		// Create a DateTime object representing the current time
 		$currentTime = new DateTimeImmutable('now', new DateTimeZone('America/Los_Angeles'));
-		//$currentTime->setTimezone(new DateTimeZone('America/Los_Angeles'));
 
 		$deleteAfter = $currentTime->modify('+ 12 hours');
-
 		$retryAfter = $currentTime->modify('+1 hour');
 
-		// Set retry after to 12 hours later so that manual syncs an re-queues are still prioritized
-		// We also set deleteAfter to the same time so the job will be deleted if not syned within 12 hours
 		$deleteAfter = $deleteAfter->format('Y-m-d H:i:s');
 
 		if ($priority > 1) {
@@ -1867,34 +1881,52 @@ function idemailwiz_add_sync_queue_row($scheduledJob, $campaignId, $syncType, $p
 			$retryAfter = $retryAfter;
 		}
 
-		//wiz_log("priority: " . $priority . " retryAfter: " . $retryAfter);
+		$retry = 0;
+		while ($retry < $retries) {
+			try {
+				// Start a transaction
+				$wpdb->query('START TRANSACTION');
 
-		try {
-			// Insert a new row into the sync queue
-			$result = $wpdb->insert($sync_jobs_table_name, [
-				'jobId' => $iterableJobId,
-				'campaignId' => $campaignId,
-				'jobState' => '',
-				'retryAfter' => $retryAfter,
-				'deleteAfter' => $deleteAfter,
-				'syncType' => $syncType,
-				'syncStatus' => 'pending',
-				'syncPriority' => $priority,
-			]);
+				// Insert a new row into the sync queue
+				$result = $wpdb->insert($sync_jobs_table_name, [
+					'jobId' => $iterableJobId,
+					'campaignId' => $campaignId,
+					'jobState' => '',
+					'retryAfter' => $retryAfter,
+					'deleteAfter' => $deleteAfter,
+					'syncType' => $syncType,
+					'syncStatus' => 'pending',
+					'syncPriority' => $priority,
+				]);
 
-			if ($result === false) {
-				// Handle the insertion error
-				throw new Exception("Error inserting sync queue row for jobId: $iterableJobId. Error: " . $wpdb->last_error);
+				if ($result === false) {
+					// If the insertion fails, roll back the transaction
+					$wpdb->query('ROLLBACK');
+					throw new Exception("Error inserting sync queue row for jobId: $iterableJobId. Error: " . $wpdb->last_error);
+				}
+
+				// If the insertion is successful, commit the transaction
+				$wpdb->query('COMMIT');
+				return $result;
+			} catch (Exception $e) {
+				// Log the error
+				wiz_log("Error inserting sync queue row (retry $retry): " . $e->getMessage());
+				// Roll back the transaction if an exception occurs
+				$wpdb->query('ROLLBACK');
+
+				$retry++;
+				if ($retry < $retries) {
+					// Delay before retrying (adjust the delay as needed)
+					usleep(100000); // Sleep for 100 milliseconds
+				}
 			}
-		} catch (Exception $e) {
-			// Log the error
-			wiz_log("Error inserting sync queue row: " . $e->getMessage());
-			// You can also choose to rethrow the exception if needed
-			// throw $e;
 		}
+
+		// If all retries have been exhausted, log an error
+		wiz_log("Failed to insert sync queue row after $retries retries for jobId: $iterableJobId");
 	}
 
-	return $result;
+	return false;
 }
 
 
@@ -2070,7 +2102,7 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 		}
 	}
 
-	if ($jobApiResponse['response']['exportTruncated'] === true) {
+	if ($jobApiResponse['response']['exportTruncated'] === true && (!empty($lines) && (count(array_filter($lines)) > 0))) {
 		// Update the row to reflect the requeued job
 		$updateRequeued = $wpdb->update(
 			$sync_jobs_table_name,

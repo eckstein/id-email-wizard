@@ -521,15 +521,18 @@ jQuery(document).on("click", ".sync-single-triggered", function () {
 		},
 		function (result) {
 			// success
-			console.log("Success: ", result.data);
+			//console.log("Success: ", result.data);
     
 			$thisButton.html($thisButton.data("original-text")).removeClass("disabled");
-    
-			Swal.fire({
-				title: "Sync Queued!",
-				html: 'Check the <a target="_blank" href="'+idAjax_id_general.site_url+'/sync-station">sync log</a> for details.',
-				icon: "success",
+			do_wiz_notif({
+				message: 'Sync queued! Check the <a target="_blank" href="'+idAjax_id_general.site_url+'/sync-station">sync log</a> for details.',
+				duration: 10000
 			});
+			// Swal.fire({
+			// 	title: "Sync Queued!",
+			// 	html: 'Check the <a target="_blank" href="'+idAjax_id_general.site_url+'/sync-station">sync log</a> for details.',
+			// 	icon: "success",
+			// });
 
 		},
 		function (error) {
