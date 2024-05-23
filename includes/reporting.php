@@ -1,64 +1,60 @@
 <?php
 
-function get_sends_by_week_data($startDate, $endDate) {
+function get_sends_by_week_data($startDate, $endDate, $batchSize = 50) {
     global $wpdb;
 
     // Convert the start and end dates to timestamps
     $startTimestamp = strtotime($startDate);
     $endTimestamp = strtotime($endDate);
 
-    // Calculate the start and end weeks based on the timestamps
-    $startWeek = date('W', $startTimestamp);
-    $endWeek = date('W', $endTimestamp);
-    $startYear = date('Y', $startTimestamp);
-    $endYear = date('Y', $endTimestamp);
-
-    // Query the sends_by_week table to get the relevant rows
+    // Query the sends_by_week table to get the total number of rows
     $sends_by_week_table = $wpdb->prefix . 'idemailwiz_sends_by_week';
-    $query = $wpdb->prepare(
-        "SELECT sends, userIds
-        FROM $sends_by_week_table
-        WHERE ((year = %d AND week >= %d) AND (year = %d AND week <= %d))",
-        $startYear,
-        $startWeek,
-        $endYear,
-        $endWeek
-    );
-    $results = $wpdb->get_results($query);
+    $totalRows = $wpdb->get_var("SELECT COUNT(*) FROM $sends_by_week_table");
 
-    // Process the results and calculate the total send count for each user
-    $userTotalSendCounts = [];
+    // Initialize variables
+    $sendCountGroups = array_fill(1, 25, 0);
+    $totalUsers = 0;
 
-    foreach ($results as $row) {
-        $sends = $row->sends;
-        $userIds = unserialize($row->userIds);
+    // Process the data in batches
+    $offset = 0;
+    while ($offset < $totalRows) {
+        // Query the sends_by_week table to get a batch of rows
+        $query = $wpdb->prepare(
+            "SELECT sends, userIds, year, week FROM $sends_by_week_table LIMIT %d, %d",
+            $offset,
+            $batchSize
+        );
+        $results = $wpdb->get_results($query);
 
-        foreach ($userIds as $userId) {
-            if (!isset($userTotalSendCounts[$userId])) {
-                $userTotalSendCounts[$userId] = 0;
+        foreach ($results as $row) {
+            $rowTimestamp = strtotime($row->year . 'W' . str_pad($row->week, 2, '0', STR_PAD_LEFT));
+
+            // Skip rows outside the date range
+            if ($rowTimestamp < $startTimestamp || $rowTimestamp > $endTimestamp) {
+                continue;
             }
-            $userTotalSendCounts[$userId] += $sends;
+
+            $sends = $row->sends;
+            $userIds = unserialize($row->userIds);
+
+            foreach ($userIds as $userId) {
+                $totalUsers++;
+
+                // Increment the send count group directly
+                if ($sends <= 25) {
+                    $sendCountGroups[$sends]++;
+                }
+            }
         }
+
+        // Move to the next batch
+        $offset += $batchSize;
     }
 
-    // Group users by their total send count
-    $sendCountGroups = [];
-    $totalUsers = count($userTotalSendCounts);
+    // Remove empty send count groups
+    $sendCountGroups = array_filter($sendCountGroups);
 
-    foreach ($userTotalSendCounts as $userId => $totalSendCount) {
-        if ($totalSendCount > 25) {
-            continue;
-        }
-        if (!isset($sendCountGroups[$totalSendCount])) {
-            $sendCountGroups[$totalSendCount] = 0;
-        }
-        $sendCountGroups[$totalSendCount]++;
-    }
-
-    // Sort the send count groups in ascending order
-    ksort($sendCountGroups);
-
-    return ['sendCountGroups'=>$sendCountGroups, 'totalUsers'=>$totalUsers];
+    return ['sendCountGroups' => $sendCountGroups, 'totalUsers' => $totalUsers];
 }
 
 function sortCampaignsIntoCohorts($campaigns, $mode = 'combine')
