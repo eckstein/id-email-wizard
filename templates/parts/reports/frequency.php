@@ -64,7 +64,8 @@ $totalUsers = $sendByWeekData['totalUsers'] ?? 0;
         // Get campaigns within date
         $campaignsInDates = get_idwiz_campaigns(['startAt_start' => $startDate, 'startAt_end' => $endDate, 'messageMedium' => 'Email']);
         //print_r($campaignsInDates);
-        $sendCohorts = sortCampaignsIntoCohorts($campaignsInDates, $cohortMode);
+        $cohortResults = sortCampaignsIntoCohorts($campaignsInDates, $cohortMode);
+        $sendCohorts = $cohortResults['cohorts'];
         ?>
 
         <div class="tinyTableWrapper">
@@ -81,7 +82,7 @@ $totalUsers = $sendByWeekData['totalUsers'] ?? 0;
                     $totalCampaigns = count($campaignsInDates);
                     foreach ($sendCohorts as $cohort => $campaigns) :
                         $campaignCount = count($campaigns);
-                        $percentage = $totalCampaigns > 0 ? number_format(($campaignCount / $totalCampaigns) * 100, 2) : 0;
+                        $percentage = $cohortResults['totalCampaigns'] > 0 ? number_format(($campaignCount / $cohortResults['totalCampaigns']) * 100, 2) : 0;
                     ?>
                         <tr>
                             <td><?php echo $cohort; ?></td>
@@ -92,7 +93,7 @@ $totalUsers = $sendByWeekData['totalUsers'] ?? 0;
                 <tfoot>
                     <tr>
                         <td>Total</td>
-                        <td><?php echo $totalCampaigns; ?></td>
+                        <td><?php echo $cohortResults['totalCampaigns']; ?></td>
                         <td><?php echo number_format(100, 2); ?>%</td>
                     </tr>
                 </tfoot>

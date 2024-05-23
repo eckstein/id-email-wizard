@@ -64,13 +64,14 @@ function get_sends_by_week_data($startDate, $endDate) {
 function sortCampaignsIntoCohorts($campaigns, $mode = 'combine')
 {
     $cohorts = array();
-
+    $totalCampaigns = 0;
     foreach ($campaigns as $campaign) {
         //print_r($campaign);
         // Unserialize the labels array
         if (!isset($campaign['labels']) || !$campaign['labels']) {
             continue;
         }
+        $totalCampaigns++;
         $labels = unserialize($campaign['labels']);
         //print_r($labels);
 
@@ -97,5 +98,5 @@ function sortCampaignsIntoCohorts($campaigns, $mode = 'combine')
         }
     }
 
-    return $cohorts;
+    return ['cohorts' => $cohorts, 'totalCampaigns' => $totalCampaigns];
 }
