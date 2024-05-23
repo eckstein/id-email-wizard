@@ -12,12 +12,14 @@ $sendByWeekData = get_sends_by_week_data($startDate, $endDate);
 $sendCountGroups = $sendByWeekData['sendCountGroups'] ?? [];
 $totalUsers = $sendByWeekData['totalUsers'] ?? 0;
 
+$frequencyView = $_GET['frequency-view'] ?? 'per-month';
+
 // Generate the HTML table
 ?>
 <div class="wizcampaign-sections-row">
     <div class="wizcampaign-section inset flex" id="send-count-trends">
         <div class="wizcampaign-section-title-area">
-            <h4>Send Count Trends</h4>
+            <h4>Send Count Summary (<?php echo $frequencyView; ?>)</h4>
             <div class="wizcampaign-section-title-area-right">
                 <span><a href="<?php echo add_query_arg(['frequency-view'=>'per-month']); ?>"><i class="fa-regular fa-calendar-days"></i>&nbsp;&nbsp;View by Month</a>
                     | <a href="<?php echo add_query_arg(['frequency-view' => 'per-week']); ?>"><i class="fa-solid fa-calendar-week"></i>&nbsp;&nbsp;View by Week</a></span>
@@ -25,7 +27,7 @@ $totalUsers = $sendByWeekData['totalUsers'] ?? 0;
         </div>
         <div id="send-count-trends-container">
             <?php
-            $frequencyView = $_GET['frequency-view'] ?? 'per-week';
+            
             // use get_sends_by_week_data function to get datasets for each week in the range by passing the date ranges for each week in the range
             $weekRanges = [];
             $currentDate = new DateTime($startDate);
