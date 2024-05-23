@@ -18,9 +18,11 @@ function get_sends_by_week_data($startDate, $endDate) {
     $query = $wpdb->prepare(
         "SELECT sends, userIds
         FROM $sends_by_week_table
-        WHERE ((year = %d AND week >= %d) AND (year = %d AND week <= %d))",
+        WHERE (year = %d AND week >= %d) OR (year > %d AND year < %d) OR (year = %d AND week <= %d)",
         $startYear,
         $startWeek,
+        $startYear,
+        $endYear,
         $endYear,
         $endWeek
     );
