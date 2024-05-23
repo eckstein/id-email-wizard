@@ -1,6 +1,6 @@
 <?php
 
-function get_sends_by_week_data($startDate, $endDate)
+function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000)
 {
     global $wpdb;
 
@@ -8,34 +8,48 @@ function get_sends_by_week_data($startDate, $endDate)
     $startTimestamp = strtotime($startDate);
     $endTimestamp = strtotime($endDate);
 
-    // Query the sends_by_week table to get all rows
+    // Query the sends_by_week table to get the total number of rows
     $sends_by_week_table = $wpdb->prefix . 'idemailwiz_sends_by_week';
-    $query = "SELECT sends, userIds, year, week FROM $sends_by_week_table";
-    $results = $wpdb->get_results($query);
+    $totalRows = $wpdb->get_var("SELECT COUNT(*) FROM $sends_by_week_table");
 
     // Initialize variables
     $sendCountGroups = array_fill(1, 25, 0);
     $totalUsers = 0;
 
-    foreach ($results as $row) {
-        $rowTimestamp = strtotime($row->year . 'W' . str_pad($row->week, 2, '0', STR_PAD_LEFT));
+    // Process the data in batches
+    $offset = 0;
+    while ($offset < $totalRows) {
+        // Query the sends_by_week table to get a batch of rows
+        $query = $wpdb->prepare(
+            "SELECT sends, userIds, year, week FROM $sends_by_week_table LIMIT %d, %d",
+            $offset,
+            $batchSize
+        );
+        $results = $wpdb->get_results($query);
 
-        // Skip rows outside the date range
-        if ($rowTimestamp < $startTimestamp || $rowTimestamp > $endTimestamp) {
-            continue;
-        }
+        foreach ($results as $row) {
+            $rowTimestamp = strtotime($row->year . 'W' . str_pad($row->week, 2, '0', STR_PAD_LEFT));
 
-        $sends = $row->sends;
-        $userIds = unserialize($row->userIds);
+            // Skip rows outside the date range
+            if ($rowTimestamp < $startTimestamp || $rowTimestamp > $endTimestamp) {
+                continue;
+            }
 
-        foreach ($userIds as $userId) {
-            $totalUsers++;
+            $sends = $row->sends;
+            $userIds = unserialize($row->userIds);
 
-            // Increment the send count group directly
-            if ($sends <= 25) {
-                $sendCountGroups[$sends]++;
+            foreach ($userIds as $userId) {
+                $totalUsers++;
+
+                // Increment the send count group directly
+                if ($sends <= 25) {
+                    $sendCountGroups[$sends]++;
+                }
             }
         }
+
+        // Move to the next batch
+        $offset += $batchSize;
     }
 
     // Remove empty send count groups
