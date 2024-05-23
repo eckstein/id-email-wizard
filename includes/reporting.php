@@ -23,7 +23,7 @@ function get_sends_by_week_data($startDate, $endDate) {
         $startWeek,
         $startYear,
         $endYear,
-        $endYear,
+        $endYear, 
         $endWeek
     );
     $results = $wpdb->get_results($query);
