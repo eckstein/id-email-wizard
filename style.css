@@ -2958,6 +2958,39 @@ h2.wizArticle-title {
 
 /* Reports Pages */
 
+#send-count-trends #send-count-trends-container {
+	display: flex;
+	gap: 20px;
+}
+#send-count-trends .month-wrapper {
+	border: 1px solid #000;
+}
+#send-count-trends .month-header {
+	padding: 10px 15px;
+	background-color: #eee;
+}
+#send-count-trends .week-header {
+	font-size: 12px;
+	font-weight: bold;
+	padding: 0 15px;
+}
+#send-count-trends .month-data,
+#send-count-trends .week-data {
+	padding: 0 15px 15px 15px;
+	font-size: 12px;
+}
+#send-count-trends .month-data .send-count-row,
+#send-count-trends .week-data .send-count-item {
+	display: flex;
+	gap: 5px;
+}
+#send-count-trends .month-data .send-count-row .send-count-value,
+#send-count-trends .week-data .send-count-item .send-count-value {
+	font-weight: bold;
+	width: 1em;
+}
+
+ 
 
 /* Wizcharts */
 .wizChartWrapper {

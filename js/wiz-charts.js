@@ -127,6 +127,10 @@ jQuery(document).ready(function ($) {
 			additionalData.campaignType = $(canvas).attr("data-campaigntype");
 		}
 
+		if ($(canvas).attr("data-sendsByWeekData")) {
+			additionalData.sendsByWeekData = $(canvas).attr("data-sendsByWeekData");
+		}
+
 		idemailwiz_do_ajax(
 			"idwiz_catch_chart_request",
 			idAjax_wiz_charts.nonce,

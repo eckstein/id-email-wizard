@@ -57,6 +57,10 @@ function idwiz_catch_chart_request()
         case 'unsubRateByCampaign':
             $chartData = idwiz_get_byCampaign_chartdata($chartOptions);
             break;
+        
+        // case 'sendCountsByDate':
+        //     $chartData = idwiz_get_sendsByWeek_chartdata($chartOptions);
+        //     break;
 
         default:
             wp_send_json_error(['message' => 'Chart ID is not recognized!']);
@@ -71,6 +75,8 @@ function idwiz_catch_chart_request()
     }
 
 }
+
+
 
 function idwiz_get_report_chartdata($chartOptions)
 {
@@ -601,12 +607,10 @@ function idwiz_get_byCampaign_chartdata($chartOptions)
     }
 
     // Determine the type of y-axis based on the chartMetric
-    // You might want to adjust this based on your requirements
     $yAxisType = is_numeric($metricValue) ? 'num' : 'text';
 
     return [
         'type' => 'bar',
-        // You can adjust this based on your requirements
         'data' => $chartData,
         'options' => [
             'yAxisDataType' => $yAxisType,
