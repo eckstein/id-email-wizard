@@ -166,7 +166,7 @@ $frequencyView = $_GET['frequency-view'] ?? 'per-month';
                         <tr>
                             <td><?php echo $sendCount; ?></td>
                             <td><?php echo $userCount; ?></td>
-                            <td><?php echo number_format($userCount / $data['totalUsers'] * 100, 2); ?>%</td>
+                            <td><?php echo $data['totalUsers'] ? number_format($userCount / $data['totalUsers'] * 100, 2) : 0; ?>%</td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
