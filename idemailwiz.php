@@ -116,6 +116,7 @@ require_once(plugin_dir_path(__FILE__) . 'includes/cUrl.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/wiz-rest.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/data-tables.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/charts.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/reporting.php');
 
 require_once(plugin_dir_path(__FILE__) . 'builder-v2/chunks.php');
 
@@ -421,7 +422,7 @@ function idemailwiz_template_chooser($template)
     global $wp_query;
     $post_type = get_query_var('post_type');
 
-    if (is_page('playground')) {
+    if (is_page(4198)) {
         return dirname(__FILE__) . '/templates/wiz-playground.php';
     }
 

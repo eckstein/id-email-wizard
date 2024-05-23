@@ -17,7 +17,7 @@
     </div>
 </header>
 <div class="entry-content" itemprop="mainContentOfPage">
-    <div class="wizcampaign-section-row">
+    <div class="wizcampaign-sections-row">
         <div class="wizcampaign-section">
             <div id="course-mapping-table-wrap">
                 <?php

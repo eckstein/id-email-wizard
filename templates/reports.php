@@ -15,7 +15,8 @@ $reportType = $_GET['reportType'] ?? 'home';
                 <h1 class="wizEntry-title" itemprop="name">
                     Reports
                 </h1>
-
+                <?php echo ucfirst($reportType); ?><br/>
+                <a href="<?php echo esc_url(get_permalink()); ?>?reportType=home">< reports Home</a>
 
 
             </div>

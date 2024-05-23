@@ -90,6 +90,7 @@ echo '<div class="wizcampaign-sections-row flex">';
 echo '<div class="wizcampaign-section inset">';
 echo '<div class="wizcampaign-section-title-area">';
 echo '<h4>Days to first purchase within signup date range</h4>';
+echo '<p>For users who signed up between ' . date('m/d/Y', strtotime($startDate)) . ' and ' . date('m/d/Y', strtotime($endDate)) . ', how long until their first purchase?</p>';
 echo '</div>';
 // Display the summary table
 echo '<div class="tinyTableWrapper">';
@@ -116,6 +117,7 @@ echo "</div>";
 echo '<div class="wizcampaign-section inset">';
 echo '<div class="wizcampaign-section-title-area">';
 echo '<h4>First Purchases within Date Range</h4>';
+echo '<p>For <strong>first</strong> purchases between ' . date('m/d/Y', strtotime($startDate)) . ' and ' . date('m/d/Y', strtotime($endDate)) . ', how long sinced the user signed up?</p>';
 echo '</div>';
 
 // Create an array to store purchase data

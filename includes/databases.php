@@ -89,6 +89,22 @@ function idemailwiz_create_databases()
 	) ENGINE=InnoDB $charset_collate;";
 
 
+	$sendsByWeekTableName = $wpdb->prefix . 'idemailwiz_sends_by_week ';
+	$wizTablesSql[$sendsByWeekTableName] = "CREATE TABLE IF NOT EXISTS $sendsByWeekTableName (
+		id INT,
+		year INT(4),
+		month INT(2),
+		week INT(2),
+		sends INT,
+		total_users INT,
+		userIds LONGTEXT,
+		PRIMARY KEY (id),
+		INDEX year (year)
+		INDEX month (month)
+		INDEX week (week)
+	) ENGINE=InnoDB $charset_collate;";
+
+
 	$sync_jobs_table_name = $wpdb->prefix . 'idemailwiz_sync_jobs';
 	$wizTablesSql[$sync_jobs_table_name] = "CREATE TABLE IF NOT EXISTS $sync_jobs_table_name (
 		

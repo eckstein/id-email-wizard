@@ -28,7 +28,7 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 	foreach ($items as $key => $item) {
 
 		// If this is a campaigns table sync
-		if ($table_name == $wpdb->prefix . 'idemailwiz_campaigns') {
+		if ($table_name == $wpdb->prefix . 'idemailwiz_campaigns' && $operation !== 'delete') {
 			//update the campaigns table lastWizSync with the current datetime
 			$item['lastWizSync'] = date('Y-m-d H:i:s');
 		}
@@ -72,8 +72,6 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 						$item[$field] = serialize($decoded);
 					}
 				}
-
-
 			}
 		}
 
@@ -169,14 +167,17 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 		if ($operation === "insert") {
 			$sql = "INSERT INTO `{$table_name}` ({$fields}) VALUES ({$placeholders})";
 			$prepared_sql = $wpdb->prepare($sql, $prepared_values);
-		} else {
+		} elseif ($operation === "update") {
 			$updates = implode(", ", array_map(function ($field) {
 				return "`$field` = %s";
 			}, array_keys($item)));
 			$sql = "UPDATE `{$table_name}` SET {$updates} WHERE `{$id_field}` = %s";
 			$prepared_sql = $wpdb->prepare($sql, array_merge($prepared_values, [$item[$id_field]]));
-		}
-		
+		} elseif ($operation === "delete") {
+			$sql = "DELETE FROM `{$table_name}` WHERE `{$id_field}` = %s";
+			$prepared_sql = $wpdb->prepare($sql, [$item[$id_field]]);
+		} 
+
 		// Do the insert/update
 		$query_result = $wpdb->query($prepared_sql);
 
@@ -652,7 +653,7 @@ function idemailwiz_fetch_users($startDate = null, $endDate = null)
 
 		// Parse the header line into headers
 		$headers = fgetcsv($handle);
-		
+
 		// Prepare the headers
 		$processedHeaders = array_map(function ($header) {
 			return lcfirst($header);
@@ -765,7 +766,7 @@ function idemailwiz_sync_users($startDate = null, $endDate = null)
 			break; // No more users to process
 		}
 
-		
+
 
 		foreach ($users as $user) {
 			// Check if the user exists in the database
@@ -785,7 +786,6 @@ function idemailwiz_sync_users($startDate = null, $endDate = null)
 				$records_to_insert[] = $user;
 			}
 		}
-		
 	}
 	// Process and log the sync operation
 	idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update);
@@ -983,6 +983,7 @@ function idemailwiz_sync_campaigns($passedCampaigns = null)
 	// Prepare arrays for comparison
 	$records_to_update = [];
 	$records_to_insert = [];
+	$records_to_delete = [];
 
 	foreach ($campaigns as $campaign) {
 		if (!isset($campaign['id'])) {
@@ -994,6 +995,8 @@ function idemailwiz_sync_campaigns($passedCampaigns = null)
 			//Skip aborted campaigns
 			continue;
 		}
+
+		
 
 		// Get the latest startAt value from our DB for triggered campaigns
 		if ($campaign['type'] == 'Triggered') {
@@ -1007,9 +1010,21 @@ function idemailwiz_sync_campaigns($passedCampaigns = null)
 		$wizCampaign = get_idwiz_campaign($campaign['id']);
 
 		if ($wizCampaign) {
+			
 			// If campaigns are passed, update them all
 			if ($passedCampaigns) {
-				$records_to_update[] = $campaign;
+				// Check for the x_Archived label in the labels array and, if present, delete the campaign
+				if (isset($campaign['labels']) && in_array('x_Archived', $campaign['labels'])) {
+					$records_to_delete[] = $campaign;
+					continue;
+				} else {
+					$records_to_update[] = $campaign;
+					continue;
+				}
+			}
+
+			if (isset($campaign['labels']) && in_array('x_Archived', $campaign['labels'])) {
+				$records_to_delete[] = $campaign;
 				continue;
 			}
 
@@ -1033,7 +1048,7 @@ function idemailwiz_sync_campaigns($passedCampaigns = null)
 	}
 
 	// Process the insert/update and log the result
-	return idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update);
+	return idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update, $records_to_delete);
 }
 
 
@@ -1213,7 +1228,7 @@ function idemailwiz_sync_metrics($passedCampaigns = null)
 }
 
 
-function idemailwiz_process_and_log_sync($table_name, $records_to_insert = null, $records_to_update = null)
+function idemailwiz_process_and_log_sync($table_name, $records_to_insert = null, $records_to_update = null, $records_to_delete = null)
 {
 
 	// Extracting the type (e.g., 'campaign', 'template', etc.) from the table name
@@ -1234,6 +1249,9 @@ function idemailwiz_process_and_log_sync($table_name, $records_to_insert = null,
 		//$logChunk .= count($records_to_update) . " $type" . " to update.\n";
 		$update_results = idemailwiz_update_insert_api_data($records_to_update, 'update', $table_name);
 	}
+	if ($records_to_delete) {
+		$delete_results = idemailwiz_update_insert_api_data($records_to_delete, 'delete', $table_name);
+	}
 
 	$logInsertUpdate = return_insert_update_logging($insert_results, $update_results, $table_name);
 
@@ -1246,6 +1264,9 @@ function idemailwiz_process_and_log_sync($table_name, $records_to_insert = null,
 	}
 	if ($records_to_update) {
 		$return['update'] = $update_results;
+	}
+	if ($records_to_delete) {
+		$return['delete'] = $delete_results;
 	}
 
 	return $return;
@@ -1538,6 +1559,10 @@ function idemailwiz_add_cron_intervals($schedules)
 		'interval' => 60 * 60 * 2,
 		'display' => __('Every 2 Hours')
 	);
+	$schedules['weekly_monday_morning'] = array(
+		'interval' => 604800,
+		'display' => __('Every Monday Morning')
+	);
 	return $schedules;
 }
 
@@ -1780,7 +1805,7 @@ function idemailwiz_process_campaign_export_batch($campaignBatches, $currentBatc
 
 			if (
 				($campaignType == 'blast')
-				&& (in_array($metricType, ['send','bounce','sendSkip']))
+				&& (in_array($metricType, ['send', 'bounce', 'sendSkip']))
 				&& ($messageMedium == 'email')
 				&& ($campaignEndTimestamp < strtotime('-1 day'))
 				&& ($priority == 1) // higher priorities indicate manual syncs
@@ -1803,7 +1828,8 @@ function idemailwiz_process_campaign_export_batch($campaignBatches, $currentBatc
 			}
 
 			// Schedule a single cron job to export data and add a row to the queue
-			wp_schedule_single_event(time()+1, 'idemailwiz_export_and_queue_single_job_event', [$campaignId, $messageMedium, $metricType, $syncType, $exportStart, $exportEnd, $priority
+			wp_schedule_single_event(time() + 1, 'idemailwiz_export_and_queue_single_job_event', [
+				$campaignId, $messageMedium, $metricType, $syncType, $exportStart, $exportEnd, $priority
 			]);
 		}
 	}
@@ -1846,10 +1872,12 @@ function idemailwiz_export_and_queue_single_job($campaignId, $messageMedium, $me
 
 	try {
 		$scheduledJob = idemailwiz_iterable_curl_call($apiData['url'], $apiData['args'], 'POST');
+		//$scheduledJob = idemailwiz_iterable_curl_call($apiData['url'], $apiData['args']);
 		if (!isset($scheduledJob['response']['jobId'])) {
 			throw new Exception("No job ID received from API.");
 		}
-		idemailwiz_add_sync_queue_row($scheduledJob,
+		idemailwiz_add_sync_queue_row(
+			$scheduledJob,
 			$campaignId,
 			$syncType,
 			$priority
@@ -2028,8 +2056,8 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 		return;
 	}
 
-	
-	
+
+
 	foreach ($jobApiResponse['response']['files'] as $file) {
 		$jsonResponse = @file_get_contents($file['url']);
 		if ($jsonResponse === false) {
@@ -2232,16 +2260,16 @@ function handle_sync_station_sync()
 
 	// Check if we're syncing all campaigns
 	if (empty($formFields['campaignIds'])) {
-		
-		$campaigns = get_idwiz_campaigns(['type' => 'Blast', 'fields' => 'id', 'startAt_end'=> '2024-04-28']);
-		
+
+		$campaigns = get_idwiz_campaigns(['type' => 'Blast', 'fields' => 'id', 'startAt_end' => '2024-04-28']);
+
 		$campaignIds = array_column($campaigns, 'id');
 	} else {
 		// Extract campaign IDs, if provided
 		$campaignIds = explode(',', $formFields['campaignIds']);
 	}
 
-	
+
 
 	// Initiate the sync sequence
 	foreach ($formFields['syncTypes'] as $manualSyncType) {
@@ -2328,3 +2356,191 @@ function requeue_retry_afters()
 // 		}
 // 	}
 // }
+
+function idemailwiz_schedule_weekly_cron()
+{
+	if (!wp_next_scheduled('idemailwiz_weekly_send_sync')) {
+		wp_schedule_event(strtotime('next Monday 1am'), 'weekly_monday_morning', 'idemailwiz_weekly_send_sync');
+	}
+}
+add_action('init', 'idemailwiz_schedule_weekly_cron');
+
+add_action('idemailwiz_weekly_send_sync', 'idemailwiz_sync_sends_weekly_cron');
+
+function idemailwiz_sync_sends_weekly_cron()
+{
+	wiz_log('Starting weekly send sync...');
+	$currentDate = new DateTime();
+	$currentDate->modify('previous Monday');
+	$year = $currentDate->format('Y');
+	$week = $currentDate->format('W');
+
+	$syncSends = idemailwiz_sync_sends_by_week($year, $week);
+	if ($syncSends && count($syncSends) > 0) {
+		wiz_log('Weekly send sync complete.');
+	} else {
+		wiz_log('Weekly send sync failed.');
+	}
+}
+
+
+function idemailwiz_sync_sends_by_week($year, $week)
+{
+	// if week is 1 digit, convert it to 2 with a zero in front
+	if (strlen($week) == 1) {
+		$week = '0' . $week;
+	}
+	global $wpdb;
+	$return = 0;
+	$sends_by_week_table = $wpdb->prefix . 'idemailwiz_sends_by_week';
+
+	// Calculate the start and end dates for the given year and week
+	$startDate = date('Y-m-d',
+		strtotime("$year-W$week-1")
+	);
+	$endDate = date('Y-m-d',
+		strtotime("$year-W$week-7")
+	);
+
+	// Calculate the month based on the start date
+	$month = date('n', strtotime($startDate));
+
+	// Make the API call to Iterable to fetch send data for the specified week
+	$sendDataGenerator = idemailwiz_fetch_sends(null, $startDate, $endDate);
+
+	// Process the send data and prepare it for insertion into the sends_by_week table
+	// Process the send data and prepare it for insertion into the sends_by_week table
+	$userSendCounts = [];
+	$userIdsBySendCount = [];
+
+	foreach ($sendDataGenerator as $send) {
+		$userId = $send['userId'];
+		if ($userId === null || $userId === '' || $userId == '0'
+		) {
+			continue;
+		}
+
+		// Increment count, or start new count if it doesn't exist
+		if (isset($userSendCounts[$userId])) {
+			$userSendCounts[$userId]++;
+		} else {
+			$userSendCounts[$userId] = 1;
+		}
+	}
+
+	// Aggregate the user send counts into cohorts and store user IDs for each send count
+	foreach ($userSendCounts as $userId => $sendCount) {
+		if (!isset($userIdsBySendCount[$sendCount])) {
+			$userIdsBySendCount[$sendCount] = [];
+		}
+		$userIdsBySendCount[$sendCount][] = $userId;
+	}
+
+	// Insert or update the records in the sends_by_week table
+	foreach ($userIdsBySendCount as $sends => $userIds) {
+		// Skip cohorts with more than 25 sends (should exclude seed list people)
+		if ($sends > 25) {
+			continue;
+		}
+
+		$totalUsers = count($userIds);
+		$serializedUserIds = serialize($userIds);
+
+		// Check if a record already exists for the given year, month, week, and sends
+		$existingRecord = $wpdb->get_row($wpdb->prepare(
+			"SELECT * FROM $sends_by_week_table WHERE year = %d AND month = %d AND week = %d AND sends = %d",
+			$year,
+			$month,
+			$week,
+			$sends
+		));
+
+		if ($existingRecord) {
+			// Update the existing record
+			$return = $wpdb->update(
+				$sends_by_week_table,
+				['total_users' => $totalUsers, 'userIds' => $serializedUserIds],
+				['year' => $year, 'month' => $month, 'week' => $week, 'sends' => $sends]
+			);
+		} else {
+			// Insert a new record
+			$return = $wpdb->insert(
+				$sends_by_week_table,
+				[
+					'year' => $year,
+					'month' => $month,
+					'week' => $week,
+					'sends' => $sends,
+					'total_users' => $totalUsers,
+					'userIds' => $serializedUserIds
+				]
+			);
+		}
+	}
+	return $return;
+}
+
+function idemailwiz_fetch_sends($campaignId = null, $startDateTime = null, $endDateTime = null)
+{
+	$baseUrl = 'https://api.iterable.com/api/export/data.csv';
+
+	$queryParams = [
+		'dataTypeName' => 'emailSend',
+	];
+
+	if ($startDateTime || $endDateTime) {
+		if ($startDateTime) {
+			$queryParams['startDateTime'] = $startDateTime;
+		}
+		if ($endDateTime) {
+			$queryParams['endDateTime'] = $endDateTime;
+		}
+	} else {
+		// If no date range is provided, default to the previously completed week
+		$currentDate = new DateTime();
+		$currentDate->setTimezone(new DateTimeZone('UTC'));
+		$currentDate->modify('last Saturday');
+		$endDateTime = $currentDate->format('Y-m-d\T23:59:59\Z');
+		$currentDate->modify('previous Sunday');
+		$startDateTime = $currentDate->format('Y-m-d\T00:00:00\Z');
+
+		$queryParams['startDateTime'] = $startDateTime;
+		$queryParams['endDateTime'] = $endDateTime;
+	}
+
+	if ($campaignId) {
+		$queryParams['campaignId'] = $campaignId;
+	}
+
+	$queryString = http_build_query($queryParams);
+	$url = $baseUrl . '?' . $queryString . '&onlyFields=createdAt&onlyFields=userId&onlyFields=campaignId';
+
+	try {
+		$response = idemailwiz_iterable_curl_call($url);
+	} catch (Throwable $e) {
+		wiz_log("Error encountered for fetch sends curl call to : " . $url . " - " . $e->getMessage());
+		return [];
+	}
+
+	$tempFile = tmpfile();
+	fwrite($tempFile, $response['response']);
+	fseek($tempFile, 0);
+
+	$file = new SplFileObject(stream_get_meta_data($tempFile)['uri']);
+	$file->setFlags(SplFileObject::READ_CSV | SplFileObject::SKIP_EMPTY | SplFileObject::DROP_NEW_LINE);
+	$file->rewind();
+
+	$headers = $file->current();
+	$file->next();
+
+	while (!$file->eof()) {
+		$values = $file->current();
+		if (!empty($values)) {
+			$values = array_pad($values, count($headers), '');
+			yield array_combine($headers, $values);
+		}
+		$file->next();
+	}
+
+	fclose($tempFile);
+}

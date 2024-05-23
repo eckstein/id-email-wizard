@@ -2,7 +2,7 @@
 // Include WordPress' database functions
 global $wpdb;
 
-function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = false, $retryAttempts = 2, $maxConsecutive400Errors = 2, $timeout = 10)
+function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = false, $retryAttempts = 2, $maxConsecutive400Errors = 2, $timeout = 60)
 {
     $attempts = 0;
     $consecutive400Errors = 0;
