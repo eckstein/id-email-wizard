@@ -111,7 +111,7 @@ $frequencyView = $_GET['frequency-view'] ?? 'per-month';
                             <h6>Top 3 # of sends</h6>
                             <?php
                             $sendCountPercentages = array_map(function ($userCount) use ($data) {
-                                return round(($userCount / $data['totalUsers']) * 100, 2);
+                                return $data['totalUsers'] ? round(($userCount / $data['totalUsers']) * 100, 2) : 0;
                             }, $data['monthlyData']);
 
                             arsort($sendCountPercentages);

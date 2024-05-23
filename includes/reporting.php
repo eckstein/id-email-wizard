@@ -12,45 +12,30 @@ function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $offset
     $sendCountGroups = array_fill(1, 25, ['count' => 0, 'userIds' => []]);
     $totalUsers = 0;
 
-    // Get year and month parts for start and end dates
+    // Get year and week parts for start and end dates
     $startYear = date('Y', $startTimestamp);
-    $startMonth = date('m', $startTimestamp);
+    $startWeek = date('W', $startTimestamp);
     $endYear = date('Y', $endTimestamp);
-    $endMonth = date('m', $endTimestamp);
+    $endWeek = date('W', $endTimestamp);
 
     // Adjust the SQL query to handle date ranges spanning multiple years
-    if ($startYear === $endYear) {
-        // If the start and end dates are within the same year
-        $query = $wpdb->prepare(
-            "SELECT sends, userIds, year, month, week 
-             FROM {$wpdb->prefix}idemailwiz_sends_by_week 
-             WHERE year = %d AND month BETWEEN %d AND %d 
-             LIMIT %d, %d",
-            $startYear,
-            $startMonth,
-            $endMonth,
-            $offset,
-            $batchSize
-        );
-    } else {
-        // If the start and end dates span multiple years
-        $query = $wpdb->prepare(
-            "SELECT sends, userIds, year, month, week 
-             FROM {$wpdb->prefix}idemailwiz_sends_by_week 
-             WHERE (year = %d AND month >= %d) 
-                OR (year = %d AND month <= %d) 
-                OR (year > %d AND year < %d)
-             LIMIT %d, %d",
-            $startYear,
-            $startMonth,
-            $endYear,
-            $endMonth,
-            $startYear,
-            $endYear,
-            $offset,
-            $batchSize
-        );
-    }
+    $query = $wpdb->prepare(
+        "SELECT sends, userIds, year, week 
+         FROM {$wpdb->prefix}idemailwiz_sends_by_week 
+         WHERE (year = %d AND week >= %d) 
+            OR (year > %d AND year < %d)
+            OR (year = %d AND week <= %d)
+         ORDER BY year, week
+         LIMIT %d, %d",
+        $startYear,
+        $startWeek,
+        $startYear,
+        $endYear,
+        $endYear,
+        $endWeek,
+        $offset,
+        $batchSize
+    );
 
     $results = $wpdb->get_results($query);
 
@@ -108,7 +93,6 @@ function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $offset
         return ['monthlyData' => $monthlySendCountGroups, 'totalUsers' => $monthlyTotalUsers];
     }
 }
-
 
 
 
