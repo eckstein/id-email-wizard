@@ -1,37 +1,28 @@
 <?php
 
-function get_sends_by_week_data($startDate, $endDate) {
+function get_sends_by_week_data($startDate, $endDate)
+{
     global $wpdb;
 
     // Convert the start and end dates to timestamps
     $startTimestamp = strtotime($startDate);
     $endTimestamp = strtotime($endDate);
 
-    // Calculate the start and end weeks based on the timestamps
-    $startWeek = date('W', $startTimestamp);
-    $endWeek = date('W', $endTimestamp);
-    $startYear = date('Y', $startTimestamp);
-    $endYear = date('Y', $endTimestamp);
-
-    // Query the sends_by_week table to get the relevant rows
+    // Query the sends_by_week table to get all rows
     $sends_by_week_table = $wpdb->prefix . 'idemailwiz_sends_by_week';
-    $query = $wpdb->prepare(
-        "SELECT sends, userIds
-        FROM $sends_by_week_table
-        WHERE (year = %d AND week >= %d) OR (year > %d AND year < %d) OR (year = %d AND week <= %d)",
-        $startYear,
-        $startWeek,
-        $startYear,
-        $endYear,
-        $endYear, 
-        $endWeek
-    );
+    $query = "SELECT sends, userIds, year, week FROM $sends_by_week_table";
     $results = $wpdb->get_results($query);
 
-    // Process the results and calculate the total send count for each user
+    // Filter the results based on the date range
+    $filteredResults = array_filter($results, function ($row) use ($startTimestamp, $endTimestamp) {
+        $rowTimestamp = strtotime($row->year . 'W' . str_pad($row->week, 2, '0', STR_PAD_LEFT));
+        return $rowTimestamp >= $startTimestamp && $rowTimestamp <= $endTimestamp;
+    });
+
+    // Process the filtered results and calculate the total send count for each user
     $userTotalSendCounts = [];
 
-    foreach ($results as $row) {
+    foreach ($filteredResults as $row) {
         $sends = $row->sends;
         $userIds = unserialize($row->userIds);
 
@@ -60,7 +51,7 @@ function get_sends_by_week_data($startDate, $endDate) {
     // Sort the send count groups in ascending order
     ksort($sendCountGroups);
 
-    return ['sendCountGroups'=>$sendCountGroups, 'totalUsers'=>$totalUsers];
+    return ['sendCountGroups' => $sendCountGroups, 'totalUsers' => $totalUsers];
 }
 
 function sortCampaignsIntoCohorts($campaigns, $mode = 'combine')
