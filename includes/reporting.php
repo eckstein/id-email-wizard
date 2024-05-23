@@ -27,10 +27,14 @@ function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $offset
             OR (year = %d AND week <= %d)
          ORDER BY year, week
          LIMIT %d, %d",
-        $startYear, $startWeek,
-        $startYear, $endYear,
-        $endYear, $endWeek,
-        $offset, $batchSize
+        $startYear,
+        $startWeek,
+        $startYear,
+        $endYear,
+        $endYear,
+        $endWeek,
+        $offset,
+        $batchSize
     );
 
     $results = $wpdb->get_results($query);
