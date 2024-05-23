@@ -2970,22 +2970,20 @@ h2.wizArticle-title {
 	background-color: #eee;
 }
 #send-count-trends .week-header {
-	font-size: 12px;
 	font-weight: bold;
-	padding: 0 15px;
 }
 #send-count-trends .month-data,
-#send-count-trends .week-data {
+#send-count-trends .week-row {
 	padding: 0 15px 15px 15px;
 	font-size: 12px;
 }
 #send-count-trends .month-data .send-count-row,
-#send-count-trends .week-data .send-count-item {
+#send-count-trends .week-row .week-data .send-count-item {
 	display: flex;
 	gap: 5px;
 }
 #send-count-trends .month-data .send-count-row .send-count-value,
-#send-count-trends .week-data .send-count-item .send-count-value {
+#send-count-trends .week-row .send-count-value {
 	font-weight: bold;
 	width: 1em;
 }
