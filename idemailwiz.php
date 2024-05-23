@@ -417,11 +417,12 @@ add_action('init', 'idemailwiz_custom_rewrite_rule', 10);
 
 
 //Use our custom templates for archives, single templates, etc
-function idemailwiz_template_chooser($template)
+function idemailwiz_template_chooser($template) 
 {
     global $wp_query;
     $post_type = get_query_var('post_type');
 
+    
     if (is_page('playground')) {
         return dirname(__FILE__) . '/templates/wiz-playground.php';
     }
