@@ -422,7 +422,7 @@ function idemailwiz_template_chooser($template)
     global $wp_query;
     $post_type = get_query_var('post_type');
 
-    if (is_page(4198)) {
+    if (is_page('playground')) {
         return dirname(__FILE__) . '/templates/wiz-playground.php';
     }
 
