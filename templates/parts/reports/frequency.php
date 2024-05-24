@@ -70,7 +70,7 @@ $frequencyView = $_GET['frequency-view'] ?? 'per-month';
                         }
 
                         foreach ($weekRanges as $weekRange) {
-                            $weekData = get_sends_by_week_data($weekRange['start'], $weekRange['end'], 50, 0, 'weekly');
+                            $weekData = get_sends_by_week_data($weekRange['start'], $weekRange['end'], 1000, 0, 'weekly');
                             $weekStart = date('m/d', strtotime($weekRange['start']));
                             $weekEnd = date('m/d', strtotime($weekRange['end']));
                         ?>
@@ -80,7 +80,7 @@ $frequencyView = $_GET['frequency-view'] ?? 'per-month';
                                     <?php
                                     // Calculate the percentages
                                     $sendCountPercentages = array_map(function ($userCount) use ($weekData) {
-                                        return round(($userCount / $weekData['totalUsers']) * 50, 2);
+                                        return $weekData['totalUsers'] ? round(($userCount / $weekData['totalUsers']) * 50, 2) : 0;
                                     }, $weekData['weeklyData']);
 
                                     // Sort by percentage in descending order

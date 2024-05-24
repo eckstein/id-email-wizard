@@ -9,8 +9,9 @@ function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $offset
     $endTimestamp = strtotime($endDate);
 
     // Initialize variables
-    $sendCountGroups = array_fill(1, 25, ['count' => 0, 'userIds' => []]);
+    $sendCountGroups = array_fill(1, 25, ['count' => 0]);
     $totalUsers = 0;
+    $userTotalSends = [];
 
     // Get year and week parts for start and end dates
     $startYear = date('Y', $startTimestamp);
@@ -52,9 +53,14 @@ function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $offset
 
         foreach ($userIds as $userId) {
             $totalUsers++;
-            // Increment the send count group directly and store user IDs
+            // Increment the send count group directly
             $sendCountGroups[$sends]['count']++;
-            $sendCountGroups[$sends]['userIds'][] = $userId;
+
+            // Store user total sends for monthly data calculation
+            if (!isset($userTotalSends[$userId])) {
+                $userTotalSends[$userId] = 0;
+            }
+            $userTotalSends[$userId] += $sends;
         }
     }
 
@@ -70,17 +76,6 @@ function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $offset
         }
         return ['weeklyData' => $weeklyData, 'totalUsers' => $totalUsers];
     } elseif ($return === 'monthly') {
-        // Aggregate sends per user across all weeks within the month
-        $userTotalSends = [];
-        foreach ($sendCountGroups as $sendCount => $data) {
-            foreach ($data['userIds'] as $userId) {
-                if (!isset($userTotalSends[$userId])) {
-                    $userTotalSends[$userId] = 0;
-                }
-                $userTotalSends[$userId] += $sendCount;
-            }
-        }
-
         // Calculate the overall send count groups based on user total sends
         $monthlySendCountGroups = array_fill(1, 25, 0);
         foreach ($userTotalSends as $totalSends) {
