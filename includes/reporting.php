@@ -72,12 +72,10 @@ function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $return
                 }
                 $userTotalSends[$userId] += $sends;
 
-                if (!isset($userMaxSends[$userId])) {
-                    $userMaxSends[$userId] = 0;
-                }
-                $userMaxSends[$userId] ++;
+
             }
         }
+
 
         $offset += $batchSize;
     }
@@ -86,11 +84,11 @@ function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $return
     if ($return === 'all') {
         // Calculate the overall send count groups based on user total sends
         $allSendCountGroups = [];
-        foreach ($userMaxSends as $totalSends) {
+        foreach ($userTotalSends as $totalSends) {
             $allSendCountGroups[$totalSends]++;
         }
 
-        return ['allData' => $allSendCountGroups, 'totalUsers' => count($userMaxSends)];
+        return ['allData' => $allSendCountGroups, 'totalUsers' => count($userTotalSends)];
     } elseif ($return === 'weekly') {
         $weeklyData = [];
         foreach ($sendCountGroups as $sendCount => $data) {
