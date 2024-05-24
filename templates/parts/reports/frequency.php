@@ -49,7 +49,7 @@ $frequencyView = $_GET['frequency-view'] ?? 'per-month';
                 $monthEndDate = date('Y-m-t', strtotime($monthStartDate));
 
                 if ($frequencyView === 'per-week') {
-                    $data = get_sends_by_week_data($monthStartDate, $monthEndDate, 50, 0, 'weekly');
+                    $data = get_sends_by_week_data($monthStartDate, $monthEndDate, 50, 'weekly');
             ?>
                     <div class="month-wrapper">
                         <h3 class="month-header"><?php echo date('F Y', strtotime($monthStartDate)); ?></h3>
@@ -70,7 +70,7 @@ $frequencyView = $_GET['frequency-view'] ?? 'per-month';
                         }
 
                         foreach ($weekRanges as $weekRange) {
-                            $weekData = get_sends_by_week_data($weekRange['start'], $weekRange['end'], 1000, 0, 'weekly');
+                            $weekData = get_sends_by_week_data($weekRange['start'], $weekRange['end'], 100, 'weekly');
                             $weekStart = date('m/d', strtotime($weekRange['start']));
                             $weekEnd = date('m/d', strtotime($weekRange['end']));
                         ?>
@@ -103,7 +103,7 @@ $frequencyView = $_GET['frequency-view'] ?? 'per-month';
                     </div>
                 <?php
                 } elseif ($frequencyView === 'per-month') {
-                    $data = get_sends_by_week_data($monthStartDate, $monthEndDate, 1000, 0, 'monthly');
+                    $data = get_sends_by_week_data($monthStartDate, $monthEndDate, 100, 'monthly');
                 ?>
                     <div class="month-wrapper">
                         <h3 class="month-header"><?php echo date('F Y', strtotime($monthStartDate)); ?></h3>
@@ -160,20 +160,22 @@ $frequencyView = $_GET['frequency-view'] ?? 'per-month';
                 </thead>
                 <tbody>
                     <?php
-                    $data = get_sends_by_week_data($startDate, $endDate, 100, 0, 'monthly');
+                    $data = get_sends_by_week_data($startDate, $endDate, 100, 'all');
 
-                    foreach ($data['monthlyData'] as $sendCount => $userCount) : ?>
-                        <tr>
-                            <td><?php echo $sendCount; ?></td>
-                            <td><?php echo $userCount; ?></td>
-                            <td><?php echo $data['totalUsers'] ? number_format($userCount / $data['totalUsers'] * 100, 2) : 0; ?>%</td>
-                        </tr>
-                    <?php endforeach; ?>
+                    foreach ($data['allData'] as $sendCount => $userCount) :
+                        if ($userCount > 0) : ?>
+                            <tr>
+                                <td><?php echo number_format($sendCount); ?></td>
+                                <td><?php echo number_format($userCount); ?></td>
+                                <td><?php echo $data['totalUsers'] ? number_format($userCount / $data['totalUsers'] * 100, 2) : 0; ?>%</td>
+                            </tr>
+                    <?php endif;
+                    endforeach; ?>
                 </tbody>
                 <tfoot>
                     <tr>
                         <td>Total</td>
-                        <td><?php echo $data['totalUsers']; ?></td>
+                        <td><?php echo number_format($data['totalUsers']); ?></td>
                         <td><?php echo number_format(100, 2); ?>%</td>
                     </tr>
                 </tfoot>

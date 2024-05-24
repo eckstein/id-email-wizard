@@ -1,6 +1,6 @@
 <?php
 
-function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $offset = 0, $return = 'all')
+function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $return = 'all')
 {
     global $wpdb;
 
@@ -9,9 +9,10 @@ function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $offset
     $endTimestamp = strtotime($endDate);
 
     // Initialize variables
-    $sendCountGroups = array_fill(1, 25, ['count' => 0]);
+    $sendCountGroups = [];
     $totalUsers = 0;
     $userTotalSends = [];
+    $userMaxSends = [];
 
     // Get year and week parts for start and end dates
     $startYear = date('Y', $startTimestamp);
@@ -19,54 +20,77 @@ function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $offset
     $endYear = date('Y', $endTimestamp);
     $endWeek = date('W', $endTimestamp);
 
-    // Adjust the SQL query to handle date ranges spanning multiple years
-    $query = $wpdb->prepare(
-        "SELECT sends, userIds, year, week 
-         FROM {$wpdb->prefix}idemailwiz_sends_by_week 
-         WHERE (year = %d AND week >= %d) 
-            OR (year > %d AND year < %d)
-            OR (year = %d AND week <= %d)
-         ORDER BY year, week
-         LIMIT %d, %d",
-        $startYear,
-        $startWeek,
-        $startYear,
-        $endYear,
-        $endYear,
-        $endWeek,
-        $offset,
-        $batchSize
-    );
+    $offset = 0;
+    $hasMoreRecords = true;
 
-    $results = $wpdb->get_results($query);
+    while ($hasMoreRecords) {
+        // Adjust the SQL query to handle date ranges spanning multiple years
+        $query = $wpdb->prepare(
+            "SELECT sends, userIds, year, week 
+             FROM {$wpdb->prefix}idemailwiz_sends_by_week 
+             WHERE (year = %d AND week >= %d) 
+                OR (year > %d AND year < %d)
+                OR (year = %d AND week <= %d)
+             ORDER BY year, week
+             LIMIT %d, %d",
+            $startYear,
+            $startWeek,
+            $startYear,
+            $endYear,
+            $endYear,
+            $endWeek,
+            $offset,
+            $batchSize
+        );
 
-    foreach ($results as $row) {
-        $rowTimestamp = strtotime("{$row->year}-W" . str_pad($row->week, 2, '0', STR_PAD_LEFT));
+        $results = $wpdb->get_results($query);
 
-        // Skip rows outside the date range
-        if ($rowTimestamp < $startTimestamp || $rowTimestamp > $endTimestamp) {
-            continue;
+        if (empty($results)) {
+            $hasMoreRecords = false;
+            break;
         }
 
-        $sends = $row->sends;
-        $userIds = unserialize($row->userIds);
+        foreach ($results as $row) {
+            $rowTimestamp = strtotime("{$row->year}-W" . str_pad($row->week, 2, '0', STR_PAD_LEFT));
 
-        foreach ($userIds as $userId) {
-            $totalUsers++;
-            // Increment the send count group directly
-            $sendCountGroups[$sends]['count']++;
-
-            // Store user total sends for monthly data calculation
-            if (!isset($userTotalSends[$userId])) {
-                $userTotalSends[$userId] = 0;
+            // Skip rows outside the date range
+            if ($rowTimestamp < $startTimestamp || $rowTimestamp > $endTimestamp) {
+                continue;
             }
-            $userTotalSends[$userId] += $sends;
+
+            $sends = $row->sends;
+            $userIds = unserialize($row->userIds);
+
+            foreach ($userIds as $userId) {
+                $totalUsers++;
+                // Increment the send count group directly
+                $sendCountGroups[$sends]['count']++;
+
+                // Store user total sends for monthly data calculation
+                if (!isset($userTotalSends[$userId])) {
+                    $userTotalSends[$userId] = 0;
+                }
+                $userTotalSends[$userId] += $sends;
+
+                if (!isset($userMaxSends[$userId])) {
+                    $userMaxSends[$userId] = 0;
+                }
+                $userMaxSends[$userId] ++;
+            }
         }
+
+        $offset += $batchSize;
     }
 
     // Prepare the return data based on the requested timeframe
     if ($return === 'all') {
-        return ['sendCountGroups' => $sendCountGroups, 'totalUsers' => $totalUsers];
+        // Calculate the overall send count groups based on user total sends
+        $allSendCountGroups = [];
+        foreach ($userMaxSends as $totalSends) {
+            $allSendCountGroups[$totalSends]++;
+        }
+
+        return ['allData' => $allSendCountGroups, 'totalUsers' => count($userMaxSends)];
     } elseif ($return === 'weekly') {
         $weeklyData = [];
         foreach ($sendCountGroups as $sendCount => $data) {
