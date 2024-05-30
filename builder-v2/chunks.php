@@ -1224,7 +1224,7 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 	</head>
 
 	<title>
-		<?php echo html_entity_decode($templateSettings['subject_line'], ENT_QUOTES, 'UTF-8'); ?>
+		<?php echo html_entity_decode($templateSettings['subject_line'], ENT_COMPAT, 'UTF-8'); ?>
 	</title>
 
 	<?php
