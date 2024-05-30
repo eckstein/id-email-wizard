@@ -784,13 +784,13 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 		<?php } ?>
 		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 		<title>
-			<?php
-
+			<?php 
+			
 			$subjectLine = $templateSettings['subject_line'] ?? '';
 			// re-convert back to non-html-entities
 			echo html_entity_decode($subjectLine);
-
-
+			
+			
 			?>
 		</title>
 
@@ -834,6 +834,7 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 					mix-blend-mode: difference;
 				}
 			}
+			
 		</style>
 
 
@@ -1224,7 +1225,9 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 	</head>
 
 	<title>
-		<?php echo html_entity_decode($templateSettings['subject_line'], ENT_COMPAT, 'UTF-8'); ?>
+		<?php 
+		//TODO: Figure out how to sync SLs with merge tags properly
+		//echo $templateSettings['subject_line'] ?? ''; ?>
 	</title>
 
 	<?php
