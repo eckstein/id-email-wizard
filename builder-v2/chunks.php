@@ -1225,7 +1225,7 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 	</head>
 
 	<title>
-		<?php 
+		<?php  
 		//TODO: Figure out how to sync SLs with merge tags properly
 		//echo $templateSettings['subject_line'] ?? ''; ?>
 	</title>
