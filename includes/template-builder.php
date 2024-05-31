@@ -1726,17 +1726,17 @@ function idwiz_get_chunk_template( $chunk, $templateOptions, $chunkIndex = null,
 	$return = '';
 
 	if ( $chunkType == 'text' ) {
-		$return .= idwiz_get_plain_text_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor );
+		$return .= idwiz_get_plain_text_chunk( $chunk, $templateOptions, $chunkIndex, true );
 	} else if ( $chunkType == 'image' ) {
-		$return .= idwiz_get_image_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor );
+		$return .= idwiz_get_image_chunk( $chunk, $templateOptions, $chunkIndex, true );
 	} else if ( $chunkType == 'button' ) {
-		$return .= idwiz_get_button_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor );
+		$return .= idwiz_get_button_chunk( $chunk, $templateOptions, $chunkIndex, true );
 	} else if ( $chunkType == 'spacer' ) {
-		$return .= idwiz_get_spacer_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor );
+		$return .= idwiz_get_spacer_chunk( $chunk, $templateOptions, $chunkIndex, true );
 	} else if ( $chunkType == 'snippet' ) {
-		$return .= idwiz_get_snippet_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor );
+		$return .= idwiz_get_snippet_chunk( $chunk, $templateOptions, $chunkIndex, true );
 	} else if ( $chunkType == 'html' ) {
-		$return .= idwiz_get_raw_html_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor );
+		$return .= idwiz_get_raw_html_chunk( $chunk, $templateOptions, $chunkIndex, true );
 	}
 
 	$externalUtms = $templateOptions['message_settings']['ext_utms'] ?? false;

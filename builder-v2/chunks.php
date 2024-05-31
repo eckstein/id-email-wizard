@@ -1,9 +1,5 @@
 <?php
 
-
-
-
-
 function idwiz_get_spacer_chunk($chunk, $templateOptions, $chunkIndex = null, $isEditor = false)
 {
 	//print_r($chunk);
