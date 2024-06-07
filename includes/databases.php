@@ -907,7 +907,8 @@ function get_idemailwiz_triggered_data($database, $args = [], $batchSize = 20000
 
 	// Initialize results array
 	$allResults = [];
-	$uniqueMessageIds = [];
+
+	// Iterate through the data in batches
 	do {
 		// Construct the SQL query with limit and offset
 		$sql = "SELECT $fields FROM " . $wpdb->prefix . $database;
@@ -937,17 +938,6 @@ function get_idemailwiz_triggered_data($database, $args = [], $batchSize = 20000
 		// Update offset
 		$offset += $batchSize;
 	} while (count($results) == $batchSize);
-
-	// De-duplicate the results based on the messageId field
-	$allResults = array_filter($allResults, function ($value) use (&$uniqueMessageIds) {
-		if (!in_array($value['messageId'], $uniqueMessageIds)) {
-			$uniqueMessageIds[] = $value['messageId'];
-			return true;
-		}
-		return false;
-	},
-		ARRAY_FILTER_USE_BOTH
-	);
 
 	return $allResults;
 }
