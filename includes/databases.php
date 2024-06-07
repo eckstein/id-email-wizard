@@ -907,8 +907,7 @@ function get_idemailwiz_triggered_data($database, $args = [], $batchSize = 20000
 
 	// Initialize results array
 	$allResults = [];
-
-	// Iterate through the data in batches
+	$uniqueMessageIds = [];
 	do {
 		// Construct the SQL query with limit and offset
 		$sql = "SELECT $fields FROM " . $wpdb->prefix . $database;
@@ -949,7 +948,7 @@ function get_idemailwiz_triggered_data($database, $args = [], $batchSize = 20000
 	},
 		ARRAY_FILTER_USE_BOTH
 	);
-	
+
 	return $allResults;
 }
 
