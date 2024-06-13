@@ -13,13 +13,13 @@ function do_database_cleanups()
 
 function update_opens_and_clicks_by_hour()
 {
-    wiz_log('Updating opens and clicks by hour for past 6 months...');
+    wiz_log('Updating opens and clicks by hour for past 3 months...');
     $now = new DateTime();
-    // minus 6 months
-    $sixMonthsAgo = $now->sub(new DateInterval('P6M'))->format('Y-m-d');
+    // minus 3 months
+    $startAt = $now->sub(new DateInterval('P3M'))->format('Y-m-d');
 
 
-    $blastCampaigns = get_idwiz_campaigns(['type' => 'Blast', 'fields' => 'id', 'startAt_start' => $sixMonthsAgo]);
+    $blastCampaigns = get_idwiz_campaigns(['type' => 'Blast', 'fields' => 'id', 'startAt_start' => $startAt]);
     foreach ($blastCampaigns as $campaign) {
         idwiz_save_hourly_metrics($campaign['id']);
     }
