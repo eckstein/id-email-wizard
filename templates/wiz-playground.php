@@ -21,37 +21,12 @@ global $wpdb;
 	</header>
 	<div class="entry-content" itemprop="mainContentOfPage">
 		<?php
-		if (isset($_GET['sync-sends-by-week'])) {
-			$year = $_GET['weekYear'] ?? date('Y');
-			$week = $_GET['week'] ?? date('W');
-
-			// Check if the year has a 53rd week
-			$lastWeekOfYear = date('W', strtotime("$year-12-31"));
-			if ($week == 53 && $lastWeekOfYear != 53) {
-				echo "The year $year does not have a 53rd week.";
-			} else {
-				idemailwiz_sync_sends_by_week($year, $week);
-				echo "Synced year $year, week $week";
-			}
-		}
-		$yearsOptions = ['2024', '2023', '2022', '2021'];
-		// determined selected based on $_GET
-		$selected = '';
-
+$blastCampaigns = get_idwiz_campaigns(['type'=>'Blast', 'fields'=>'id']);
+foreach ($blastCampaigns as $campaign) {
+idwiz_save_hourly_metrics($campaign['id']);
+}
+//echo idwiz_display_hourly_metrics_table('9895104');
 		?>
-		<form name="sync-sends-by-week" method="GET" action="<?php echo esc_url(get_permalink()); ?>">
-			<select name="weekYear">
-				<?php
-				foreach ($yearsOptions as $yearOption) {
-					$selected = ($yearOption == $year) ? 'selected' : '';
-					echo "<option value='$yearOption' $selected>$yearOption</option>";
-				}
-				?>
-			</select>
-			<input type="number" name="week" value="<?php echo $week ?? '1'; ?>" max="53" min="1" />
-			<input type="hidden" name="sync-sends-by-week" value="1" />
-			<input type="submit" value="Sync Weekly Sends" />
-		</form>
 	</div>
 	</div>
 </article>

@@ -275,6 +275,8 @@ function idemailwiz_create_databases()
         wizCompRate FLOAT,
         wizCvr FLOAT,
         wizAov FLOAT,
+		opensByHour LONGTEXT,
+		clicksByHour LONGTEXT,
         PRIMARY KEY  (id)
     ) ENGINE=InnoDB $charset_collate;";
 
@@ -828,13 +830,11 @@ function idwiz_is_serialized($value)
 }
 
 
-function get_idemailwiz_triggered_data($database, $args = [], $batchSize = 20000, $offset = 0)
+function get_idemailwiz_triggered_data($database, $args = [], $batchSize = 20000, $offset = 0, $uniqueMessageIds = true)
 {
-
 	if (!$database) {
 		return false;
 	}
-
 
 	// Don't allow empty arguments array to avoid massive database calls
 	if (!is_array($args) || empty($args)) {
@@ -877,7 +877,6 @@ function get_idemailwiz_triggered_data($database, $args = [], $batchSize = 20000
 
 	// Check if campaignIds are provided
 	if (isset($args['campaignIds']) && is_array($args['campaignIds']) && !empty($args['campaignIds'])) {
-
 		$placeholders = array_fill(0, count($args['campaignIds']), '%d');
 		$where_clauses[] = "campaignId IN (" . implode(", ", $placeholders) . ")";
 		$query_params = array_merge($query_params, $args['campaignIds']);
@@ -904,23 +903,33 @@ function get_idemailwiz_triggered_data($database, $args = [], $batchSize = 20000
 		$query_params[] = $timestampEnd;
 	}
 
-
 	// Initialize results array
 	$allResults = [];
 
 	// Iterate through the data in batches
 	do {
 		// Construct the SQL query with limit and offset
-		$sql = "SELECT $fields FROM " . $wpdb->prefix . $database;
+		$sql = "SELECT $fields FROM " . $wpdb->prefix . $database . " AS main";
+
+		// If we want only unique opens, we get the earliest one de-duped by messageId
+		if ($uniqueMessageIds) {
+			$sql .= " JOIN (
+						SELECT messageId, MIN(startAt) AS earliestStartAt
+						FROM " . $wpdb->prefix . $database . "
+						GROUP BY messageId
+					) AS sub ON main.messageId = sub.messageId AND main.startAt = sub.earliestStartAt";
+		}
+
 		if (!empty($where_clauses)) {
 			$sql .= " WHERE " . implode(" AND ", $where_clauses);
 		}
-		$sql .= " LIMIT %d OFFSET %d";
 
+		$sql .= " LIMIT %d OFFSET %d";
 
 		// Add batch size and offset to query parameters
 		$prepared_sql = $wpdb->prepare($sql, array_merge($query_params, [$batchSize, $offset]));
-		//error_log( $prepared_sql );
+		//error_log($prepared_sql);
+
 		// Execute the query and fetch results
 		$results = $wpdb->get_results($prepared_sql, ARRAY_A);
 
@@ -943,6 +952,114 @@ function get_idemailwiz_triggered_data($database, $args = [], $batchSize = 20000
 }
 
 
+
+function idwiz_save_hourly_metrics($campaignId)
+{
+	global $wpdb;
+
+	$metricsTableName = $wpdb->prefix . 'idemailwiz_metrics';
+
+	$opensByHour = array_fill(0, 24, 0);
+	$clicksByHour = array_fill(0, 24, 0);
+
+	$wizCampaign = get_idwiz_campaign($campaignId);
+	$campaignType = lcfirst($wizCampaign['type']);
+
+	$opensData = get_idemailwiz_triggered_data(database: "idemailwiz_".$campaignType."_opens", args: ['campaignIds' => [$campaignId]], uniqueMessageIds: false);
+	$clicksData = get_idemailwiz_triggered_data(database: "idemailwiz_".$campaignType."_clicks", args: ['campaignIds' => [$campaignId]], uniqueMessageIds: false);
+
+	foreach ($opensData as $event) {
+		$utcTimestamp = $event['startAt'] / 1000;
+		$utcDateTime = new DateTime('@' . $utcTimestamp);
+		//$utcDateTime->setTimezone(new DateTimeZone('America/Los_Angeles'));
+
+		$hour = (int) $utcDateTime->format('H');
+		$opensByHour[$hour] += 1;
+	}
+
+	foreach ($clicksData as $event) {
+		$utcTimestamp = $event['startAt'] / 1000;
+		$utcDateTime = new DateTime('@' . $utcTimestamp);
+		//$utcDateTime->setTimezone(new DateTimeZone('America/Los_Angeles'));
+
+		$hour = (int) $utcDateTime->format('H');
+		$clicksByHour[$hour] += 1;
+	}
+
+	$serializedOpensByHour = serialize($opensByHour);
+	$serializedClicksByHour = serialize($clicksByHour);
+
+	$wpdb->replace(
+		$metricsTableName,
+		[
+			'id' => $campaignId,
+			'opensByHour' => $serializedOpensByHour,
+			'clicksByHour' => $serializedClicksByHour
+		],
+		['%d', '%s', '%s']
+	);
+}
+
+function idwiz_display_hourly_metrics_table($campaignId)
+{
+	global $wpdb;
+
+	$metricsTableName = $wpdb->prefix . 'idemailwiz_metrics';
+
+	$wizCampaign = get_idwiz_campaign($campaignId);
+	$campaignStartAt = $wizCampaign['startAt'];
+	$dayHour = (int) date('G', $campaignStartAt / 1000);
+
+	$row = $wpdb->get_row(
+		$wpdb->prepare(
+			"SELECT opensByHour, clicksByHour FROM $metricsTableName WHERE id = %d",
+			$campaignId
+		)
+	);
+
+	if ($row) {
+		$opensByHour = unserialize($row->opensByHour);
+		$clicksByHour = unserialize($row->clicksByHour);
+
+		$totalOpens = array_sum($opensByHour);
+		$totalClicks = array_sum($clicksByHour);
+
+		$output = '<table>';
+		$output .= '<thead><tr><th>Hour</th><th>Time of Day</th><th>Opens</th><th>Clicks</th></tr></thead>';
+		$output .= '<tbody>';
+
+		$hour = 0;
+		$day = 1;
+		$displayHour = $dayHour;
+
+		for ($i = 0; $i < count($opensByHour) || $i < count($clicksByHour); $i++) {
+			$timeOfDay = date('g:i A', strtotime("$displayHour:00"));
+
+			$output .= '<tr>';
+			$output .= '<td>' . $hour . '</td>';
+			$output .= '<td>' . $timeOfDay . ($day > 1 ? ' (Day ' . $day . ')' : '') . '</td>';
+			$output .= '<td>' . ($opensByHour[$displayHour] ?? 0) . '</td>';
+			$output .= '<td>' . ($clicksByHour[$displayHour] ?? 0) . '</td>';
+			$output .= '</tr>';
+
+			$hour++;
+			$displayHour++;
+
+			if ($displayHour === 24) {
+				$displayHour = 0;
+				$day++;
+			}
+		}
+
+		$output .= '</tbody>';
+		$output .= '<tfoot><tr><td colspan="2">Total</td><td>' . $totalOpens . '</td><td>' . $totalClicks . '</td></tr></tfoot>';
+		$output .= '</table>';
+
+		return $output;
+	} else {
+		return 'No metrics data found for the specified campaign ID.';
+	}
+}
 
 function get_engagement_data_by_campaign_id($campaignIds, $campaignType, $metricType)
 {

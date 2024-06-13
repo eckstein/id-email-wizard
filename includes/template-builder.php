@@ -1544,7 +1544,7 @@ function generate_template_html( $templateData, $forEditor = false ) {
 	}
 
 	// Generates cols and chunks from row object
-	$return .= renderTemplateRows( $templateData, $forEditor );
+	$return .= renderTemplateRows( $templateData, true );
 
 	// Email Footer
 	if ( $templateStyles['header-and-footer']['show_id_footer'] !== false ) {
@@ -1726,17 +1726,17 @@ function idwiz_get_chunk_template( $chunk, $templateOptions, $chunkIndex = null,
 	$return = '';
 
 	if ( $chunkType == 'text' ) {
-		$return .= idwiz_get_plain_text_chunk( $chunk, $templateOptions, $chunkIndex, true );
+		$return .= idwiz_get_plain_text_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor );
 	} else if ( $chunkType == 'image' ) {
-		$return .= idwiz_get_image_chunk( $chunk, $templateOptions, $chunkIndex, true );
+		$return .= idwiz_get_image_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor );
 	} else if ( $chunkType == 'button' ) {
-		$return .= idwiz_get_button_chunk( $chunk, $templateOptions, $chunkIndex, true );
+		$return .= idwiz_get_button_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor );
 	} else if ( $chunkType == 'spacer' ) {
-		$return .= idwiz_get_spacer_chunk( $chunk, $templateOptions, $chunkIndex, true );
+		$return .= idwiz_get_spacer_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor );
 	} else if ( $chunkType == 'snippet' ) {
-		$return .= idwiz_get_snippet_chunk( $chunk, $templateOptions, $chunkIndex, true );
+		$return .= idwiz_get_snippet_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor );
 	} else if ( $chunkType == 'html' ) {
-		$return .= idwiz_get_raw_html_chunk( $chunk, $templateOptions, $chunkIndex, true );
+		$return .= idwiz_get_raw_html_chunk( $chunk, $templateOptions, $chunkIndex, $isEditor );
 	}
 
 	$externalUtms = $templateOptions['message_settings']['ext_utms'] ?? false;

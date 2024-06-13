@@ -426,7 +426,8 @@ function idwiz_get_eventBydate_chartdata($chartOptions)
         $triggeredDataArgs['startAt_end'] = $endDate;
     }
 
-    $triggeredData = get_idemailwiz_triggered_data($triggeredTableName, $triggeredDataArgs);
+    //NOTE: uniqueMessageIds is set to false because we want to show all engagements on the charts, not just first ones
+    $triggeredData = get_idemailwiz_triggered_data(database:$triggeredTableName, args:$triggeredDataArgs, uniqueMessageIds:false);
 
     if (!empty($triggeredData)) {
         $chartDates = [];
@@ -527,6 +528,7 @@ function idwiz_get_eventBydate_chartdata($chartOptions)
         return ['error' => 'No data was returned from the query.'];
     }
 }
+
 
 
 
