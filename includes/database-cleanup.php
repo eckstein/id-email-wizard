@@ -6,13 +6,31 @@ function do_database_cleanups()
     update_missing_purchase_dates();
     remove_zero_campaign_ids();
     idemailwiz_backfill_campaign_start_dates();
+    update_opens_and_clicks_by_hour();
+
     //idwiz_cleanup_users_database();
 }
+
+function update_opens_and_clicks_by_hour()
+{
+    wiz_log('Updating opens and clicks by hour for past 6 months...');
+    $now = new DateTime();
+    // minus 6 months
+    $sixMonthsAgo = $now->sub(new DateInterval('P6M'))->format('Y-m-d');
+
+
+    $blastCampaigns = get_idwiz_campaigns(['type' => 'Blast', 'fields' => 'id', 'startAt_start' => $sixMonthsAgo]);
+    foreach ($blastCampaigns as $campaign) {
+        idwiz_save_hourly_metrics($campaign['id']);
+    }
+    wiz_log('Updated opens and clicks by hour for ' . count($blastCampaigns) . 'campaigns.');
+}
+
 function update_null_user_ids()
 {
     wiz_log('Updating null User IDs...');
     global $wpdb;
-    $table_name = $wpdb->prefix . 'idemailwiz_purchases'; 
+    $table_name = $wpdb->prefix . 'idemailwiz_purchases';
 
     $response = [];
 
@@ -46,7 +64,6 @@ function update_null_user_ids()
         $updatedUserIds = $wpdb->query('COMMIT');
         $response = ['success' => true, 'updated' => $result]; // $result will contain the number of rows affected
         wiz_log("$result null userIds updated.");
-
     } catch (Exception $e) {
         // Rollback the transaction on error
         $wpdb->query('ROLLBACK');
@@ -62,7 +79,8 @@ function update_null_user_ids()
 
 
 //update_missing_purchase_dates();
-function update_missing_purchase_dates() {
+function update_missing_purchase_dates()
+{
     wiz_log('Updating missing purchase dates...');
     global $wpdb;
     $table_name = $wpdb->prefix . 'idemailwiz_purchases';
@@ -317,14 +335,14 @@ function updateTimestampsToMilliseconds()
 
             // Check for errors
             if (!empty($wpdb->last_error)) {
-                wiz_log("Error updating timestamps in table {$table}: ". $wpdb->last_error);
+                wiz_log("Error updating timestamps in table {$table}: " . $wpdb->last_error);
                 throw new Exception('Database error: ' . $wpdb->last_error);
             }
 
-            wiz_log ("Timestamps updated successfully in table {$table}.");
+            wiz_log("Timestamps updated successfully in table {$table}.");
             //return "Timestamps updated successfully in table {$table}.";
         } catch (Exception $e) {
-            wiz_log("Error updating timestamps in table {$table}: ". $e->getMessage());
+            wiz_log("Error updating timestamps in table {$table}: " . $e->getMessage());
             //return "Error: " . $e->getMessage();
         }
         sleep(2);

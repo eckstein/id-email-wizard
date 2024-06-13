@@ -21,10 +21,10 @@ global $wpdb;
 	</header>
 	<div class="entry-content" itemprop="mainContentOfPage">
 		<?php
-$blastCampaigns = get_idwiz_campaigns(['type'=>'Blast', 'fields'=>'id']);
-foreach ($blastCampaigns as $campaign) {
-idwiz_save_hourly_metrics($campaign['id']);
-}
+// $blastCampaigns = get_idwiz_campaigns(['type'=>'Blast', 'fields'=>'id']);
+// foreach ($blastCampaigns as $campaign) {
+// idwiz_save_hourly_metrics($campaign['id']);
+// }
 //echo idwiz_display_hourly_metrics_table('9895104');
 		?>
 	</div>

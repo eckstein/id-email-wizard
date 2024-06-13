@@ -176,7 +176,7 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 		} elseif ($operation === "delete") {
 			$sql = "DELETE FROM `{$table_name}` WHERE `{$id_field}` = %s";
 			$prepared_sql = $wpdb->prepare($sql, [$item[$id_field]]);
-		} 
+		}
 
 		// Do the insert/update
 		$query_result = $wpdb->query($prepared_sql);
@@ -369,21 +369,23 @@ function idemailwiz_simplify_templates_array($template)
 
 
 	// Add the rest of the keys to the result
-	foreach ($template as $key => $value) {
-		if (!isset($template['message'])) { //if 'message' is set, it's an SMS, so this is for email
-			$result['messageMedium'] = 'Email';
-			// Skip the excluded keys and the keys we've already added
-			$excludeKeys = array('clientTemplateId', 'plainText', 'cacheDataFeed', 'mergeDataFeedContext', 'utm_term', 'utm_content', 'createdAt', 'updatedAt', 'ccEmails', 'bccEmails', 'dataFeedIds');
-		} else {
-			$result['messageMedium'] = 'SMS';
-			$excludeKeys = array('messageTypeId', 'trackingDomain', 'googleAnalyticsCampaignName');
-		}
-		if ($key !== 'metadata' && $key !== 'linkParams' && !in_array($key, $excludeKeys)) {
-			$result[$key] = $value;
+	if ($template && !empty($template)) {
+		foreach ($template as $key => $value) {
+			if (!isset($template['message'])) { //if 'message' is set, it's an SMS, so this is for email
+				$result['messageMedium'] = 'Email';
+				// Skip the excluded keys and the keys we've already added
+				$excludeKeys = array('clientTemplateId', 'plainText', 'cacheDataFeed', 'mergeDataFeedContext', 'utm_term', 'utm_content', 'createdAt', 'updatedAt', 'ccEmails', 'bccEmails', 'dataFeedIds');
+			} else {
+				$result['messageMedium'] = 'SMS';
+				$excludeKeys = array('messageTypeId', 'trackingDomain', 'googleAnalyticsCampaignName');
+			}
+			if ($key !== 'metadata' && $key !== 'linkParams' && !in_array($key, $excludeKeys)) {
+				$result[$key] = $value;
+			}
 		}
 	}
 
-	return $result;
+	return $result ?? [];
 }
 
 
@@ -996,7 +998,7 @@ function idemailwiz_sync_campaigns($passedCampaigns = null)
 			continue;
 		}
 
-		
+
 
 		// Get the latest startAt value from our DB for triggered campaigns
 		if ($campaign['type'] == 'Triggered') {
@@ -1010,7 +1012,7 @@ function idemailwiz_sync_campaigns($passedCampaigns = null)
 		$wizCampaign = get_idwiz_campaign($campaign['id']);
 
 		if ($wizCampaign) {
-			
+
 			// If campaigns are passed, update them all
 			if ($passedCampaigns) {
 				// Check for the x_Archived label in the labels array and, if present, delete the campaign
@@ -2395,10 +2397,12 @@ function idemailwiz_sync_sends_by_week($year, $week)
 	$sends_by_week_table = $wpdb->prefix . 'idemailwiz_sends_by_week';
 
 	// Calculate the start and end dates for the given year and week
-	$startDate = date('Y-m-d',
+	$startDate = date(
+		'Y-m-d',
 		strtotime("$year-W$week-1")
 	);
-	$endDate = date('Y-m-d',
+	$endDate = date(
+		'Y-m-d',
 		strtotime("$year-W$week-7")
 	);
 
@@ -2415,7 +2419,8 @@ function idemailwiz_sync_sends_by_week($year, $week)
 
 	foreach ($sendDataGenerator as $send) {
 		$userId = $send['userId'];
-		if ($userId === null || $userId === '' || $userId == '0'
+		if (
+			$userId === null || $userId === '' || $userId == '0'
 		) {
 			continue;
 		}
