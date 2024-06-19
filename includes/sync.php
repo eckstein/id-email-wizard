@@ -488,7 +488,7 @@ function idemailwiz_fetch_metrics($campaignIds = null)
 {
 
 	$today = new DateTime();
-	$startFetchDate = $today->modify('-4 weeks')->format('Y-m-d');
+	$startFetchDate = $today->modify('-8 weeks')->format('Y-m-d');
 
 	$metricCampaignArgs = array(
 		'fields' => array('id'),
@@ -498,7 +498,7 @@ function idemailwiz_fetch_metrics($campaignIds = null)
 	if ($campaignIds) {
 		$metricCampaignArgs['campaignIds'] = $campaignIds;
 	} else {
-		// If not campaigns are passed, limit the call to a timeframe
+		// If no campaigns are passed, limit the call to a timeframe
 		$metricCampaignArgs['startAt_start'] = $startFetchDate;
 	}
 

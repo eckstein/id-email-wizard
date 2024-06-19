@@ -37,6 +37,11 @@ if (isset($_GET['sync'])) {
 		$syncPurchasesStart = $_GET['syncPurchasesStart'] ?? null;
 		$syncPurchasesEnd = $_GET['syncPurchasesEnd'] ?? null;
 		idemailwiz_sync_purchases(null, $syncPurchasesStart, $syncPurchasesEnd);
+	} else if ($_GET['sync'] == 'metrics') {
+		$syncMetricsStart = $_GET['syncMetricsStart'] ?? null;
+		$syncMetricsEnd = $_GET['syncMetricsEnd'] ?? null;
+		$campaigns = get_idwiz_campaigns(['startAt_start' => $syncMetricsStart, 'startAt_end' => $syncMetricsEnd, 'type' => 'Blast']);
+		idemailwiz_sync_metrics(array_column($campaigns, 'id'));
 	}
 }
 
@@ -113,6 +118,15 @@ if (isset($_GET['sync'])) {
 						<input type="date" name="syncPurchasesEnd" id="syncPurchasesEnd" value="<?php echo $syncPurchasesEnd ?? date('Y-m-d'); ?>" />
 						<!-- submit $_GET with start and end date for users-->
 						<input type="submit" class="wiz-button green" value="Sync Purchases" />
+					</form>
+				</div>
+				<div class="wizcampaign-section">
+					<form id="syncMetricsByDate" method="get">
+						<input type="hidden" name="sync" value="metrics" />
+						<input type="date" name="syncMetricsStart" id="syncMetricsStart" value="<?php echo $syncMetricsStart ?? date('Y-m-d', strtotime('-3 days')); ?>" />
+						<input type="date" name="syncMetricsEnd" id="syncMetricsEnd" value="<?php echo $syncMetricsEnd ?? date('Y-m-d'); ?>" />
+						<!-- submit $_GET with start and end date for users-->
+						<input type="submit" class="wiz-button green" value="Sync Metrics" />
 					</form>
 				</div>
 				<div class="wizcampaign-section">

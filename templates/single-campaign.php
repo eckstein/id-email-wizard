@@ -199,6 +199,7 @@ $linkedExperimentIds = array_map(function ($id) {
 		} else {
 			$metricRates = get_idwiz_metric_rates([$campaign['id']], $startDate, $endDate, [$campaign['type']], 'campaignsInDate');
 		}
+		//print_r($metricRates);
 		echo get_idwiz_rollup_row($metricRates);
 		?>
 		<div>

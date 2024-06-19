@@ -855,7 +855,7 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
 
 		$allIncludedIds = array_merge($blastCampaignIds, $triggeredCampaignIds);
 	} else {
-		$campaigns = get_idwiz_campaigns(['id' => $campaignIds, 'fields' => 'id,type']);
+		$campaigns = get_idwiz_campaigns(['campaignIds' => $campaignIds, 'fields' => 'id,type']);
 		foreach ($campaigns as $campaign) {
 			if ($campaign['type'] === 'Blast') {
 				$blastCampaignIds[] = $campaign['id'];
@@ -868,6 +868,7 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
 
 	// Retrieve metrics for Blast and Triggered campaigns
 	$blastMetrics = !empty($blastCampaignIds) ? get_idwiz_metrics(['campaignIds' => $blastCampaignIds]) : [];
+	//print_r($blastMetrics);
 	$triggeredMetrics = !empty($triggeredCampaignIds) ? get_triggered_campaign_metrics($triggeredCampaignIds, $startDate, $endDate) : [];
 
 	$purchaseArgs = [
@@ -881,7 +882,7 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
 	} elseif ($purchaseMode === 'allPurchasesInDate') {
 		$purchaseArgs['campaignIds'] = [];
 	}
-
+	
 	$purchases = get_idwiz_purchases($purchaseArgs);
 
 	// Initialize variables for summable metrics
