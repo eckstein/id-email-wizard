@@ -13,10 +13,10 @@ function do_database_cleanups()
 
 function update_opens_and_clicks_by_hour()
 {
-    wiz_log('Updating opens and clicks by hour for past 3 months...');
+    wiz_log('Updating opens and clicks by hour for 6 weeks...');
     $now = new DateTime();
     // minus 3 months
-    $startAt = $now->sub(new DateInterval('P3M'))->format('Y-m-d');
+    $startAt = $now->sub(new DateInterval('P6W'))->format('Y-m-d');
 
 
     $blastCampaigns = get_idwiz_campaigns(['type' => 'Blast', 'fields' => 'id', 'startAt_start' => $startAt]);
