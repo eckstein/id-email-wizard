@@ -965,14 +965,12 @@ function idwiz_save_hourly_metrics($campaignId)
 	$wizCampaign = get_idwiz_campaign($campaignId);
 	$campaignType = lcfirst($wizCampaign['type']);
 
-	$opensData = get_idemailwiz_triggered_data(database: "idemailwiz_".$campaignType."_opens", args: ['campaignIds' => [$campaignId]], uniqueMessageIds: false);
-	$clicksData = get_idemailwiz_triggered_data(database: "idemailwiz_".$campaignType."_clicks", args: ['campaignIds' => [$campaignId]], uniqueMessageIds: false);
+	$opensData = get_idemailwiz_triggered_data(database: "idemailwiz_" . $campaignType . "_opens", args: ['campaignIds' => [$campaignId]], uniqueMessageIds: false);
+	$clicksData = get_idemailwiz_triggered_data(database: "idemailwiz_" . $campaignType . "_clicks", args: ['campaignIds' => [$campaignId]], uniqueMessageIds: false);
 
 	foreach ($opensData as $event) {
 		$utcTimestamp = $event['startAt'] / 1000;
 		$utcDateTime = new DateTime('@' . $utcTimestamp);
-		//$utcDateTime->setTimezone(new DateTimeZone('America/Los_Angeles'));
-
 		$hour = (int) $utcDateTime->format('H');
 		$opensByHour[$hour] += 1;
 	}
@@ -980,8 +978,6 @@ function idwiz_save_hourly_metrics($campaignId)
 	foreach ($clicksData as $event) {
 		$utcTimestamp = $event['startAt'] / 1000;
 		$utcDateTime = new DateTime('@' . $utcTimestamp);
-		//$utcDateTime->setTimezone(new DateTimeZone('America/Los_Angeles'));
-
 		$hour = (int) $utcDateTime->format('H');
 		$clicksByHour[$hour] += 1;
 	}
@@ -989,15 +985,29 @@ function idwiz_save_hourly_metrics($campaignId)
 	$serializedOpensByHour = serialize($opensByHour);
 	$serializedClicksByHour = serialize($clicksByHour);
 
-	$wpdb->replace(
+	$wpdb->update(
 		$metricsTableName,
 		[
-			'id' => $campaignId,
 			'opensByHour' => $serializedOpensByHour,
 			'clicksByHour' => $serializedClicksByHour
 		],
-		['%d', '%s', '%s']
+		['id' => $campaignId],
+		['%s', '%s'],
+		['%d']
 	);
+
+	// If the row doesn't exist, insert it
+	if ($wpdb->rows_affected === 0) {
+		$wpdb->insert(
+			$metricsTableName,
+			[
+				'id' => $campaignId,
+				'opensByHour' => $serializedOpensByHour,
+				'clicksByHour' => $serializedClicksByHour
+			],
+			['%d', '%s', '%s']
+		);
+	}
 }
 
 function idwiz_display_hourly_metrics_table($campaignId)
