@@ -2438,10 +2438,14 @@ pre#generatedCode {
 }
 
 .wiz_sbpopover {
-	width: 65% !important;
-	left: 25% !important;
-	top: 10% !important;
+	position: fixed!important;
+	min-width: 50%!important;
+	max-width: 1200px!important;
+	left: 50%!important;
+	top: 50%!important;
+	transform: translate(-50%, -50%) !important;
 }
+
 .dtsb-value.dtsb-input {
 	width: auto !important;
 }

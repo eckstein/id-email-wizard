@@ -7,23 +7,22 @@ $activeTab = $_GET['view'] ?? 'Active';
 ?>
 
 <header class="wizHeader">
+    <h1 class="wizEntry-title" itemprop="name">
+        Initiatives
+    </h1>
     <div class="wizHeaderInnerWrap">
         <div class="wizHeader-left">
-            <h1 class="wizEntry-title" itemprop="name">
-                Initiatives
-            </h1>
+
             <div id="header-tabs">
 
-                <a href="<?php echo add_query_arg(['view' => 'Active']); ?>"
-                    class="campaign-tab <?php if ($activeTab == 'Active') {
-                        echo 'active';
-                    } ?>">
+                <a href="<?php echo add_query_arg(['view' => 'Active']); ?>" class="campaign-tab <?php if ($activeTab == 'Active') {
+                                                                                                        echo 'active';
+                                                                                                    } ?>">
                     Active
                 </a>
-                <a href="<?php echo add_query_arg(['view' => 'Archive']); ?>"
-                    class="campaign-tab <?php if ($activeTab == 'Archive') {
-                        echo 'active';
-                    } ?>">
+                <a href="<?php echo add_query_arg(['view' => 'Archive']); ?>" class="campaign-tab <?php if ($activeTab == 'Archive') {
+                                                                                                        echo 'active';
+                                                                                                    } ?>">
                     Archive
                 </a>
             </div>
@@ -39,9 +38,8 @@ $activeTab = $_GET['view'] ?? 'Active';
 </header>
 <div class="entry-content" itemprop="mainContentOfPage">
     <?php if (have_posts()) {
-        ?>
-        <table class="idemailwiz_table display" id="idemailwiz_initiatives_table"
-            style="width: 100%; vertical-align: middle" valign="middle" width="100%">
+    ?>
+        <table class="idemailwiz_table display" id="idemailwiz_initiatives_table" style="width: 100%; vertical-align: middle" valign="middle" width="100%">
             <thead>
                 <tr>
                     <th>
@@ -87,7 +85,7 @@ $activeTab = $_GET['view'] ?? 'Active';
                             $totalRevenue = 0;
                             $lastSendDate = 0; // Initialize to 0
                             $firstSendDate = PHP_INT_MAX; // Initialize to maximum integer value
-                
+
 
 
                             foreach ($initCampaigns as $campaign) {
@@ -100,7 +98,7 @@ $activeTab = $_GET['view'] ?? 'Active';
                                 $totalSends += $campaignMetrics['uniqueEmailSends'];
                                 $totalRevenue += $campaignMetrics['revenue'];
                                 $sentAt = $campaign['startAt']; // timestamp in milliseconds
-                
+
 
                                 // Figure out first and last campaign
                                 if ($sentAt < $firstSendDate) {
@@ -117,10 +115,10 @@ $activeTab = $_GET['view'] ?? 'Active';
                             $lastSendDate = 0;
                             $firstSendDate = 0;
                         }
-                        ?>
-                        <tr data-initid="<?php echo get_the_ID(); ?>" >
+                    ?>
+                        <tr data-initid="<?php echo get_the_ID(); ?>">
                             <td>
-                                
+
                             </td>
                             <td>
                                 <a href="<?php echo get_the_permalink(); ?>">
@@ -156,7 +154,7 @@ $activeTab = $_GET['view'] ?? 'Active';
                     <?php } ?>
                 </tbody>
         </table>
-        <?php
+    <?php
 
     } else {
         if ($activeTab != 'Archive') {

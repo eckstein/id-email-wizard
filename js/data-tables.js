@@ -753,7 +753,7 @@ jQuery(document).ready(function ($) {
 			return {
 				searchBuilder: {
 					data: "Select column...",
-					title: "Advanced Campaign Filter",
+					title: "Advanced Campaign Filter (scroll to preview results)",
 					button: {
 						0: '<i class="fa-solid fa-sliders"></i> Filters',
 						_: '<i class="fa-solid fa-sliders"></i> Filters (%d)',

@@ -9,18 +9,7 @@ add_action('rest_api_init', function () {
     ));
 });
 
-function map_division_to_abbreviation($division) {
-    $mapping = array(
-        "iD Tech Camps" => "ipc",
-        "iD Tech Academies" => "idta",
-        "iD Teen Academies" => "ota",
-        "iD Teen Academies - 2 weeks" => "ota",
-        "Online Private Lessons" => "opl",
-        "Virtual Tech Camps" => "vtc"
-    );
 
-    return isset($mapping[$division]) ? $mapping[$division] : null;
-}
 
 function wiz_handle_iterable_data_feed($data) {
     // $wizSettings = get_option('idemailwiz_settings');
@@ -32,45 +21,30 @@ function wiz_handle_iterable_data_feed($data) {
     // }
 
     $params = $data->get_params();
-    $course_name = $params['course_name'];
-    $division = $params['division'];
-    $student_dob = $params['student_dob'];
+    $email = $params['email'];
+    //$args = $params['args'];
 
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'idemailwiz_courses';
+    $responseData['wizUserId'] = wiz_encrypt_email($email);
 
-    // Find the course by name and division
-    $course = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table_name} WHERE name = %s AND division = %s LIMIT 1", $course_name, $division));
-
-    if (!$course) {
-        return new WP_REST_Response(['message' => 'Course not found', 'recommendations' => []], 200);
+    if ($responseData['wizUserId']) {
+        $message = 'Success! UserId: '.$responseData['wizUserId'];
+    } else {
+        $message = 'User not found!';
     }
-
-    // Determine student's age
-    $today = new DateTime();
-    $dob = new DateTime($student_dob);
-    $age = $today->diff($dob)->y;
-    $has_aged_up = $age > $course->age_end;
-
-    $division_abbreviation = map_division_to_abbreviation($course->division);
-    $rec_types = ['ipc', 'idta', 'ota', 'opl', 'vtc']; // List all possible rec_types
-
-    $course_recs = maybe_unserialize($course->course_recs);
-    $recommendations = array();
-
-    foreach ($rec_types as $type) {
-        $type_with_ageup = $has_aged_up ? $type . '_ageup' : $type;
-        if (isset($course_recs[$type_with_ageup]) && is_array($course_recs[$type_with_ageup])) {
-            foreach ($course_recs[$type_with_ageup] as $recId) {
-                $recCourse = $wpdb->get_var($wpdb->prepare("SELECT name FROM {$table_name} WHERE id = %s", $recId));
-                if ($recCourse) {
-                    $recommendations[$type_with_ageup][] = $recCourse;
-                }
-            }
-        }
-    }
-
-    return new WP_REST_Response(['message' => 'Success', 'recommendations' => $recommendations], 200);
+        return new WP_REST_Response(['message' => $message, 'data' => $responseData], 200);
 }
 
+function map_division_to_abbreviation($division)
+{
+    $mapping = array(
+        "iD Tech Camps" => "ipc",
+        "iD Tech Academies" => "idta",
+        "iD Teen Academies" => "ota",
+        "iD Teen Academies - 2 weeks" => "ota",
+        "Online Private Lessons" => "opl",
+        "Virtual Tech Camps" => "vtc"
+    );
+
+    return isset($mapping[$division]) ? $mapping[$division] : null;
+}
 

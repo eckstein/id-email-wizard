@@ -673,24 +673,10 @@ function idemailwiz_fetch_users($startDate = null, $endDate = null)
 					$userData[$header] = $value;
 				}
 
-				// Check if the necessary data is present
-				if (isset($userData['email']) && !empty($userData['email']) && isset($userData['signupDate']) && !empty($userData['signupDate'])) {
-					// Use the signup date as the salt
-					$salt = $userData['signupDate'];
-
-					// Hash the email with the signup date salt and the pepper
-					$pepperedEmail = $userData['email'] . $salt . WIZ_PEPPER;
-					$userData['wizId'] = hash('sha256', $pepperedEmail);
-
-					// Remove the plan text email from the data
-					unset($userData['email']);
-
-					// Store the salt to reproduce this hash in the future
-					$userData['wizSalt'] = $salt;
-				}
+				$userData = wiz_encrypt_email($userData); // returns false when invalid userData is passed
 
 				// If there's data to add, yield the user data
-				if (!empty($userData)) {
+				if ($userData) {
 					yield $userData;
 				}
 			}
@@ -702,25 +688,57 @@ function idemailwiz_fetch_users($startDate = null, $endDate = null)
 }
 
 
-function wiz_encrypt_email($plaintext)
+function wiz_encrypt_email($userData)
 {
-	$key = pack('H*', WIZ_ENCRYPTION_KEY); // Convert hex to binary
-	$iv_length = openssl_cipher_iv_length('aes-256-cbc');
-	$iv = openssl_random_pseudo_bytes($iv_length);
-	$ciphertext = openssl_encrypt($plaintext, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
-	return base64_encode($iv . $ciphertext); // Prepend IV to ciphertext and encode
+
+	// Check if the necessary data is present
+	if (isset($userData['email']) && !empty($userData['email']) && isset($userData['signupDate']) && !empty($userData['signupDate'])) {
+		// Use the signup date as the salt
+		$salt = $userData['signupDate'];
+
+		// Hash the email with the signup date salt and the pepper
+		$pepperedEmail = $userData['email'] . $salt . WIZ_PEPPER;
+		$userData['wizId'] = hash('sha256', $pepperedEmail);
+
+		// Remove the plan text email from the data
+		unset($userData['email']);
+
+		// Store the salt to reproduce this hash in the future
+		$userData['wizSalt'] = $salt;
+
+		return $userData;
+	}
+
+	return false;
+	
 }
 
 // Define the function for decryption
-function wiz_decrypt_email($iv_ciphertext)
+function wiz_decrypt_email($encryptedUser)
 {
-	$key = pack('H*', WIZ_ENCRYPTION_KEY);
-	$iv_length = openssl_cipher_iv_length('aes-256-cbc');
-	$iv_ciphertext_dec = base64_decode($iv_ciphertext);
-	$iv_dec = substr($iv_ciphertext_dec, 0, $iv_length);
-	$ciphertext_dec = substr($iv_ciphertext_dec, $iv_length);
-	$plaintext_dec = openssl_decrypt($ciphertext_dec, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv_dec);
-	return $plaintext_dec;
+	// Check if the necessary data is present
+  	if (isset($encryptedUser['wizId']) && !empty($encryptedUser['wizId']) && isset($encryptedUser['wizSalt']) && !empty($encryptedUser['wizSalt'])) {
+  		// Get the salt (signup date) from the encrypted data
+  		$salt = $encryptedUser['wizSalt'];
+  
+  		// Iterate through all possible email addresses
+  		for ($i = 0; $i < 10000; $i++) {
+  			$email = "user{$i}@example.com";
+  
+  			// Hash the email with the signup date salt and the pepper
+  			$pepperedEmail = $email . $salt . WIZ_PEPPER;
+  			$hashedEmail = hash('sha256', $pepperedEmail);
+  
+  			// Check if the hashed email matches the wizId
+  			if ($hashedEmail === $encryptedUser['wizId']) {
+  				// If there's a match, return the plain text email
+  				return $email;
+  			}
+  		}
+  	}
+  
+  	return false;
+  
 }
 
 // Schedule sync users on cron twice daily.

@@ -7,21 +7,22 @@ $activeTab = $_GET['view'] ?? 'Active';
 ?>
 
 <header class="wizHeader">
+    <h1 class="wizEntry-title" itemprop="name">
+        Comparisons
+    </h1>
     <div class="wizHeaderInnerWrap">
         <div class="wizHeader-left">
-            <h1 class="wizEntry-title" itemprop="name">
-                Comparisons
-            </h1>
+
             <div id="header-tabs">
 
                 <a href="<?php echo add_query_arg(['view' => 'Active']); ?>" class="campaign-tab <?php if ($activeTab == 'Active') {
-                         echo 'active';
-                     } ?>">
+                                                                                                        echo 'active';
+                                                                                                    } ?>">
                     Active
                 </a>
                 <a href="<?php echo add_query_arg(['view' => 'Archive']); ?>" class="campaign-tab <?php if ($activeTab == 'Archive') {
-                         echo 'active';
-                     } ?>">
+                                                                                                        echo 'active';
+                                                                                                    } ?>">
                     Archive
                 </a>
             </div>
@@ -37,12 +38,11 @@ $activeTab = $_GET['view'] ?? 'Active';
 </header>
 <div class="entry-content" itemprop="mainContentOfPage">
     <?php if (have_posts()) {
-        ?>
-        <table class="idemailwiz_table display" id="idemailwiz_comparisons_table"
-            style="width: 100%; vertical-align: middle" valign="middle" width="100%">
+    ?>
+        <table class="idemailwiz_table display" id="idemailwiz_comparisons_table" style="width: 100%; vertical-align: middle" valign="middle" width="100%">
             <thead>
                 <tr>
-                    
+
                     <th>
                         Name
                     </th>
@@ -55,33 +55,33 @@ $activeTab = $_GET['view'] ?? 'Active';
 
 
                 </tr>
-                </thead>
-                <tbody>
+            </thead>
+            <tbody>
+                <?php
+                while (have_posts()) {
+                    the_post(); ?>
                     <?php
-                    while (have_posts()) {
-                        the_post(); ?>
-                        <?php
-                        $campaignSets = get_post_meta( $post->ID, 'compare_campaign_sets', true );
-?>
-                        <tr data-comparisonid="<?php echo get_the_ID(); ?>">
+                    $campaignSets = get_post_meta($post->ID, 'compare_campaign_sets', true);
+                    ?>
+                    <tr data-comparisonid="<?php echo get_the_ID(); ?>">
 
-                            <td>
-                                <a href="<?php echo get_the_permalink(); ?>">
-                                    <?php the_title(); ?>
-                                </a>
-                            </td>
-                            <td>
-                                <?php echo $campaignSets['sets']['0']['setName'] ?? 'Campaign Set 1'; ?>
-                            </td>
-                            <td>
+                        <td>
+                            <a href="<?php echo get_the_permalink(); ?>">
+                                <?php the_title(); ?>
+                            </a>
+                        </td>
+                        <td>
+                            <?php echo $campaignSets['sets']['0']['setName'] ?? 'Campaign Set 1'; ?>
+                        </td>
+                        <td>
                             <?php echo $campaignSets['sets']['1']['setName'] ?? 'Campaign Set 2'; ?>
-                            </td>
-                            
-                        </tr>
-                    <?php } ?>
-                </tbody>
+                        </td>
+
+                    </tr>
+                <?php } ?>
+            </tbody>
         </table>
-        <?php
+    <?php
 
     } else {
         // No initiatives found

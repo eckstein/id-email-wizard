@@ -2,11 +2,12 @@
 
 
 <header class="wizHeader">
+    <h1 class="wizEntry-title" itemprop="name">
+        Experiments
+    </h1>
     <div class="wizHeaderInnerWrap">
         <div class="wizHeader-left">
-            <h1 class="wizEntry-title" itemprop="name">
-                Experiments
-            </h1>
+
 
         </div>
         <div class="wizHeader-right">
@@ -29,13 +30,13 @@
         $campaignId = $experiments[0]['campaignId'];
         $wizCampaign = get_idwiz_campaign($campaignId);
         $campaignStartStamp = (int) ($wizCampaign['startAt'] / 1000);
-        echo date('m/d/Y', $campaignStartStamp).'<br/>';
+        echo date('m/d/Y', $campaignStartStamp) . '<br/>';
         echo "<strong>{$wizCampaign['name']}</strong><br/>";
         //echo "<strong>{$experimentName}</strong><br/>";
         foreach ($experiments as $experiment) {
             $countTemplates++;
             $wizTemplate = get_idwiz_template($experiment['templateId']);
-            echo 'Variation:' . $countTemplates . ': ' . $wizTemplate['name']. '<br/>';
+            echo 'Variation:' . $countTemplates . ': ' . $wizTemplate['name'] . '<br/>';
         }
     }
     ?>

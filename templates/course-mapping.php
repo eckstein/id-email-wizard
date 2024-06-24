@@ -2,11 +2,12 @@
 
 
 <header class="wizHeader">
+    <h1 class="wizEntry-title" itemprop="name">
+        Course Mapping
+    </h1>
     <div class="wizHeaderInnerWrap">
         <div class="wizHeader-left">
-            <h1 class="wizEntry-title" itemprop="name">
-                Course Mapping
-            </h1>
+
 
         </div>
         <div class="wizHeader-right">
@@ -31,7 +32,7 @@
 
                     foreach ($courses as $course) {
                         echo '<tr>';
-                        echo '<td class="course-name">' . esc_html($course->id.' | '.$course->age_start.'-'.$course->age_end.' | '.$course->name) . '</td>';
+                        echo '<td class="course-name">' . esc_html($course->id . ' | ' . $course->age_start . '-' . $course->age_end . ' | ' . $course->name) . '</td>';
                         echo '<td class="division">' . esc_html($course->division) . '</td>';
 
                         $recTypes = ['ipc', 'ipc_ageup', 'vtc', 'vtc_ageup', 'idta', 'idta_ageup', 'ota', 'ota_ageup', 'opl'];
@@ -61,7 +62,7 @@
                                 $recdCourse = get_course_details_by_id($courseRecId); // Fetch course details
                                 // Check if course details are found
                                 if ($recdCourse) {
-                                    echo "<span class='course-blob' data-recd-course='{$recdCourse->id}'><span class='blob-meta'>" . esc_html($recdCourse->id.' | '.$recdCourse->age_start.'-'.$recdCourse->age_end).'</span>'.$recdCourse->name . "<span title='Remove course rec' class='remove-course'><i class='fa-solid fa-circle-xmark'></i></span></span>";
+                                    echo "<span class='course-blob' data-recd-course='{$recdCourse->id}'><span class='blob-meta'>" . esc_html($recdCourse->id . ' | ' . $recdCourse->age_start . '-' . $recdCourse->age_end) . '</span>' . $recdCourse->name . "<span title='Remove course rec' class='remove-course'><i class='fa-solid fa-circle-xmark'></i></span></span>";
                                 }
                             }
                             echo '<span title="Click to add course" class="add-course" data-course-id="' . $course->id . '" data-rec-type="' . $recType . '"></span>';

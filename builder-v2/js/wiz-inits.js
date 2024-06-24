@@ -282,7 +282,7 @@ function initialize_wiz_sortable($container, itemsSelector, handleSelector, plac
 // Initialize editable elements
 	
 function initialize_editable(editableClass, dataAttributeName, $context) {
-    return;
+    //return;
     // Default to the whole builder div if no context is provided
     $context = $context || jQuery("#builder");
 

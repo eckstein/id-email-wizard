@@ -7,21 +7,22 @@ $activeTab = $_GET['view'] ?? 'Active';
 ?>
 
 <header class="wizHeader">
+    <h1 class="wizEntry-title" itemprop="name">
+        Snippets
+    </h1>
     <div class="wizHeaderInnerWrap">
         <div class="wizHeader-left">
-            <h1 class="wizEntry-title" itemprop="name">
-                Snippets
-            </h1>
+
             <div id="header-tabs">
 
                 <a href="<?php echo add_query_arg(['view' => 'Active']); ?>" class="campaign-tab <?php if ($activeTab == 'Active') {
-                         echo 'active';
-                     } ?>">
+                                                                                                        echo 'active';
+                                                                                                    } ?>">
                     Active
                 </a>
                 <a href="<?php echo add_query_arg(['view' => 'Archive']); ?>" class="campaign-tab <?php if ($activeTab == 'Archive') {
-                         echo 'active';
-                     } ?>">
+                                                                                                        echo 'active';
+                                                                                                    } ?>">
                     Archive
                 </a>
             </div>
@@ -37,12 +38,11 @@ $activeTab = $_GET['view'] ?? 'Active';
 </header>
 <div class="entry-content" itemprop="mainContentOfPage">
     <?php if (have_posts()) {
-        ?>
-        <table class="idemailwiz_table display" id="idemailwiz_snippets_table"
-            style="width: 100%; vertical-align: middle" valign="middle" width="100%">
+    ?>
+        <table class="idemailwiz_table display" id="idemailwiz_snippets_table" style="width: 100%; vertical-align: middle" valign="middle" width="100%">
             <thead>
                 <tr>
-                    
+
                     <th>
                         Snippet
                     </th>
@@ -55,30 +55,30 @@ $activeTab = $_GET['view'] ?? 'Active';
 
 
                 </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    while (have_posts()) {
-                        the_post(); ?>
-                        <tr data-comparisonid="<?php echo get_the_ID(); ?>">
+            </thead>
+            <tbody>
+                <?php
+                while (have_posts()) {
+                    the_post(); ?>
+                    <tr data-comparisonid="<?php echo get_the_ID(); ?>">
 
-                            <td>
-                                <a href="<?php echo get_the_permalink(); ?>">
-                                    <?php the_title(); ?>
-                                </a>
-                            </td>
-                            <td>
-                               <?php echo get_the_author(); ?>
-                            </td>
-                            <td>
+                        <td>
+                            <a href="<?php echo get_the_permalink(); ?>">
+                                <?php the_title(); ?>
+                            </a>
+                        </td>
+                        <td>
+                            <?php echo get_the_author(); ?>
+                        </td>
+                        <td>
                             <em>coming soon</em>
-                            </td>
-                            
-                        </tr>
-                    <?php } ?>
-                </tbody>
+                        </td>
+
+                    </tr>
+                <?php } ?>
+            </tbody>
         </table>
-        <?php
+    <?php
 
     } else {
         // No snippets found

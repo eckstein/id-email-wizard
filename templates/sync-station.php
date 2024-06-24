@@ -48,9 +48,10 @@ if (isset($_GET['sync'])) {
 ?>
 <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
 	<header class="wizHeader">
+		<h1 class="wizEntry-title" itemprop="name">Sync Station</h1>
 		<div class="wizHeaderInnerWrap">
 			<div class="wizHeader-left">
-				<h1 class="wizEntry-title" itemprop="name">Sync Station</h1>
+
 			</div>
 			<div class="wizHeader-right">
 				<!-- Additional header actions if needed -->

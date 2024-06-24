@@ -33,43 +33,42 @@ if (isset($_GET['startDate']) && $_GET['startDate'] !== '' && isset($_GET['endDa
 ?>
 
 
-<?php //print_r(get_idwiz_campaigns()); ?>
+<?php //print_r(get_idwiz_campaigns()); 
+?>
 <?php $activeTab = $_GET['view'] ?? 'Blast'; ?>
 <header class="wizHeader">
+    <h1 class="wizEntry-title single-wizcampaign-title" itemprop="name">
+        Campaigns
+    </h1>
     <div class="wizHeaderInnerWrap">
         <div class="wizHeader-left">
-            <h1 class="wizEntry-title single-wizcampaign-title" itemprop="name">
-                Campaigns
-            </h1>
+
 
             <div id="header-tabs">
 
-                <a href="<?php echo add_query_arg(['view' => 'Blast']); ?>"
-                    class="campaign-tab <?php if ($activeTab == 'Blast') {
-                        echo 'active';
-                    } ?>">
+                <a href="<?php echo add_query_arg(['view' => 'Blast']); ?>" class="campaign-tab <?php if ($activeTab == 'Blast') {
+                                                                                                    echo 'active';
+                                                                                                } ?>">
                     Blast
                 </a>
-                <a href="<?php echo add_query_arg(['view' => 'Triggered']); ?>"
-                    class="campaign-tab <?php if ($activeTab == 'Triggered') {
-                        echo 'active';
-                    } ?>">
+                <a href="<?php echo add_query_arg(['view' => 'Triggered']); ?>" class="campaign-tab <?php if ($activeTab == 'Triggered') {
+                                                                                                        echo 'active';
+                                                                                                    } ?>">
                     Triggered
                 </a>
-                <a href="<?php echo add_query_arg(['view' => 'Archive']); ?>"
-                    class="campaign-tab <?php if ($activeTab == 'Archive') {
-                        echo 'active';
-                    } ?>">
+                <a href="<?php echo add_query_arg(['view' => 'Archive']); ?>" class="campaign-tab <?php if ($activeTab == 'Archive') {
+                                                                                                        echo 'active';
+                                                                                                    } ?>">
                     Archive
                 </a>
             </div>
         </div>
         <div class="wizHeader-right">
             <div class="wizHeader-actions">
-                <button class="wiz-button green doWizSync"><i class="fa-solid fa-rotate"></i>&nbsp;Sync
-                    Databases</button>
-                <button class="wiz-button green new-initiative"><i class="fa-regular fa-plus"></i>&nbsp;Add
+                <button class="wiz-button green new-initiative"><i class="fa-regular fa-plus"></i>&nbsp;Create
                     Initiative</button>
+                <button class="wiz-button green new-comparison"><i class="fa-regular fa-plus"></i>&nbsp;New
+                    Comparison</button>
                 <?php include plugin_dir_path(__FILE__) . 'parts/module-user-settings-form.php'; ?>
             </div>
         </div>
@@ -79,24 +78,25 @@ if (isset($_GET['startDate']) && $_GET['startDate'] !== '' && isset($_GET['endDa
 
 <div class="entry-content idemailwiz_table_wrapper" itemprop="mainContentOfPage">
     <?php if (isset($_GET['view']) && $_GET['view'] == 'Blast' || !isset($_GET['view'])) { ?>
-    <div class="dashboard-nav-area">
-        <div class="dashboard-nav-area-left">
+        <div class="dashboard-nav-area">
+            <div class="dashboard-nav-area-left">
 
+            </div>
+            <div class="dashboard-nav-area-main">
+                <?php include plugin_dir_path(__FILE__) . 'parts/dashboard-date-pickers.php'; ?>
+            </div>
+            <div class="dashboard-nav-area-right">
+
+            </div>
         </div>
-        <div class="dashboard-nav-area-main">
-            <?php include plugin_dir_path(__FILE__) . 'parts/dashboard-date-pickers.php'; ?>
+        <div class="rollup_summary_wrapper" id="campaigns-table-rollup">
+            <div class="rollup_summary_loader"><i class="fa-solid fa-spinner fa-spin"></i>&nbsp;&nbsp;Loading rollup summary...</div>
         </div>
-        <div class="dashboard-nav-area-right">
-            
-        </div>
-    </div>
-    <div class="rollup_summary_wrapper" id="campaigns-table-rollup"><div class="rollup_summary_loader"><i class="fa-solid fa-spinner fa-spin"></i>&nbsp;&nbsp;Loading rollup summary...</div></div>
     <?php } ?>
 
     <div class="idemailwiz_table_container">
 
-        <table class="idemailwiz_table display" id="idemailwiz_campaign_table"
-            style="width: 100%; vertical-align: middle" valign="middle" width="100%">
+        <table class="idemailwiz_table display" id="idemailwiz_campaign_table" style="width: 100%; vertical-align: middle" valign="middle" width="100%">
             <tr>
                 <td>
                     <div id="idemailwiz_tablePreLoad"></div>

@@ -29,11 +29,12 @@ if (is_user_favorite($current_folder_id, 'Folder')) {
 ?>
 
 <header class="wizHeader">
+	<h1 class="wizEntry-title single-wizcampaign-title" itemprop="name">
+		Templates
+	</h1>
 	<div class="wizHeaderInnerWrap">
 		<div class="wizHeader-left">
-			<h1 class="wizEntry-title single-wizcampaign-title" itemprop="name">
-				Templates
-			</h1>
+
 			<div class="wizHeader-meta">
 				<span class="single-folder-title" colspan="3">
 					<?php echo display_folder_hierarchy(); ?>
@@ -44,20 +45,15 @@ if (is_user_favorite($current_folder_id, 'Folder')) {
 		<div class="wizHeader-right">
 			<div class="wizHeader-actions">
 				<?php if ($current_folder_id != $baseFolder && $current_folder_id != $trashTerm && $current_folder_id != $baseTemplatesTerm) { ?>
-					<div class="wiz-button outline addRemoveFavorite" title="Add/Remove Favorite" data-objecttype="Folder"
-						data-objectid="<?php echo $current_folder_id; ?>"><i
-							class="<?php echo $folderStarClass; ?> fa-star"></i></div>
+					<div class="wiz-button outline addRemoveFavorite" title="Add/Remove Favorite" data-objecttype="Folder" data-objectid="<?php echo $current_folder_id; ?>"><i class="<?php echo $folderStarClass; ?> fa-star"></i></div>
 
-					<div class="wiz-button green moveFolder" title="Move Folder"
-						data-folderid="<?php echo $current_folder_id; ?>"><i class="fa-solid fa-folder-tree"></i></div>
+					<div class="wiz-button green moveFolder" title="Move Folder" data-folderid="<?php echo $current_folder_id; ?>"><i class="fa-solid fa-folder-tree"></i></div>
 
-					<div class="wiz-button red deleteFolder" title="Delete Folder"
-						data-postid="<?php echo get_the_ID(); ?>"><i class="fa fa-trash"></i></div>
+					<div class="wiz-button red deleteFolder" title="Delete Folder" data-postid="<?php echo get_the_ID(); ?>"><i class="fa fa-trash"></i></div>
 
 					&nbsp;&nbsp;|&nbsp;&nbsp;
 				<?php } ?>
-				<div class="wiz-button green" id="addNewFolder"><i title="Add new folder"
-						class="fa-solid fa-folder-plus"></i>&nbsp;&nbsp;New Folder</div>
+				<div class="wiz-button green" id="addNewFolder"><i title="Add new folder" class="fa-solid fa-folder-plus"></i>&nbsp;&nbsp;New Folder</div>
 
 				<div class="wiz-button green show-new-template-ui"><i class="fa-solid fa-plus"></i>&nbsp;&nbsp;New
 					Template</div>
@@ -121,7 +117,7 @@ if (is_user_favorite($current_folder_id, 'Folder')) {
 					if (!empty($faves)) {
 						foreach ($faves as $faveTerm) {
 							$folderStarClass = $faveTerm->is_favorite ? 'fa-solid' : 'fa-regular'; // Use the stored favorite status
-				
+
 							echo '<tr data-foldertitle="' . $faveTerm->name . '" class="favorite" data-objectid="' . $faveTerm->term_id . '">
 				<td style="text-align: center;"><span class="clickToSelect folder"><i class="fa-solid fa-folder"></i><i class="fa-solid fa-square-check selected"></i></span></td>
 				<td colspan="3"><a href="' . get_term_link($faveTerm) . '">' . $faveTerm->name . '</a></td>
@@ -142,14 +138,13 @@ if (is_user_favorite($current_folder_id, 'Folder')) {
 			</tr>';
 						}
 					}
-
 				}
 				?>
 				<?php if (have_posts()) {
 					if (!empty($child_terms)) {
 						echo '<tr class="table-separator"><td colspan="6" style="background-color: #fff; padding: 40px 0 0 0; border: 0;"></td></tr>';
 					}
-					?>
+				?>
 
 					<tr>
 
@@ -189,11 +184,10 @@ if (is_user_favorite($current_folder_id, 'Folder')) {
 						$iterableStatus = $templateCampaign ? '<a class="sentIndicator" href="https://app.iterable.com/campaigns/' . $templateCampaign[0]['id'] . '?view=Summary"> <i class="fa-regular fa-circle-check"></i> Sent</a>' : null;
 
 
-						?>
+					?>
 						<tr id="template-<?php echo get_the_ID(); ?>" class="<?php if (is_user_favorite(get_the_ID(), 'Template')) {
-							   echo 'favorite';
-						   } ?> <?php echo $trashedClass; ?>" data-foldertitle="<?php echo get_the_title(); ?>"
-							data-objectid="<?php echo get_the_ID(); ?>">
+																					echo 'favorite';
+																				} ?> <?php echo $trashedClass; ?>" data-foldertitle="<?php echo get_the_title(); ?>" data-objectid="<?php echo get_the_ID(); ?>">
 
 							<?php if (is_user_favorite(get_the_ID(), 'Template')) {
 								$starClass = 'fa-solid';
@@ -201,8 +195,7 @@ if (is_user_favorite($current_folder_id, 'Folder')) {
 								$starClass = 'fa-regular';
 							}
 							?>
-							<td style="vertical-align:middle;" align="center"><span class="clickToSelect template"><i
-										class="fa-regular fa-file"></i><i class="fa-solid fa-square-check selected"></i></span>
+							<td style="vertical-align:middle;" align="center"><span class="clickToSelect template"><i class="fa-regular fa-file"></i><i class="fa-solid fa-square-check selected"></i></span>
 							</td>
 							<?php if ($trashTerm != $current_folder_id) { ?>
 								<td style="vertical-align:middle;"><a href="<?php echo esc_url($post_link); ?>">
@@ -228,13 +221,9 @@ if (is_user_favorite($current_folder_id, 'Folder')) {
 									<?php echo '<a title="Favorite Template"> <i class="' . $starClass . ' fa-star addRemoveFavorite favItem" data-objecttype="Template" data-objectid="' . get_the_ID() . '"></i></a>&nbsp;&nbsp;'; ?>
 									<?php echo '<span class="moveTemplate" title="Move Template" data-postid="' . get_the_ID() . '"><i class="fa-solid fa-folder-tree"></i></span>&nbsp;&nbsp;'; ?>
 
-									<i class="fa fa-copy duplicate-template" title="Duplicate Template"
-										data-postid="<?php echo get_the_ID(); ?>"></i>&nbsp;&nbsp;&nbsp;<i
-										class="fa fa-trash delete-template" title="Delete Template"
-										data-postid="<?php echo get_the_ID(); ?>"></i>
+									<i class="fa fa-copy duplicate-template" title="Duplicate Template" data-postid="<?php echo get_the_ID(); ?>"></i>&nbsp;&nbsp;&nbsp;<i class="fa fa-trash delete-template" title="Delete Template" data-postid="<?php echo get_the_ID(); ?>"></i>
 								<?php } else { ?>
-									<i title="Restore from trash" class="fa fa-trash-arrow-up restore-template"
-										data-postid="<?php echo get_the_ID(); ?>"></i>
+									<i title="Restore from trash" class="fa fa-trash-arrow-up restore-template" data-postid="<?php echo get_the_ID(); ?>"></i>
 								<?php } ?>
 							</td>
 							<td style="vertical-align:middle;" align="center">
@@ -257,27 +246,27 @@ if (is_user_favorite($current_folder_id, 'Folder')) {
 							</td>
 						</tr>
 					<?php } ?>
-				</tbody>
-			</table>
-			<?php
-			// Display pagination links
-			global $wp_query;
+			</tbody>
+		</table>
+		<?php
+					// Display pagination links
+					global $wp_query;
 
-			$total_pages = $wp_query->max_num_pages;
-			$current_page = max(1, get_query_var('paged'));
+					$total_pages = $wp_query->max_num_pages;
+					$current_page = max(1, get_query_var('paged'));
 
-			echo '<div class="pagination">';
-			echo paginate_links(
-				array(
-					'base' => get_pagenum_link(1) . '%_%',
-					'format' => 'page/%#%',
-					'current' => $current_page,
-					'total' => $total_pages,
-				)
-			);
-			echo '</div>';
-			?>
-		<?php } else if (!empty($child_terms)) {
+					echo '<div class="pagination">';
+					echo paginate_links(
+						array(
+							'base' => get_pagenum_link(1) . '%_%',
+							'format' => 'page/%#%',
+							'current' => $current_page,
+							'total' => $total_pages,
+						)
+					);
+					echo '</div>';
+		?>
+	<?php } else if (!empty($child_terms)) {
 					echo '</tbody></table><br/><em>No templates in this folder...</em>';
 				} else {
 					echo '</tbody></table><br/><em>This folder is empty....</em>';
