@@ -1,8 +1,8 @@
 <?php
 add_action('rest_api_init', function () {
-    register_rest_route('idemailwiz/v1', '/iterable-link', array(
+    register_rest_route('idemailwiz/v1', '/user_data', array(
         'methods' => 'GET',
-        'callback' => 'wiz_handle_iterable_data_feed',
+        'callback' => 'wiz_handle_user_data_feed',
         //  'permission_callback' => function () {
         //      return current_user_can( 'edit_others_posts' );
         //  }
@@ -11,7 +11,8 @@ add_action('rest_api_init', function () {
 
 
 
-function wiz_handle_iterable_data_feed($data) {
+function wiz_handle_user_data_feed($data)
+{
     // $wizSettings = get_option('idemailwiz_settings');
     // $api_auth_token = $wizSettings['external_cron_api'];
 
@@ -22,17 +23,19 @@ function wiz_handle_iterable_data_feed($data) {
 
     $params = $data->get_params();
     $email = $params['email'];
-    $signupDate = $params['signupDate'];
-    //$args = $params['args'];
 
-    $responseData = wiz_encrypt_email($params);
+    $responseCode = 400; // default to fail
 
-    if ($responseData['wizId']) {
-        $message = 'Success! UserId: '.$responseData['wizId'];
+    $encryptedUser = wiz_encrypt_email($params);
+    $wizUser = get_idwiz_user($encryptedUser['wizId']);
+    
+    if (!$wizUser) {
+        $return = 'User '. $email.' not found in Wizard!';
     } else {
-        $message = $email.': User not found!';
+        $responseCode = 200;
+        $return = $wizUser;
     }
-        return new WP_REST_Response(['message' => $message, 'data' => $responseData], 200);
+    return new WP_REST_Response($return, $responseCode);
 }
 
 function map_division_to_abbreviation($division)
@@ -48,4 +51,3 @@ function map_division_to_abbreviation($division)
 
     return isset($mapping[$division]) ? $mapping[$division] : null;
 }
-

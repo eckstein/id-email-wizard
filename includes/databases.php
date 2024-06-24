@@ -816,6 +816,14 @@ function get_idwiz_experiment($templateId)
 	return $experiments ? $experiments[0] : false;
 }
 
+function get_idwiz_user($wizId) {
+	global $wpdb;
+	$userTable = $wpdb->prefix.'idemailwiz_users';
+	$sql = "SELECT * FROM $userTable WHERE wizId = %s";
+	$wizUser = $wpdb->get_row($wpdb->prepare($sql, $wizId), ARRAY_A);
+	return $wizUser;
+}
+
 
 
 function idwiz_is_serialized($value)
