@@ -24,12 +24,12 @@ function wiz_handle_iterable_data_feed($data) {
     $email = $params['email'];
     //$args = $params['args'];
 
-    $responseData['wizUserId'] = wiz_encrypt_email($email);
+    $responseData = wiz_encrypt_email($email);
 
-    if ($responseData['wizUserId']) {
-        $message = 'Success! UserId: '.$responseData['wizUserId'];
+    if ($responseData['wizId']) {
+        $message = 'Success! UserId: '.$responseData['wizId'];
     } else {
-        $message = 'User not found!';
+        $message = $email.': User not found!';
     }
         return new WP_REST_Response(['message' => $message, 'data' => $responseData], 200);
 }
