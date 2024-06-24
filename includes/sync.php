@@ -716,27 +716,7 @@ function wiz_encrypt_email($userData)
 // Define the function for decryption
 function wiz_decrypt_email($encryptedUser)
 {
-	// Check if the necessary data is present
-  	if (isset($encryptedUser['wizId']) && !empty($encryptedUser['wizId']) && isset($encryptedUser['wizSalt']) && !empty($encryptedUser['wizSalt'])) {
-  		// Get the salt (signup date) from the encrypted data
-  		$salt = $encryptedUser['wizSalt'];
-  
-  		// Iterate through all possible email addresses
-  		for ($i = 0; $i < 10000; $i++) {
-  			$email = "user{$i}@example.com";
-  
-  			// Hash the email with the signup date salt and the pepper
-  			$pepperedEmail = $email . $salt . WIZ_PEPPER;
-  			$hashedEmail = hash('sha256', $pepperedEmail);
-  
-  			// Check if the hashed email matches the wizId
-  			if ($hashedEmail === $encryptedUser['wizId']) {
-  				// If there's a match, return the plain text email
-  				return $email;
-  			}
-  		}
-  	}
-  
+	
   	return false;
   
 }

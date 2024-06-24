@@ -22,9 +22,10 @@ function wiz_handle_iterable_data_feed($data) {
 
     $params = $data->get_params();
     $email = $params['email'];
+    $signupDate = $params['signupDate'];
     //$args = $params['args'];
 
-    $responseData = wiz_encrypt_email($email);
+    $responseData = wiz_encrypt_email($params);
 
     if ($responseData['wizId']) {
         $message = 'Success! UserId: '.$responseData['wizId'];
