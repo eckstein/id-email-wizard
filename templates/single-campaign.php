@@ -86,22 +86,65 @@ $linkedExperimentIds = array_map(function ($id) {
 	?>
 
 	<header class="wizHeader">
+		<?php
+		if ($campaign['type'] == 'Blast') {
+			// Include "previous" and "next" navigation links
+			// Get the previous campaign
+			$allCampaigns = get_idwiz_campaigns(['type' => 'Blast', 'messageMedium' => 'Email', 'sortBy' => 'startAt', 'sort' => 'ASC']);
+			// Use $campaign['id'] to find the current campaign and then get the ones right before and after it
+			$previousCampaign = null;
+			$nextCampaign = null;
+			$currentIndex = array_search($campaign['id'], array_column($allCampaigns, 'id'));
+			if ($currentIndex !== false) {
+				$previousCampaign = $allCampaigns[$currentIndex - 1] ?? null;
+				$nextCampaign = $allCampaigns[$currentIndex + 1] ?? null;
+			}
+
+		?>
+			<div class="wizcampaign-single-nav">
+				<div class="wizcampaign-single-nav-left">
+					<?php
+					if ($previousCampaign) {
+						$previousCampaignUrl = get_bloginfo('url') . '/metrics/campaign?id=' . $previousCampaign['id'];
+						echo '<a 
+						href="' . $previousCampaignUrl . '" 
+						class="button button-secondary"
+						title="' . $previousCampaign['name'] . '">
+						<i class="fa-solid fa-arrow-left"></i>&nbsp;&nbsp;' . $previousCampaign['name'] . '</a>';
+					}
+
+					?>
+				</div>
+				<div class="wizcampaign-single-nav-right">
+					<?php
+					if ($nextCampaign) {
+						$nextCampaignUrl = get_bloginfo('url') . '/metrics/campaign?id=' . $nextCampaign['id'];
+						echo '<a 
+						href = "' . $nextCampaignUrl . '" 
+						class="button button-secondary" 
+						title="' . $nextCampaign['name'] . '">' . $nextCampaign['name'] . '&nbsp;&nbsp;<i class="fa-solid fa-arrow-right"></i></a>';
+					}
+					?>
+				</div>
+			</div>
+		<?php } ?>
+		<h1 class="wizEntry-title single-wizcampaign-title" itemprop="name">
+			<?php echo $campaign['name']; ?>
+		</h1>
 		<div class="wizHeaderInnerWrap">
 
 			<div class="wizHeader-left">
-				<h1 class="wizEntry-title single-wizcampaign-title" itemprop="name">
-					<?php echo $campaign['name']; ?>
-				</h1>
+
 				<div class="wizEntry-meta">
 
-					<strong>
+					
 						<?php echo $campaign['type']; ?> <?php echo $campaign['messageMedium']; ?> Campaign <a href="https://app.iterable.com/campaigns/<?php echo $campaign['id']; ?>?view=summary">
 							<?php echo $campaign['id']; ?></a> <?php if ($campaign['workflowId']) { ?>within Workflow <a href="https://app.iterable.com/workflows/<?php echo $campaign['workflowId']; ?>/edit"><?php echo $campaign['workflowId']; ?></a><?php } ?>
 
 					<?php if ($experimentIds) {
 						echo '&nbsp;with Experiment ' . implode(', ', $linkedExperimentIds) . '</a>';
 					} ?>
-					</strong>
+					
 					&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
 					<?php
 					if (!empty($connectedCampaignIds)) {
@@ -145,6 +188,13 @@ $linkedExperimentIds = array_map(function ($id) {
 					<?php } ?>
 					&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
 					<?php echo 'Campaign state: ' . $campaignState; ?>
+					<br/>
+					<?php 
+					$campaignLabels = unserialize($campaign['labels']) ?? [];
+					if ($campaignLabels) {
+						echo 'Cohorts: ' . implode(', ', $campaignLabels);
+					}
+?>
 				</div>
 
 				<?php generate_initiative_flags($campaign['id']); ?>
@@ -191,46 +241,6 @@ $linkedExperimentIds = array_map(function ($id) {
 			//include plugin_dir_path(__FILE__) . 'parts/dashboard-date-buttons.php'; 
 			include plugin_dir_path(__FILE__) . 'parts/dashboard-date-pickers.php';
 		} else {
-			// Include "previous" and "next" navigation links
-			// Get the previous campaign
-			$allCampaigns = get_idwiz_campaigns(['type' => 'Blast', 'messageMedium' => 'Email', 'sortBy' => 'startAt', 'sort' => 'ASC']);
-			// Use $campaign['id'] to find the current campaign and then get the ones right before and after it
-			$previousCampaign = null;
-			$nextCampaign = null;
-			$currentIndex = array_search($campaign['id'], array_column($allCampaigns, 'id'));
-			if ($currentIndex !== false) {
-				$previousCampaign = $allCampaigns[$currentIndex - 1] ?? null;
-				$nextCampaign = $allCampaigns[$currentIndex + 1] ?? null;
-			}
-
-		?>
-			<div class="wizcampaign-single-nav">
-				<div class="wizcampaign-single-nav-left">
-					<?php
-					if ($previousCampaign) {
-						$previousCampaignUrl = get_bloginfo('url') . '/metrics/campaign?id=' . $previousCampaign['id'];
-						echo '<a 
-						href="' . $previousCampaignUrl . '" 
-						class="button button-secondary"
-						title="' . $previousCampaign['name'] . '">
-						<i class="fa-solid fa-arrow-left"></i>&nbsp;&nbsp;' . $previousCampaign['name'] . '</a>';
-					}
-
-					?>
-				</div>
-				<div class="wizcampaign-single-nav-right">
-					<?php
-					if ($nextCampaign) {
-						$nextCampaignUrl = get_bloginfo('url') . '/metrics/campaign?id=' . $nextCampaign['id'];
-						echo '<a 
-						href = "' . $nextCampaignUrl . '" 
-						class="button button-secondary" 
-						title="' . $nextCampaign['name'] . '">' . $nextCampaign['name'] . '&nbsp;&nbsp;<i class="fa-solid fa-arrow-right"></i></a>';
-					}
-					?>
-				</div>
-			</div>
-		<?php
 		}
 		?>
 
@@ -313,7 +323,7 @@ $linkedExperimentIds = array_map(function ($id) {
 				</div>
 				<div class="wizcampaign-section">
 					<div class="wizcampaign-section-title-area">
-						<h4>Metrics by Date</h4>
+						<h3>Metrics by Date</h3>
 						<div class="wizcampaign-section-icons">
 							<i class="fa-regular fa-calendar-days chart-timescale-switcher active" data-timescale="daily" title="By Day"></i><i class="fa-solid fa-clock chart-timescale-switcher" data-timescale="hourly" title="By Hour"></i>
 						</div>
