@@ -22,15 +22,14 @@ function wiz_handle_user_data_feed($data)
     // }
 
     $params = $data->get_params();
-    $email = $params['email'];
 
     $responseCode = 400; // default to fail
 
-    $encryptedUser = wiz_encrypt_email($params);
-    $wizUser = get_idwiz_user($encryptedUser['wizId']);
+    //$encryptedUser = wiz_encrypt_email($params);
+    $wizUser = get_idwiz_user_by_userID($params['userId']);
     
     if (!$wizUser) {
-        $return = 'User '. $email.' not found in Wizard!';
+        $return = 'User '. $params['userId'] .' not found in Wizard!';
     } else {
         $responseCode = 200;
         $return = $wizUser;
