@@ -753,7 +753,7 @@ function idemailwiz_enqueue_assets()
 
     wp_enqueue_style(
         'id-style',
-        plugins_url('/style.css', __FILE__),
+        plugins_url('/style.css?v=6.24.24', __FILE__),
         array()
     );
 

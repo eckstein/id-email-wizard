@@ -2526,7 +2526,7 @@ pre#generatedCode {
 
 
 
-/* Single WizCampaign Metrics Page */
+/* Single Campaign Metrics Page */
 
 .wizHeader {
 	box-shadow: inset 0 0 20px 1px rgba(0, 0, 0, 0.1);
@@ -2681,6 +2681,17 @@ pre#generatedCode {
 
 h2.wizArticle-title {
 	margin: 40px 0 30px 0;
+}
+
+.wizcampaign-single-nav {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin: 20px 0;
+}
+.wizcampaign-single-nav a {
+	text-decoration: none;
+	font-size: 12px;
 }
 
 /* Module settings dropdown */
@@ -3081,6 +3092,9 @@ h2.wizArticle-title {
 	padding-bottom: 6px;
 	color: #222;
 }
+
+
+
 .wizcampaign-template-area {
 	display: flex;
 	justify-content: center;

@@ -190,6 +190,47 @@ $linkedExperimentIds = array_map(function ($id) {
 		<?php if ($campaign['type'] == 'Triggered') {
 			//include plugin_dir_path(__FILE__) . 'parts/dashboard-date-buttons.php'; 
 			include plugin_dir_path(__FILE__) . 'parts/dashboard-date-pickers.php';
+		} else {
+			// Include "previous" and "next" navigation links
+			// Get the previous campaign
+			$allCampaigns = get_idwiz_campaigns(['type' => 'Blast', 'messageMedium' => 'Email', 'sortBy' => 'startAt', 'sort' => 'ASC']);
+			// Use $campaign['id'] to find the current campaign and then get the ones right before and after it
+			$previousCampaign = null;
+			$nextCampaign = null;
+			$currentIndex = array_search($campaign['id'], array_column($allCampaigns, 'id'));
+			if ($currentIndex !== false) {
+				$previousCampaign = $allCampaigns[$currentIndex - 1] ?? null;
+				$nextCampaign = $allCampaigns[$currentIndex + 1] ?? null;
+			}
+
+		?>
+			<div class="wizcampaign-single-nav">
+				<div class="wizcampaign-single-nav-left">
+					<?php
+					if ($previousCampaign) {
+						$previousCampaignUrl = get_bloginfo('url') . '/metrics/campaign?id=' . $previousCampaign['id'];
+						echo '<a 
+						href="' . $previousCampaignUrl . '" 
+						class="button button-secondary"
+						title="' . $previousCampaign['name'] . '">
+						<i class="fa-solid fa-arrow-left"></i>&nbsp;&nbsp;' . $previousCampaign['name'] . '</a>';
+					}
+
+					?>
+				</div>
+				<div class="wizcampaign-single-nav-right">
+					<?php
+					if ($nextCampaign) {
+						$nextCampaignUrl = get_bloginfo('url') . '/metrics/campaign?id=' . $nextCampaign['id'];
+						echo '<a 
+						href = "' . $nextCampaignUrl . '" 
+						class="button button-secondary" 
+						title="' . $nextCampaign['name'] . '">' . $nextCampaign['name'] . '&nbsp;&nbsp;<i class="fa-solid fa-arrow-right"></i></a>';
+					}
+					?>
+				</div>
+			</div>
+		<?php
 		}
 		?>
 
@@ -291,8 +332,7 @@ $linkedExperimentIds = array_map(function ($id) {
 							<?php
 							// For blast campaigns, lock the endDate to 30 days after the startDate
 							if ($campaign['type'] == 'Blast') {
-								$chartEndDate = date('Y-m-d', strtotime($startDate.'+ 7 days'));
-								
+								$chartEndDate = date('Y-m-d', strtotime($startDate . '+ 7 days'));
 							}
 							?>
 
