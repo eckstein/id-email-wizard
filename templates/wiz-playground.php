@@ -21,11 +21,15 @@ global $wpdb;
 	</header>
 	<div class="entry-content" itemprop="mainContentOfPage">
 		<?php
-// $blastCampaigns = get_idwiz_campaigns(['type'=>'Blast', 'fields'=>'id']);
-// foreach ($blastCampaigns as $campaign) {
-// idwiz_save_hourly_metrics($campaign['id']);
+// $allCourses = wizPulse_get_all_courses();
+// foreach ( $allCourses as $course ) {
+// 	if (!empty($course['locations'])) {
+// 		if ($course['division']['name'] == 'iD Tech Camps') {
+// 			echo $course['title'].'<br/>';
+// 		}
+// 	}
 // }
-//echo idwiz_display_hourly_metrics_table('9895104');
+//wizPulse_map_courses_to_database();
 		?>
 	</div>
 	</div>

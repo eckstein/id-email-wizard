@@ -114,6 +114,7 @@ require_once(plugin_dir_path(__FILE__) . 'includes/manual-import.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/wiz-log.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/cUrl.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/wiz-rest.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/pulse-connection.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/data-tables.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/charts.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/reporting.php');
