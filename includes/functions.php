@@ -1361,16 +1361,7 @@ if ( ! wp_next_scheduled( 'idemailwiz_custom_transient_cleanup' ) ) {
 add_action( 'idemailwiz_custom_transient_cleanup', 'delete_expired_transients' );
 
 
-function get_idwiz_courses() {
-	global $wpdb;
-	$table_name = $wpdb->prefix . 'idemailwiz_courses';
-	$query = "SELECT * FROM {$table_name}";
-	$courses = $wpdb->get_results( $query );
-	if ( empty( $courses ) ) {
-		return new WP_Error( 'no_courses', __( 'No courses found', 'text-domain' ) );
-	}
-	return $courses;
-}
+
 function get_course_details_by_id( $course_id ) {
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'idemailwiz_courses';
@@ -1391,41 +1382,52 @@ function get_course_details_by_id( $course_id ) {
 	return $course;
 }
 
-add_action( 'wp_ajax_id_get_courses_options', 'id_get_courses_options_handler' );
-function id_get_courses_options_handler() {
+add_action('wp_ajax_id_get_courses_options', 'id_get_courses_options_handler');
 
-	if ( ! check_ajax_referer( 'id-general', 'security', false ) ) {
-		error_log( 'Nonce check failed' );
-		wp_send_json_error( 'Nonce check failed' );
+function id_get_courses_options_handler()
+{
+	if (!check_ajax_referer('id-general', 'security', false)) {
+		error_log('Nonce check failed');
+		wp_send_json_error('Nonce check failed');
 		return;
 	}
 
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'idemailwiz_courses';
-	$division = isset( $_POST['division'] ) ? sanitize_text_field( $_POST['division'] ) : '';
-	$term = isset( $_POST['term'] ) ? sanitize_text_field( $_POST['term'] ) : '';
+	$division = isset($_POST['division']) ? intval($_POST['division']) : '';
+	$term = isset($_POST['term']) ? sanitize_text_field($_POST['term']) : '';
 
 	// Building the query
-	$query = "SELECT id, name FROM {$table_name} WHERE name LIKE %s";
-	$params = array( '%' . $wpdb->esc_like( $term ) . '%' );
+	$query = "SELECT id, title, abbreviation, minAge, maxAge FROM {$table_name} WHERE 1=1";
+	$params = array();
 
 	// Add division filter if provided
-	if ( ! empty( $division ) ) {
-		$query .= " AND division LIKE %s";
-		$params[] = '%' . $wpdb->esc_like( $division ) . '%';
+	if (!empty($division)) {
+		$query .= " AND division_id = %d";
+		$params[] = $division;
 	}
 
-	$courses = $wpdb->get_results( $wpdb->prepare( $query, $params ) );
+	// Add search term filter if provided
+	if (!empty($term)) {
+		$query .= " AND (title LIKE %s OR abbreviation LIKE %s)";
+		$params[] = '%' . $wpdb->esc_like($term) . '%';
+		$params[] = '%' . $wpdb->esc_like($term) . '%';
+	}
+
+	// Add condition to check if 'locations' column is not empty/null
+	$query .= " AND locations IS NOT NULL AND locations != ''";
+
+	$courses = $wpdb->get_results($wpdb->prepare($query, $params));
 
 	$results = array();
-	foreach ( $courses as $course ) {
+	foreach ($courses as $course) {
 		$results[] = array(
 			'id' => $course->id,
-			'text' => $course->id . ' | ' . $course->name
+			'text' => $course->id . ' | ' . $course->abbreviation . ' | ' . $course->minAge . '-' . $course->maxAge . ' | ' . $course->title
 		);
 	}
 
-	wp_send_json_success( $results );
+	wp_send_json_success($results);
 }
 
 
@@ -1439,9 +1441,9 @@ function id_add_course_to_rec_handler() {
 		return;
 	}
 
-	$course_id = isset( $_POST['course_id'] ) ? sanitize_text_field( $_POST['course_id'] ) : '';
-	$rec_type = isset( $_POST['rec_type'] ) ? sanitize_text_field( $_POST['rec_type'] ) : '';
-	$selected_course = isset( $_POST['selected_course'] ) ? sanitize_text_field( $_POST['selected_course'] ) : '';
+	$course_id = isset($_POST['course_id']) ? sanitize_text_field($_POST['course_id']) : '';
+	$rec_type = isset($_POST['rec_type']) ? sanitize_text_field($_POST['rec_type']) : '';
+	$selected_course = isset($_POST['selected_course']) ? sanitize_text_field($_POST['selected_course']) : '';
 
 	if ( empty( $course_id ) || empty( $rec_type ) || empty( $selected_course ) ) {
 		wp_send_json_error( 'Missing data' );
@@ -1492,9 +1494,9 @@ function id_remove_course_from_rec_handler() {
 		return;
 	}
 
-	$course_id = sanitize_text_field( $_POST['course_id'] );
-	$rec_type = sanitize_text_field( $_POST['rec_type'] );
-	$recd_course_id = sanitize_text_field( $_POST['recd_course_id'] );
+	$course_id = sanitize_text_field($_POST['course_id']);
+	$rec_type = sanitize_text_field($_POST['rec_type']);
+	$recd_course_id = sanitize_text_field($_POST['recd_course_id']);
 
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'idemailwiz_courses';
@@ -1563,6 +1565,96 @@ function idemailwiz_ajax_save_item_update() {
 
 }
 add_action( 'wp_ajax_idemailwiz_ajax_save_item_update', 'idemailwiz_ajax_save_item_update' );
+
+function get_division_name($division_id)
+{
+	$divisions = [
+		22 => 'iDTA',
+		23 => 'iDTA',
+		25 => 'iDTC',
+		39 => 'ALEXA',
+		40 => 'NEXT',
+		41 => 'OPL',
+		42 => 'VTC',
+		47 => 'OTA',
+		51 => 'OTA',
+		52 => 'AHEAD'
+	];
+
+	return isset($divisions[$division_id]) ? $divisions[$division_id] : 'Unknown';
+}
+
+function get_division_id($rec_type)
+{
+	$division_map = [
+		'idtc' => 25,
+		'idtc_ageup' => 25,
+		'vtc' => 42,
+		'vtc_ageup' => 42,
+		'idta' => 22,
+		'idta_ageup' => 23,
+		'ota' => 47,
+		'ota_ageup' => 47,
+		'opl' => 41
+	];
+
+	return isset($division_map[$rec_type]) ? $division_map[$rec_type] : '';
+}
+
+function updateCourseFiscalYears()
+{
+	global $wpdb;
+
+	// Get all courses
+	$courses = $wpdb->get_results("SELECT id FROM wp_idemailwiz_courses LIMIT 200 OFFSET 900");
+
+	// Define the start of the first fiscal year we're interested in
+	$firstFiscalYearStart = new DateTime('2021-10-15');
+	$currentDate = new DateTime();
+
+	foreach ($courses as $course) {
+		$courseId = $course->id;
+		$fiscalYears = [];
+
+		$fiscalYearStart = clone $firstFiscalYearStart;
+
+		while ($fiscalYearStart <= $currentDate) {
+			$fiscalYearEnd = clone $fiscalYearStart;
+			$fiscalYearEnd->modify('+1 year -1 day');
+
+			$purchases = get_idwiz_purchases([
+				'shoppingCartItems_id' => $courseId,
+				'include_null_campaigns' => true,
+				'fields' => 'purchaseDate',
+				'startAt_start' => $fiscalYearStart->format('Y-m-d'),
+				'startAt_end' => $fiscalYearEnd->format('Y-m-d'),
+				'limit' => 1
+			]);
+
+			if (!empty($purchases)) {
+				$fiscalYear = $fiscalYearStart->format('Y') . '/' . $fiscalYearEnd->format('Y');
+				$fiscalYears[] = $fiscalYear;
+			}
+
+			$fiscalYearStart->modify('+1 year');
+		}
+
+		// Update the course with the fiscal years
+		if (empty($fiscalYears)) {
+			$wpdb->update(
+				'wp_idemailwiz_courses',
+				['fiscal_years' => 'N/A'],
+				['id' => $courseId]
+			);
+		} else {
+			$wpdb->update(
+				'wp_idemailwiz_courses',
+				['fiscal_years' => serialize($fiscalYears)],
+				['id' => $courseId]
+			);
+		}
+	}
+}
 
 
 function generate_all_template_images() {

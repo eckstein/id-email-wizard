@@ -1,22 +1,64 @@
 <?php
-function wizPulse_get_ipc_locations() {
+function wizPulse_get_all_locations()
+{
     // Gets Pulse location data for iD Tech Camps and iD Tech Academies
-    $apiURL = 'https://pulseapi.idtech.com/Locations/GetAll?companyID=1&experienceTypeIDs=357002&experienceTypeIDs=357005&api-version=2016-11-01.1.0';
+    //$apiURL = 'https://pulseapi.idtech.com/Locations/GetAll?companyID=1&experienceTypeIDs=357002&experienceTypeIDs=357005&api-version=2016-11-01.1.0';
+    $apiURL = 'https://pulseapi.idtech.com/Locations/GetAll?companyID=1&api-version=2016-11-01.1.0';
     $response = idemailwiz_iterable_curl_call($apiURL);
     return $response['response']['results'];
 }
 
+function wizPulse_map_locations_to_database()
+{
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_locations';
 
-function wizPulse_save_locations_to_transient() {
-    $locations = wizPulse_get_ipc_locations();
-    set_transient('pulse_locations', $locations, 60 * 60 * 24);
+    $locations = wizPulse_get_all_locations();
+
+    foreach ($locations as $location) {
+        $id = $location['id'];
+        $name = $location['name'];
+        $abbreviation = $location['abbreviation'];
+        $addressArea = $location['addressArea'];
+        $firstSessionStartDate = date('Y-m-d', strtotime($location['firstSessionStartDate']));
+        $lastSessionEndDate = date('Y-m-d', strtotime($location['lastSessionEndDate']));
+
+        // Serialize courses and divisions
+        $courses = !empty($location['courses']) ? serialize($location['courses']) : null;
+        $divisions = !empty($location['divisions']) ? serialize($location['divisions']) : null;
+        $soldOutCourses = !empty($location['soldOutCourses']) ? serialize($location['soldOutCourses']) : null;
+
+        // Get locationStatus as text
+        $locationStatus = $location['locationStatus']['name'];
+
+        // Serialize address
+        $address = !empty($location['address']) ? serialize($location['address']) : null;
+
+        // Insert or update the data
+        $wpdb->replace(
+            $table_name,
+            array(
+                'id' => $id,
+                'name' => $name,
+                'abbreviation' => $abbreviation,
+                'addressArea' => $addressArea,
+                'firstSessionStartDate' => $firstSessionStartDate,
+                'lastSessionEndDate' => $lastSessionEndDate,
+                'courses' => $courses,
+                'divisions' => $divisions,
+                'soldOutCourses' => $soldOutCourses,
+                'locationStatus' => $locationStatus,
+                'address' => $address
+            ),
+            array('%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
+        );
+    }
 }
 
-function wizPulse_refresh_locations() {
-    if (get_transient('pulse_locations')) {
-        delete_transient('pulse_locations');
-    }
-    wizPulse_save_locations_to_transient();
+// Function to refresh locations in the database
+function wizPulse_refresh_locations()
+{
+    wizPulse_map_locations_to_database();
 }
 
 // Set daily cron to refresh locations
@@ -24,6 +66,8 @@ if (!wp_next_scheduled('wizPulse_refresh_locations_cron')) {
     wp_schedule_event(strtotime('05:00:00'), 'daily', 'wizPulse_refresh_locations_cron');
 }
 add_action('wizPulse_refresh_locations_cron', 'wizPulse_refresh_locations');
+
+
 
 
 function wizPulse_get_all_courses() {

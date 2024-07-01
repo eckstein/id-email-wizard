@@ -509,6 +509,7 @@ function build_idwiz_query($args, $table_name)
 	unset($where_args['not-ids']);
 	unset($where_args['not-campaigns']);
 	unset($where_args['purchaseId']);
+	unset($where_args['include_null_campaigns']);
 
 
 
@@ -522,7 +523,7 @@ function build_idwiz_query($args, $table_name)
 		$sql .= $wpdb->prepare(" AND shoppingCartItems_productCategory != %s", '17004');
 		$sql .= $wpdb->prepare(" AND shoppingCartItems_productCategory != %s", '17003');
 		$sql .= $wpdb->prepare(" AND shoppingCartItems_productCategory != %s", '17001');
-		$sql .= $wpdb->prepare(" AND campaignId != %d", -12345);
+		$sql .= $wpdb->prepare(" AND (campaignId != %d OR campaignId IS NULL)", -12345);
 
 		// Set attribution mode
 		$currentUser = wp_get_current_user();
@@ -598,8 +599,11 @@ function build_idwiz_query($args, $table_name)
 		$campaignKey = 'campaignId';
 	}
 
-	// Every purchase should have a campaignId
-	$sql .= " AND $campaignKey IS NOT NULL";
+	if (!isset($args['include_null_campaigns']) || $args['include_null_campaigns'] == false) {
+		// Every purchase should have a campaignId
+		$sql .= " AND $campaignKey IS NOT NULL";
+	}
+
 
 	foreach ($where_args as $key => $value) {
 		if ($value !== null && $value !== '') {
@@ -618,6 +622,7 @@ function build_idwiz_query($args, $table_name)
 
 				// Prepare statement with placeholders
 				$sql .= $wpdb->prepare(" AND $campaignKey IN ($placeholders)", $value);
+				
 			} elseif ($key === 'purchaseIds') {
 				$placeholders = implode(',', array_fill(0, count($value), '%s'));
 				$sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND id IN ($placeholders)"), $args['purchaseIds']));
@@ -702,6 +707,7 @@ function build_idwiz_query($args, $table_name)
 	}
 
 	//error_log('Query args: ' . print_r($sql, true));
+	//print_r($sql);
 	return $sql;
 }
 
@@ -824,12 +830,56 @@ function get_idwiz_user($wizId) {
 	return $wizUser;
 }
 
-function get_idwiz_user_by_userID() {
+function get_idwiz_user_by_userID($userId) {
 	global $wpdb;
 	$userTable = $wpdb->prefix . 'idemailwiz_users';
 	$sql = "SELECT * FROM $userTable WHERE userID = %s";
-	$wizUser = $wpdb->get_row($wpdb->prepare($sql, get_current_user_id()), ARRAY_A);
+	$wizUser = $wpdb->get_row($wpdb->prepare($sql, $userId), ARRAY_A);
 	return $wizUser;
+}
+
+function get_idwiz_courses($division_ids = [], $fiscalYears = [])
+{
+	global $wpdb;
+	$table_name = $wpdb->prefix . 'idemailwiz_courses';
+
+	$where_clauses = [];
+	$query_params = [];
+
+	if (!empty($fiscalYears)) {
+		$fiscalYears[] = date('Y') . '/' . (date('Y') + 1);
+	}
+
+	$query = "SELECT * FROM {$table_name}";
+
+	if (!empty($division_ids)) {
+		$where_clauses[] = "division_id IN (" . implode(',', array_map('intval', $division_ids)) . ")";
+	}
+
+	if (!empty($fiscalYears)) {
+		$fiscal_year_conditions = [];
+		foreach ($fiscalYears as $fiscalYear) {
+			$fiscal_year_conditions[] = "fiscal_years LIKE %s";
+			$query_params[] = '%' . $wpdb->esc_like($fiscalYear) . '%';
+		}
+		$where_clauses[] = '(' . implode(' OR ', $fiscal_year_conditions) . ')';
+	}
+
+	if (!empty($where_clauses)) {
+		$query .= " WHERE " . implode(' AND ', $where_clauses);
+	}
+
+	if (!empty($query_params)) {
+		$query = $wpdb->prepare($query, $query_params);
+	}
+
+	$courses = $wpdb->get_results($query);
+
+	if (empty($courses)) {
+		return new WP_Error('no_courses', __('No courses found', 'text-domain'));
+	}
+
+	return $courses;
 }
 
 
@@ -975,56 +1025,72 @@ function idwiz_save_hourly_metrics($campaignId)
 
 	$metricsTableName = $wpdb->prefix . 'idemailwiz_metrics';
 
-	$opensByHour = array_fill(0, 24, 0);
-	$clicksByHour = array_fill(0, 24, 0);
-
 	$wizCampaign = get_idwiz_campaign($campaignId);
 	$campaignType = lcfirst($wizCampaign['type']);
+
+	// Get the campaign send time in milliseconds
+	$campaignSendTimeMs = $wizCampaign['startAt'];
 
 	$opensData = get_idemailwiz_triggered_data(database: "idemailwiz_" . $campaignType . "_opens", args: ['campaignIds' => [$campaignId]], uniqueMessageIds: false);
 	$clicksData = get_idemailwiz_triggered_data(database: "idemailwiz_" . $campaignType . "_clicks", args: ['campaignIds' => [$campaignId]], uniqueMessageIds: false);
 
+	$opensByHour = [];
+	$clicksByHour = [];
+	$maxHour = 0;
+
 	foreach ($opensData as $event) {
-		$utcTimestamp = $event['startAt'] / 1000;
-		$utcDateTime = new DateTime('@' . $utcTimestamp);
-		$hour = (int) $utcDateTime->format('H');
-		$opensByHour[$hour] += 1;
+		$hoursSinceSend = max(0, floor(($event['startAt'] - $campaignSendTimeMs) / (1000 * 3600)));
+		$hourIndex = (int)$hoursSinceSend;
+		$maxHour = max($maxHour, $hourIndex);
+
+		if (!isset($opensByHour[$hourIndex])) {
+			$opensByHour[$hourIndex] = 0;
+		}
+		$opensByHour[$hourIndex]++;
 	}
 
 	foreach ($clicksData as $event) {
-		$utcTimestamp = $event['startAt'] / 1000;
-		$utcDateTime = new DateTime('@' . $utcTimestamp);
-		$hour = (int) $utcDateTime->format('H');
-		$clicksByHour[$hour] += 1;
+		$hoursSinceSend = max(0, floor(($event['startAt'] - $campaignSendTimeMs) / (1000 * 3600)));
+		$hourIndex = (int)$hoursSinceSend;
+		$maxHour = max($maxHour, $hourIndex);
+
+		if (!isset($clicksByHour[$hourIndex])) {
+			$clicksByHour[$hourIndex] = 0;
+		}
+		$clicksByHour[$hourIndex]++;
 	}
+
+	// Fill in any missing hours with zeros
+	for ($i = 0; $i <= $maxHour; $i++) {
+		if (!isset($opensByHour[$i])) $opensByHour[$i] = 0;
+		if (!isset($clicksByHour[$i])) $clicksByHour[$i] = 0;
+	}
+
+	ksort($opensByHour);
+	ksort($clicksByHour);
 
 	$serializedOpensByHour = serialize($opensByHour);
 	$serializedClicksByHour = serialize($clicksByHour);
 
-	$wpdb->update(
-		$metricsTableName,
-		[
-			'opensByHour' => $serializedOpensByHour,
-			'clicksByHour' => $serializedClicksByHour
-		],
-		['id' => $campaignId],
-		['%s', '%s'],
-		['%d']
-	);
-
-	// If the row doesn't exist, insert it
-	if ($wpdb->rows_affected === 0) {
-		$wpdb->insert(
-			$metricsTableName,
-			[
-				'id' => $campaignId,
-				'opensByHour' => $serializedOpensByHour,
-				'clicksByHour' => $serializedClicksByHour
-			],
-			['%d', '%s', '%s']
+	$query = $wpdb->prepare(
+			"INSERT INTO $metricsTableName (id, opensByHour, clicksByHour)
+		 VALUES (%d, %s, %s)
+		 ON DUPLICATE KEY UPDATE opensByHour = VALUES(opensByHour), clicksByHour = VALUES(clicksByHour)",
+			$campaignId,
+			$serializedOpensByHour,
+			$serializedClicksByHour
 		);
-	}
+
+	$wpdb->query($query);
+
+	// Debug output
+	error_log("Campaign ID: $campaignId");
+	error_log("Campaign Send Time (ms): $campaignSendTimeMs");
+	error_log("Opens by Hour: " . print_r($opensByHour, true));
+	error_log("Clicks by Hour: " . print_r($clicksByHour, true));
 }
+
+
 
 function idwiz_display_hourly_metrics_table($campaignId)
 {
@@ -1034,14 +1100,14 @@ function idwiz_display_hourly_metrics_table($campaignId)
 
 	$wizCampaign = get_idwiz_campaign($campaignId);
 	$campaignStartAt = $wizCampaign['startAt'];
-	$dayHour = (int) date('G', $campaignStartAt / 1000);
+	$campaignStartHour = (int) date('G', $campaignStartAt / 1000);
 
 	$row = $wpdb->get_row(
-		$wpdb->prepare(
-			"SELECT opensByHour, clicksByHour FROM $metricsTableName WHERE id = %d",
-			$campaignId
-		)
-	);
+			$wpdb->prepare(
+				"SELECT opensByHour, clicksByHour FROM $metricsTableName WHERE id = %d",
+				$campaignId
+			)
+		);
 
 	if ($row) {
 		$opensByHour = unserialize($row->opensByHour);
@@ -1054,27 +1120,18 @@ function idwiz_display_hourly_metrics_table($campaignId)
 		$output .= '<thead><tr><th>Hour</th><th>Time of Day</th><th>Opens</th><th>Clicks</th></tr></thead>';
 		$output .= '<tbody>';
 
-		$hour = 0;
-		$day = 1;
-		$displayHour = $dayHour;
-
 		for ($i = 0; $i < count($opensByHour) || $i < count($clicksByHour); $i++) {
-			$timeOfDay = date('g:i A', strtotime("$displayHour:00"));
+			$totalHours = $campaignStartHour + $i;
+			$day = floor($totalHours / 24) + 1;
+			$hourOfDay = $totalHours % 24;
+			$timeOfDay = date('g:i A', strtotime("$hourOfDay:00"));
 
 			$output .= '<tr>';
-			$output .= '<td>' . $hour . '</td>';
+			$output .= '<td>' . $i . '</td>';
 			$output .= '<td>' . $timeOfDay . ($day > 1 ? ' (Day ' . $day . ')' : '') . '</td>';
-			$output .= '<td>' . ($opensByHour[$displayHour] ?? 0) . '</td>';
-			$output .= '<td>' . ($clicksByHour[$displayHour] ?? 0) . '</td>';
+			$output .= '<td>' . ($opensByHour[$i] ?? 0) . '</td>';
+			$output .= '<td>' . ($clicksByHour[$i] ?? 0) . '</td>';
 			$output .= '</tr>';
-
-			$hour++;
-			$displayHour++;
-
-			if ($displayHour === 24) {
-				$displayHour = 0;
-				$day++;
-			}
 		}
 
 		$output .= '</tbody>';

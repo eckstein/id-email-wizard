@@ -3606,6 +3606,25 @@ fieldset#syncStation-syncDates {
 }
 
 /* Course Mapping */
+
+select#division-select, 
+select#fy-select {
+	width: 300px;
+	height: 1em;
+}
+#course-mapping-options {
+	display: flex;
+	gap: 30px;
+	justify-content: flex-start;
+	align-items: top;
+}
+#course-mapping-options fieldset {
+	display: flex;
+	flex-direction: column;
+}
+#course-mapping-options .select2-container--default .select2-selection--multiple .select2-selection__choice__display {
+	padding-left: 20px;
+}
 #course-mapping-table-wrap {
 	width: 100%;
 	max-width: 100%;
@@ -3622,12 +3641,28 @@ fieldset#syncStation-syncDates {
 	color: #fff;
 	vertical-align: middle;
 }
+#course-mapping-table th.super-header {
+	background-color: #fff;
+	color: #343434;
+	text-align: left;
+	padding: 10px;
+}
 #course-mapping-table .course-name {
+
 	width: 300px;
 	font-weight: bold;
+	
+}
+#course-mapping-table td.course-name {
+	background-color: #eee;
 }
 #course-mapping-table .division {
-	width: 250px;
+
+	text-align: center;
+	
+}
+#course-mapping-table td.division {
+	background-color: #eee;
 }
 #course-mapping-table .course-recs {
 	width: 250px;
@@ -3654,6 +3689,9 @@ fieldset#syncStation-syncDates {
 	border-radius: 10px;
 	position: relative;
 	z-index: 30;
+}
+#course-mapping-table .course-blob.inactive {
+	background-color: rgb(235, 153, 128);
 }
 #course-mapping-table .course-blob .blob-meta {
 	display: block;

@@ -748,13 +748,14 @@ function idemailwiz_enqueue_assets()
         'journeys' => array('/js/journeys.js', array('jquery', 'jquery-ui-sortable', 'id-general', 'wiz-charts', 'data-tables')),
         'dashboard' => array('/js/idwiz-dashboard.js', array('jquery', 'id-general', 'wiz-charts', 'data-tables')),
         'google-sheets-api' => array('/js/google-sheets-api.js', array('jquery', 'id-general')),
+        'wiz-endpoints' => array('/js/endpoints.js', array('jquery', 'id-general')),
         
 
     );
-
+    $stylesheetCacheBuster = time();
     wp_enqueue_style(
         'id-style',
-        plugins_url('/style.css?v=6.24.24', __FILE__),
+        plugins_url('/style.css?v='. $stylesheetCacheBuster, __FILE__),
         array()
     );
 

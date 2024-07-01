@@ -1,29 +1,30 @@
 <?php
 
-function do_database_cleanups()
+function do_database_cleanups($campaignIds = [])
 {
     update_null_user_ids();
     update_missing_purchase_dates();
     remove_zero_campaign_ids();
     idemailwiz_backfill_campaign_start_dates();
-    update_opens_and_clicks_by_hour();
+    update_opens_and_clicks_by_hour(get_idwiz_campaigns(['campaignIds'=>$campaignIds]));
 
     //idwiz_cleanup_users_database();
 }
 
-function update_opens_and_clicks_by_hour()
+function update_opens_and_clicks_by_hour($blastCampaigns = [])
 {
-    wiz_log('Updating opens and clicks by hour for 6 weeks...');
-    $now = new DateTime();
-    // minus 3 months
-    $startAt = $now->sub(new DateInterval('P6W'))->format('Y-m-d');
-
-
-    $blastCampaigns = get_idwiz_campaigns(['type' => 'Blast', 'fields' => 'id', 'startAt_start' => $startAt]);
+    wiz_log('Updating opens and clicks by hour...');
+    
+    if (empty($blastCampaigns)) {
+        $now = new DateTime();
+        // minus 3 months
+        $startAt = $now->sub(new DateInterval('P6W'))->format('Y-m-d');
+        $blastCampaigns = get_idwiz_campaigns(['type' => 'Blast', 'fields' => 'id', 'startAt_start' => $startAt]);
+    }
     foreach ($blastCampaigns as $campaign) {
         idwiz_save_hourly_metrics($campaign['id']);
     }
-    wiz_log('Updated opens and clicks by hour for ' . count($blastCampaigns) . 'campaigns.');
+    wiz_log('Updated opens and clicks by hour for ' . count($blastCampaigns) . ' campaigns.');
 }
 
 function update_null_user_ids()

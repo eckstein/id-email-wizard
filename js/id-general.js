@@ -823,8 +823,8 @@ function do_wiz_notif(notifData) {
 }
 
 jQuery(document).on("click", ".add-course", function () {
-	var courseId = jQuery(this).data("course-id");
-	var recType = jQuery(this).data("rec-type");
+	var courseId = jQuery(this).closest(".course-recs").data("course-id");
+	var recType = jQuery(this).closest(".course-recs").data("rec-type");
 	var division = jQuery(this).closest(".course-recs").data("division");
 
 	Swal.fire({
@@ -891,12 +891,7 @@ jQuery(document).on("click", ".add-course", function () {
 					selected_course: result.value.selected_course,
 				},
 				function (response) {
-					Swal.fire({
-						title: "Course Added!",
-						icon: "success",
-					}).then(function () {
-						location.reload();
-					});
+					location.reload();
 				},
 				function (error) {
 					console.log("Error: ", error);
@@ -907,10 +902,9 @@ jQuery(document).on("click", ".add-course", function () {
 });
 
 jQuery(document).on("click", ".remove-course", function () {
-	var recdCourseId = jQuery(this).closest(".course-blob").data("recd-course");
-	var courseId = jQuery(this).closest("td").data("course-id");
-	var recType = jQuery(this).closest("td").data("rec-type");
-
+	 var recdCourseId = jQuery(this).closest(".course-blob").data("recd-course-id");
+	var courseId = jQuery(this).closest(".course-recs").data("course-id");
+	var recType = jQuery(this).closest(".course-recs").data("rec-type");
 	Swal.fire({
 		title: "Are you sure?",
 		text: "Do you really want to remove this course?",
@@ -930,13 +924,7 @@ jQuery(document).on("click", ".remove-course", function () {
 					recd_course_id: recdCourseId,
 				},
 				function (response) {
-					Swal.fire({
-						title: "Removed!",
-						text: "The course has been removed.",
-						icon: "success",
-					}).then(function () {
-						location.reload();
-					});
+					location.reload();
 				},
 				function (error) {
 					console.log("Error: ", error);
@@ -945,6 +933,9 @@ jQuery(document).on("click", ".remove-course", function () {
 		}
 	});
 });
+
+jQuery('#division-select').select2();
+jQuery('#fy-select').select2();
 
 // Fetch and fill the rollup summary
 function fetchRollUpSummaryData(campaignIds, startDate, endDate, rollupSelector, includeMetrics=[], excludeMetrics=[]) {

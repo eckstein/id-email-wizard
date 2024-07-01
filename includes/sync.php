@@ -814,7 +814,7 @@ function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDa
 		'shoppingCartItems.totalDaysOfInstruction',
 		'currencyTypeId',
 		'eventName',
-		'shoppingCartItems.id',
+		//'shoppingCartItems.id',
 		'shoppingCartItems.imageUrl',
 		'shoppingCartItems.subsidiaryId',
 		'shoppingCartItems.packageType',
@@ -1502,7 +1502,7 @@ function idemailwiz_process_blast_sync()
 	return true; // Indicate successful completion of the sync sequence
 }
 
-function idemailwiz_sync_non_triggered_metrics($campaignIds = null, $sync_dbs = null)
+function idemailwiz_sync_non_triggered_metrics($campaignIds = [], $sync_dbs = null)
 {
 	$syncArgs = [];
 	$response = [];
@@ -1511,7 +1511,7 @@ function idemailwiz_sync_non_triggered_metrics($campaignIds = null, $sync_dbs = 
 
 	$sync_dbs = $sync_dbs ?? ['campaigns', 'templates', 'metrics', 'purchases', 'experiments'];
 	foreach ($sync_dbs as $db) {
-		if ($campaignIds) {
+		if (!empty($campaignIds)) {
 			$syncArgs = $campaignIds;
 		}
 		$function_name = 'idemailwiz_sync_' . $db;
@@ -1528,7 +1528,7 @@ function idemailwiz_sync_non_triggered_metrics($campaignIds = null, $sync_dbs = 
 
 	// Do our general database cleanups
 	wiz_log('Doing database cleanups...');
-	do_database_cleanups();
+	do_database_cleanups($campaignIds);
 
 	delete_transient('idemailwiz_blast_sync_in_progress');
 
@@ -1751,12 +1751,28 @@ function idwiz_export_and_store_jobs_to_sync_queue($campaignIds = null, $campaig
 	// Clean up the sync queue to get rid of old jobs
 	idemailwiz_cleanup_sync_queue();
 
+	$localTimezone = new DateTimeZone('America/Los_Angeles');
+	$utcTimezone = new DateTimeZone('UTC');
+
 	if (!$exportStart) {
-		$exportStart = date('Y-m-d H:i:s', strtotime('2021-11-01'));
+		$exportStart = new DateTime('2021-11-01', $localTimezone);
+	} elseif (is_string($exportStart)) {
+		$exportStart = DateTime::createFromFormat('Y-m-d', $exportStart, $localTimezone);
 	}
+
 	if (!$exportEnd) {
-		$exportEnd = date('Y-m-d H:i:s', strtotime('+1 day'));
+		$exportEnd = new DateTime('tomorrow', $localTimezone);
+	} elseif (is_string($exportEnd)) {
+		$exportEnd = DateTime::createFromFormat('Y-m-d', $exportEnd, $localTimezone);
+		$exportEnd->setTime(23, 59, 59); // Set to end of day
 	}
+
+	// Convert to UTC and format
+	$exportStart->setTimezone($utcTimezone);
+	$exportEnd->setTimezone($utcTimezone);
+
+	$exportStartFormatted = $exportStart->format('Y-m-d H:i:s');
+	$exportEndFormatted = $exportEnd->format('Y-m-d H:i:s');
 
 	// If campaignIds are provided, override the campaignTypes
 	if (!empty($campaignIds)) {
@@ -1780,7 +1796,7 @@ function idwiz_export_and_store_jobs_to_sync_queue($campaignIds = null, $campaig
 	$totalBatches = count($campaignBatches);
 
 	// Schedule the first batch processing event
-	wp_schedule_single_event(time(), 'idemailwiz_process_campaign_export_batch', [$campaignBatches, 0, $totalBatches, $metricTypes, $exportStart, $exportEnd, $priority]);
+	wp_schedule_single_event(time(), 'idemailwiz_process_campaign_export_batch', [$campaignBatches, 0, $totalBatches, $metricTypes, $exportStartFormatted, $exportEndFormatted, $priority]);
 }
 
 add_action('idemailwiz_process_campaign_export_batch', 'idemailwiz_process_campaign_export_batch', 10, 7);
@@ -2005,6 +2021,8 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 			['syncStatus' => 'pending'],
 			['jobId' => $jobId]
 		);
+		// Wait 10 seconds
+		sleep(10);
 		return;
 	}
 
