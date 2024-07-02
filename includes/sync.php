@@ -2338,7 +2338,18 @@ function handle_sync_station_sync()
 function requeue_retry_afters()
 {
 	global $wpdb;
+
 	$sync_jobs_table_name = $wpdb->prefix . 'idemailwiz_sync_jobs';
+	// Set any 'syncing' jobs back to 'pending'
+	$wpdb->update($sync_jobs_table_name, [
+		'syncStatus' => 'pending',
+	], [
+		'syncStatus' => 'syncing',
+	]);
+
+	// Delete the idemailwiz_blast_sync_in_progress transiet
+	delete_transient('idemailwiz_blast_sync_in_progress');
+	
 	// Set retryAfter to right now for all pending jobs
 	$currentTime = new DateTimeImmutable('now', new DateTimeZone('America/Los_Angeles'));
 	$result = $wpdb->update($sync_jobs_table_name, [

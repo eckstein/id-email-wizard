@@ -154,7 +154,7 @@ if (isset($_GET['sync'])) {
 					<div class="wizcampaign-sections-row">
 
 						<div class="wizcampaign-section">
-							<a class="wiz-button green" href="<?php echo add_query_arg('db-cleanup', 'requeue-retries'); ?>" id="updateNullUserIds">Re-queue retries</a>
+							<a class="wiz-button green" href="<?php echo add_query_arg('db-cleanup', 'requeue-retries'); ?>" id="requeueRetries">Re-queue retries</a>
 							<h5>Sets all pending sync jobs to be retried after right now.</h5>
 						</div>
 						<div class="wizcampaign-section">
