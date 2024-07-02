@@ -473,6 +473,10 @@ function idemailwiz_template_chooser($template)
 		return dirname( __FILE__ ) . '/templates/subject-line-builder.php';
 	}
 
+    if (strpos($_SERVER['REQUEST_URI'], '/wiz-rest') !== false) {
+        return dirname(__FILE__) . '/templates/wiz-rest-ui.php';
+    }
+
     
 
 

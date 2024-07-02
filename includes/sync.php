@@ -710,15 +710,13 @@ function wiz_encrypt_email($userData)
 	}
 
 	return false;
-	
 }
 
 // Define the function for decryption
 function wiz_decrypt_email($encryptedUser)
 {
-	
-  	return false;
-  
+
+	return false;
 }
 
 // Schedule sync users on cron twice daily.
@@ -1579,9 +1577,9 @@ function idemailwiz_schedule_sync_process()
 	if ($engSync == 'on') {
 		if (!wp_next_scheduled('idemailwiz_sync_engagement_data')) {
 			if (get_transient('data_sync_in_progress')) {
-				wiz_log("Auto-sync triggered, but data sync is already in progress.");
-				wp_schedule_single_event(time() + 2 * HOUR_IN_SECONDS, 'idemailwiz_sync_engagement_data');
-				sleep(1);
+				// wiz_log("Auto-sync triggered, but data sync is already in progress.");
+				// wp_schedule_single_event(time() + 2 * HOUR_IN_SECONDS, 'idemailwiz_sync_engagement_data');
+				// sleep(1);
 				return;
 			};
 			wp_schedule_event(time(), 'every_two_hours', 'idemailwiz_sync_engagement_data');
@@ -1619,7 +1617,7 @@ function idemailwiz_sync_engagement_data_callback()
 			$earliestFutureRetryAfter = null;
 
 			foreach ($jobs as $job) {
-				$retryAfter = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $job['retryAfter'], new DateTimeZone('UTC'));
+				$retryAfter = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $job['retryAfter'], new DateTimeZone('America/Los_Angeles'));
 
 				if ($retryAfter !== false) {
 					$retryAfter->setTimezone(new DateTimeZone('America/Los_Angeles'));
@@ -1813,20 +1811,28 @@ function idemailwiz_process_campaign_export_batch($campaignBatches, $currentBatc
 		$messageMedium = strtolower($campaign['messageMedium']);
 		$campaignType = strtolower($campaign['type']);
 
-		foreach ($metricTypes as $metricType) {
-			// Skip blast campaign send, sendSkip, and bounce records if the campaign's end time is more than 1 day ago
-			// Prevents exporting unneccesary and/or huge jobs from Iterable
-			$campaignEnd = $campaign['endedAt'];
-			$campaignEndTimestamp = floor($campaignEnd / 1000);  // convert milliseconds to seconds
+		// Check for existing send records for this campaign
+		$campaignSends = get_engagement_data_by_campaign_id($campaignId, 'blast', 'send');
 
-			if (
-				($campaignType == 'blast')
-				&& (in_array($metricType, ['send', 'bounce', 'sendSkip']))
-				&& ($messageMedium == 'email')
-				&& ($campaignEndTimestamp < strtotime('-1 day'))
-				&& ($priority == 1) // higher priorities indicate manual syncs
-			) {
-				continue;  // skip processing
+		foreach ($metricTypes as $metricType) {			
+
+			// If sends already exist, we skip them (plus bounced and sendSkips)
+			if ($campaignSends) {
+
+				// Skip blast campaign send, sendSkip, and bounce records if the campaign's end time is more than 1 day ago
+				// Prevents exporting unneccesary and/or huge jobs from Iterable
+				$campaignEnd = $campaign['endedAt'];
+				$campaignEndTimestamp = floor($campaignEnd / 1000);  // convert milliseconds to seconds
+
+				if (
+					($campaignType == 'blast')
+					&& (in_array($metricType, ['send', 'bounce', 'sendSkip']))
+					&& ($messageMedium == 'email')
+					&& ($campaignEndTimestamp < strtotime('-1 day'))
+					&& ($priority == 1) // higher priorities indicate manual syncs
+				) {
+					continue;  // skip processing
+				}
 			}
 
 			// For SMS we only have sends and clicks
@@ -2270,16 +2276,22 @@ function handle_sync_station_sync()
 	// Extract the form fields from the POST data
 	parse_str($_POST['formFields'], $formFields);
 
+	
+
 	// Check for sync types
 	if (empty($formFields['syncTypes'])) {
 		wp_send_json_error('No sync types were received.');
 		return;
 	}
 
-	// Check if we're syncing all campaigns
+	// Check for dates
+	$syncStartAt = $formFields['startAt'] ?? null;
+	$syncEndAt = $formFields['endAt'] ?? null;
+
+	// If campaigns are not sent, decide which ones to sync based on dates sent
 	if (empty($formFields['campaignIds'])) {
 
-		$campaigns = get_idwiz_campaigns(['type' => 'Blast', 'fields' => 'id', 'startAt_end' => '2024-04-28']);
+		$campaigns = get_idwiz_campaigns(['type' => 'Blast', 'fields' => 'id', 'startAt_start' => $syncStartAt, 'startAt_end' => $syncEndAt ?? date('Y-m-d')]);
 
 		$campaignIds = array_column($campaigns, 'id');
 	} else {
@@ -2287,7 +2299,8 @@ function handle_sync_station_sync()
 		$campaignIds = explode(',', $formFields['campaignIds']);
 	}
 
-
+	// wp_send_json_success($campaignIds);
+	// return; 
 
 	// Initiate the sync sequence
 	foreach ($formFields['syncTypes'] as $manualSyncType) {
@@ -2308,7 +2321,7 @@ function handle_sync_station_sync()
 			case 'bounce':
 			case 'sendSkip':
 				$metricType = $manualSyncType;
-				maybe_add_to_sync_queue($campaignIds, [$metricType], null, null, 100);
+				maybe_add_to_sync_queue($campaignIds, [$metricType], $syncStartAt, $syncEndAt, 100);
 
 				break;
 		}

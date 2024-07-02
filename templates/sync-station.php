@@ -42,6 +42,11 @@ if (isset($_GET['sync'])) {
 		$syncMetricsEnd = $_GET['syncMetricsEnd'] ?? null;
 		$campaigns = get_idwiz_campaigns(['startAt_start' => $syncMetricsStart, 'startAt_end' => $syncMetricsEnd, 'type' => 'Blast']);
 		idemailwiz_sync_metrics(array_column($campaigns, 'id'));
+	} else if ($_GET['sync'] == 'hourlyOpensClicks') {
+		$syncHourlyStart = $_GET['syncHourlyStart'] ?? null;
+		$syncHourlyEnd = $_GET['syncHourlyEnd'] ?? null;
+		$campaigns = get_idwiz_campaigns(['startAt_start' => $syncHourlyStart, 'startAt_end' => $syncHourlyEnd, 'type' => 'Blast']);
+		update_opens_and_clicks_by_hour($campaigns);
 	}
 }
 
@@ -89,6 +94,11 @@ if (isset($_GET['sync'])) {
 							<textarea id="campaignIds" name="campaignIds"></textarea>
 						</fieldset>
 
+						<fieldset id="syncStation-syncByDate">
+							<legend>Sync by date (for engagement metrics only)<br /></legend>
+							<input type="date" name="startAt" value="" /> thru <input type="date" name="endAt" value="" />
+						</fieldset>
+
 						<input type="submit" class="wiz-button green" value="Initiate Sync">
 
 						<?php
@@ -128,6 +138,15 @@ if (isset($_GET['sync'])) {
 						<input type="date" name="syncMetricsEnd" id="syncMetricsEnd" value="<?php echo $syncMetricsEnd ?? date('Y-m-d'); ?>" />
 						<!-- submit $_GET with start and end date for users-->
 						<input type="submit" class="wiz-button green" value="Sync Metrics" />
+					</form>
+				</div>
+				<div class="wizcampaign-section">
+					<form id="syncHourlyClicksOpens" method="get">
+						<input type="hidden" name="sync" value="hourlyOpensClicks" />
+						<input type="date" name="syncHourlyStart" id="syncHourlyStart" value="<?php echo $syncHourlyStart ?? date('Y-m-d', strtotime('-3 days')); ?>" />
+						<input type="date" name="syncHourlyEnd" id="syncHourlyEnd" value="<?php echo $syncHourlyEnd ?? date('Y-m-d'); ?>" />
+						<!-- submit $_GET with start and end date for users-->
+						<input type="submit" class="wiz-button green" value="Sync Hourly Opens & Clicks" />
 					</form>
 				</div>
 				<div class="wizcampaign-section">

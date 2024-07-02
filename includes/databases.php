@@ -1082,12 +1082,6 @@ function idwiz_save_hourly_metrics($campaignId)
 		);
 
 	$wpdb->query($query);
-
-	// Debug output
-	error_log("Campaign ID: $campaignId");
-	error_log("Campaign Send Time (ms): $campaignSendTimeMs");
-	error_log("Opens by Hour: " . print_r($opensByHour, true));
-	error_log("Clicks by Hour: " . print_r($clicksByHour, true));
 }
 
 
