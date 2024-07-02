@@ -764,7 +764,7 @@ jQuery("#syncStationForm").on("submit", function (e) {
 		function (data) {
 			// After sync, we do stuff
 			jQuery(".syncForm-overlay").removeClass("active");
-			Swal.fire("Sync Successful", "The manual sync has completed. See sync log for details.", "success");
+			Swal.fire("Sync Successful", "The manual sync has been initiated. See sync log for progress.", "success");
 		},
 		function (error) {
 			console.log(error);

@@ -1577,9 +1577,9 @@ function idemailwiz_schedule_sync_process()
 	if ($engSync == 'on') {
 		if (!wp_next_scheduled('idemailwiz_sync_engagement_data')) {
 			if (get_transient('data_sync_in_progress')) {
-				// wiz_log("Auto-sync triggered, but data sync is already in progress.");
-				// wp_schedule_single_event(time() + 2 * HOUR_IN_SECONDS, 'idemailwiz_sync_engagement_data');
-				// sleep(1);
+				wiz_log("Auto-sync triggered, but data sync is already in progress.");
+				wp_schedule_single_event(time() + 2 * HOUR_IN_SECONDS, 'idemailwiz_sync_engagement_data');
+				sleep(1);
 				return;
 			};
 			wp_schedule_event(time(), 'every_two_hours', 'idemailwiz_sync_engagement_data');
@@ -2301,6 +2301,8 @@ function handle_sync_station_sync()
 
 	// wp_send_json_success($campaignIds);
 	// return; 
+
+	idemailwiz_cleanup_sync_queue();
 
 	// Initiate the sync sequence
 	foreach ($formFields['syncTypes'] as $manualSyncType) {
