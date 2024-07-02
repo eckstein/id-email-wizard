@@ -2360,6 +2360,8 @@ function requeue_retry_afters()
 		'syncStatus' => 'pending',
 	]);
 
+	idemailwiz_sync_engagement_data_callback();
+
 	return $result;
 }
 
