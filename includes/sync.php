@@ -2360,7 +2360,7 @@ function requeue_retry_afters()
 		'syncStatus' => 'pending',
 	]);
 
-	idemailwiz_sync_engagement_data_callback();
+	wp_schedule_single_event(time(), 'idemailwiz_sync_engagement_data');
 
 	return $result;
 }
