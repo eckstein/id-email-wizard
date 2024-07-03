@@ -1735,8 +1735,12 @@ function maybe_add_to_sync_queue($campaignIds, $metricTypes, $startAt = null, $e
 				['syncPriority' => $priority],
 				['campaignId' => $campaignId, 'syncType' => $existingSyncTypes, 'syncStatus' => 'pending']
 			);
+			if ($wpdb->rows_affected) {
+				return true;
+			}
 		}
 	}
+	return false;
 }
 
 
@@ -2305,29 +2309,19 @@ function handle_sync_station_sync()
 	idemailwiz_cleanup_sync_queue();
 
 	// Initiate the sync sequence
-	foreach ($formFields['syncTypes'] as $manualSyncType) {
-		switch ($manualSyncType) {
-			case 'blastMetrics':
-				$blastSyncInProgress = get_transient('idemailwiz_blast_sync_in_progress');
-				if ($blastSyncInProgress) {
-					$syncResult = ['error' => 'Another sync is already in progress!'];
-				} else {
-					$syncResult = idemailwiz_sync_non_triggered_metrics($campaignIds);
-				}
-				break;
-			case 'send':
-			case 'open':
-			case 'click':
-			case 'unSubscribe':
-			case 'complaint':
-			case 'bounce':
-			case 'sendSkip':
-				$metricType = $manualSyncType;
-				maybe_add_to_sync_queue($campaignIds, [$metricType], $syncStartAt, $syncEndAt, 100);
-
-				break;
+	if (in_array('blastMetrics', $formFields['syncTypes'])) {
+		$blastSyncInProgress = get_transient('idemailwiz_blast_sync_in_progress');
+		if ($blastSyncInProgress) {
+			$syncResult = ['error' => 'Another sync is already in progress!'];
+		} else {
+			$syncResult = idemailwiz_sync_non_triggered_metrics($campaignIds);
 		}
+		$syncResult = idemailwiz_sync_non_triggered_metrics($campaignIds);
+		unset($formFields['syncTypes'][array_search('blastMetrics', $formFields['syncTypes'])]);
+	} else {
+		$syncResult = maybe_add_to_sync_queue($campaignIds, $formFields['syncTypes'], $syncStartAt, $syncEndAt, 100);
 	}
+
 
 	if ($syncResult === false || isset($syncResult['error'])) {
 		wp_send_json_error('Sync sequence aborted: Another sync is still in progress or there was an error.');

@@ -18,7 +18,7 @@ function update_opens_and_clicks_by_hour($blastCampaigns = [])
     if (empty($blastCampaigns)) {
         $now = new DateTime();
         // minus 3 months
-        $startAt = $now->sub(new DateInterval('P6W'))->format('Y-m-d');
+        $startAt = $now->sub(new DateInterval('P30D'))->format('Y-m-d');
         $blastCampaigns = get_idwiz_campaigns(['type' => 'Blast', 'fields' => 'id', 'startAt_start' => $startAt]);
     }
     foreach ($blastCampaigns as $campaign) {
@@ -194,7 +194,7 @@ function idemailwiz_backfill_campaign_start_dates($purchases = false)
 
     // Fetch all purchases that have a campaignId and an empty or null campaignStartAt
     if (!$purchases) {
-        $purchases = $wpdb->get_results("SELECT id, campaignId, userId, purchaseDate FROM $purchases_table WHERE campaignId IS NOT NULL AND (campaignStartAt IS NULL OR campaignStartAt = '') LIMIT 1000");
+        $purchases = $wpdb->get_results("SELECT id, campaignId, userId, purchaseDate FROM $purchases_table WHERE campaignId IS NOT NULL AND (campaignStartAt IS NULL OR campaignStartAt = '') ORDER BY campaignId DESC LIMIT 1000");
     } else {
         $purchases = (array)$purchases;
     }

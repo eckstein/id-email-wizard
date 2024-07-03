@@ -1,12 +1,13 @@
 <?php
 //Insert overlay and spinner into header
-function insert_overlay_loader() {
+function insert_overlay_loader()
+{
 	//$options = get_option( 'idemailwiz_settings' );
-	if ( ( is_single() && get_post_type() == 'idemailwiz_template' ) ) {
-		?>
+	if ((is_single() && get_post_type() == 'idemailwiz_template')) {
+?>
 		<div id="iDoverlay"></div>
 		<div id="iDspinner" class="loader"></div>
-		<?php
+	<?php
 	}
 	?>
 	<script type="text/javascript">
@@ -24,10 +25,11 @@ function insert_overlay_loader() {
 		// Call toggleOverlay() as soon as the script is executed
 		toggleOverlay();
 	</script>
-	<?php
+<?php
 }
-add_action( 'wp_head', 'idemailwiz_head' );
-function idemailwiz_head() {
+add_action('wp_head', 'idemailwiz_head');
+function idemailwiz_head()
+{
 	// Preload overlay stuff so it happens fast
 	insert_overlay_loader();
 
@@ -37,23 +39,24 @@ function idemailwiz_head() {
 
 
 // Determine if a template or folder is in the current user's favorites
-function is_user_favorite( $object_id, $object_type ) {
+function is_user_favorite($object_id, $object_type)
+{
 	// Determine the meta key based on the object_type
-	$meta_key = 'idwiz_favorite_' . strtolower( $object_type ) . 's'; // either 'favorite_templates' or 'favorite_folders'
+	$meta_key = 'idwiz_favorite_' . strtolower($object_type) . 's'; // either 'favorite_templates' or 'favorite_folders'
 
-	$favorites = get_user_meta( get_current_user_id(), $meta_key, true );
+	$favorites = get_user_meta(get_current_user_id(), $meta_key, true);
 
-	if ( ! is_array( $favorites ) ) {
+	if (!is_array($favorites)) {
 		$favorites = array();
 	}
 
 	// Cast IDs in favorites to integers for consistent comparison
-	$favorites = array_map( 'intval', $favorites );
+	$favorites = array_map('intval', $favorites);
 
-	$object_id = intval( $object_id ); // Ensure object_id is an integer
+	$object_id = intval($object_id); // Ensure object_id is an integer
 
 	// Check if $object_id is in favorites
-	if ( in_array( $object_id, $favorites ) ) {
+	if (in_array($object_id, $favorites)) {
 		return true;
 	}
 
@@ -61,151 +64,160 @@ function is_user_favorite( $object_id, $object_type ) {
 }
 
 //Category page breadcrumb
-function display_folder_hierarchy() {
+function display_folder_hierarchy()
+{
 	$queried_object = get_queried_object();
 
-	if ( $queried_object instanceof WP_Term ) {
+	if ($queried_object instanceof WP_Term) {
 		// Handle term archives
 		$term_links = array();
 
-		while ( $queried_object ) {
-			if ( ! is_wp_error( $queried_object ) ) {
-				if ( $queried_object->term_id == get_queried_object_id() ) {
+		while ($queried_object) {
+			if (!is_wp_error($queried_object)) {
+				if ($queried_object->term_id == get_queried_object_id()) {
 					$term_links[] = '<span>' . $queried_object->name . '</span>';
 				} else {
-					$term_links[] = '<a href="' . get_term_link( $queried_object->term_id ) . '">' . $queried_object->name . '</a>';
+					$term_links[] = '<a href="' . get_term_link($queried_object->term_id) . '">' . $queried_object->name . '</a>';
 				}
-				$queried_object = get_term( $queried_object->parent, 'idemailwiz_folder' ); // Replace 'idemailwiz_folder' with your taxonomy slug
+				$queried_object = get_term($queried_object->parent, 'idemailwiz_folder'); // Replace 'idemailwiz_folder' with your taxonomy slug
 			} else {
 				break;
 			}
 		}
 
-		$term_links = array_reverse( $term_links );
-		echo implode( ' > ', $term_links );
-	} elseif ( $queried_object instanceof WP_Post_Type ) {
+		$term_links = array_reverse($term_links);
+		echo implode(' > ', $term_links);
+	} elseif ($queried_object instanceof WP_Post_Type) {
 		// Handle post type archives
 		echo '<span>' . $queried_object->labels->name . '</span>';
 	}
 }
 
 //Single Template breadcrumb
-function display_template_folder_hierarchy( $post_id ) {
-	$terms = get_the_terms( $post_id, 'idemailwiz_folder' ); // Replace 'idemailwiz_folder' with your taxonomy slug
-	if ( is_wp_error( $terms ) || empty( $terms ) ) {
+function display_template_folder_hierarchy($post_id)
+{
+	$terms = get_the_terms($post_id, 'idemailwiz_folder'); // Replace 'idemailwiz_folder' with your taxonomy slug
+	if (is_wp_error($terms) || empty($terms)) {
 		return;
 	}
 	$assigned_term = $terms[0];
 	$term_links = array();
 
-	while ( $assigned_term ) {
-		if ( ! is_wp_error( $assigned_term ) ) {
-			$term_links[] = '<a href="' . get_term_link( $assigned_term->term_id ) . '">' . $assigned_term->name . '</a>';
-			$assigned_term = get_term( $assigned_term->parent, 'idemailwiz_folder' ); // Replace 'idemailwiz_folder' with your taxonomy slug
+	while ($assigned_term) {
+		if (!is_wp_error($assigned_term)) {
+			$term_links[] = '<a href="' . get_term_link($assigned_term->term_id) . '">' . $assigned_term->name . '</a>';
+			$assigned_term = get_term($assigned_term->parent, 'idemailwiz_folder'); // Replace 'idemailwiz_folder' with your taxonomy slug
 		} else {
 			break;
 		}
 	}
 
-	$term_links = array_reverse( $term_links );
-	echo implode( ' > ', $term_links );
+	$term_links = array_reverse($term_links);
+	echo implode(' > ', $term_links);
 }
 
 // Generate a drop-down list of folders
-function id_generate_folders_select( $parent_id = 0, $prefix = '' ) {
+function id_generate_folders_select($parent_id = 0, $prefix = '')
+{
 	$options = '';
 
-	$folders = get_terms( array( 'taxonomy' => 'idemailwiz_folder', 'parent' => $parent_id, 'hide_empty' => false ) );
+	$folders = get_terms(array('taxonomy' => 'idemailwiz_folder', 'parent' => $parent_id, 'hide_empty' => false));
 
-	foreach ( $folders as $folder ) {
+	foreach ($folders as $folder) {
 		//skips the trash folder if it exists
-		$siteOptions = get_option( 'idemailwiz_settings' );
+		$siteOptions = get_option('idemailwiz_settings');
 		$trashTerm = (int) $siteOptions['folder_trash'];
-		if ( $folder->term_id == $trashTerm ) {
+		if ($folder->term_id == $trashTerm) {
 			continue;
 		}
 		$name = $folder->name;
 		$options .= '<option value="' . $folder->term_id . '">' . $prefix . $name . '</option>';
-		$options .= id_generate_folders_select( $folder->term_id, '&nbsp;&nbsp;' . $prefix . '-&nbsp;&nbsp;' );
+		$options .= id_generate_folders_select($folder->term_id, '&nbsp;&nbsp;' . $prefix . '-&nbsp;&nbsp;');
 	}
 
 	return $options;
 }
 
-function id_generate_folders_select_ajax() {
+function id_generate_folders_select_ajax()
+{
 	//check nonce (could be one of two files)
-	$nonceCheck = check_ajax_referer( 'folder-actions', 'security', false );
-	if ( ! $nonceCheck ) {
-		check_ajax_referer( 'template-actions', 'security' );
+	$nonceCheck = check_ajax_referer('folder-actions', 'security', false);
+	if (!$nonceCheck) {
+		check_ajax_referer('template-actions', 'security');
 	}
 
 	$options = id_generate_folders_select();
-	wp_send_json_success( array( 'options' => $options ) );
+	wp_send_json_success(array('options' => $options));
 	wp_die();
 }
 
-add_action( 'wp_ajax_id_generate_folders_select_ajax', 'id_generate_folders_select_ajax' );
+add_action('wp_ajax_id_generate_folders_select_ajax', 'id_generate_folders_select_ajax');
 
 
 // Template select2 ajax handler
-function idemailwiz_get_templates_for_select() {
-	check_ajax_referer( 'id-general', 'security' );
+function idemailwiz_get_templates_for_select()
+{
+	check_ajax_referer('id-general', 'security');
 
 	$searchTerm = $_POST['q'];
 
-	$allTemplates = get_posts( array( 'post_type' => 'idemailwiz_template', 'posts_per_page' => -1, 's' => $searchTerm ) );
+	$allTemplates = get_posts(array('post_type' => 'idemailwiz_template', 'posts_per_page' => -1, 's' => $searchTerm));
 	$data = [];
 	$cnt = 0;
-	foreach ( $allTemplates as $template ) {
-		$data[ $cnt ]['id'] = $template->ID;
-		$data[ $cnt ]['text'] = $template->post_title;
+	foreach ($allTemplates as $template) {
+		$data[$cnt]['id'] = $template->ID;
+		$data[$cnt]['text'] = $template->post_title;
 		$cnt++;
 	}
 	//error_log(print_r($data, true));
-	echo json_encode( array_values( $data ) );
+	echo json_encode(array_values($data));
 	wp_die();
 }
-add_action( 'wp_ajax_idemailwiz_get_templates_for_select', 'idemailwiz_get_templates_for_select' );
+add_action('wp_ajax_idemailwiz_get_templates_for_select', 'idemailwiz_get_templates_for_select');
 
 
 // Initiaves select2 ajax handler
 
 
-function idemailwiz_get_initiatives_for_select() {
+function idemailwiz_get_initiatives_for_select()
+{
 	// Check for nonce and security
-	if ( ! check_ajax_referer( 'initiatives', 'security', false )
-		&& ! check_ajax_referer( 'id-general', 'security', false )
-		&& ! check_ajax_referer( 'data-tables', 'security', false ) ) {
-		wp_send_json_error( array( 'message' => 'Invalid nonce' ) );
+	if (
+		!check_ajax_referer('initiatives', 'security', false)
+		&& !check_ajax_referer('id-general', 'security', false)
+		&& !check_ajax_referer('data-tables', 'security', false)
+	) {
+		wp_send_json_error(array('message' => 'Invalid nonce'));
 		return;
 	}
 
-	$searchTerm = isset( $_POST['q'] ) ? $_POST['q'] : '';
+	$searchTerm = isset($_POST['q']) ? $_POST['q'] : '';
 
 	// Fetch initiatives
-	$allInitiatives = get_posts( array(
+	$allInitiatives = get_posts(array(
 		'post_type' => 'idwiz_initiative', // Ensure this matches your actual custom post type name
 		'posts_per_page' => -1,
 		's' => $searchTerm
-	) );
+	));
 
 	// Prepare data
-	$data = array_map( function ($initiative) {
+	$data = array_map(function ($initiative) {
 		return array(
 			'id' => $initiative->ID,
 			'text' => $initiative->post_title
 		);
-	}, $allInitiatives );
+	}, $allInitiatives);
 
 	// Return JSON-encoded data
-	echo json_encode( array_values( $data ) );
+	echo json_encode(array_values($data));
 	wp_die();
 }
-add_action( 'wp_ajax_idemailwiz_get_initiatives_for_select', 'idemailwiz_get_initiatives_for_select' );
+add_action('wp_ajax_idemailwiz_get_initiatives_for_select', 'idemailwiz_get_initiatives_for_select');
 
 
 
-function idemailwiz_mergemap() {
+function idemailwiz_mergemap()
+{
 
 	$mergeMapping = array(
 		'{{{snippet "FirstName" "your child"}}}' => 'Garfield',
@@ -228,7 +240,7 @@ function idemailwiz_mergemap() {
 
 
 //Add custom meta metabox back to edit screens 	
-add_filter( 'acf/settings/remove_wp_meta_box', '__return_false' );
+add_filter('acf/settings/remove_wp_meta_box', '__return_false');
 
 
 // Extract Image URLs and alt values from a set of campaigns
@@ -275,12 +287,13 @@ function idwiz_extract_campaigns_images($campaignIds = [])
 
 
 
-add_action( 'wp_ajax_idwiz_fetch_base_templates', 'idwiz_fetch_base_templates' );
+add_action('wp_ajax_idwiz_fetch_base_templates', 'idwiz_fetch_base_templates');
 
-function idwiz_fetch_base_templates() {
+function idwiz_fetch_base_templates()
+{
 	// Verify nonce
-	if ( ! check_ajax_referer( 'id-general', 'security', false ) ) {
-		wp_send_json_error( array( 'message' => 'Nonce verification failed.' ) );
+	if (!check_ajax_referer('id-general', 'security', false)) {
+		wp_send_json_error(array('message' => 'Nonce verification failed.'));
 		return;
 	}
 
@@ -289,10 +302,10 @@ function idwiz_fetch_base_templates() {
 	$layout_html = '';
 
 	// Get the term by slug
-	$base_template_term = get_term_by( 'slug', 'base-templates', 'idemailwiz_folder' );
+	$base_template_term = get_term_by('slug', 'base-templates', 'idemailwiz_folder');
 
 	// Check if the term exists and is not an error
-	if ( $base_template_term && ! is_wp_error( $base_template_term ) ) {
+	if ($base_template_term && !is_wp_error($base_template_term)) {
 
 		// Define WP_Query arguments
 		$args = array(
@@ -307,16 +320,16 @@ function idwiz_fetch_base_templates() {
 		);
 
 		// Execute the query
-		$query = new WP_Query( $args );
+		$query = new WP_Query($args);
 
 		// Loop through the posts and construct the HTML
-		if ( $query->have_posts() ) {
-			while ( $query->have_posts() ) {
+		if ($query->have_posts()) {
+			while ($query->have_posts()) {
 				$query->the_post();
 				$post_id = get_the_ID();
 				$title = get_the_title();
-				$mockups = get_field( 'template_mock-ups', $post_id );
-				$initiative = get_field( 'base_template_for_initiative', $post_id );
+				$mockups = get_field('template_mock-ups', $post_id);
+				$initiative = get_field('base_template_for_initiative', $post_id);
 
 				$dtMockup = $mockups['mock-up-image-desktop'] ?? '';
 				$previewMockup = $dtMockup ? '<div class="create-from-template-mockup"><img src="' . $dtMockup . '"/></div>' : '';
@@ -326,7 +339,7 @@ function idwiz_fetch_base_templates() {
                                     {$previewMockup}
                                   </div>";
 
-				if ( $initiative ) {
+				if ($initiative) {
 					$initiative_html .= $template_html;
 				} else {
 					$layout_html .= $template_html;
@@ -346,29 +359,29 @@ function idwiz_fetch_base_templates() {
                    </div>';
 
 	// Send the HTML as a successful AJAX response
-	wp_send_json_success( array( 'html' => $final_html ) );
+	wp_send_json_success(array('html' => $final_html));
 }
 
 
 
 // Add or remove a favorite template or folder from a user's profile
-function add_remove_user_favorite() {
+function add_remove_user_favorite()
+{
 	//check nonce
 	if (
-		check_ajax_referer( 'template-actions', 'security', false )
-		|| check_ajax_referer( 'user-favorites', 'security', false )
-		|| check_ajax_referer( 'initiatives', 'security', false )
+		check_ajax_referer('template-actions', 'security', false)
+		|| check_ajax_referer('user-favorites', 'security', false)
+		|| check_ajax_referer('initiatives', 'security', false)
 	) {
 	} else {
-		wp_die( 'Invalid nonce' );
-	}
-	;
+		wp_die('Invalid nonce');
+	};
 
 	// Ensure object_id and object_type are set
-	$object_id = isset( $_POST['object_id'] ) ? intval( $_POST['object_id'] ) : 0;
-	$object_type = isset( $_POST['object_type'] ) ? sanitize_text_field( $_POST['object_type'] ) : '';
+	$object_id = isset($_POST['object_id']) ? intval($_POST['object_id']) : 0;
+	$object_type = isset($_POST['object_type']) ? sanitize_text_field($_POST['object_type']) : '';
 
-	if ( $object_id <= 0 || empty( $object_type ) ) {
+	if ($object_id <= 0 || empty($object_type)) {
 		wp_send_json(
 			array(
 				'success' => false,
@@ -380,11 +393,11 @@ function add_remove_user_favorite() {
 	}
 
 	// Determine the meta key based on the object_type
-	$meta_key = 'idwiz_favorite_' . strtolower( $object_type ) . 's'; // either 'idwiz_favorite_templates' or 'idwiz_favorite_folders'
+	$meta_key = 'idwiz_favorite_' . strtolower($object_type) . 's'; // either 'idwiz_favorite_templates' or 'idwiz_favorite_folders'
 
-	$favorites = get_user_meta( get_current_user_id(), $meta_key, true );
+	$favorites = get_user_meta(get_current_user_id(), $meta_key, true);
 
-	if ( ! is_array( $favorites ) ) {
+	if (!is_array($favorites)) {
 		$favorites = array();
 	}
 
@@ -392,34 +405,34 @@ function add_remove_user_favorite() {
 	$message = '';
 	$action = '';
 
-	$key = array_search( $object_id, $favorites );
-	if ( false !== $key ) {
-		unset( $favorites[ $key ] );
+	$key = array_search($object_id, $favorites);
+	if (false !== $key) {
+		unset($favorites[$key]);
 		$message = 'Favorite ' . $object_type . ' removed.';
 		$action = 'removed';
 	} else {
-		$favorites[] = intval( $object_id ); // Ensure object_id is an integer
+		$favorites[] = intval($object_id); // Ensure object_id is an integer
 		$message = 'Favorite ' . $object_type . ' added.';
 		$action = 'added';
 	}
 	$success = true;
 
-	if ( $success ) {
-		$update_status = update_user_meta( get_current_user_id(), $meta_key, $favorites );
-		if ( $update_status === false ) {
+	if ($success) {
+		$update_status = update_user_meta(get_current_user_id(), $meta_key, $favorites);
+		if ($update_status === false) {
 			$success = false;
 			$message = 'Failed to update user meta.';
 		} else {
-			$updated_favorites = get_user_meta( get_current_user_id(), $meta_key, true );
-			if ( ! is_array( $updated_favorites ) ) {
+			$updated_favorites = get_user_meta(get_current_user_id(), $meta_key, true);
+			if (!is_array($updated_favorites)) {
 				$success = false;
 				$message = 'User meta was updated but the structure is incorrect.';
 			} else {
 				// Check if the object_id was correctly added or removed
-				if ( $action === 'added' && ! in_array( $object_id, $updated_favorites ) ) {
+				if ($action === 'added' && !in_array($object_id, $updated_favorites)) {
 					$success = false;
 					$message = 'Object id was not added correctly to ' . $object_type . '.';
-				} elseif ( $action === 'removed' && in_array( $object_id, $updated_favorites ) ) {
+				} elseif ($action === 'removed' && in_array($object_id, $updated_favorites)) {
 					$success = false;
 					$message = 'Object id was not removed correctly from ' . $object_type . '.';
 				}
@@ -437,7 +450,7 @@ function add_remove_user_favorite() {
 	);
 }
 
-add_action( 'wp_ajax_add_remove_user_favorite', 'add_remove_user_favorite' );
+add_action('wp_ajax_add_remove_user_favorite', 'add_remove_user_favorite');
 
 function generate_mini_table(
 	array $headers,
@@ -445,13 +458,13 @@ function generate_mini_table(
 	string $tableClass = '',
 	string $scrollWrapClass = ''
 ) {
-	if ( empty( $data ) ) {
+	if (empty($data)) {
 		echo 'No data available';
 	} else {
 		// Table with sticky header
 		echo '<table class="wizcampaign-tiny-table ' . $tableClass . '">';
 		echo '<thead><tr>';
-		foreach ( $headers as $col => $width ) {
+		foreach ($headers as $col => $width) {
 			echo '<th width="' . $width . '">' . $col . '</th>';
 		}
 		echo '</tr></thead>';
@@ -460,12 +473,11 @@ function generate_mini_table(
 
 
 		// Table rows
-		foreach ( $data as $row ) {
+		foreach ($data as $row) {
 			echo '<tr>';
-			foreach ( $headers as $col => $width ) {
-				$value = $row[ $col ] instanceof RawHtml ? (string) $row[ $col ] : htmlspecialchars( $row[ $col ] );
+			foreach ($headers as $col => $width) {
+				$value = $row[$col] instanceof RawHtml ? (string) $row[$col] : htmlspecialchars($row[$col]);
 				echo '<td width="' . $width . '">' . $value . '</td>';
-
 			}
 			echo '</tr>';
 		}
@@ -476,112 +488,115 @@ function generate_mini_table(
 }
 
 
-function prepare_promo_code_summary_data( $purchases ) {
+function prepare_promo_code_summary_data($purchases)
+{
 	// Initialize variables and prepare data based on your existing logic for promo codes
 	$promoCounts = [];
 	$totalOrders = [];
 	$ordersWithPromo = [];
 
-	foreach ( $purchases as $purchase ) {
+	foreach ($purchases as $purchase) {
 		$promo = $purchase['shoppingCartItems_discountCode'];
 		$orderID = $purchase['id'];
 
 		// Keep track of all unique order IDs
-		$totalOrders[ $orderID ] = true;
+		$totalOrders[$orderID] = true;
 
 		// Skip blank or null promo codes
-		if ( empty( $promo ) ) {
+		if (empty($promo)) {
 			continue;
 		}
 
 		// Keep track of unique order IDs with promo codes
-		$ordersWithPromo[ $orderID ] = true;
+		$ordersWithPromo[$orderID] = true;
 
-		if ( ! isset( $promoCounts[ $promo ] ) ) {
-			$promoCounts[ $promo ] = [];
+		if (!isset($promoCounts[$promo])) {
+			$promoCounts[$promo] = [];
 		}
 
-		if ( ! isset( $promoCounts[ $promo ][ $orderID ] ) ) {
-			$promoCounts[ $promo ][ $orderID ] = 0;
+		if (!isset($promoCounts[$promo][$orderID])) {
+			$promoCounts[$promo][$orderID] = 0;
 		}
 
-		$promoCounts[ $promo ][ $orderID ] += 1;
+		$promoCounts[$promo][$orderID] += 1;
 	}
 
 	// Calculate the total number of times each promo code was used
 	$promoUseCounts = [];
-	foreach ( $promoCounts as $promo => $orders ) {
-		$promoUseCounts[ $promo ] = count( $orders );
+	foreach ($promoCounts as $promo => $orders) {
+		$promoUseCounts[$promo] = count($orders);
 	}
 
 	// Sort promo codes by usage
-	arsort( $promoUseCounts );
+	arsort($promoUseCounts);
 
 	// Calculate promo code usage statistics
-	$totalOrderCount = count( $totalOrders );
-	$ordersWithPromoCount = count( $ordersWithPromo );
-	$percentageWithPromo = ( $totalOrderCount > 0 ) ? ( $ordersWithPromoCount / $totalOrderCount ) * 100 : 0;
+	$totalOrderCount = count($totalOrders);
+	$ordersWithPromoCount = count($ordersWithPromo);
+	$percentageWithPromo = ($totalOrderCount > 0) ? ($ordersWithPromoCount / $totalOrderCount) * 100 : 0;
 
 	// Headers for the promo code table
-	$promoHeaders = [ 
+	$promoHeaders = [
 		'Promo Code' => '80%',
 		'Orders' => '20%'
 	];
 
 	$promoData = [];
-	foreach ( $promoUseCounts as $promo => $useCount ) {
-		$promoData[] = [ 
-			'Promo Code' => htmlspecialchars( $promo ),
+	foreach ($promoUseCounts as $promo => $useCount) {
+		$promoData[] = [
+			'Promo Code' => htmlspecialchars($promo),
 			'Orders' => $useCount
 		];
 	}
 
-	return [ 
+	return [
 		'ordersWithPromoCount' => $ordersWithPromoCount,
 		'totalOrderCount' => $totalOrderCount,
-		'percentageWithPromo' => number_format( $percentageWithPromo ),
+		'percentageWithPromo' => number_format($percentageWithPromo),
 		// Not rounding here
 		'promoHeaders' => $promoHeaders,
 		'promoData' => $promoData
 	];
 }
 
-function idwiz_get_orders_from_purchases( $purchases ) {
+function idwiz_get_orders_from_purchases($purchases)
+{
 	$orders = [];
-	foreach ( $purchases as $purchase ) {
-		if ( isset( $orders[ $purchase['orderId'] ] ) ) {
-			$orders[ $purchase['orderId'] ][] = $purchase;
+	foreach ($purchases as $purchase) {
+		if (isset($orders[$purchase['orderId']])) {
+			$orders[$purchase['orderId']][] = $purchase;
 		} else {
-			$orders[ $purchase['orderId'] ] = [ $purchase ];
+			$orders[$purchase['orderId']] = [$purchase];
 		}
 	}
 
 	return $orders;
 }
 
-function get_idwiz_revenue( $startDate, $endDate, $campaignTypes = [ 'Triggered', 'Blast', 'FromWorkflow' ], $wizCampaignIds = [], $useGa = false ) {
+function get_idwiz_revenue($startDate, $endDate, $campaignTypes = ['Triggered', 'Blast', 'FromWorkflow'], $wizCampaignIds = [], $useGa = false)
+{
 
-	
-	if ( ! is_array( $wizCampaignIds ) || empty( $wizCampaignIds ) ) {
-		$checkCampaignArgs = [ 'type' => $campaignTypes, 'fields' => 'id' ];
-		$wizCampaigns = get_idwiz_campaigns( $checkCampaignArgs );
-		$wizCampaignIds = array_column( $wizCampaigns, 'id' );
+
+	if (!is_array($wizCampaignIds) || empty($wizCampaignIds)) {
+		$checkCampaignArgs = ['type' => $campaignTypes, 'fields' => 'id'];
+		$wizCampaigns = get_idwiz_campaigns($checkCampaignArgs);
+		$wizCampaignIds = array_column($wizCampaigns, 'id');
 	}
 
 	$totalRevenue = 0;
 
-	if ( $useGa ) {
+	if ($useGa) {
 		$allChannelPurchases = get_idwiz_ga_data(['startDate' => $startDate, 'endDate' => $endDate, 'campaignIds' => $wizCampaignIds]);
-		$purchases = array_filter( $allChannelPurchases, fn( $purchase ) => in_array( $purchase['campaignId'], $wizCampaignIds ) );
-		if ( ! $purchases ) {
+		$purchases = array_filter($allChannelPurchases, fn ($purchase) => in_array($purchase['campaignId'], $wizCampaignIds));
+		if (!$purchases) {
 			return 0;
 		}
-		$revenue = array_sum( array_column( $purchases, 'revenue' ) );
+		$revenue = array_sum(array_column($purchases, 'revenue'));
 	} else {
-		$purchaseArgs = [ 'startAt_start' => $startDate, 'startAt_end' => $endDate, 'campaignIds' => $wizCampaignIds, 'fields' => 'id,campaignId,purchaseDate,total' ];
-		$purchases = get_idwiz_purchases( $purchaseArgs );
+		$purchaseArgs = ['startAt_start' => $startDate, 'startAt_end' => $endDate, 'campaignIds' => $wizCampaignIds, 'fields' => 'id,campaignId,purchaseDate,total'];
+		$purchases = get_idwiz_purchases($purchaseArgs);
 
-		if ( ! $purchases ) {
+		if (!$purchases) {
 			return 0;
 		}
 
@@ -590,22 +605,22 @@ function get_idwiz_revenue( $startDate, $endDate, $campaignTypes = [ 'Triggered'
 		$revenue = 0;
 		//error_log(print_r($purchases, true));
 
-		foreach ( $purchases as $purchase ) {
-			if ( in_array( $purchase['id'], $uniqueIds ) ) {
+		foreach ($purchases as $purchase) {
+			if (in_array($purchase['id'], $uniqueIds)) {
 				continue;
 			}
 
-			if ( ! isset( $purchase['campaignId'] ) ) {
+			if (!isset($purchase['campaignId'])) {
 				continue;
 			}
 
-			$wizCampaign = get_idwiz_campaign( $purchase['campaignId'] );
+			$wizCampaign = get_idwiz_campaign($purchase['campaignId']);
 
-			if ( ! $wizCampaign ) {
+			if (!$wizCampaign) {
 				continue;
 			}
 
-			if ( isset( $campaignTypes ) && ! in_array( $wizCampaign['type'], $campaignTypes ) ) {
+			if (isset($campaignTypes) && !in_array($wizCampaign['type'], $campaignTypes)) {
 				continue;
 			}
 
@@ -623,13 +638,14 @@ function get_idwiz_revenue( $startDate, $endDate, $campaignTypes = [ 'Triggered'
 
 
 
-function get_idwiz_header_tabs( $tabs, $currentActiveItem ) {
+function get_idwiz_header_tabs($tabs, $currentActiveItem)
+{
 	echo '<div id="header-tabs">';
-	foreach ( $tabs as $tab ) {
+	foreach ($tabs as $tab) {
 		$title = $tab['title'];
 		$view = $tab['view'];
-		$isActive = ( $currentActiveItem == $view ) ? 'active' : '';
-		$url = add_query_arg( [ 'view' => $view, 'wizMonth' => false, 'wizYear' => false ] );
+		$isActive = ($currentActiveItem == $view) ? 'active' : '';
+		$url = add_query_arg(['view' => $view, 'wizMonth' => false, 'wizYear' => false]);
 		echo "<a href=\"{$url}\" class=\"campaign-tab {$isActive}\">{$title}</a>";
 	}
 	echo '</div>';
@@ -638,103 +654,103 @@ function get_idwiz_header_tabs( $tabs, $currentActiveItem ) {
 
 
 
-function handle_experiment_winner_toggle() {
+function handle_experiment_winner_toggle()
+{
 
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'idemailwiz_experiments';
 
 
 	// Security checks and validation
-	if ( ! check_ajax_referer( 'wiz-metrics', 'security', false ) ) {
-		error_log( 'Nonce check failed' );
-		wp_send_json_error( 'Nonce check failed' );
+	if (!check_ajax_referer('wiz-metrics', 'security', false)) {
+		error_log('Nonce check failed');
+		wp_send_json_error('Nonce check failed');
 		return;
 	}
 
 	$action = $_POST['actionType'];
-	$templateId = intval( $_POST['templateId'] );
-	$experimentId = intval( $_POST['experimentId'] );
+	$templateId = intval($_POST['templateId']);
+	$experimentId = intval($_POST['experimentId']);
 
-	if ( ! $templateId || ! $experimentId ) {
-		error_log( 'Invalid templateId or experimentId' );
-		wp_send_json_error( 'Invalid templateId or experimentId' );
+	if (!$templateId || !$experimentId) {
+		error_log('Invalid templateId or experimentId');
+		wp_send_json_error('Invalid templateId or experimentId');
 		return;
 	}
 
-	if ( $action == 'add-winner' ) {
+	if ($action == 'add-winner') {
 
 		// Clear existing winners for the same experimentId
 		$result = $wpdb->update(
 			$table_name,
-			array( 'wizWinner' => null ),
-			array( 'experimentId' => $experimentId )
+			array('wizWinner' => null),
+			array('experimentId' => $experimentId)
 		);
 
-		if ( $result === false ) {
-			error_log( "Database error while clearing winners: " . $wpdb->last_error );
-			wp_send_json_error( "Database error while clearing winners: " . $wpdb->last_error );
+		if ($result === false) {
+			error_log("Database error while clearing winners: " . $wpdb->last_error);
+			wp_send_json_error("Database error while clearing winners: " . $wpdb->last_error);
 			return;
 		}
 
 		// Set new winner
 		$result = $wpdb->update(
 			$table_name,
-			array( 'wizWinner' => 1 ),
-			array( 'templateId' => $templateId )
+			array('wizWinner' => 1),
+			array('templateId' => $templateId)
 		);
 
-		if ( $result === false ) {
-			error_log( "Database error while setting new winner: " . $wpdb->last_error );
-			wp_send_json_error( "Database error while setting new winner: " . $wpdb->last_error );
+		if ($result === false) {
+			error_log("Database error while setting new winner: " . $wpdb->last_error);
+			wp_send_json_error("Database error while setting new winner: " . $wpdb->last_error);
 			return;
 		}
-
-	} elseif ( $action == 'remove-winner' ) {
+	} elseif ($action == 'remove-winner') {
 
 		// Remove winner
 		$result = $wpdb->update(
 			$table_name,
-			array( 'wizWinner' => null ),
-			array( 'templateId' => $templateId )
+			array('wizWinner' => null),
+			array('templateId' => $templateId)
 		);
 
-		if ( $result === false ) {
-			error_log( "Database error while removing winner: " . $wpdb->last_error );
-			wp_send_json_error( "Database error while removing winner: " . $wpdb->last_error );
+		if ($result === false) {
+			error_log("Database error while removing winner: " . $wpdb->last_error);
+			wp_send_json_error("Database error while removing winner: " . $wpdb->last_error);
 			return;
 		}
-
 	} else {
-		error_log( 'Invalid action: ' . $action );
-		wp_send_json_error( 'Invalid action' );
+		error_log('Invalid action: ' . $action);
+		wp_send_json_error('Invalid action');
 		return;
 	}
 
-	wp_send_json_success( 'Action completed successfully' );
+	wp_send_json_success('Action completed successfully');
 }
 
-add_action( 'wp_ajax_handle_experiment_winner_toggle', 'handle_experiment_winner_toggle' );
+add_action('wp_ajax_handle_experiment_winner_toggle', 'handle_experiment_winner_toggle');
 
 
 
-add_action( 'wp_ajax_save_experiment_notes', 'save_experiment_notes' );
+add_action('wp_ajax_save_experiment_notes', 'save_experiment_notes');
 
-function save_experiment_notes() {
+function save_experiment_notes()
+{
 	// Security checks and validation
-	if ( ! check_ajax_referer( 'wiz-metrics', 'security', false ) ) {
-		error_log( 'Nonce check failed' );
-		wp_send_json_error( 'Nonce check failed' );
+	if (!check_ajax_referer('wiz-metrics', 'security', false)) {
+		error_log('Nonce check failed');
+		wp_send_json_error('Nonce check failed');
 		return;
 	}
 
 	// Get the experiment notes and ID
-	$experimentId = isset( $_POST['experimentId'] ) ? sanitize_text_field( $_POST['experimentId'] ) : '';
+	$experimentId = isset($_POST['experimentId']) ? sanitize_text_field($_POST['experimentId']) : '';
 
 	$allowed_tags = array(
 		'br' => array(),
 		// Add other tags if you wish to allow them
 	);
-	$experimentNotes = isset( $_POST['experimentNotes'] ) ? wp_kses( $_POST['experimentNotes'], $allowed_tags ) : '';
+	$experimentNotes = isset($_POST['experimentNotes']) ? wp_kses($_POST['experimentNotes'], $allowed_tags) : '';
 
 	// Database update logic
 	global $wpdb;
@@ -743,24 +759,24 @@ function save_experiment_notes() {
 	// Update experimentNotes for all records with the same experiment ID
 	$result = $wpdb->update(
 		$table_name,
-		array( 'experimentNotes' => $experimentNotes ),
-		array( 'experimentId' => (int) $experimentId )
+		array('experimentNotes' => $experimentNotes),
+		array('experimentId' => (int) $experimentId)
 	);
 
-	if ( $wpdb->last_error ) {
-		error_log( "Database error: " . $wpdb->last_error );
-		wp_send_json_error( 'Database error: ' . $wpdb->last_error );
+	if ($wpdb->last_error) {
+		error_log("Database error: " . $wpdb->last_error);
+		wp_send_json_error('Database error: ' . $wpdb->last_error);
 		return;
 	}
 
-	if ( $result !== false ) {
-		if ( $result > 0 ) {
-			wp_send_json_success( 'Data saved successfully' );
+	if ($result !== false) {
+		if ($result > 0) {
+			wp_send_json_success('Data saved successfully');
 		} else {
-			wp_send_json_error( 'No data was updated, the new value may be the same as the existing value' );
+			wp_send_json_error('No data was updated, the new value may be the same as the existing value');
 		}
 	} else {
-		wp_send_json_error( 'An error occurred while updating the database' );
+		wp_send_json_error('An error occurred while updating the database');
 	}
 }
 
@@ -784,36 +800,37 @@ function generate_purchases_table_data($purchases)
 
 
 
-function transfigure_purchases_by_product( $purchases ) {
+function transfigure_purchases_by_product($purchases)
+{
 	$data = [];
 	$products = array();
 	$productRevenue = array();
 	$productTopics = array();
 
-	foreach ( $purchases as $purchase ) {
+	foreach ($purchases as $purchase) {
 		$product = $purchase['shoppingCartItems_name'];
-		
 
-		if ( ! isset( $products[ $product ] ) ) {
-			$products[ $product ] = 0;
-			$productRevenue[ $product ] = 0;
-			$productTopics[ $product ] = str_replace( ',', ', ', $purchase['shoppingCartItems_categories'] ); // Add spaces after commas
+
+		if (!isset($products[$product])) {
+			$products[$product] = 0;
+			$productRevenue[$product] = 0;
+			$productTopics[$product] = str_replace(',', ', ', $purchase['shoppingCartItems_categories']); // Add spaces after commas
 		}
 
-		$products[ $product ]++;
-		$productRevenue[ $product ] += $purchase['shoppingCartItems_price'];
+		$products[$product]++;
+		$productRevenue[$product] += $purchase['shoppingCartItems_price'];
 	}
 
 	// Sort products by the number of purchases in descending order
-	arsort( $products );
+	arsort($products);
 
 	// Prepare the data for the table
-	foreach ( $products as $productName => $purchaseCount ) {
-		$data[] = [ 
+	foreach ($products as $productName => $purchaseCount) {
+		$data[] = [
 			'Product' => $productName,
-			'Topics' => $productTopics[ $productName ],
+			'Topics' => $productTopics[$productName],
 			'Purchases' => $purchaseCount,
-			'Revenue' => '$' . number_format( $productRevenue[ $productName ], 2 ),
+			'Revenue' => '$' . number_format($productRevenue[$productName], 2),
 		];
 	}
 
@@ -882,7 +899,7 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
 	} elseif ($purchaseMode === 'allPurchasesInDate') {
 		$purchaseArgs['campaignIds'] = [];
 	}
-	
+
 	$purchases = get_idwiz_purchases($purchaseArgs);
 
 	// Initialize variables for summable metrics
@@ -1031,23 +1048,25 @@ function get_triggered_campaign_metrics($campaignIds = [], $startDate = null, $e
 }
 
 
-function parse_idwiz_metric_rate( $rate ) {
-	return floatval( str_replace( [ '%', ',', '$' ], '', $rate ) );
+function parse_idwiz_metric_rate($rate)
+{
+	return floatval(str_replace(['%', ',', '$'], '', $rate));
 }
 
-function formatRollupMetric( $value, $format, $includeDifSign = false ) {
+function formatRollupMetric($value, $format, $includeDifSign = false)
+{
 	$formattedValue = '';
-	$sign = ( $value >= 0 ) ? '+' : '-';
+	$sign = ($value >= 0) ? '+' : '-';
 
-	switch ( $format ) {
+	switch ($format) {
 		case 'money':
-			$formattedValue = ( $includeDifSign ? $sign : '' ) . '$' . number_format( abs( $value ), 0 );
+			$formattedValue = ($includeDifSign ? $sign : '') . '$' . number_format(abs($value), 0);
 			break;
 		case 'perc':
-			$formattedValue = ( $includeDifSign ? $sign : '' ) . number_format( abs( $value ), 2 ) . '%';
+			$formattedValue = ($includeDifSign ? $sign : '') . number_format(abs($value), 2) . '%';
 			break;
 		case 'num':
-			$formattedValue = ( $includeDifSign ? $sign : '' ) . number_format( abs( $value ), 0 );
+			$formattedValue = ($includeDifSign ? $sign : '') . number_format(abs($value), 0);
 			break;
 		default:
 			$formattedValue = $value;
@@ -1056,11 +1075,12 @@ function formatRollupMetric( $value, $format, $includeDifSign = false ) {
 	return $formattedValue;
 }
 
-function idemailwiz_update_user_attribution_setting() {
+function idemailwiz_update_user_attribution_setting()
+{
 
-	if ( ! check_ajax_referer( 'id-general', 'security', false ) ) {
-		error_log( 'Nonce check failed' );
-		wp_send_json_error( 'Nonce check failed' );
+	if (!check_ajax_referer('id-general', 'security', false)) {
+		error_log('Nonce check failed');
+		wp_send_json_error('Nonce check failed');
 		return;
 	}
 
@@ -1069,47 +1089,49 @@ function idemailwiz_update_user_attribution_setting() {
 
 	$currentUser = wp_get_current_user();
 	$currentUserId = $currentUser->ID;
-	if ( $field && $newValue ) {
-		$updateAttribution = update_user_meta( $currentUserId, $field, $newValue );
+	if ($field && $newValue) {
+		$updateAttribution = update_user_meta($currentUserId, $field, $newValue);
 	}
 
-	wp_send_json_success( $updateAttribution );
+	wp_send_json_success($updateAttribution);
 	wp_die();
 }
 
-add_action( 'wp_ajax_idemailwiz_update_user_attribution_setting', 'idemailwiz_update_user_attribution_setting' );
+add_action('wp_ajax_idemailwiz_update_user_attribution_setting', 'idemailwiz_update_user_attribution_setting');
 
-function idwiz_generate_dynamic_rollup() {
+function idwiz_generate_dynamic_rollup()
+{
 
 	//error_log(print_r($_POST, true));
 
-	if ( ! check_ajax_referer( 'id-general', 'security', false ) ) {
-		if ( ! check_ajax_referer( 'data-tables', 'security', false ) ) {
-			error_log( 'Nonce check failed' );
-			wp_send_json_error( 'Nonce check failed' );
+	if (!check_ajax_referer('id-general', 'security', false)) {
+		if (!check_ajax_referer('data-tables', 'security', false)) {
+			error_log('Nonce check failed');
+			wp_send_json_error('Nonce check failed');
 			return;
 		}
 	}
 
-	if ( isset( $_POST['campaignIds'] ) ) {
-		$startDate = isset( $_POST['startDate'] ) ? $_POST['startDate'] : '2021-11-01';
-		$endDate = isset( $_POST['endDate'] ) ? $_POST['endDate'] : date( 'Y-m-d' );
-		$metricRates = get_idwiz_metric_rates( $_POST['campaignIds'], $startDate, $endDate );
+	if (isset($_POST['campaignIds'])) {
+		$startDate = isset($_POST['startDate']) ? $_POST['startDate'] : '2021-11-01';
+		$endDate = isset($_POST['endDate']) ? $_POST['endDate'] : date('Y-m-d');
+		$metricRates = get_idwiz_metric_rates($_POST['campaignIds'], $startDate, $endDate);
 
-		$rollupElementId = isset( $_POST['rollupElementId'] ) ? $_POST['rollupElementId'] : '';
+		$rollupElementId = isset($_POST['rollupElementId']) ? $_POST['rollupElementId'] : '';
 
-		$include = isset( $_POST['includeMetrics'] ) ? $_POST['includeMetrics'] : [];
-		$exclude = isset( $_POST['excludeMetrics'] ) ? $_POST['excludeMetrics'] : [];
+		$include = isset($_POST['includeMetrics']) ? $_POST['includeMetrics'] : [];
+		$exclude = isset($_POST['excludeMetrics']) ? $_POST['excludeMetrics'] : [];
 
-		echo get_idwiz_rollup_row( $metricRates, $rollupElementId, $include, $exclude );
+		echo get_idwiz_rollup_row($metricRates, $rollupElementId, $include, $exclude);
 	}
 	wp_die();
 }
 
-add_action( 'wp_ajax_idwiz_generate_dynamic_rollup', 'idwiz_generate_dynamic_rollup' );
+add_action('wp_ajax_idwiz_generate_dynamic_rollup', 'idwiz_generate_dynamic_rollup');
 
 
-function get_idwiz_rollup_row( $metricRates, $elementId = '', $include = [], $exclude = [] ) {
+function get_idwiz_rollup_row($metricRates, $elementId = '', $include = [], $exclude = [])
+{
 	$defaultRollupFields = array(
 		'uniqueEmailSends' => array(
 			'label' => 'Sends',
@@ -1200,16 +1222,16 @@ function get_idwiz_rollup_row( $metricRates, $elementId = '', $include = [], $ex
 
 	$rollupFields = [];
 
-	if ( ! empty( $include ) && is_array( $include ) ) {
-		foreach ( $include as $rollupFieldKey ) {
-			if ( isset( $defaultRollupFields[ $rollupFieldKey ] ) ) {
-				$rollupFields[ $rollupFieldKey ] = $defaultRollupFields[ $rollupFieldKey ];
+	if (!empty($include) && is_array($include)) {
+		foreach ($include as $rollupFieldKey) {
+			if (isset($defaultRollupFields[$rollupFieldKey])) {
+				$rollupFields[$rollupFieldKey] = $defaultRollupFields[$rollupFieldKey];
 			}
 		}
-	} elseif ( ! empty( $exclude ) && is_array( $exclude ) ) {
-		foreach ( $defaultRollupFields as $rollupFieldKey => $rollupField ) {
-			if ( ! in_array( $rollupFieldKey, $exclude ) ) {
-				$rollupFields[ $rollupFieldKey ] = $rollupField;
+	} elseif (!empty($exclude) && is_array($exclude)) {
+		foreach ($defaultRollupFields as $rollupFieldKey => $rollupField) {
+			if (!in_array($rollupFieldKey, $exclude)) {
+				$rollupFields[$rollupFieldKey] = $rollupField;
 			}
 		}
 	} else {
@@ -1219,8 +1241,8 @@ function get_idwiz_rollup_row( $metricRates, $elementId = '', $include = [], $ex
 
 	$html = '';
 	$html .= '<div class="rollup_summary_wrapper" id="' . $elementId . '">';
-	foreach ( $rollupFields as $metric ) {
-		$formattedValue = formatRollupMetric( $metric['value'], $metric['format'] );
+	foreach ($rollupFields as $metric) {
+		$formattedValue = formatRollupMetric($metric['value'], $metric['format']);
 		$html .= '<div class="metric-item">';
 		$html .= "<span class='metric-label'>{$metric['label']}</span>";
 		$html .= "<span class='metric-value'>{$formattedValue}</span>";
@@ -1240,78 +1262,83 @@ function get_idwiz_rollup_row( $metricRates, $elementId = '', $include = [], $ex
 
 
 
-class RawHtml {
+class RawHtml
+{
 	private $html;
 
-	public function __construct( $html ) {
+	public function __construct($html)
+	{
 		$this->html = $html;
 	}
 
-	public function __toString() {
+	public function __toString()
+	{
 		return $this->html;
 	}
 }
 
 
-function group_first_and_repeat_purchases( $passedPurchases ) {
+function group_first_and_repeat_purchases($passedPurchases)
+{
 	// Get unique account numbers from passed purchases
-	$accountNumbers = array_unique( array_column( $passedPurchases, 'accountNumber' ) );
+	$accountNumbers = array_unique(array_column($passedPurchases, 'accountNumber'));
 
 	// Filter out empty, null, or zero accountNumbers
-	$accountNumbers = array_filter( $accountNumbers, function( $accountNumber ) {
-		return $accountNumber && $accountNumber !== '0';	
+	$accountNumbers = array_filter($accountNumbers, function ($accountNumber) {
+		return $accountNumber && $accountNumber !== '0';
 	});
 
 	// If empty, ensure $accountNumbers is an array
-	if ( !$accountNumbers || empty($accountNumbers)) {
+	if (!$accountNumbers || empty($accountNumbers)) {
 		return [];
 	}
 
 	// Fetch all purchases for these accounts
-	$allCustomerPurchases = get_idwiz_purchases( [ 
-		'fields' => [ 'accountNumber', 'purchaseDate' ],
+	$allCustomerPurchases = get_idwiz_purchases([
+		'fields' => ['accountNumber', 'purchaseDate'],
 		'accountNumber' => $accountNumbers
-	] );
+	]);
 
 	// Determine the first purchase date for each account
 	$firstPurchaseDateByAccount = [];
-	foreach ( $allCustomerPurchases as $purchase ) {
+	foreach ($allCustomerPurchases as $purchase) {
 		$accountId = $purchase['accountNumber'];
 		$purchaseDate = $purchase['purchaseDate'];
 
-		if ( ! isset( $firstPurchaseDateByAccount[ $accountId ] ) || $purchaseDate < $firstPurchaseDateByAccount[ $accountId ] ) {
-			$firstPurchaseDateByAccount[ $accountId ] = $purchaseDate;
+		if (!isset($firstPurchaseDateByAccount[$accountId]) || $purchaseDate < $firstPurchaseDateByAccount[$accountId]) {
+			$firstPurchaseDateByAccount[$accountId] = $purchaseDate;
 		}
 	}
 
 	// Deduplicate purchases by orderId
 	$uniqueOrders = [];
-	foreach ( $passedPurchases as $purchase ) {
-		$uniqueOrders[ $purchase['orderId'] ] = $purchase;
+	foreach ($passedPurchases as $purchase) {
+		$uniqueOrders[$purchase['orderId']] = $purchase;
 	}
 
 	// Count new and returning orders
 	$newOrdersCount = 0;
 	$returningOrdersCount = 0;
-	foreach ( $uniqueOrders as $orderId => $purchase ) {
+	foreach ($uniqueOrders as $orderId => $purchase) {
 		$accountId = $purchase['accountNumber'];
 		$purchaseDate = $purchase['purchaseDate'];
 
-		if ( isset( $firstPurchaseDateByAccount[ $accountId ] ) && $purchaseDate == $firstPurchaseDateByAccount[ $accountId ] ) {
+		if (isset($firstPurchaseDateByAccount[$accountId]) && $purchaseDate == $firstPurchaseDateByAccount[$accountId]) {
 			$newOrdersCount++;
 		} else {
 			$returningOrdersCount++;
 		}
 	}
 
-	return [ 
+	return [
 		'new' => $newOrdersCount,
 		'returning' => $returningOrdersCount
 	];
 }
 
 
-function return_new_and_returning_customers( $purchases ) {
+function return_new_and_returning_customers($purchases)
+{
 	// $results = group_first_and_repeat_purchases($purchases);
 	// return $results['counts'];
 	return;
@@ -1320,9 +1347,10 @@ function return_new_and_returning_customers( $purchases ) {
 
 
 
-function wiz_truncate_string( $string, $length ) {
-	if ( strlen( $string ) > $length ) {
-		return substr( $string, 0, $length - 3 ) . '...';
+function wiz_truncate_string($string, $length)
+{
+	if (strlen($string) > $length) {
+		return substr($string, 0, $length - 3) . '...';
 	}
 	return $string;
 }
@@ -1332,51 +1360,54 @@ function wiz_truncate_string( $string, $length ) {
 
 
 
-function wiz_notifications() {
+function wiz_notifications()
+{
 	// Insert notifications wrapper into the footer
 	echo '<div class="wizNotifs" aria-live="assertive" aria-atomic="true"></div>';
 }
-add_action( 'wp_footer', 'wiz_notifications' );
+add_action('wp_footer', 'wiz_notifications');
 
 
 
 
 
-add_filter( 'cron_schedules', 'idemailwiz_add_five_minutes_cron_schedule' );
-function idemailwiz_add_five_minutes_cron_schedule( $schedules ) {
+add_filter('cron_schedules', 'idemailwiz_add_five_minutes_cron_schedule');
+function idemailwiz_add_five_minutes_cron_schedule($schedules)
+{
 	$schedules['every_five_minutes'] = array(
 		'interval' => 5 * 60, // 5 minutes in seconds
-		'display' => esc_html__( 'Every Five Minutes' )
+		'display' => esc_html__('Every Five Minutes')
 	);
 	return $schedules;
 }
 
 
 // Schedule the event if it's not already scheduled
-if ( ! wp_next_scheduled( 'idemailwiz_custom_transient_cleanup' ) ) {
-	wp_schedule_event( time(), 'every_five_minutes', 'idemailwiz_custom_transient_cleanup' );
+if (!wp_next_scheduled('idemailwiz_custom_transient_cleanup')) {
+	wp_schedule_event(time(), 'every_five_minutes', 'idemailwiz_custom_transient_cleanup');
 }
 
 // Add the action hook
-add_action( 'idemailwiz_custom_transient_cleanup', 'delete_expired_transients' );
+add_action('idemailwiz_custom_transient_cleanup', 'delete_expired_transients');
 
 
 
-function get_course_details_by_id( $course_id ) {
+function get_course_details_by_id($course_id)
+{
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'idemailwiz_courses';
 
 	// Sanitize the course ID to prevent SQL injection
-	$course_id = sanitize_text_field( $course_id );
+	$course_id = sanitize_text_field($course_id);
 
 	// Prepare the query to get a specific course by ID
-	$query = $wpdb->prepare( "SELECT * FROM {$table_name} WHERE id = %s", $course_id );
+	$query = $wpdb->prepare("SELECT * FROM {$table_name} WHERE id = %s", $course_id);
 
 	// Execute the query
-	$course = $wpdb->get_row( $query );
+	$course = $wpdb->get_row($query);
 
-	if ( is_null( $course ) ) {
-		return new WP_Error( 'no_course', __( 'Course not found', 'text-domain' ) );
+	if (is_null($course)) {
+		return new WP_Error('no_course', __('Course not found', 'text-domain'));
 	}
 
 	return $course;
@@ -1432,12 +1463,13 @@ function id_get_courses_options_handler()
 
 
 
-add_action( 'wp_ajax_id_add_course_to_rec', 'id_add_course_to_rec_handler' );
-function id_add_course_to_rec_handler() {
+add_action('wp_ajax_id_add_course_to_rec', 'id_add_course_to_rec_handler');
+function id_add_course_to_rec_handler()
+{
 
-	if ( ! check_ajax_referer( 'id-general', 'security', false ) ) {
-		error_log( 'Nonce check failed' );
-		wp_send_json_error( 'Nonce check failed' );
+	if (!check_ajax_referer('id-general', 'security', false)) {
+		error_log('Nonce check failed');
+		wp_send_json_error('Nonce check failed');
 		return;
 	}
 
@@ -1445,8 +1477,8 @@ function id_add_course_to_rec_handler() {
 	$rec_type = isset($_POST['rec_type']) ? sanitize_text_field($_POST['rec_type']) : '';
 	$selected_course = isset($_POST['selected_course']) ? sanitize_text_field($_POST['selected_course']) : '';
 
-	if ( empty( $course_id ) || empty( $rec_type ) || empty( $selected_course ) ) {
-		wp_send_json_error( 'Missing data' );
+	if (empty($course_id) || empty($rec_type) || empty($selected_course)) {
+		wp_send_json_error('Missing data');
 		return;
 	}
 
@@ -1454,43 +1486,44 @@ function id_add_course_to_rec_handler() {
 	$table_name = $wpdb->prefix . 'idemailwiz_courses';
 
 	// Fetch the current recommendations
-	$course = $wpdb->get_row( $wpdb->prepare( "SELECT course_recs FROM {$table_name} WHERE id = %s", $course_id ) );
+	$course = $wpdb->get_row($wpdb->prepare("SELECT course_recs FROM {$table_name} WHERE id = %s", $course_id));
 
-	if ( null === $course ) {
-		wp_send_json_error( 'Course not found' );
+	if (null === $course) {
+		wp_send_json_error('Course not found');
 		return;
 	}
 
 	// Ensure $course_recs is an array
-	$course_recs = maybe_unserialize( $course->course_recs );
-	if ( ! is_array( $course_recs ) ) {
+	$course_recs = maybe_unserialize($course->course_recs);
+	if (!is_array($course_recs)) {
 		$course_recs = []; // Initialize as an empty array if it's not an array
 	}
 
 	// Check if the specific rec_type is an array, initialize if not
-	if ( ! isset( $course_recs[ $rec_type ] ) || ! is_array( $course_recs[ $rec_type ] ) ) {
-		$course_recs[ $rec_type ] = [];
+	if (!isset($course_recs[$rec_type]) || !is_array($course_recs[$rec_type])) {
+		$course_recs[$rec_type] = [];
 	}
 
 	// Add the selected course
-	$course_recs[ $rec_type ][] = $selected_course;
+	$course_recs[$rec_type][] = $selected_course;
 
 	// Update the course recommendations
-	$updated = $wpdb->update( $table_name, [ 'course_recs' => maybe_serialize( $course_recs ) ], [ 'id' => $course_id ] );
+	$updated = $wpdb->update($table_name, ['course_recs' => maybe_serialize($course_recs)], ['id' => $course_id]);
 
-	if ( false === $updated ) {
-		wp_send_json_error( 'Database update failed' );
+	if (false === $updated) {
+		wp_send_json_error('Database update failed');
 	} else {
-		wp_send_json_success( 'Course added successfully' );
+		wp_send_json_success('Course added successfully');
 	}
 }
 
-add_action( 'wp_ajax_id_remove_course_from_rec', 'id_remove_course_from_rec_handler' );
-function id_remove_course_from_rec_handler() {
+add_action('wp_ajax_id_remove_course_from_rec', 'id_remove_course_from_rec_handler');
+function id_remove_course_from_rec_handler()
+{
 	// Check nonce
-	if ( ! check_ajax_referer( 'id-general', 'security', false ) ) {
-		error_log( 'Nonce check failed' );
-		wp_send_json_error( 'Nonce check failed' );
+	if (!check_ajax_referer('id-general', 'security', false)) {
+		error_log('Nonce check failed');
+		wp_send_json_error('Nonce check failed');
 		return;
 	}
 
@@ -1502,30 +1535,31 @@ function id_remove_course_from_rec_handler() {
 	$table_name = $wpdb->prefix . 'idemailwiz_courses';
 
 	// Fetch and modify the course recommendations
-	$course = $wpdb->get_row( $wpdb->prepare( "SELECT course_recs FROM {$table_name} WHERE id = %s", $course_id ) );
-	if ( null === $course ) {
-		wp_send_json_error( 'Course not found' );
+	$course = $wpdb->get_row($wpdb->prepare("SELECT course_recs FROM {$table_name} WHERE id = %s", $course_id));
+	if (null === $course) {
+		wp_send_json_error('Course not found');
 		return;
 	}
 
-	$course_recs = maybe_unserialize( $course->course_recs );
-	if ( isset( $course_recs[ $rec_type ] ) ) {
-		$course_recs[ $rec_type ] = array_diff( $course_recs[ $rec_type ], [ $recd_course_id ] );
+	$course_recs = maybe_unserialize($course->course_recs);
+	if (isset($course_recs[$rec_type])) {
+		$course_recs[$rec_type] = array_diff($course_recs[$rec_type], [$recd_course_id]);
 	}
 
 	// Update the database
-	$updated = $wpdb->update( $table_name, [ 'course_recs' => maybe_serialize( $course_recs ) ], [ 'id' => $course_id ] );
-	if ( false === $updated ) {
-		wp_send_json_error( 'Database update failed' );
+	$updated = $wpdb->update($table_name, ['course_recs' => maybe_serialize($course_recs)], ['id' => $course_id]);
+	if (false === $updated) {
+		wp_send_json_error('Database update failed');
 	} else {
-		wp_send_json_success( 'Course removed successfully' );
+		wp_send_json_success('Course removed successfully');
 	}
 }
 
-function idemailwiz_ajax_save_item_update() {
+function idemailwiz_ajax_save_item_update()
+{
 	// Check for nonce and security
-	if ( ! check_ajax_referer( 'id-general', 'security', false ) ) {
-		wp_send_json_error( 'Invalid nonce' );
+	if (!check_ajax_referer('id-general', 'security', false)) {
+		wp_send_json_error('Invalid nonce');
 		return;
 	}
 
@@ -1536,8 +1570,8 @@ function idemailwiz_ajax_save_item_update() {
 	$updateContent = $_POST['updateContent'];
 
 	// Validate that the new title is not empty
-	if ( empty( $updateContent ) ) {
-		wp_send_json_error( 'The title/content cannot be empty' );
+	if (empty($updateContent)) {
+		wp_send_json_error('The title/content cannot be empty');
 		return;
 	}
 
@@ -1545,26 +1579,25 @@ function idemailwiz_ajax_save_item_update() {
 	$post_data = array(
 		'ID' => $itemID,
 	);
-	if ( $updateType == 'title' ) {
+	if ($updateType == 'title') {
 		$post_data['post_title'] = $updateContent;
 	}
 
-	if ( $updateType == 'content' ) {
+	if ($updateType == 'content') {
 		$post_data['post_content'] = $updateContent;
 	}
 
-	$update_status = wp_update_post( $post_data, true );
+	$update_status = wp_update_post($post_data, true);
 
 	// Check if the update was successful
-	if ( is_wp_error( $update_status ) ) {
+	if (is_wp_error($update_status)) {
 		$errors = $update_status->get_error_messages();
-		wp_send_json_error( 'Failed to update the item with ID ' . $itemID . '. Errors: ' . print_r( $errors, true ) );
+		wp_send_json_error('Failed to update the item with ID ' . $itemID . '. Errors: ' . print_r($errors, true));
 	} else {
-		wp_send_json_success( 'Item updated successfully' );
+		wp_send_json_success('Item updated successfully');
 	}
-
 }
-add_action( 'wp_ajax_idemailwiz_ajax_save_item_update', 'idemailwiz_ajax_save_item_update' );
+add_action('wp_ajax_idemailwiz_ajax_save_item_update', 'idemailwiz_ajax_save_item_update');
 
 function get_division_name($division_id)
 {
@@ -1657,7 +1690,8 @@ function updateCourseFiscalYears()
 }
 
 
-function generate_all_template_images() {
+function generate_all_template_images()
+{
 
 	global $wpdb;
 
@@ -1666,31 +1700,30 @@ function generate_all_template_images() {
 
 	);
 
-	foreach ( $templates_without_images as $template ) {
+	foreach ($templates_without_images as $template) {
 
 		$template_id = $template->templateId;
 
-		$image = idemailwiz_generate_image_from_template( $template_id );
+		$image = idemailwiz_generate_image_from_template($template_id);
 
 		$wpdb->update(
 			"{$wpdb->prefix}idemailwiz_templates",
-			[ 'templateImage' => $image ],
-			[ 'templateId' => $template_id ],
-			[ '%s' ],
-			[ '%d' ]
+			['templateImage' => $image],
+			['templateId' => $template_id],
+			['%s'],
+			['%d']
 		);
-
 	}
-
 }
 
 
 // https://hcti.io image generation
-function idemailwiz_generate_image_from_template( $templateId ) {
+function idemailwiz_generate_image_from_template($templateId)
+{
 
-	$template = get_idwiz_template( $templateId );
+	$template = get_idwiz_template($templateId);
 
-	if ( $template['messageMedium'] == 'Email' ) {
+	if ($template['messageMedium'] == 'Email') {
 		// wrap template in 800px div and limit the image generation to that div
 		$html = '<div class="toImageFrame" style="width: 800px;">';
 		$html .= $template['html'];
@@ -1700,112 +1733,113 @@ function idemailwiz_generate_image_from_template( $templateId ) {
 		$html .= '<img src="' . $template['imageUrl'] . '" style="width: 90%; display: block; margin: 0 auto 40px auto;" />';
 		$html .= '<p style="font-size: 36px; width: 90%; margin: 0 auto; padding-bottom: 40px;">' . $template['message'] . '</p>';
 		$html .= '</div>';
-
 	}
 
 
-	$data = array( 'html' => $html, 'selector' => '.toImageFrame', 'device_scale' => 1, 'format' => 'jpg' );
+	$data = array('html' => $html, 'selector' => '.toImageFrame', 'device_scale' => 1, 'format' => 'jpg');
 
 	$ch = curl_init();
 
-	curl_setopt( $ch, CURLOPT_SSL_VERIFYPEER, 0 );
+	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
 
-	curl_setopt( $ch, CURLOPT_URL, "https://hcti.io/v1/image" );
-	curl_setopt( $ch, CURLOPT_RETURNTRANSFER, 1 );
+	curl_setopt($ch, CURLOPT_URL, "https://hcti.io/v1/image");
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 
-	curl_setopt( $ch, CURLOPT_POSTFIELDS, http_build_query( $data ) );
+	curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
 
-	curl_setopt( $ch, CURLOPT_POST, 1 );
+	curl_setopt($ch, CURLOPT_POST, 1);
 	// Retrieve your user_id and api_key from https://htmlcsstoimage.com/dashboard
-	curl_setopt( $ch, CURLOPT_USERPWD, "a69a8a1d-ac76-4b76-a980-0459175c366a" . ":" . "80c47e1e-ec29-4d9b-8d43-9be67166f465" );
+	curl_setopt($ch, CURLOPT_USERPWD, "a69a8a1d-ac76-4b76-a980-0459175c366a" . ":" . "80c47e1e-ec29-4d9b-8d43-9be67166f465");
 
 	$headers = array();
 	$headers[] = "Content-Type: application/x-www-form-urlencoded";
-	curl_setopt( $ch, CURLOPT_HTTPHEADER, $headers );
+	curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
-	$result = curl_exec( $ch );
-	if ( curl_errno( $ch ) ) {
-		echo 'Error:' . curl_error( $ch );
+	$result = curl_exec($ch);
+	if (curl_errno($ch)) {
+		echo 'Error:' . curl_error($ch);
 	}
-	curl_close( $ch );
-	$res = json_decode( $result, true );
+	curl_close($ch);
+	$res = json_decode($result, true);
 
-	if ( isset( $res['url'] ) ) {
+	if (isset($res['url'])) {
 		return $res['url'];
 	} else {
 		return NULL;
 	}
-
 }
 
 
-add_action( 'wp_ajax_regenerate_template_preview', 'regenerate_template_preview_handler' );
+add_action('wp_ajax_regenerate_template_preview', 'regenerate_template_preview_handler');
 
-function regenerate_template_preview_handler() {
+function regenerate_template_preview_handler()
+{
 	global $wpdb; // Make sure to include global $wpdb
-	check_ajax_referer( 'id-general', 'security' ); // Check nonce for security
+	check_ajax_referer('id-general', 'security'); // Check nonce for security
 
-	$templateIds = isset( $_POST['templateIds'] ) ? $_POST['templateIds'] : array();
+	$templateIds = isset($_POST['templateIds']) ? $_POST['templateIds'] : array();
 	$imageUrls = array();
-	if ( empty( $templateIds ) ) {
-		wp_send_json_error( 'No template IDs provided' );
+	if (empty($templateIds)) {
+		wp_send_json_error('No template IDs provided');
 	}
-	foreach ( $templateIds as $templateId ) {
-		$image = idemailwiz_generate_image_from_template( $templateId );
-		if ( $image ) {
+	foreach ($templateIds as $templateId) {
+		$image = idemailwiz_generate_image_from_template($templateId);
+		if ($image) {
 			// Update the database with the new image URL
 			$wpdb->update(
 				"{$wpdb->prefix}idemailwiz_templates",
-				[ 'templateImage' => $image ], // New image URL
-				[ 'templateId' => $templateId ], // Where condition
-				[ '%s' ], // Format of the new value
-				[ '%d' ]  // Format of the where condition
+				['templateImage' => $image], // New image URL
+				['templateId' => $templateId], // Where condition
+				['%s'], // Format of the new value
+				['%d']  // Format of the where condition
 			);
-			$imageUrls[ $templateId ] = $image;
+			$imageUrls[$templateId] = $image;
 		}
 	}
 
-	wp_send_json_success( $imageUrls ); // Send back the array of URLs
+	wp_send_json_success($imageUrls); // Send back the array of URLs
 }
 
 
 
 
-function get_template_preview( $template ) {
+function get_template_preview($template)
+{
 	ob_start();
-	?>
+?>
 	<div class="template-image-wrapper" data-templateid="<?php echo $template['templateId']; ?>">
 		<div class='wiztemplate-image-spinner hide'><i class='fa-solid fa-spin fa-spinner fa-3x'></i></div>
 		<?php
-		if ( $template['templateImage'] ) {
-			$imageSize = @getimagesize( $template['templateImage'] );
+		if (isset($template['templateImage'])) {
+			$imageSize = @getimagesize($template['templateImage']);
 
-			if ( $imageSize !== false ) { ?>
-				<img src=<?php echo $template['templateImage']; ?> />
-			<?php } else {
+			if ($imageSize !== false) { ?>
+				<img src="<?php echo $template['templateImage']; ?>" />
+	<?php } else {
 				echo '<div class="template-preview-missing-message"><em>Template preview image missing or invalid. Click below to regenerate.</em><br/><br/>';
 				echo '<button title="Regenerate Preview" class="wiz-button green regenerate-template-preview"
-              data-templateid="' . $template['templateId'] . '"><i
-                  class="fa-solid fa-arrows-rotate"></i>&nbsp;Regenerate Preview</button></div>';
+			data-templateid="' . $template['templateId'] . '"><i
+				class="fa-solid fa-arrows-rotate"></i>&nbsp;Regenerate Preview</button></div>';
 			}
 		} else {
 			echo '<div class="template-preview-missing-message"><em>No template preview available.<br/><br/></em>';
 			echo '<button title="Generate Template Preview" class="wiz-button green regenerate-template-preview"
-          data-templateid="' . $template['templateId'] . '"><i
-              class="fa-solid fa-arrows-rotate"></i>&nbsp;Generate Preview</button></div>';
-
-		} ?>
+		data-templateid="' . $template['templateId'] . '"><i
+			class="fa-solid fa-arrows-rotate"></i>&nbsp;Generate Preview</button></div>';
+		}
+		?>
 
 	</div>
-	<?php
+<?php
 	return ob_get_clean();
 }
 
-function idemailwiz_get_campaigns_for_select() {
+function idemailwiz_get_campaigns_for_select()
+{
 	// Check for nonce and security
-	if ( ! check_ajax_referer( 'initiatives', 'security', false ) ) {
-		if ( ! check_ajax_referer( 'id-general', 'security', false ) ) {
-			wp_send_json_error( array( 'message' => 'Invalid nonce' ) );
+	if (!check_ajax_referer('initiatives', 'security', false)) {
+		if (!check_ajax_referer('id-general', 'security', false)) {
+			wp_send_json_error(array('message' => 'Invalid nonce'));
 			return;
 		}
 	}
@@ -1815,41 +1849,42 @@ function idemailwiz_get_campaigns_for_select() {
 		'sort' => 'DESC',
 	);
 
-	if ( isset( $_POST['type'] ) ) {
+	if (isset($_POST['type'])) {
 		$campaignArgs['type'] = $_POST['type'];
 	}
 
-	$all_campaigns = get_idwiz_campaigns( $campaignArgs );
-	$search = isset( $_POST['q'] ) ? $_POST['q'] : '';
-	$exclude_ids = isset( $_POST['exclude'] ) ? $_POST['exclude'] : array(); // Get the exclude parameter
+	$all_campaigns = get_idwiz_campaigns($campaignArgs);
+	$search = isset($_POST['q']) ? $_POST['q'] : '';
+	$exclude_ids = isset($_POST['exclude']) ? $_POST['exclude'] : array(); // Get the exclude parameter
 
-	$filtered_campaigns = array_filter( $all_campaigns, function ($campaign) use ($search, $exclude_ids) {
-		return ( $search === '' || strpos( strtolower( trim( $campaign['name'] ) ), strtolower( trim( $search ) ) ) !== false )
-			&& ! in_array( $campaign['id'], $exclude_ids ); // Exclude campaigns with specified IDs
-	} );
+	$filtered_campaigns = array_filter($all_campaigns, function ($campaign) use ($search, $exclude_ids) {
+		return ($search === '' || strpos(strtolower(trim($campaign['name'])), strtolower(trim($search))) !== false)
+			&& !in_array($campaign['id'], $exclude_ids); // Exclude campaigns with specified IDs
+	});
 
 
-	$data = array_map( function ($campaign) {
-		return array( 'id' => $campaign['id'], 'text' => $campaign['name'] );
-	}, $filtered_campaigns );
+	$data = array_map(function ($campaign) {
+		return array('id' => $campaign['id'], 'text' => $campaign['name']);
+	}, $filtered_campaigns);
 
-	echo json_encode( array_values( $data ) );
+	echo json_encode(array_values($data));
 	wp_die();
 }
-add_action( 'wp_ajax_idemailwiz_get_campaigns_for_select', 'idemailwiz_get_campaigns_for_select' );
+add_action('wp_ajax_idemailwiz_get_campaigns_for_select', 'idemailwiz_get_campaigns_for_select');
 
 
-function update_connected_campaigns( $campaignId, $campaignToConnectIds, $action = 'add' ) {
+function update_connected_campaigns($campaignId, $campaignToConnectIds, $action = 'add')
+{
 	global $wpdb;
 	$databaseName = $wpdb->prefix . 'idemailwiz_campaigns';
 
 	// Ensure $campaignToConnectIds is an array
-	$campaignToConnectIds = is_array( $campaignToConnectIds ) ? $campaignToConnectIds : array( $campaignToConnectIds );
+	$campaignToConnectIds = is_array($campaignToConnectIds) ? $campaignToConnectIds : array($campaignToConnectIds);
 
 	// Combine the campaignId and campaignToConnectIds into a single array
-	$allCampaignIds = array_unique( array_merge( array( $campaignId ), $campaignToConnectIds ) );
+	$allCampaignIds = array_unique(array_merge(array($campaignId), $campaignToConnectIds));
 
-	foreach ( $allCampaignIds as $currentCampaignId ) {
+	foreach ($allCampaignIds as $currentCampaignId) {
 		// Retrieve the existing connected campaigns for the current campaignId
 		$existingConnectedCampaigns = $wpdb->get_var(
 			$wpdb->prepare(
@@ -1859,32 +1894,32 @@ function update_connected_campaigns( $campaignId, $campaignToConnectIds, $action
 		);
 
 		// Unserialize the existing connected campaigns array
-		$connectedCampaigns = $existingConnectedCampaigns ? maybe_unserialize( $existingConnectedCampaigns ) : array();
+		$connectedCampaigns = $existingConnectedCampaigns ? maybe_unserialize($existingConnectedCampaigns) : array();
 
-		if ( $action === 'add' ) {
+		if ($action === 'add') {
 			// Add the other campaign IDs to the connected campaigns array
-			$connectedCampaigns = array_unique( array_merge( $connectedCampaigns, array_diff( $allCampaignIds, array( $currentCampaignId ) ) ) );
-		} elseif ( $action === 'remove' ) {
+			$connectedCampaigns = array_unique(array_merge($connectedCampaigns, array_diff($allCampaignIds, array($currentCampaignId))));
+		} elseif ($action === 'remove') {
 			// Remove the other campaign IDs from the connected campaigns array
-			$connectedCampaigns = array_diff( $connectedCampaigns, array_diff( $allCampaignIds, array( $currentCampaignId ) ) );
+			$connectedCampaigns = array_diff($connectedCampaigns, array_diff($allCampaignIds, array($currentCampaignId)));
 		}
 
 		// Serialize the updated connected campaigns array
-		$serializedConnectedCampaigns = maybe_serialize( $connectedCampaigns );
+		$serializedConnectedCampaigns = maybe_serialize($connectedCampaigns);
 
 		// Update the connectedCampaigns column in the database for the current campaignId
 		$result = $wpdb->update(
 			$databaseName,
-			array( 'connectedCampaigns' => $serializedConnectedCampaigns ),
-			array( 'id' => $currentCampaignId ),
-			array( '%s' ),
-			array( '%d' )
+			array('connectedCampaigns' => $serializedConnectedCampaigns),
+			array('id' => $currentCampaignId),
+			array('%s'),
+			array('%d')
 		);
 
 		// Check if the update was successful
-		if ( $result === false ) {
+		if ($result === false) {
 			// Log the error
-			error_log( "Failed to update connected campaigns for campaign ID: $currentCampaignId. Error: " . $wpdb->last_error );
+			error_log("Failed to update connected campaigns for campaign ID: $currentCampaignId. Error: " . $wpdb->last_error);
 			return false;
 		}
 	}
@@ -1892,24 +1927,25 @@ function update_connected_campaigns( $campaignId, $campaignToConnectIds, $action
 	return true;
 }
 
-function idemailwiz_connect_campaigns_ajax_handler() {
+function idemailwiz_connect_campaigns_ajax_handler()
+{
 	// Check nonce for security
-	check_ajax_referer( 'id-general', 'security' );
+	check_ajax_referer('id-general', 'security');
 
 	// Get the campaign IDs and connect_action from the AJAX request
-	$campaignId = intval( $_POST['campaign_id'] );
-	$campaignToConnectIds = isset( $_POST['campaign_to_connect_ids'] ) ? $_POST['campaign_to_connect_ids'] : array();
-	$action = sanitize_text_field( $_POST['connect_action'] );
+	$campaignId = intval($_POST['campaign_id']);
+	$campaignToConnectIds = isset($_POST['campaign_to_connect_ids']) ? $_POST['campaign_to_connect_ids'] : array();
+	$action = sanitize_text_field($_POST['connect_action']);
 
 	// Call the utility function to update the connected campaigns
-	$success = update_connected_campaigns( $campaignId, $campaignToConnectIds, $action );
+	$success = update_connected_campaigns($campaignId, $campaignToConnectIds, $action);
 
-	if ( $success ) {
+	if ($success) {
 		// Return a success response
-		wp_send_json_success( 'Connected campaigns updated successfully.' );
+		wp_send_json_success('Connected campaigns updated successfully.');
 	} else {
 		// Return an error response
-		wp_send_json_error( 'Failed to update connected campaigns.' );
+		wp_send_json_error('Failed to update connected campaigns.');
 	}
 }
-add_action( 'wp_ajax_idemailwiz_connect_campaigns', 'idemailwiz_connect_campaigns_ajax_handler' );
+add_action('wp_ajax_idemailwiz_connect_campaigns', 'idemailwiz_connect_campaigns_ajax_handler');
