@@ -238,10 +238,9 @@ $linkedExperimentIds = array_map(function ($id) {
 	<div class="entry-content" itemprop="mainContentOfPage">
 
 		<?php if ($campaign['type'] == 'Triggered') {
-			//include plugin_dir_path(__FILE__) . 'parts/dashboard-date-buttons.php'; 
-			include plugin_dir_path(__FILE__) . 'parts/dashboard-date-pickers.php';
-		} else {
-		}
+				//include plugin_dir_path(__FILE__) . 'parts/dashboard-date-buttons.php'; 
+				include plugin_dir_path(__FILE__) . 'parts/dashboard-date-pickers.php';
+			}
 		?>
 
 		<?php
@@ -250,7 +249,6 @@ $linkedExperimentIds = array_map(function ($id) {
 		} else {
 			$metricRates = get_idwiz_metric_rates([$campaign['id']], $startDate, $endDate, [$campaign['type']], 'campaignsInDate');
 		}
-		//print_r($metricRates);
 		echo get_idwiz_rollup_row($metricRates);
 		?>
 		<div>
