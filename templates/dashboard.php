@@ -123,11 +123,12 @@ foreach ($allPurchases as $purchase) {
 ?>
 <article id="post-<?php the_ID(); ?>" <?php post_class('wiz_dashboard'); ?>>
     <header class="wizHeader">
+        <h1 class="wizEntry-title" itemprop="name">
+            Dashboard
+        </h1>
         <div class="wizHeaderInnerWrap">
             <div class="wizHeader-left">
-                <h1 class="wizEntry-title" itemprop="name">
-                    Dashboard
-                </h1>
+
 
                 <?php
                 // $currentView = $_GET['view'] ?? 'Month';

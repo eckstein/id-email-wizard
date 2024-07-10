@@ -137,64 +137,64 @@ $linkedExperimentIds = array_map(function ($id) {
 
 				<div class="wizEntry-meta">
 
-					
-						<?php echo $campaign['type']; ?> <?php echo $campaign['messageMedium']; ?> Campaign <a href="https://app.iterable.com/campaigns/<?php echo $campaign['id']; ?>?view=summary">
-							<?php echo $campaign['id']; ?></a> <?php if ($campaign['workflowId']) { ?>within Workflow <a href="https://app.iterable.com/workflows/<?php echo $campaign['workflowId']; ?>/edit"><?php echo $campaign['workflowId']; ?></a><?php } ?>
 
-					<?php if ($experimentIds) {
-						echo '&nbsp;with Experiment ' . implode(', ', $linkedExperimentIds) . '</a>';
-					} ?>
-					
-					&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
-					<?php
-					if (!empty($connectedCampaignIds)) {
-						$campaignNames = [];
-						foreach ($connectedCampaigns as $connectedCampaign) {
-							$campaignNames[$connectedCampaign['id']] = $connectedCampaign['name'];
-						}
+					<?php echo $campaign['type']; ?> <?php echo $campaign['messageMedium']; ?> Campaign <a href="https://app.iterable.com/campaigns/<?php echo $campaign['id']; ?>?view=summary">
+						<?php echo $campaign['id']; ?></a> <?php if ($campaign['workflowId']) { ?>within Workflow <a href="https://app.iterable.com/workflows/<?php echo $campaign['workflowId']; ?>/edit"><?php echo $campaign['workflowId']; ?></a><?php } ?>
 
-						$campaignIdList = array_map(function ($id) use ($campaignNames) {
-							$name = isset($campaignNames[$id]) ? htmlspecialchars($campaignNames[$id]) : '';
-							return '<span class="connected-campaign-bubble"><a href="' . get_bloginfo('url') . '/metrics/campaign?id=' . urlencode($id) . '" title="' . $name . '">' . htmlspecialchars($id) . '</a><i class="fa-solid fa-xmark disconnect-campaign" data-remove-from="' . intval($_GET['id']) . '" data-campaignid="' . $id . '"></i></span>';
-						}, $connectedCampaignIds);
+				<?php if ($experimentIds) {
+					echo '&nbsp;with Experiment ' . implode(', ', $linkedExperimentIds) . '</a>';
+				} ?>
 
-
-					?>
-						<span class="connected-campaigns">Connected to:
-							<?php echo implode(' ', $campaignIdList); ?></span>
-					<?php } ?>
-					<a href="#" class="connect-campaigns" data-campaignid="<?php echo $campaign['id']; ?>">Connect
-						campaigns</a>
-
-					<br />
-					<?php if ($campaign['type'] == 'Triggered') {
-						echo 'Last ';
-					} ?>Sent on
-					<?php echo $campaignStartAt; ?>
-					<?php
-					if ($campaignStartAt != $campaignEndDateTime && $campaign['type'] == 'Blast') {
-						echo "— $campaignEndedAt";
+				&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
+				<?php
+				if (!empty($connectedCampaignIds)) {
+					$campaignNames = [];
+					foreach ($connectedCampaigns as $connectedCampaign) {
+						$campaignNames[$connectedCampaign['id']] = $connectedCampaign['name'];
 					}
-					echo '&nbsp;' . $sendsTimezone;
-					?>
+
+					$campaignIdList = array_map(function ($id) use ($campaignNames) {
+						$name = isset($campaignNames[$id]) ? htmlspecialchars($campaignNames[$id]) : '';
+						return '<span class="connected-campaign-bubble"><a href="' . get_bloginfo('url') . '/metrics/campaign?id=' . urlencode($id) . '" title="' . $name . '">' . htmlspecialchars($id) . '</a><i class="fa-solid fa-xmark disconnect-campaign" data-remove-from="' . intval($_GET['id']) . '" data-campaignid="' . $id . '"></i></span>';
+					}, $connectedCampaignIds);
+
+
+				?>
+					<span class="connected-campaigns">Connected to:
+						<?php echo implode(' ', $campaignIdList); ?></span>
+				<?php } ?>
+				<a href="#" class="connect-campaigns" data-campaignid="<?php echo $campaign['id']; ?>">Connect
+					campaigns</a>
+
+				<br />
+				<?php if ($campaign['type'] == 'Triggered') {
+					echo 'Last ';
+				} ?>Sent on
+				<?php echo $campaignStartAt; ?>
+				<?php
+				if ($campaignStartAt != $campaignEndDateTime && $campaign['type'] == 'Blast') {
+					echo "— $campaignEndedAt";
+				}
+				echo '&nbsp;' . $sendsTimezone;
+				?>
 
 
 
 
-					<?php
-					if (isset($template['clientTemplateId'])) { ?>
-						&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
-						<?php echo 'Wiz Template: <a href="' . get_bloginfo('url') . '?p=' . $template['clientTemplateId'] . '">' . $template['clientTemplateId'] . '</a>'; ?>
-					<?php } ?>
+				<?php
+				if (isset($template['clientTemplateId'])) { ?>
 					&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
-					<?php echo 'Campaign state: ' . $campaignState; ?>
-					<br/>
-					<?php 
-					$campaignLabels = unserialize($campaign['labels']) ?? [];
-					if ($campaignLabels) {
-						echo 'Cohorts: ' . implode(', ', $campaignLabels);
-					}
-?>
+					<?php echo 'Wiz Template: <a href="' . get_bloginfo('url') . '?p=' . $template['clientTemplateId'] . '">' . $template['clientTemplateId'] . '</a>'; ?>
+				<?php } ?>
+				&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
+				<?php echo 'Campaign state: ' . $campaignState; ?>
+				<br />
+				<?php
+				$campaignLabels = unserialize($campaign['labels']) ?? [];
+				if ($campaignLabels) {
+					echo 'Cohorts: ' . implode(', ', $campaignLabels);
+				}
+				?>
 				</div>
 
 				<?php generate_initiative_flags($campaign['id']); ?>
@@ -207,7 +207,8 @@ $linkedExperimentIds = array_map(function ($id) {
 
 
 					<button class="wiz-button green sync-single-triggered" data-campaignId="<?php echo $campaign['id']; ?>" data-start-date="<?php echo $startDate; ?>" data-end-date="<?php echo $endDate; ?>"><i class="fa-solid fa-arrows-rotate"></i>&nbsp;&nbsp;Sync Engagement Data</button>
-
+					<a href="<?php echo get_bloginfo('url') . '/sync-station'; ?>" class="wiz-button gray" id="viewSyncStation" title="View sync log">
+						<i class="fa-regular fa-rectangle-list"></i></a>
 
 					<?php include plugin_dir_path(__FILE__) . 'parts/module-user-settings-form.php'; ?>
 				</div>
@@ -238,9 +239,9 @@ $linkedExperimentIds = array_map(function ($id) {
 	<div class="entry-content" itemprop="mainContentOfPage">
 
 		<?php if ($campaign['type'] == 'Triggered') {
-				//include plugin_dir_path(__FILE__) . 'parts/dashboard-date-buttons.php'; 
-				include plugin_dir_path(__FILE__) . 'parts/dashboard-date-pickers.php';
-			}
+			//include plugin_dir_path(__FILE__) . 'parts/dashboard-date-buttons.php'; 
+			include plugin_dir_path(__FILE__) . 'parts/dashboard-date-pickers.php';
+		}
 		?>
 
 		<?php
@@ -338,7 +339,7 @@ $linkedExperimentIds = array_map(function ($id) {
 						</div>
 						<div class="wizcampaign-section-tabs-pane" id="campaign-byDate-tabs">
 							<?php
-							// For blast campaigns, lock the endDate to 30 days after the startDate
+							// For blast campaigns, lock the endDate to 7 days after the startDate
 							if ($campaign['type'] == 'Blast') {
 								$chartEndDate = date('Y-m-d', strtotime($startDate . '+ 7 days'));
 							}

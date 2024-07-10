@@ -18,6 +18,7 @@ function idwiz_catch_chart_request()
         // If it's valid JSON, use the decoded value; otherwise, sanitize as a string
         $chartOptions[$key] = (json_last_error() == JSON_ERROR_NONE) ? $decoded : sanitize_text_field($value);
     }
+    
     // Route to handler function based on chartId
     switch ($chartOptions['chartId']) {
 
@@ -29,7 +30,7 @@ function idwiz_catch_chart_request()
             break;
 
         case 'sendsByDate':
-        case 'openedByDate':
+            //case 'openedByDate':
         case 'opensByDate':
         case 'clicksByDate':
             $chartData = idwiz_get_eventBydate_chartdata($chartOptions);
@@ -57,10 +58,10 @@ function idwiz_catch_chart_request()
         case 'unsubRateByCampaign':
             $chartData = idwiz_get_byCampaign_chartdata($chartOptions);
             break;
-        
-        // case 'sendCountsByDate':
-        //     $chartData = idwiz_get_sendsByWeek_chartdata($chartOptions);
-        //     break;
+
+            // case 'sendCountsByDate':
+            //     $chartData = idwiz_get_sendsByWeek_chartdata($chartOptions);
+            //     break;
 
         default:
             wp_send_json_error(['message' => 'Chart ID is not recognized!']);
@@ -73,14 +74,12 @@ function idwiz_catch_chart_request()
     } else {
         wp_send_json_success($chartData);
     }
-
 }
 
 
 
 function idwiz_get_report_chartdata($chartOptions)
 {
-
     global $wpdb;
 
     $chartId = $chartOptions['chartId'];
@@ -89,24 +88,32 @@ function idwiz_get_report_chartdata($chartOptions)
             $dbMetric = 'wizOpenRate';
             $minMetric = $chartOptions['minMetric'] ?? 0;
             $maxMetric = $chartOptions['maxMetric'] ?? 100;
+
+            $maxYValue = $chartOptions['maxY'] ?? 100;
             break;
 
         case 'ctrReport':
             $dbMetric = 'wizCtr';
-            $minMetric = $chartOptions['minMetric'] * .01 ?? 0;
-            $maxMetric = $chartOptions['maxMetric'] * .01 ?? 1;
+            $minMetric = isset($chartOptions['minMetric']) ? $chartOptions['minMetric'] * .01 : 0;
+            $maxMetric = isset($chartOptions['maxMetric']) ? $chartOptions['maxMetric'] * .01 : 5;
+
+            $maxYValue = $chartOptions['maxY'] ?? 5;
             break;
 
         case 'ctoReport':
             $dbMetric = 'wizCto';
-            $minMetric = $chartOptions['minMetric'] * .01 ?? 0;
-            $maxMetric = $chartOptions['maxMetric'] * .01 ?? 1;
+            $minMetric = isset($chartOptions['minMetric']) ? $chartOptions['minMetric'] * .01 : 0;
+            $maxMetric = isset($chartOptions['maxMetric']) ? $chartOptions['maxMetric'] * .01 : 5;
+
+            $maxYValue = $chartOptions['maxY'] ?? 5;
             break;
 
         case 'retentionReport':
             $dbMetric = 'wizUnsubRate';
             $minMetric = $chartOptions['minMetric'] ?? 0;
-            $maxMetric = $chartOptions['maxMetric'] ?? 1;
+            $maxMetric = $chartOptions['maxMetric'] ?? 100;
+
+            $maxYValue = $chartOptions['maxY'] ?? 5;
             break;
     }
 
@@ -115,7 +122,12 @@ function idwiz_get_report_chartdata($chartOptions)
     $minSends = $chartOptions['minSends'] ?? 1000;
     $maxSends = $chartOptions['maxSends'] ?? 500000;
 
+    $cohorts = $chartOptions['cohorts'] ?? false;
 
+    // Ensure $cohorts is always an array:
+    if ($cohorts && !is_array($cohorts)) {
+        $cohorts = [$cohorts];
+    }   
 
     $startDate = $chartOptions['startDate'] ?? false;
     $endDate = $chartOptions['endDate'] ?? false;
@@ -130,23 +142,43 @@ function idwiz_get_report_chartdata($chartOptions)
 
     $campaigns = get_idwiz_campaigns($campaignArgs);
 
+    // Get campaigns from previous year
+    $prevCampaignArgs = $campaignArgs;
+    $prevCampaignArgs['startAt_start'] = date('Y-m-d', strtotime('-1 year', strtotime($startDate)));
+    $prevCampaignArgs['startAt_end'] = date('Y-m-d', strtotime('-1 year', strtotime($endDate)));
+
+    $prevCampaigns = get_idwiz_campaigns($prevCampaignArgs);
+
     $labels = [];
-    $data = [];
+    $currentYearData = [];
+    $prevYearData = [];
     $toolTip = [];
 
-    foreach ($campaigns as $campaign) {
-        $campaignMetrics = get_idwiz_metric($campaign['id']);
+    
 
-        if ($campaignMetrics['uniqueEmailSends'] >= $minSends && $campaignMetrics['uniqueEmailSends'] <= $maxSends && $campaignMetrics[$dbMetric] > 0 && $campaignMetrics[$dbMetric] >= $minMetric && $campaignMetrics[$dbMetric] <= $maxMetric) {
-            $campaignNameTrunc = wiz_truncate_string($campaign['name'], 50);
-            $campaignStartStamp = (int)($campaign['startAt'] / 1000);
-            $labels[] = date('m/d/Y', $campaignStartStamp);
-            $toolTip[] = [
-                date('D, M d, Y', $campaign['startAt'] / 1000),
-                $campaignNameTrunc
-            ];
-            $data[] = $campaignMetrics[$dbMetric];
-        }
+    // Process current year campaigns
+    $currentYearResult = processCampaigns($campaigns, $dbMetric, $minSends, $maxSends, $minMetric, $maxMetric, $cohorts);
+    $currentYearData = $currentYearResult['data'];
+    $currentYearTooltips = $currentYearResult['tooltips'];
+
+    // Process previous year campaigns
+    $prevYearResult = processCampaigns($prevCampaigns, $dbMetric, $minSends, $maxSends, $minMetric, $maxMetric, $cohorts);
+    $prevYearData = $prevYearResult['data'];
+    $prevYearTooltips = $prevYearResult['tooltips'];
+
+    // Combine labels from both years
+    $allDates = array_unique(array_merge(array_keys($currentYearData), array_keys($prevYearData)));
+    sort($allDates);
+
+    // Prepare final datasets
+    $labels = [];
+    $currentYearFinalData = [];
+    $prevYearFinalData = [];
+
+    foreach ($allDates as $date) {
+        $labels[] = $date;
+        $currentYearFinalData[] = isset($currentYearData[$date]) ? $currentYearData[$date] : null;
+        $prevYearFinalData[] = isset($prevYearData[$date]) ? $prevYearData[$date] : null;
     }
 
     // Structuring data for a line chart
@@ -154,20 +186,24 @@ function idwiz_get_report_chartdata($chartOptions)
         'type' => $chartType,
         'data' => [
             'labels' => $labels,
-            'tooltipLabels' => $toolTip,
-            // send the tooltip labels as a separate key
             'datasets' => [
                 [
-                    'label' => $dbMetric,
-                    'data' => $data,
+                    'label' => $dbMetric . ' (Current Year)',
+                    'data' => $currentYearFinalData,
                     'yAxisID' => 'y-axis-1',
-                    'trendlineLinear' => [
-                        'colorMin' => "red",
-                        'colorMax' => "green",
-                        'lineStyle' => "dotted",
-                        'width' => 2,
-                        'projection' => false
-                    ]
+                    'borderColor' => 'rgba(75, 192, 192, 1)',
+                    'backgroundColor' => 'rgba(75, 192, 192, 0.2)',
+                    'fill' => false,
+                    'spanGaps' => true
+                ],
+                [
+                    'label' => $dbMetric . ' (Previous Year)',
+                    'data' => $prevYearFinalData,
+                    'yAxisID' => 'y-axis-1',
+                    'borderColor' => 'rgba(255, 99, 132, 1)',
+                    'backgroundColor' => 'rgba(255, 99, 132, 0.2)',
+                    'fill' => false,
+                    'spanGaps' => true
                 ]
             ]
         ],
@@ -179,14 +215,32 @@ function idwiz_get_report_chartdata($chartOptions)
                     'enabled' => true,
                     'mode' => 'index',
                     'intersect' => false,
-                    'displayColors' => false,
                     'callbacks' => [
-                        'label' => function ($tooltipItem, $data) {
-                            return number_format($tooltipItem->yLabel, 2) . '%'; // Only the Y-axis value formatted as percentage
-                        }
+                        'label' => 'function(context) {
+                            let label = context.dataset.label || "";
+                            if (label) {
+                                label += ": ";
+                            }
+                            if (context.parsed.y !== null) {
+                                let tooltips = ' . json_encode([$currentYearTooltips, $prevYearTooltips]) . ';
+                                let yearIndex = context.datasetIndex;
+                                let date = context.label;
+                                let tooltipData = tooltips[yearIndex][date];
+                                if (tooltipData) {
+                                    label += tooltipData.name + " - ";
+                                    label += new Intl.NumberFormat("en-US", { style: "percent", minimumFractionDigits: 2 }).format(tooltipData.value / 100);
+                                } else {
+                                    label += "No data";
+                                }
+                            }
+                            return label;
+                        }'
                     ],
                 ],
-                'legend' => false,
+                'legend' => [
+                    'display' => true,
+                    'position' => 'top',
+                ],
             ],
             'scales' => [
                 'x' => [
@@ -195,30 +249,87 @@ function idwiz_get_report_chartdata($chartOptions)
                     ]
                 ],
                 'y-axis-1' => [
+                    'type' => 'linear',
                     'position' => 'left',
                     'beginAtZero' => true,
+                    'min' => 0,
+                    'max' => $maxYValue,
+                    'stepSize' => 10,
                     'grid' => [
                         'drawOnChartArea' => true,
                     ],
                     'ticks' => [
-                        'callback' => function ($value, $index, $values) {
-                            return number_format($value, 2) . '%'; // Formatting to 2 decimal places
-                        }
+                        'callback' => 'function(value, index, values) {
+                            return new Intl.NumberFormat("en-US", { style: "percent", minimumFractionDigits: 2 }).format(value / 100);
+                        }'
                     ],
                     'dataType' => 'percent'
                 ]
             ],
-            'hideTooltipTitle' => true
-
         ]
     ];
+}
 
+// Function to process campaigns and collect data
+function processCampaigns($campaigns, $dbMetric, $minSends, $maxSends, $minMetric, $maxMetric, $cohorts)
+{
+    $data = [];
+    $tooltips = [];
+    foreach ($campaigns as $campaign) {
+        $campaignMetrics = get_idwiz_metric($campaign['id']);
 
+        // Safely unserialize or decode the labels
+        $campaignCohorts = [];
+        if (!empty($campaign['labels'])) {
+            if (is_string($campaign['labels'])) {
+                $unserialized = @unserialize($campaign['labels']);
+                if ($unserialized !== false) {
+                    $campaignCohorts = $unserialized;
+                } else {
+                    // If unserialize fails, try json_decode
+                    $decoded = json_decode($campaign['labels'], true);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        $campaignCohorts = $decoded;
+                    }
+                }
+            } elseif (is_array($campaign['labels'])) {
+                $campaignCohorts = $campaign['labels'];
+            }
+        }
+
+        // Ensure $campaignCohorts is always an array
+        $campaignCohorts = is_array($campaignCohorts) ? $campaignCohorts : [];
+
+        // If cohorts are selected and not 'all', filter campaigns
+        if ($cohorts && !in_array('all', $cohorts)) {
+            if (empty(array_intersect($cohorts, $campaignCohorts))) {
+                continue; // Skip this campaign if it doesn't have any of the selected cohorts
+            }
+        }
+
+        if (
+            $campaignMetrics['uniqueEmailSends'] >= $minSends
+            && $campaignMetrics['uniqueEmailSends'] <= $maxSends
+            && $campaignMetrics[$dbMetric] > 0
+            && $campaignMetrics[$dbMetric] >= $minMetric
+            && $campaignMetrics[$dbMetric] <= $maxMetric
+        ) {
+            $campaignStartStamp = (int)($campaign['startAt'] / 1000);
+            $date = date('m/d', $campaignStartStamp);
+            $data[$date] = $campaignMetrics[$dbMetric];
+            $tooltips[$date] = [
+                'name' => $campaign['name'],
+                'value' => $campaignMetrics[$dbMetric]
+            ];
+        }
+    }
+    return ['data' => $data, 'tooltips' => $tooltips];
 }
 
 
 
-function idwiz_get_byPurchaseField_chartdata($chartOptions) {
+function idwiz_get_byPurchaseField_chartdata($chartOptions)
+{
 
     //error_log(print_r($chartOptions, true));
 
@@ -245,7 +356,7 @@ function idwiz_get_byPurchaseField_chartdata($chartOptions) {
 
     // Fetch all campaigns in one go
     $campaignIds = array_unique(array_column($allPurchases, 'campaignId'));
-    $allCampaigns = get_idwiz_campaigns(['campaignIds'=>$campaignIds]);
+    $allCampaigns = get_idwiz_campaigns(['campaignIds' => $campaignIds]);
     $campaignMap = array_column($allCampaigns, null, 'id');
 
     $blastPurchases = [];
@@ -427,7 +538,7 @@ function idwiz_get_eventBydate_chartdata($chartOptions)
     }
 
     //NOTE: uniqueMessageIds is set to false because we want to show all engagements on the charts, not just first ones
-    $triggeredData = get_idemailwiz_triggered_data(database:$triggeredTableName, args:$triggeredDataArgs, uniqueMessageIds:false);
+    $triggeredData = get_idemailwiz_triggered_data(database: $triggeredTableName, args: $triggeredDataArgs, uniqueMessageIds: false);
 
     if (!empty($triggeredData)) {
         $chartDates = [];
@@ -480,7 +591,7 @@ function idwiz_get_eventBydate_chartdata($chartOptions)
 
         return [
             'type' => $chartType,
-            
+
             'data' => [
                 'labels' => $labels,
                 'datasets' => [
@@ -522,8 +633,6 @@ function idwiz_get_eventBydate_chartdata($chartOptions)
                 ]
             ]
         ];
-
-
     } else {
         return ['error' => 'No data was returned from the query.'];
     }
@@ -570,15 +679,16 @@ function idwiz_get_byCampaign_chartdata($chartOptions)
 
     if ($campaignIds) {
         $campaignArgs['campaignIds'] = $campaignIds;
-    }
-    if ($campaignTypes) {
-        $campaignArgs['type'] = $campaignTypes;
-    }
-    if ($startDate) {
-        $campaignArgs['startAt_start'] = $startDate;
-    }
-    if ($endDate) {
-        $campaignArgs['startAt_end'] = $endDate;
+    } else {
+        if ($campaignTypes) {
+            $campaignArgs['type'] = $campaignTypes;
+        }
+        if ($startDate) {
+            $campaignArgs['startAt_start'] = $startDate;
+        }
+        if ($endDate) {
+            $campaignArgs['startAt_end'] = $endDate;
+        }
     }
 
     $campaigns = get_idwiz_campaigns($campaignArgs);
@@ -598,8 +708,9 @@ function idwiz_get_byCampaign_chartdata($chartOptions)
     $metricValue = null;
     foreach ($campaigns as $campaign) {
         $campaignDate = $campaign['startAt'];
-        $dateLabel = date('m/d/Y', $campaignDate / 1000) . ' - ' . $campaign['name'];
-        $campaignMetric = get_idwiz_metric([$campaign['id'], 'fields' => 'campaignId,' . $chartMetric]);
+        $dateLabel = date('m/d/Y', $campaignDate / 1000);
+        $campaignMetric = get_idwiz_metric([$campaign['id']]);
+
 
         $metricValue = $campaignMetric[$chartMetric] ?? null;
 
@@ -679,8 +790,6 @@ function convert_chartId_db_field($chartId)
             break;
     }
     return $dbField;
-
-
 }
 
 function idwiz_group_purchases_by_division($purchases)
@@ -898,7 +1007,7 @@ function idwiz_fetch_customer_types_chart_data()
 
     $purchases = get_idwiz_purchases($purchaseArgs);
     $orderCounts = group_first_and_repeat_purchases($purchases);
-    
+
 
     $newCount = $orderCounts['new'];
     $returningCount = $orderCounts['returning'];

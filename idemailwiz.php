@@ -331,6 +331,7 @@ function idwiz_register_custom_post_types()
     ]);
 
 
+
 }
 
 add_post_type_support('idwiz_initiative', 'thumbnail');

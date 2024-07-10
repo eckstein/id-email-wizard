@@ -1017,6 +1017,12 @@ function get_triggered_campaign_metrics_single($campaignId, $startDate, $endDate
 
 	$allGaEmailPurchases = get_idwiz_ga_data(['startDate' => $startDate, 'endDate' => $endDate, 'campaignIds' => [$campaignId]]);
 	$purchases = array_filter($allGaEmailPurchases, fn ($purchase) => in_array($purchase['campaignId'], [$campaignId]));
+
+	if (!$purchases) {
+		$metrics['gaRevenue'] = 0;
+	} else {
+		$metrics['gaRevenue'] = array_sum(array_column($purchases, 'revenue'));
+	}
 	
 	$metrics['gaRevenue'] = array_sum(array_column($purchases, 'revenue'));
 
@@ -1081,6 +1087,30 @@ function formatRollupMetric($value, $format, $includeDifSign = false)
 
 	return $formattedValue;
 }
+
+
+function get_all_cohort_labels($campaignIds = [])
+{
+	if (!$campaignIds) {
+		$allCampaigns = get_idwiz_campaigns(['fields' => 'labels']);
+	} else {
+		$allCampaigns = get_idwiz_campaigns(['campaignIds' => $campaignIds, 'fields' => 'labels']);
+	}
+	
+	$cohortsArray = [];
+	foreach ($allCampaigns as $cohortCampaign) {
+		$cohorts = unserialize($cohortCampaign['labels']);
+		if (is_array($cohorts)) {
+			foreach ($cohorts as $cohort) {
+				if (!in_array($cohort, $cohortsArray)) {
+					$cohortsArray[] = $cohort;
+				}
+			}
+		}
+	}
+	return $cohortsArray;
+}
+
 
 function idemailwiz_update_user_attribution_setting()
 {

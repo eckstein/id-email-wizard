@@ -1,10 +1,4 @@
 <?php
-// If startDate and endDate aren't set, default them to this month's first and last day
-if (!isset($_GET['startDate']) && !isset($_GET['endDate'])) {
-    $startDate = date('Y-m-01');
-    $endDate = date('Y-m-t');
-}
-
 
 $startMonth = date('m', strtotime($startDate));
 $endMonth = date('m', strtotime($endDate));

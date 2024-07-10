@@ -153,6 +153,57 @@ jQuery(document).ready(function ($) {
 			window.location.href = newUrl;
 		});
 
+
+	$(".cohort-select").select2({
+		multiple: true
+	}).on("change", function (e) {
+		var selectedCohorts = $(this).val() || [];
+    
+		// If "all" is selected, clear all other selections
+		if (selectedCohorts.includes("all")) {
+			selectedCohorts = ["all"];
+			$(this).val(["all"]).trigger('change.select2');
+		} else {
+			// Remove "all" if other options are selected
+			selectedCohorts = selectedCohorts.filter(cohort => cohort !== "all");
+		}
+
+		var queryParams = new URLSearchParams(window.location.search);
+		if (selectedCohorts.length > 0) {
+			queryParams.set("cohorts", selectedCohorts.join(','));
+		} else {
+			queryParams.delete("cohorts");
+		}
+    
+		var newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?" + queryParams.toString();
+		window.history.pushState({path: newUrl}, '', newUrl);
+    
+		// reload the page with new query parameters
+		window.location.href = newUrl;
+	});
+
+	
+	$('#wiz-report-sendsize-controls input').on('blur', function () {
+
+		// Add minSendSize and maxSendSize to the query attributes and reload the page
+		var queryParams = new URLSearchParams(window.location.search);
+		var minSendSize = $('#wiz-report-sendsize-min').val();
+		var maxSendSize = $('#wiz-report-sendsize-max').val();
+		if (minSendSize) {
+			queryParams.set("minSendSize", minSendSize);
+		} else {
+			queryParams.set("minSendSize", 1);
+		}
+		if (maxSendSize) {
+			queryParams.set("maxSendSize", maxSendSize);
+		} else {
+			queryParams.set("maxSendSize", 500000);
+		}
+		var newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?" + queryParams.toString();
+		window.history.pushState({ path: newUrl }, '', newUrl);
+		window.location.href = newUrl;
+	});
+
 	// Handle both title and content updates for initiatives
 	$(document).on("change", ".editableTitle", function () {
 		const itemId = $(this).attr("data-itemid");

@@ -130,6 +130,12 @@ jQuery(document).ready(function ($) {
 		if ($(canvas).attr("data-sendsByWeekData")) {
 			additionalData.sendsByWeekData = $(canvas).attr("data-sendsByWeekData");
 		}
+		if ($(canvas).attr("data-cohorts")) {
+			additionalData.cohorts = $(canvas).attr("data-cohorts");
+		}
+		if ($(canvas).attr("data-max-y")) {
+			additionalData.maxY = $(canvas).attr("data-max-y");
+		}
 
 		idemailwiz_do_ajax(
 			"idwiz_catch_chart_request",
