@@ -67,7 +67,7 @@ $reportType = $_GET['reportType'] ?? 'home';
                         }
                         ?>
                         <?php
-                        if ($reportType != 'open-click-trends') {
+                        if ($reportType == 'open-click-trends') {
                         ?>
                         <div class="wizcampaign-sections-row">
 
