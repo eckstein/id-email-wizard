@@ -64,7 +64,7 @@ $reportType = $_GET['reportType'] ?? 'home';
                         <?php
                         if ($reportType != 'home') {
                             include plugin_dir_path(__FILE__) . 'parts/dashboard-date-pickers.php';
-                        }
+                        
                         ?>
                         <div class="wizcampaign-sections-row">
 
@@ -100,6 +100,7 @@ $reportType = $_GET['reportType'] ?? 'home';
                         </div>
                     </div>
                     <?php
+                        }
                     if ($reportType == 'home') {
                         include plugin_dir_path(__FILE__) . 'parts/reports/reports-home.php';
                     } else if ($reportType == 'open-click-trends') {
