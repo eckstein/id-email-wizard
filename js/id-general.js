@@ -197,7 +197,7 @@ jQuery(document).ready(function ($) {
 		if (maxSendSize) {
 			queryParams.set("maxSendSize", maxSendSize);
 		} else {
-			queryParams.set("maxSendSize", 500000);
+			queryParams.set("maxSendSize", 500000); 
 		}
 		var newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?" + queryParams.toString();
 		window.history.pushState({ path: newUrl }, '', newUrl);
