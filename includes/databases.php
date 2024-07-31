@@ -932,6 +932,8 @@ function get_idemailwiz_triggered_data($database, $args = [], $batchSize = 20000
 			// If fields are provided as a string, use directly after sanitization
 			$fields = sanitize_text_field($args['fields']);
 		}
+		// Add messageId to the fields, always, for use below
+		$fields .= ', messageId';
 	}
 
 	// Check if messageIds are provided
@@ -971,25 +973,18 @@ function get_idemailwiz_triggered_data($database, $args = [], $batchSize = 20000
 
 	// Initialize results array
 	$allResults = [];
+	$seenMessageIds = []; // To keep track of unique messageIds
 
 	// Iterate through the data in batches
 	do {
 		// Construct the SQL query with limit and offset
 		$sql = "SELECT $fields FROM " . $wpdb->prefix . $database . " AS main";
 
-		// If we want only unique opens, we get the earliest one de-duped by messageId
-		if ($uniqueMessageIds) {
-			$sql .= " JOIN (
-						SELECT messageId, MIN(startAt) AS earliestStartAt
-						FROM " . $wpdb->prefix . $database . "
-						GROUP BY messageId
-					) AS sub ON main.messageId = sub.messageId AND main.startAt = sub.earliestStartAt";
-		}
-
 		if (!empty($where_clauses)) {
 			$sql .= " WHERE " . implode(" AND ", $where_clauses);
 		}
 
+		$sql .= " ORDER BY startAt ASC"; // Add this line to ensure consistent results
 		$sql .= " LIMIT %d OFFSET %d";
 
 		// Add batch size and offset to query parameters
@@ -1005,9 +1000,32 @@ function get_idemailwiz_triggered_data($database, $args = [], $batchSize = 20000
 			break;
 		}
 
-		// Append each result directly to $allResults
+		$earliestStartAt = []; // To track the earliest startAt for each messageId
+
+		// Process results, including limiting to unique messageIds with earliest startAt
 		foreach ($results as $result) {
-			$allResults[] = $result;
+			if ($uniqueMessageIds) {
+				$messageId = $result['messageId'];
+				$startAt = $result['startAt'];
+
+				if (!isset($seenMessageIds[$messageId])) {
+					// First time seeing this messageId
+					$allResults[] = $result;
+					$seenMessageIds[$messageId] = true;
+					$earliestStartAt[$messageId] = $startAt;
+				} elseif ($startAt < $earliestStartAt[$messageId]) {
+					// We've seen this messageId before, but this is an earlier startAt
+					// Remove the old result
+					$allResults = array_filter($allResults, function ($item) use ($messageId) {
+						return $item['messageId'] !== $messageId;
+					});
+					// Add the new, earlier result
+					$allResults[] = $result;
+					$earliestStartAt[$messageId] = $startAt;
+				}
+			} else {
+				$allResults[] = $result;
+			}
 		}
 
 		// Update offset

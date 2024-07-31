@@ -342,6 +342,9 @@ $linkedExperimentIds = array_map(function ($id) {
 							// For blast campaigns, lock the endDate to 7 days after the startDate
 							if ($campaign['type'] == 'Blast') {
 								$chartEndDate = date('Y-m-d', strtotime($startDate . '+ 7 days'));
+							} else {
+								// Set chart end date to selected end date
+								$chartEndDate = $endDate;
 							}
 							?>
 

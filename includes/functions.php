@@ -994,7 +994,7 @@ function get_triggered_campaign_metrics_single($campaignId, $startDate, $endDate
 	];
 
 	foreach ($databases as $metricKey => $database) {
-		$metric_data = get_idemailwiz_triggered_data($database, $campaignDataArgs);
+		$metric_data = get_idemailwiz_triggered_data($database, $campaignDataArgs) ?? [];
 		$metric_count = count($metric_data);
 
 		$metrics[$metricKey] = $metric_count;
@@ -1089,7 +1089,7 @@ function formatRollupMetric($value, $format, $includeDifSign = false)
 }
 
 
-function get_all_cohort_labels($campaignIds = [])
+function get_all_cohort_labels($campaignIds = [], $exclude = [])
 {
 	if (!$campaignIds) {
 		$allCampaigns = get_idwiz_campaigns(['fields' => 'labels']);
@@ -1103,6 +1103,9 @@ function get_all_cohort_labels($campaignIds = [])
 		if (is_array($cohorts)) {
 			foreach ($cohorts as $cohort) {
 				if (!in_array($cohort, $cohortsArray)) {
+					if (!empty($exclude) && in_array($cohort, $exclude)) {
+						continue;
+					}
 					$cohortsArray[] = $cohort;
 				}
 			}
