@@ -933,7 +933,7 @@ function get_idemailwiz_triggered_data($database, $args = [], $batchSize = 20000
 			$fields = sanitize_text_field($args['fields']);
 		}
 		// Add messageId to the fields, always, for use below
-		$fields .= ', messageId';
+		$fields .= ', messageId, startAt';
 	}
 
 	// Check if messageIds are provided

@@ -10,7 +10,7 @@ if (isset($lazyLoadCharts) && $lazyLoadCharts == 'true') {
     $lazyLoad = 'true';
 }
 ?>
-<div class="wizcampaign-sections-row">
+<div class="wizcampaign-sections-row noWrap">
 
     <div class="wizcampaign-section inset span2" id="email-info">
         <?php

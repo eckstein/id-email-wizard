@@ -993,8 +993,8 @@ function show_specific_chunk_settings( $chunkData, $uniqueId, $settings ) {
 
 				case 'force_white_text_devices':
 					$forceWhiteTextDevices = [ 
-						[ 'id' => $uniqueId . '_force-white-text-desktop', 'name' => 'force_white_text_on_desktop', 'display' => 'desktop', 'value' => true, 'label' => '<i class="fa-solid fa-desktop"></i>' ],
-						[ 'id' => $uniqueId . '_force-white-text-mobile', 'name' => 'force_white_text_on_mobile', 'display' => 'mobile', 'value' => true, 'label' => '<i class="fa-solid fa-mobile-screen-button"></i>' ]
+						[ 'id' => $uniqueId . '_force-white-text-desktop', 'name' => 'force_white_text_on_desktop', 'display' => 'desktop', 'value' => false, 'label' => '<i class="fa-solid fa-desktop"></i>' ],
+						[ 'id' => $uniqueId . '_force-white-text-mobile', 'name' => 'force_white_text_on_mobile', 'display' => 'mobile', 'value' => false, 'label' => '<i class="fa-solid fa-mobile-screen-button"></i>' ]
 					];
 
 					echo "<div class='button-group-wrapper builder-field-wrapper chunk-force-white-text-devices'>";
@@ -1003,8 +1003,14 @@ function show_specific_chunk_settings( $chunkData, $uniqueId, $settings ) {
 					foreach ( $forceWhiteTextDevices as $opt ) {
 
 						$fieldID = $opt['id'];
-
-						$isChecked = isset( $chunkSettings[ $opt['name'] ] ) && $chunkSettings[ $opt['name'] ] ? 'checked' : '';
+						
+						if ($opt['name'] == 'force_white_text_on_desktop') {
+							$isChecked = $chunkSettings['force_white_text_on_desktop'];
+						}
+						if ($opt['name'] == 'force_white_text_on_mobile') {
+							$isChecked = $chunkSettings['force_white_text_on_mobile'];
+						}
+						//$isChecked = isset( $chunkSettings[ $opt['name'] ] ) && $chunkSettings[ $opt['name'] ] ? 'checked' : '';
 
 
 						echo "<input type='checkbox' id='{$fieldID}' name='{$opt['name']}'

@@ -51,9 +51,9 @@ $lastDayOfMonth = $endDateTime->format('Y-m-t');
             $lastYearDateTime->modify('last day of this month');
             $lastYearMonthEnd = $lastYearDateTime->format('Y-m-d');
 
-            $metricRates = get_idwiz_metric_rates(null, $startDate, $endDate, $campaignTypes, 'campaignsInDate');
-            $lastMonthMetricRates = get_idwiz_metric_rates(null, $lastMonthStart, $lastMonthEnd, $campaignTypes, 'campaignsInDate');
-            $lastYearMetricRates = get_idwiz_metric_rates(null, $lastYearMonthStart, $lastYearMonthEnd, $campaignTypes, 'campaignsInDate');
+            $metricRates = get_idwiz_metric_rates([], $startDate, $endDate, $campaignTypes, 'campaignsInDate');
+            $lastMonthMetricRates = get_idwiz_metric_rates([], $lastMonthStart, $lastMonthEnd, $campaignTypes, 'campaignsInDate');
+            $lastYearMetricRates = get_idwiz_metric_rates([], $lastYearMonthStart, $lastYearMonthEnd, $campaignTypes, 'campaignsInDate');
             $revenueMetricsTowers = [
                 [
                     'metricType' => 'revenue',

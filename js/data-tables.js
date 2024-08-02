@@ -203,12 +203,65 @@ jQuery(document).ready(function ($) {
 				// Enable buttons when only rows are selected
 				addButton.enable();
 				removeButton.enable();
+
+				// Get the selected data and calculate summary
+				const selectedData = dt.rows({ selected: true }).data().toArray();
+				const summaryString = calculateSummary(selectedData);
+
+				// Update the DOM element with the summary
+				$('#campaign-table-selected-rollup').html(summaryString).show();
 			} else {
 				// Disable buttons if anything other than rows are selected
 				addButton.disable();
 				removeButton.disable();
+
+				// Hide the summary when no rows are selected
+				$('#campaign-table-selected-rollup').hide();
 			}
 		});
+
+
+		function calculateSummary(selectedData) {
+			let summary = {
+				sends: 0,
+				delivered: 0,
+				opens: 0,
+				clicks: 0,
+				unsubscribes: 0,
+				purchases: 0,
+				revenue: 0,
+				gaRevenue: 0
+			};
+
+			selectedData.forEach(row => {
+				summary.sends += parseInt(row.unique_email_sends) || 0;
+				summary.delivered += parseInt(row.unique_delivered) || 0;
+				summary.opens += parseInt(row.unique_email_opens) || 0;
+				summary.clicks += parseInt(row.unique_email_clicks) || 0;
+				summary.unsubscribes += parseInt(row.unique_unsubscribes) || 0;
+				summary.purchases += parseInt(row.unique_purchases) || 0;
+				summary.revenue += parseFloat(row.revenue) || 0;
+				summary.gaRevenue += parseFloat(row.ga_revenue) || 0;
+			});
+
+			const deliveryRate = (summary.delivered / summary.sends * 100).toFixed(2);
+			const openRate = (summary.opens / summary.delivered * 100).toFixed(2);
+			const clickRate = (summary.clicks / summary.delivered * 100).toFixed(2);
+			const unsubRate = (summary.unsubscribes / summary.delivered * 100).toFixed(2);
+			const conversionRate = (summary.purchases / summary.delivered * 100).toFixed(2);
+
+			return `Sends: ${summary.sends.toLocaleString()} | ` +
+				   `Delivery: ${deliveryRate}% | ` +
+				   `Opens: ${openRate}% | ` +
+				   `Clicks: ${clickRate}% | ` +
+				   `Unsubscribes: ${unsubRate}% | ` +
+				   `Purchases: ${summary.purchases.toLocaleString()} | ` +
+				   `CVR: ${conversionRate}% | ` +
+				   `Revenue: $${summary.revenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} | ` +
+				   `GA Revenue: $${summary.gaRevenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+		}
+
+
 
 		// Add date filter search logic
 		function addDateFilter() {

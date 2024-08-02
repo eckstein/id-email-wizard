@@ -859,14 +859,19 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
 	$blastCampaignIds = [];
 	$triggeredCampaignIds = [];
 
-	if (empty($campaignIds)) {
+	
+	if (!$campaignIds || empty($campaignIds)) {
+		
 		if (in_array('Blast', $campaignTypes)) {
 			$blastCampaigns = get_idwiz_campaigns(['type' => 'Blast', 'fields' => 'id,type', 'startAt_start' => $startDate, 'startAt_end' => $endDate]);
 			$blastCampaignIds = array_column($blastCampaigns, 'id');
-		} else {
-
+			
+		}
+		if (in_array('Triggered', $campaignTypes)) {
+			
 			$triggeredCampaigns = get_idwiz_campaigns(['type' => 'Triggered', 'fields' => 'id,type']);
 			$triggeredCampaignIds = array_column($triggeredCampaigns, 'id');
+			
 		}
 
 		$allIncludedIds = array_merge($blastCampaignIds, $triggeredCampaignIds);
@@ -880,6 +885,7 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
 			}
 		}
 		$allIncludedIds = $campaignIds;
+		
 	}
 
 	
@@ -888,6 +894,8 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
 	$blastMetrics = !empty($blastCampaignIds) ? get_idwiz_metrics(['campaignIds' => $blastCampaignIds]) : [];
 	//print_r($blastMetrics);
 	$triggeredMetrics = !empty($triggeredCampaignIds) ? get_triggered_campaign_metrics($triggeredCampaignIds, $startDate, $endDate) : [];
+
+	
 
 	$purchaseArgs = [
 		'startAt_start' => $startDate,

@@ -1,17 +1,12 @@
 <?php
 
-$startMonth = date('m', strtotime($startDate));
-$endMonth = date('m', strtotime($endDate));
-$startYear = date('Y', strtotime($startDate));
-$endYear = date('Y', strtotime($endDate));
-
-$currentMonth = $startMonth;
-$currentYear = $startYear;
-
 $frequencyView = $_GET['frequency-view'] ?? 'per-month';
+$cohortMode = $_GET['cohort-mode'] ?? 'combine';
 
-// Generate the HTML table
+// Get the iterations for each month
+$monthlyIterations = get_monthly_iterations($startDate, $endDate);
 ?>
+
 <div class="wizcampaign-sections-row">
     <div class="wizcampaign-section inset flex" id="send-count-trends">
         <div class="wizcampaign-section-title-area">
@@ -28,113 +23,48 @@ $frequencyView = $_GET['frequency-view'] ?? 'per-month';
             </div>
         </div>
         <div id="send-count-trends-container">
-            <?php
-
-            $startMonth = date('m', strtotime($startDate));
-            $endMonth = date('m', strtotime($endDate));
-            $startYear = date('Y', strtotime($startDate));
-            $endYear = date('Y', strtotime($endDate));
-
-            $currentMonth = $startMonth;
-            $currentYear = $startYear;
-
-            while (($currentYear < $endYear) || (($currentYear == $endYear) && ($currentMonth <= $endMonth))) {
-                $monthStartDate = $currentYear . '-' . str_pad($currentMonth, 2, '0', STR_PAD_LEFT) . '-01';
-                $monthEndDate = date('Y-m-t', strtotime($monthStartDate));
-
-                if ($frequencyView === 'per-week') {
-                    $data = get_sends_by_week_data($monthStartDate, $monthEndDate, 50, 'weekly');
-            ?>
-                    <div class="month-wrapper">
-                        <h3 class="month-header"><?php echo date('F Y', strtotime($monthStartDate)); ?></h3>
+            <?php foreach ($monthlyIterations as $iteration) : ?>
+                <div class="month-wrapper">
+                    <h3 class="month-header"><?php echo date('F Y', strtotime($iteration['start'])); ?></h3>
+                    <?php if ($frequencyView === 'per-week') : ?>
                         <?php
-                        $weekRanges = [];
-                        $currentDate = new DateTime($monthStartDate);
-                        $monthEndDateTime = new DateTime($monthEndDate);
-
-                        while ($currentDate <= $monthEndDateTime) {
-                            $weekStart = $currentDate->format('Y-m-d');
-                            $currentDate->modify('+6 days');
-                            $weekEnd = $currentDate > $monthEndDateTime ? $monthEndDateTime->format('Y-m-d') : $currentDate->format('Y-m-d');
-                            $weekRanges[] = [
-                                'start' => $weekStart,
-                                'end' => $weekEnd
-                            ];
-                            $currentDate->modify('+1 day');
-                        }
-
-                        foreach ($weekRanges as $weekRange) {
+                        $weekRanges = get_weekly_data($iteration['start'], $iteration['end']);
+                        foreach ($weekRanges as $weekRange) :
                             $weekData = get_sends_by_week_data($weekRange['start'], $weekRange['end'], 100, 'weekly');
-                            $weekStart = date('m/d', strtotime($weekRange['start']));
-                            $weekEnd = date('m/d', strtotime($weekRange['end']));
+                            $topSendCounts = calculate_send_data($weekData['weeklyData'], $weekData['totalUsers'], 50);
                         ?>
                             <div class="week-row">
-                                <div class="week-header"><?php echo $weekStart . ' - ' . $weekEnd; ?></div>
+                                <div class="week-header"><?php echo date('m/d', strtotime($weekRange['start'])); ?> - <?php echo date('m/d', strtotime($weekRange['end'])); ?></div>
                                 <div class="week-data">
-                                    <?php
-                                    // Calculate the percentages
-                                    $sendCountPercentages = array_map(function ($userCount) use ($weekData) {
-                                        return $weekData['totalUsers'] ? round(($userCount / $weekData['totalUsers']) * 50, 2) : 0;
-                                    }, $weekData['weeklyData']);
-
-                                    // Sort by percentage in descending order
-                                    arsort($sendCountPercentages);
-
-                                    // Get the top 3 send counts
-                                    $topSendCounts = array_slice($sendCountPercentages, 0, 3, true);
-                                    foreach ($topSendCounts as $sendCount => $percentage) {
-                                        $userCount = $weekData['weeklyData'][$sendCount];
-                                    ?>
+                                    <?php foreach ($topSendCounts as $sendCount => $percentage) : ?>
                                         <div class="send-count-item">
                                             <div class="send-count-value"><?php echo number_format($sendCount); ?></div>
-                                            <div class="send-count-users"><?php echo number_format($userCount); ?> users</div>
+                                            <div class="send-count-users"><?php echo number_format($weekData['weeklyData'][$sendCount]); ?> users</div>
                                             <div class="send-count-percentage"><?php echo $percentage; ?>%</div>
                                         </div>
-                                    <?php } ?>
+                                    <?php endforeach; ?>
                                 </div>
                             </div>
-                        <?php } ?>
-                    </div>
-                <?php
-                } elseif ($frequencyView === 'per-month') {
-                    $data = get_sends_by_week_data($monthStartDate, $monthEndDate, 100, 'monthly');
-                ?>
-                    <div class="month-wrapper">
-                        <h3 class="month-header"><?php echo date('F Y', strtotime($monthStartDate)); ?></h3>
+                        <?php endforeach; ?>
+                    <?php else : ?>
+                        <?php
+                        $monthlyData = get_sends_by_week_data($iteration['start'], $iteration['end'], 100, 'monthly');
+                        $topSendCounts = calculate_send_data($monthlyData['monthlyData'], $monthlyData['totalUsers'], 100);
+                        ?>
                         <div class="month-data">
                             <h6>Top 3 # of sends</h6>
-                            <?php
-                            $sendCountPercentages = array_map(function ($userCount) use ($data) {
-                                return $data['totalUsers'] ? round(($userCount / $data['totalUsers']) * 100, 2) : 0;
-                            }, $data['monthlyData']);
-
-                            arsort($sendCountPercentages);
-
-                            $topSendCounts = array_slice($sendCountPercentages, 0, 3, true);
-                            foreach ($topSendCounts as $sendCount => $percentage) {
-                                $userCount = $data['monthlyData'][$sendCount];
-                            ?>
+                            <?php foreach ($topSendCounts as $sendCount => $percentage) : ?>
                                 <div class="send-count-row">
                                     <div class="send-count-value"><?php echo number_format($sendCount); ?></div>
-                                    <div class="send-count-users"><?php echo number_format($userCount); ?> users</div>
+                                    <div class="send-count-users"><?php echo number_format($monthlyData['monthlyData'][$sendCount]); ?> users</div>
                                     <div class="send-count-percentage"><?php echo $percentage; ?>%</div>
                                 </div>
-                            <?php } ?>
+                            <?php endforeach; ?>
                         </div>
-                    </div>
-            <?php
-                }
-
-                // Move to the next month
-                $currentMonth++;
-                if ($currentMonth > 12) {
-                    $currentMonth = 1;
-                    $currentYear++;
-                }
-            }
-            ?>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
         </div>
-
     </div>
 </div>
 
@@ -143,7 +73,7 @@ $frequencyView = $_GET['frequency-view'] ?? 'per-month';
         <div class="wizcampaign-section-title-area">
             <h4>Send Frequency Within Dates</h4>
         </div>
-        <div class="tinyTableWrapper">
+        <div class="tinyTableWrapper" id="send-frequency-table" data-startdate="<?php echo $startDate; ?>" data-enddate="<?php echo $endDate; ?>">
             <table class="wizcampaign-tiny-table tall">
                 <thead>
                     <tr>
@@ -154,14 +84,14 @@ $frequencyView = $_GET['frequency-view'] ?? 'per-month';
                 </thead>
                 <tbody>
                     <?php
-                    $data = get_sends_by_week_data($startDate, $endDate, 100, 'all');
+                    $allData = get_sends_by_week_data($startDate, $endDate, 100, 'all');
 
-                    foreach ($data['allData'] as $sendCount => $userCount) :
+                    foreach ($allData['allData'] as $sendCount => $userCount) :
                         if ($userCount > 0) : ?>
                             <tr>
                                 <td><?php echo number_format($sendCount); ?></td>
                                 <td><?php echo number_format($userCount); ?></td>
-                                <td><?php echo $data['totalUsers'] ? number_format($userCount / $data['totalUsers'] * 100, 2) : 0; ?>%</td>
+                                <td><?php echo $allData['totalUsers'] > 0 ? number_format($userCount / $allData['totalUsers'] * 100, 2) : 0; ?>%</td>
                             </tr>
                     <?php endif;
                     endforeach; ?>
@@ -169,7 +99,7 @@ $frequencyView = $_GET['frequency-view'] ?? 'per-month';
                 <tfoot>
                     <tr>
                         <td>Total</td>
-                        <td><?php echo number_format($data['totalUsers']); ?></td>
+                        <td><?php echo number_format($allData['totalUsers']); ?></td>
                         <td><?php echo number_format(100, 2); ?>%</td>
                     </tr>
                 </tfoot>
@@ -180,27 +110,18 @@ $frequencyView = $_GET['frequency-view'] ?? 'per-month';
         <div class="wizcampaign-section-title-area">
             <h4>Cohort Frequency Within Dates</h4>
             <div class="wizcampaign-section-title-area-right">
-                <?php
-                $cohortMode = $_GET['cohort-mode'] ?? 'combine';
-                if ($cohortMode == 'separate') {
-                ?>
+                <?php if ($cohortMode == 'separate') : ?>
                     <a href="<?php echo add_query_arg('cohort-mode', 'combine'); ?>">Combine Cohorts</a>
-                <?php
-                } else {
-                ?>
+                <?php else : ?>
                     <a href="<?php echo add_query_arg('cohort-mode', 'separate'); ?>">Separate Cohorts</a>
-                <?php
-                }
-                ?>
+                <?php endif; ?>
             </div>
         </div>
         <?php
-        // Get campaigns within date
-        $campaignsInDates = get_idwiz_campaigns(['startAt_start' => $startDate, 'startAt_end' => $endDate, 'messageMedium' => 'Email']);
-        $cohortResults = sortCampaignsIntoCohorts($campaignsInDates, $cohortMode);
-        $sendCohorts = $cohortResults['cohorts'];
+        $campaignsInDates = get_campaigns_within_dates($startDate, $endDate);
+        $cohortResults = sort_campaigns_into_cohorts($campaignsInDates, $cohortMode);
         ?>
-        <div class="tinyTableWrapper">
+        <div class="tinyTableWrapper" id="send-frequency-cohort-table" data-startdate="<?php echo $startDate; ?>" data-enddate="<?php echo $endDate; ?>">
             <table class="wizcampaign-tiny-table tall">
                 <thead>
                     <tr>
@@ -210,17 +131,14 @@ $frequencyView = $_GET['frequency-view'] ?? 'per-month';
                     </tr>
                 </thead>
                 <tbody>
-                    <?php
-                    foreach ($sendCohorts as $cohort => $campaigns) :
-                        $campaignCount = count($campaigns);
-                        $percentage = $cohortResults['totalCampaigns'] > 0 ? number_format(($campaignCount / $cohortResults['totalCampaigns']) * 100, 2) : 0;
-                    ?>
+                    <?php foreach ($cohortResults['cohorts'] as $cohort => $campaigns) : ?>
                         <tr>
                             <td><?php echo $cohort; ?></td>
-                            <td><?php echo $campaignCount; ?></td>
-                            <td><?php echo $percentage; ?>%</td>
+                            <td><?php echo count($campaigns); ?></td>
+                            <td><?php echo $cohortResults['totalCampaigns'] > 0 ? number_format((count($campaigns) / $cohortResults['totalCampaigns']) * 100, 2) : 0; ?>%</td>
                         </tr>
                     <?php endforeach; ?>
+                </tbody>
                 <tfoot>
                     <tr>
                         <td>Total</td>
@@ -228,7 +146,6 @@ $frequencyView = $_GET['frequency-view'] ?? 'per-month';
                         <td><?php echo number_format(100, 2); ?>%</td>
                     </tr>
                 </tfoot>
-                </tbody>
             </table>
         </div>
     </div>

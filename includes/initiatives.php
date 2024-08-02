@@ -136,7 +136,14 @@ function idemailwiz_delete_initiative() {
 
 	foreach ( $selectedIds as $post_id ) {
 		wp_delete_post( $post_id, true ); // Set second parameter to false if you don't want to force delete
+		// Remove initiative from any campaigns that have it
+		$campaign_ids = idemailwiz_get_campaign_ids_for_initiative($post_id );
+		foreach ($campaign_ids as $campaign_id) {
+		idemailwiz_update_campaign_initiative_relationship($campaign_id, $post_id, 'remove');
+		}
 	}
+
+	
 
 	wp_send_json_success( array( 'message' => 'Initiatives deleted successfully' ) );
 }

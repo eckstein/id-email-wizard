@@ -530,6 +530,8 @@ function add_chunk_by_type(chunkType, addChunkTrigger, duplicate = false) {
         session_data: JSON.stringify(get_template_from_session())
     };
 
+    console.log('Data: '.data);
+
     idemailwiz_do_ajax('add_new_chunk', idAjax_template_editor.nonce, data,
         function(response) {
                 if (response.data.html) {

@@ -12,13 +12,14 @@ function idwiz_catch_chart_request()
 
     //error_log(print_r($_POST, true));
     foreach ($_POST as $key => $value) {
+        
         // Try decoding as JSON
         $decoded = json_decode(stripslashes($value), true);
 
         // If it's valid JSON, use the decoded value; otherwise, sanitize as a string
         $chartOptions[$key] = (json_last_error() == JSON_ERROR_NONE) ? $decoded : sanitize_text_field($value);
     }
-    
+
     // Route to handler function based on chartId
     switch ($chartOptions['chartId']) {
 
@@ -88,32 +89,21 @@ function idwiz_get_report_chartdata($chartOptions)
             $dbMetric = 'wizOpenRate';
             $minMetric = $chartOptions['minMetric'] ?? 0;
             $maxMetric = $chartOptions['maxMetric'] ?? 100;
-
-            $maxYValue = $chartOptions['maxY'] ?? 100;
             break;
-
         case 'ctrReport':
             $dbMetric = 'wizCtr';
             $minMetric = isset($chartOptions['minMetric']) ? $chartOptions['minMetric'] * .01 : 0;
-            $maxMetric = isset($chartOptions['maxMetric']) ? $chartOptions['maxMetric'] * .01 : 5;
-
-            $maxYValue = $chartOptions['maxY'] ?? 5;
+            $maxMetric = isset($chartOptions['maxMetric']) ? $chartOptions['maxMetric'] * .01 : 2;
             break;
-
         case 'ctoReport':
             $dbMetric = 'wizCto';
             $minMetric = isset($chartOptions['minMetric']) ? $chartOptions['minMetric'] * .01 : 0;
-            $maxMetric = isset($chartOptions['maxMetric']) ? $chartOptions['maxMetric'] * .01 : 5;
-
-            $maxYValue = $chartOptions['maxY'] ?? 5;
+            $maxMetric = isset($chartOptions['maxMetric']) ? $chartOptions['maxMetric'] * .01 : 4;
             break;
-
         case 'retentionReport':
             $dbMetric = 'wizUnsubRate';
             $minMetric = $chartOptions['minMetric'] ?? 0;
             $maxMetric = $chartOptions['maxMetric'] ?? 100;
-
-            $maxYValue = $chartOptions['maxY'] ?? 5;
             break;
     }
 
@@ -127,7 +117,14 @@ function idwiz_get_report_chartdata($chartOptions)
     // Ensure $cohorts is always an array:
     if ($cohorts && !is_array($cohorts)) {
         $cohorts = [$cohorts];
-    }   
+    }
+
+    $excludedCohorts = $chartOptions['cohortsExclude'] ?? false;
+
+    // Ensure $excludedCohorts is always an array:
+    if ($excludedCohorts && !is_array($excludedCohorts)) {
+        $excludedCohorts = [$excludedCohorts];
+    }
 
     $startDate = $chartOptions['startDate'] ?? false;
     $endDate = $chartOptions['endDate'] ?? false;
@@ -154,15 +151,13 @@ function idwiz_get_report_chartdata($chartOptions)
     $prevYearData = [];
     $toolTip = [];
 
-    
-
     // Process current year campaigns
-    $currentYearResult = processCampaigns($campaigns, $dbMetric, $minSends, $maxSends, $minMetric, $maxMetric, $cohorts);
+    $currentYearResult = processCampaigns($campaigns, $dbMetric, $minSends, $maxSends, $minMetric, $maxMetric, $cohorts, $excludedCohorts);
     $currentYearData = $currentYearResult['data'];
     $currentYearTooltips = $currentYearResult['tooltips'];
 
     // Process previous year campaigns
-    $prevYearResult = processCampaigns($prevCampaigns, $dbMetric, $minSends, $maxSends, $minMetric, $maxMetric, $cohorts);
+    $prevYearResult = processCampaigns($prevCampaigns, $dbMetric, $minSends, $maxSends, $minMetric, $maxMetric, $cohorts, $excludedCohorts);
     $prevYearData = $prevYearResult['data'];
     $prevYearTooltips = $prevYearResult['tooltips'];
 
@@ -228,7 +223,11 @@ function idwiz_get_report_chartdata($chartOptions)
                                 let tooltipData = tooltips[yearIndex][date];
                                 if (tooltipData) {
                                     label += tooltipData.name + " - ";
-                                    label += new Intl.NumberFormat("en-US", { style: "percent", minimumFractionDigits: 2 }).format(tooltipData.value / 100);
+                                    label += date + " - ";
+                                    label += new Intl.NumberFormat("en-US", {
+                                        style: "percent",
+                                        minimumFractionDigits: 2
+                                    }).format(tooltipData.value / 100);
                                 } else {
                                     label += "No data";
                                 }
@@ -246,21 +245,24 @@ function idwiz_get_report_chartdata($chartOptions)
                 'x' => [
                     'grid' => [
                         'display' => false
-                    ]
+                    ],
                 ],
                 'y-axis-1' => [
                     'type' => 'linear',
                     'position' => 'left',
                     'beginAtZero' => true,
-                    'min' => 0,
-                    'max' => $maxYValue,
-                    'stepSize' => 10,
+                    'min' => $minMetric,
+                    'max' => $maxMetric,
+                    'stepSize' => 1,
                     'grid' => [
                         'drawOnChartArea' => true,
                     ],
                     'ticks' => [
                         'callback' => 'function(value, index, values) {
-                            return new Intl.NumberFormat("en-US", { style: "percent", minimumFractionDigits: 2 }).format(value / 100);
+                            return new Intl.NumberFormat("en-US", {
+                                style: "percent",
+                                minimumFractionDigits: 2
+                            }).format(value / 100);
                         }'
                     ],
                     'dataType' => 'percent'
@@ -271,10 +273,11 @@ function idwiz_get_report_chartdata($chartOptions)
 }
 
 // Function to process campaigns and collect data
-function processCampaigns($campaigns, $dbMetric, $minSends, $maxSends, $minMetric, $maxMetric, $cohorts)
+function processCampaigns($campaigns, $dbMetric, $minSends, $maxSends, $minMetric, $maxMetric, $cohorts, $excludedCohorts)
 {
     $data = [];
     $tooltips = [];
+
     foreach ($campaigns as $campaign) {
         $campaignMetrics = get_idwiz_metric($campaign['id']);
 
@@ -301,13 +304,26 @@ function processCampaigns($campaigns, $dbMetric, $minSends, $maxSends, $minMetri
         $campaignCohorts = is_array($campaignCohorts) ? $campaignCohorts : [];
 
         // If cohorts are selected and not 'all', filter campaigns
-        if ($cohorts && !in_array('all', $cohorts)) {
-            if (empty(array_intersect($cohorts, $campaignCohorts))) {
-                continue; // Skip this campaign if it doesn't have any of the selected cohorts
+        if ($cohorts && is_array($cohorts)) {
+            if (!in_array('all', $cohorts)) {
+                if (empty(array_intersect($cohorts, $campaignCohorts))) {
+                    continue; // Skip this campaign if it doesn't have any of the selected cohorts
+                }
             }
         }
 
+        // Check for excluded cohorts
+        if ($excludedCohorts && is_array($excludedCohorts)) {
+            error_log('Comparing campaign cohorts: ' . json_encode($campaignCohorts) . ' with excluded cohorts: ' . json_encode($excludedCohorts));
+            if (!empty(array_intersect($campaignCohorts, $excludedCohorts))) {
+                error_log('Skipping campaign due to excluded cohorts. Campaign ID: ' . $campaign['id']);
+                continue; // Skip this campaign if it has any of the excluded cohorts
+            }
+        }
+
+        // Check campaign metrics against thresholds
         if (
+            $campaignMetrics &&
             $campaignMetrics['uniqueEmailSends'] >= $minSends
             && $campaignMetrics['uniqueEmailSends'] <= $maxSends
             && $campaignMetrics[$dbMetric] > 0
@@ -315,7 +331,7 @@ function processCampaigns($campaigns, $dbMetric, $minSends, $maxSends, $minMetri
             && $campaignMetrics[$dbMetric] <= $maxMetric
         ) {
             $campaignStartStamp = (int)($campaign['startAt'] / 1000);
-            $date = date('m/d', $campaignStartStamp);
+            $date = date('m/d/Y', $campaignStartStamp); // Full date format
             $data[$date] = $campaignMetrics[$dbMetric];
             $tooltips[$date] = [
                 'name' => $campaign['name'],
