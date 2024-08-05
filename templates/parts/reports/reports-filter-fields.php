@@ -47,7 +47,7 @@
                 <label for="wiz-report-clickrate-min">Min click rate</label><input name="minClickRate" type="number" min="0" step="0.01" value="<?php echo $setMinClickRate; ?>" id="wiz-report-clickrate-min" />
             </div>
             <div class="wiz-report-controlset-field">
-                <?php $setMaxClickRate = isset($_GET['maxClickRate']) ? $_GET['maxClickRate'] : 100; ?>
+                <?php $setMaxClickRate = isset($_GET['maxClickRate']) ? $_GET['maxClickRate'] : 2; ?>
                 <label for="wiz-report-clickrate-max">Max click rate</label><input name="maxClickRate" type="number" min="0" step="0.01" value="<?php echo $setMaxClickRate; ?>" id="wiz-report-clickrate-max" />
             </div>
         </fieldset>
@@ -57,7 +57,7 @@
                 <label for="wiz-report-ctorate-min">Min CTO</label><input name="minCtoRate" type="number" min="0" step="0.01" value="<?php echo $setMinCtoRate; ?>" id="wiz-report-ctorate-min" />
             </div>
             <div class="wiz-report-controlset-field">
-                <?php $setMaxCtoRate = isset($_GET['maxCtoRate']) ? $_GET['maxCtoRate'] : 100; ?>
+                <?php $setMaxCtoRate = isset($_GET['maxCtoRate']) ? $_GET['maxCtoRate'] : 4; ?>
                 <label for="wiz-report-ctorate-max">Max CTO</label><input name="maxCtoRate" type="number" min="0" step="0.01" value="<?php echo $setMaxCtoRate; ?>" id="wiz-report-ctorate-max" />
             </div>
 

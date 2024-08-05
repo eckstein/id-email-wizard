@@ -56,6 +56,18 @@ function idwiz_get_campaign_table_view() {
                 }
             }
         }
+        //Add initiative IDs to the data
+        $campaignInits = idemailwiz_get_initiative_ids_for_campaign($row['campaign_id']) ?? [];
+        $row['initiative_links'] = '';
+        if (!empty($campaignInits)) {
+            $initLinks = [];
+            foreach ($campaignInits as $initiativeId) {
+                $initLinks[] = '<a href="'.get_the_permalink($initiativeId).'">'.get_the_title($initiativeId).'</a>';
+            }
+            
+            $row['initiative_links'] = implode(', ', $initLinks);
+        }
+
     }
 
     // Return data in JSON format

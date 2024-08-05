@@ -172,11 +172,11 @@ jQuery(document).ready(function ($) {
 		};
 
 		const successCallback = function (result) {
-			console.log(result);
+			do_wiz_notif({message:"Title updated", duration: 3000});
 		};
 
 		const errorCallback = function (xhr, status, error) {
-			console.log(error);
+			do_wiz_notif({message:"Error: Title was not updated!", duration: 3000});
 		};
 
 		idemailwiz_do_ajax("idemailwiz_ajax_save_item_update", nonceValue, additionalData, successCallback, errorCallback);
@@ -616,123 +616,7 @@ function handle_idwiz_sync_buttons(metricTypes, campaignIds, $button) {
 	);
 }
 
-// Add or remove initiatives from one or more campaigns
-window.manageCampaignsInInitiative = function (action, campaignIds, onSuccess = null, skipInitiativeSelection = false, initiativeId = null) {
-	const performAction = (initiativeId) => {
-		// Perform AJAX call to manage campaigns in the selected initiative
-		idemailwiz_do_ajax(
-			"idemailwiz_add_remove_campaign_from_initiative",
-			idAjax_data_tables.nonce,
-			{
-				initiative_id: initiativeId,
-				campaign_ids: campaignIds,
-				campaignAction: action,
-			},
-			function (response) {
-				var confirmMessage = "Campaign(s) successfully added to initiative!";
-				if (response.data.action == "remove") {
-					var confirmMessage = "Campaign(s) successfully removed from initiative!";
-				}
 
-				window.Swal.fire({
-					icon: "success",
-					title: "Success",
-					text: confirmMessage,
-				}).then(() => {
-					if (onSuccess) {
-						onSuccess();
-					}
-				});
-			},
-			function (errorData) {
-				// Handle error
-				console.error(`Failed to ${action} campaigns to initiative`, errorData);
-			}
-		);
-	};
-
-	// If skipping initiative selection, perform the action immediately
-	if (skipInitiativeSelection) {
-		performAction(initiativeId);
-		return;
-	}
-
-	// Determine the action and title based on the action parameter
-	let titleText = action === "add" ? "Add to Initiative" : "Remove from Initiative";
-	let confirmText = action === "add" ? "Add campaigns" : "Remove campaigns";
-
-	const swalConfig = {
-		title: titleText,
-		html: '<select id="initiative-select"></select><br/>- or -<br/><button id="create-new-initiative" class="wiz-button green" type="button">Create New Initiative</button>',
-		showCancelButton: true,
-		cancelButtonText: "Cancel",
-		confirmButtonText: confirmText,
-		preConfirm: () => {
-			let selectedInitiative = jQuery("#initiative-select").val();
-			performAction(selectedInitiative);
-		},
-	};
-
-	// Conditionally add the 'didOpen' callback if we need to select an initiative
-	if (!skipInitiativeSelection) {
-		swalConfig.didOpen = () => {
-			jQuery("#initiative-select").select2({
-				minimumInputLength: 0,
-				placeholder: "Search initiatives...",
-				allowClear: true,
-				ajax: {
-					delay: 250,
-					transport: function (params, success, failure) {
-						idemailwiz_do_ajax(
-							"idemailwiz_get_initiatives_for_select",
-							idAjax_data_tables.nonce,
-							{
-								q: params.data.term,
-							},
-							function (data) {
-								success({ results: data });
-							},
-							function (error) {
-								console.error("Failed to fetch initiatives", error);
-								failure();
-							}
-						);
-					},
-				},
-			});
-
-			jQuery("#create-new-initiative").on("click", function () {
-				Swal.fire({
-					title: "Create New Initiative",
-					input: "text",
-					inputPlaceholder: "Enter initiative title...",
-					showCancelButton: true,
-					cancelButtonText: "Cancel",
-					confirmButtonText: "Create",
-				}).then((result) => {
-					if (result.isConfirmed) {
-						const title = result.value;
-						idemailwiz_do_ajax(
-							"idemailwiz_create_new_initiative",
-							idAjax_initiatives.nonce,
-							{ newInitTitle: title },
-							function (data) {
-								// After creating the new initiative, perform the initial action (add/remove campaigns)
-								performAction(data.data.post_id);
-							},
-							function (error) {
-								console.log(error);
-								Swal.fire("Error", "An error occurred. Check the console for details.", "error");
-							}
-						);
-					}
-				});
-			});
-		};
-	}
-
-	window.Swal.fire(swalConfig);
-};
 
 
 

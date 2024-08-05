@@ -5,37 +5,7 @@ jQuery(document).ready(function ($) {
 		handle_idwiz_sync_buttons("idemailwiz_ajax_sync", idAjax_wiz_metrics.nonce, { campaignIds: JSON.stringify(campaignId) });
 	});
 
-	$(".add-initiative-icon").on("click", function () {
-		const action = "add";
-		const campaignId = $(this).data("campaignid");
-		window.manageCampaignsInInitiative(action, [campaignId], function () {
-			location.reload();
-		});
-	});
-
-	$(".remove-initiative-icon").on("click", function () {
-		const action = "remove";
-		const initiativeId = $(this).data("initid");
-		const campaignId = $(this).data("campaignid");
-		window.Swal.fire({
-			title: "Confirm Removal",
-			text: "Are you sure you want to remove this initiative?",
-			showCancelButton: true,
-			confirmButtonText: "Yes, remove it!",
-		}).then((result) => {
-			if (result.isConfirmed) {
-				window.manageCampaignsInInitiative(
-					action,
-					[campaignId],
-					function () {
-						location.reload();
-					},
-					true,
-					initiativeId
-				);
-			}
-		});
-	});
+	
 
 	
 

@@ -118,6 +118,7 @@ require_once(plugin_dir_path(__FILE__) . 'includes/pulse-connection.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/data-tables.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/charts.php');
 require_once(plugin_dir_path(__FILE__) . 'includes/reporting.php');
+require_once(plugin_dir_path(__FILE__) . 'includes/promo-codes.php');
 
 require_once(plugin_dir_path(__FILE__) . 'builder-v2/chunks.php');
 
@@ -143,6 +144,81 @@ function custom_template_permalink($post_link, $post) {
 add_action('init', 'idwiz_register_custom_post_types', 0);
 function idwiz_register_custom_post_types()
 {
+    $promoCodeLabels = array(
+        'name' => 'Promo Codes',
+        'singular_name' => 'Promo Code',
+        'menu_name' => __('Promo Codes', 'idemailwiz'),
+        'name_admin_bar' => __('Promo Code', 'idemailwiz'),
+        'archives' => __('Promo Code Archives', 'idemailwiz'),
+        'attributes' => __('Promo Code Attributes', 'idemailwiz'),
+        'parent_item_colon' => __('Parent Promo Code:', 'idemailwiz'),
+        'all_items' => __('All Promo Codes', 'idemailwiz'),
+        'add_new_item' => __('Add New Promo Code', 'idemailwiz'),
+        'add_new' => __('Add New', 'idemailwiz'),
+        'new_item' => __('New Promo Code', 'idemailwiz'),
+        'edit_item' => __('Edit Promo Code', 'idemailwiz'),
+        'update_item' => __('Update Promo Code', 'idemailwiz'),
+        'view_item' => __('View Promo Code', 'idemailwiz'),
+        'view_items' => __('View Promo Codes', 'idemailwiz'),
+        'search_items' => __('Search Promo Code', 'idemailwiz'),
+        'insert_into_item' => __('Insert into promo code', 'idemailwiz'),
+        'uploaded_to_this_item' => __('Uploaded to this promo code', 'idemailwiz'),
+        'items_list' => __('Promo codes list', 'idemailwiz'),
+        'items_list_navigation' => __('Promo codes list navigation', 'idemailwiz'),
+        'filter_items_list' => __('Filter promo codes list', 'idemailwiz'),
+    );
+
+    $promoCodeArgs = array(
+        'labels' => $promoCodeLabels,
+        'public' => true,
+        'has_archive' => 'promo-codes',
+        'supports' => array('title', 'custom-fields'),
+        'rewrite' => array(
+            'slug' => 'promo-code',
+            'with_front' => false
+        ),
+    );
+    register_post_type('wiz_promo_code', $promoCodeArgs);
+
+    function custom_promo_code_rewrite_rules()
+    {
+        add_rewrite_rule(
+            'promo-code/([0-9]+)/?$',
+            'index.php?post_type=wiz_promo_code&p=$matches[1]',
+            'top'
+        );
+
+        // Preserve the archive page rule
+        add_rewrite_rule(
+            'promo-codes/?$',
+            'index.php?post_type=wiz_promo_code',
+            'top'
+        );
+    }
+    add_action('init', 'custom_promo_code_rewrite_rules', 10, 0);
+
+    function custom_promo_code_post_link($post_link, $post)
+    {
+        if ($post->post_type === 'wiz_promo_code') {
+            return home_url("promo-code/{$post->ID}/");
+        }
+        return $post_link;
+    }
+    add_filter('post_type_link', 'custom_promo_code_post_link', 10, 2);
+
+    function custom_promo_code_request($query_vars)
+    {
+        if (
+            isset($query_vars['post_type']) && $query_vars['post_type'] === 'wiz_promo_code'
+            && isset($query_vars['name'])
+        ) {
+            $query_vars['p'] = $query_vars['name'];
+            unset($query_vars['name']);
+        }
+        return $query_vars;
+    }
+    add_filter('request', 'custom_promo_code_request');
+
     $templateLabels = array(
         'name' => 'Templates',
         'singular_name' => 'Template',
@@ -161,6 +237,8 @@ function idwiz_register_custom_post_types()
         ),
     );
 
+
+   
 
     register_post_type('idemailwiz_template', $templateArgs);
 
@@ -345,6 +423,11 @@ function idemailwiz_custom_archive_templates($tpl)
     if (is_post_type_archive('idwiz_comparison')) {
         $tpl = plugin_dir_path(__FILE__) . 'templates/archive-comparison.php';
     }
+
+    if (is_post_type_archive('wiz_promo_code')) {
+        $tpl = plugin_dir_path(__FILE__) . 'templates/archive-promo-code.php';
+    }
+
     return $tpl;
 
 }
@@ -384,6 +467,8 @@ function idemailwiz_create_taxonomies()
     );
 
     register_taxonomy('idemailwiz_folder', 'idemailwiz_template', $folderargs);
+
+ 
 
 
 
@@ -439,6 +524,9 @@ function idemailwiz_template_chooser($template)
 
     if (get_post_type() == 'idwiz_initiative' && is_single()) {
         return dirname(__FILE__) . '/templates/single-initiative.php';
+    }
+    if (get_post_type() == 'wiz_promo_code' && is_single()) {
+        return dirname(__FILE__) . '/templates/single-promo-code.php';
     }
 
     if (get_post_type() == 'idwiz_comparison' && is_single()) {
@@ -677,7 +765,7 @@ function idemailwiz_enqueue_assets()
 
     wp_enqueue_style('flatpickr', 'https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css', array());
 
-    wp_enqueue_style('spectrum-stylles', plugin_dir_url(__FILE__) . 'vendors/spectrum/spectrum.css', array());
+    wp_enqueue_style('spectrum-styles', plugin_dir_url(__FILE__) . 'vendors/spectrum/spectrum.css', array());
 
 
     //wp_enqueue_style('gradientGeneratorStyle', plugin_dir_url(__FILE__) . 'vendors/eckstein/gradientGenerator/gradientGeneratorFinal.css', array());
@@ -754,6 +842,8 @@ function idemailwiz_enqueue_assets()
         'dashboard' => array('/js/idwiz-dashboard.js', array('jquery', 'id-general', 'wiz-charts', 'data-tables')),
         'google-sheets-api' => array('/js/google-sheets-api.js', array('jquery', 'id-general')),
         'wiz-endpoints' => array('/js/endpoints.js', array('jquery', 'id-general')),
+        'promo-codes' => array('/js/promo-codes.js', array('jquery', 'id-general')),
+        'reporting' => array('/js/reporting.js', array('jquery', 'id-general', 'wiz-charts', 'data-tables')),
         
 
     );

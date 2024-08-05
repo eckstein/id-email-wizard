@@ -26,51 +26,161 @@ jQuery(document).ready(function ($) {
 	// async load images
 	loadTemplatePreviewsAsync('.init-template-preview');
 
-	// Fill our summary table on page load
-	// Initialize variables for totals
-	var totalSends = 0;
-	var totalOpens = 0;
-	var totalClicks = 0;
-	var totalPurchases = 0;
-	var totalRevenue = 0;
-	var totalUnsubs = 0;
+	// Add or remove initiatives from one or more campaigns
+	window.manageCampaignsInInitiative = function (action, campaignIds, onSuccess = null, skipInitiativeSelection = false, initiativeId = null) {
+		const performAction = (initiativeId) => {
+			// Perform AJAX call to manage campaigns in the selected initiative
+			idemailwiz_do_ajax(
+				"idemailwiz_add_remove_campaign_from_initiative",
+				idAjax_data_tables.nonce,
+				{
+					initiative_id: initiativeId,
+					campaign_ids: campaignIds,
+					campaignAction: action,
+				},
+				function (response) {
+					var confirmMessage = "Campaign(s) successfully added to initiative!";
+					if (response.data.action == "remove") {
+						var confirmMessage = "Campaign(s) successfully removed from initiative!";
+					}
 
-	// Iterate through the rows of the second table to calculate the totals
-	$("#idemailwiz_initiative_campaign_table tbody tr").each(function () {
-		totalSends += parseFloat($(this).find(".uniqueSends").text().replace(/,/g, ""));
-		totalOpens += parseFloat($(this).find(".uniqueOpens").text().replace(/,/g, ""));
-		totalClicks += parseFloat($(this).find(".uniqueClicks").text().replace(/,/g, ""));
-		totalPurchases += parseFloat($(this).find(".uniquePurchases").text().replace(/,/g, ""));
-		totalRevenue += parseFloat($(this).find(".campaignRevenue").text().replace(/,/g, "").replace("$", ""));
-		totalUnsubs += parseFloat($(this).find(".uniqueUnsubs").text().replace(/,/g, ""));
+					window.Swal.fire({
+						icon: "success",
+						title: "Success",
+						text: confirmMessage,
+					}).then(() => {
+						if (onSuccess) {
+							onSuccess();
+						}
+					});
+				},
+				function (errorData) {
+					// Handle error
+					console.error(`Failed to ${action} campaigns to initiative`, errorData);
+				}
+			);
+		};
+
+		// If skipping initiative selection, perform the action immediately
+		if (skipInitiativeSelection) {
+			performAction(initiativeId);
+			return;
+		}
+
+		// Determine the action and title based on the action parameter
+		let titleText = action === "add" ? "Add to Initiative" : "Remove from Initiative";
+		let confirmText = action === "add" ? "Add" : "Remove";
+
+		const swalConfig = {
+			title: titleText,
+			html: '<select id="initiative-select"></select><br/>- or -<br/><button id="create-new-initiative" class="wiz-button green" type="button">Create New Initiative</button>',
+			showCancelButton: true,
+			cancelButtonText: "Cancel",
+			confirmButtonText: confirmText,
+			preConfirm: () => {
+				let selectedInitiative = jQuery("#initiative-select").val();
+				performAction(selectedInitiative);
+			},
+		};
+
+		// Conditionally add the 'didOpen' callback if we need to select an initiative
+		if (!skipInitiativeSelection) {
+			swalConfig.didOpen = () => {
+				jQuery("#initiative-select").select2({
+					minimumInputLength: 0,
+					placeholder: "Search initiatives...",
+					allowClear: true,
+					ajax: {
+						delay: 250,
+						transport: function (params, success, failure) {
+							idemailwiz_do_ajax(
+								"idemailwiz_get_initiatives_for_select",
+								idAjax_data_tables.nonce,
+								{
+									q: params.data.term,
+								},
+								function (data) {
+									success({ results: data });
+								},
+								function (error) {
+									console.error("Failed to fetch initiatives", error);
+									failure();
+								}
+							);
+						},
+					},
+				});
+
+				jQuery("#create-new-initiative").on("click", function () {
+					Swal.fire({
+						title: "Create New Initiative",
+						input: "text",
+						inputPlaceholder: "Enter initiative title...",
+						showCancelButton: true,
+						cancelButtonText: "Cancel",
+						confirmButtonText: "Create",
+					}).then((result) => {
+						if (result.isConfirmed) {
+							const title = result.value;
+							idemailwiz_do_ajax(
+								"idemailwiz_create_new_initiative",
+								idAjax_initiatives.nonce,
+								{ newInitTitle: title },
+								function (data) {
+									// After creating the new initiative, perform the initial action (add/remove campaigns)
+									performAction(data.data.post_id);
+								},
+								function (error) {
+									console.log(error);
+									Swal.fire("Error", "An error occurred. Check the console for details.", "error");
+								}
+							);
+						}
+					});
+				});
+			};
+		}
+
+		window.Swal.fire(swalConfig);
+	};
+
+	// From the single campaign page, when we want to add this campaign to an initiative
+	$(".add-initiative-to-campaign").on("click", function () {
+		const action = "add";
+		const campaignId = $(this).data("campaignid");
+		window.manageCampaignsInInitiative(action, [campaignId], function () {
+			location.reload();
+		});
 	});
 
-	// Perform the required calculations
-	var openRate = (totalOpens / totalSends) * 100;
-	var CTR = (totalClicks / totalSends) * 100;
-	var CTO = (totalClicks / totalOpens) * 100;
-	var CVR = (totalPurchases / totalSends) * 100;
-	var AOV = totalRevenue / totalPurchases;
-	var unsubRate = (totalUnsubs / totalSends) * 100;
 
-	// Initialize a number formatter for currency
-	var currencyFormatter = new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
+	// From the single campaign page, when we want to remove this campaign from an initiative
+	$(".remove-initiative-from-campaign").on("click", function () {
+		const action = "remove";
+		const initiativeId = $(this).data("initid");
+		const campaignId = $(this).data("campaignid");
+		window.Swal.fire({
+			title: "Confirm Removal",
+			text: "Are you sure you want to remove this initiative?",
+			showCancelButton: true,
+			confirmButtonText: "Yes, remove it!",
+		}).then((result) => {
+			if (result.isConfirmed) {
+				window.manageCampaignsInInitiative(
+					action,
+					[campaignId],
+					function () {
+						location.reload();
+					},
+					true,
+					initiativeId
+				);
+			}
+		});
 	});
 
-	// Update the first table with the calculated values
-	$(".initiativeSends .metric_view_value").text(totalSends.toLocaleString());
-	$(".initiativeOpenRate .metric_view_value").text(openRate.toFixed(2) + "%");
-	$(".initiativeCtr .metric_view_value").text(CTR.toFixed(2).toLocaleString() + "%");
-	$(".initiativeCto .metric_view_value").text(CTO.toFixed(2).toLocaleString() + "%");
-	$(".initiativePurchases .metric_view_value").text(totalPurchases.toLocaleString());
-	$(".initiativeRevenue .metric_view_value").text(currencyFormatter.format(totalRevenue.toFixed(2)));
-	$(".initiativeCvr .metric_view_value").text(CVR.toFixed(2).toLocaleString() + "%");
-	$(".initiativeAov .metric_view_value").text(currencyFormatter.format(AOV.toFixed(2)));
-	$(".initiativeUnsubRate .metric_view_value").text(unsubRate.toFixed(2).toLocaleString() + "%");
-
-	async function addCampaigns(initiativeID) {
+	// On the single Initiative page, shows a SWAL2 popup to select campaigns to add to the current Initiative
+	async function show_add_campaigns_to_init_ui(initiativeID) {
 		const { value: formValues, isConfirmed } = await Swal.fire({
 			title: "Select Campaign",
 			html: '<select class="swal2-input swalSelect2" id="initCampaignSelect" multiple="multiple"></select>',
@@ -128,89 +238,33 @@ jQuery(document).ready(function ($) {
 		}
 	}
 
+	
+	
+
+
+	// On the single Initiative, page, handles adding campaigns to the current Initiative
+	$(document).on("click", ".add-init-campaign", function () {
+		const initiativeID = $(this).data("initiativeid");
+		show_add_campaigns_to_init_ui(initiativeID);
+	});
+
+
+
+
+	// Delete an initiative from the single initiative page
+	$(".remove-single-initiative").on("click", function () {
+		const initiativeId = $(this).data("initiativeid"); 
+		idwiz_deleteInitiatives([initiativeId], function () {
+			// Redirect to /initiatives
+			window.location.href = "/initiatives";
+		});
+	});
+
+
+	
 	// Base template module
 	$(".attachBaseTemplate").on("click", function () {
 		$("#showAttachBaseTemplate").slideToggle();
-	});
-
-	// Function to handle removing campaigns
-	function removeCampaigns(initiativeID, campaignID) {
-		campaignIDs = [campaignID];
-
-		// Swal2 Confirm dialog
-		Swal.fire({
-			title: "Are you sure?",
-			text: "Do you want to remove this campaign?",
-			icon: "warning",
-			showCancelButton: true,
-			confirmButtonColor: "#3085d6",
-			cancelButtonColor: "#d33",
-			confirmButtonText: "Yes, remove it!",
-		})
-			.then((result) => {
-				if (result.isConfirmed) {
-					// Send an AJAX request to update the database
-					idemailwiz_do_ajax(
-						"idemailwiz_add_remove_campaign_from_initiative",
-						idAjax_initiatives.nonce,
-						{
-							campaign_ids: campaignIDs,
-							initiative_id: initiativeID,
-							campaignAction: "remove",
-						},
-						function (response) {
-							// Detailed response for debugging
-							console.log(response);
-
-							// User-friendly alert message based on overall success
-							if (response.success) {
-								Swal.fire({
-									icon: "success",
-									title: "Success",
-									text: "Campaigns successfully removed!",
-								}).then(() => {
-									setTimeout(function () {
-										window.location.reload();
-									}, 500);
-								});
-							} else {
-								Swal.fire({
-									icon: "error",
-									title: "Error",
-									text: "Some campaigns could not be processed. Check the console for details.",
-								});
-								console.error("Detailed messages:", response.data.messages);
-							}
-						},
-						function (error) {
-							// Error handling
-							Swal.fire({
-								icon: "error",
-								title: "Error",
-								text: "An error occurred. Check the console for details.",
-							});
-							console.error("Failed to make call to update function", error);
-						}
-					);
-				}
-			})
-			.catch((error) => {
-				// Handle any Swal2 errors here
-				console.error("Swal2 error:", error);
-			});
-	}
-
-	// Main click handler to decide campaign action
-	$(document).on("click", ".add-init-campaign, .remove-init-campaign", function () {
-		const initiativeID = $(this).data("initiativeid");
-		const action = $(this).data("initcampaignaction");
-		const campaignID = $(this).data("campaignid");
-
-		if (action == "remove") {
-			removeCampaigns(initiativeID, campaignID);
-		} else {
-			addCampaigns(initiativeID);
-		}
 	});
 
 	//Date sort plugin
@@ -473,6 +527,10 @@ jQuery(document).ready(function ($) {
 		}
 	}
 
+	
+
+
+	// Initiative campaign table
 	if ($(".idwiz-initiative-table").length) {
 
 
@@ -625,20 +683,17 @@ jQuery(document).ready(function ($) {
 		}
 	}
 
-	// Delete an initiative from the single initiative page
-	$(".remove-single-initiative").on("click", function () {
-		const initiativeId = $(this).data("initiativeid"); // Assuming you have a data attribute for the ID
-		idwiz_deleteInitiatives([initiativeId], function () {
-			// Redirect to /initiatives
-			window.location.href = "/initiatives";
-		});
-	});
+	
+
+
 
 	$(".init_asset_wrap img").on("click", function () {
 		var imageUrl = $(this).attr("src");
 		var index = $(".init_asset_wrap img").index($(this));
 		showImageModal(imageUrl, index);
 	});
+
+
 	function showImageModal(imageUrl, index) {
 		var images = $(".init_asset_wrap img")
 			.map(function () {

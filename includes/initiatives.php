@@ -168,9 +168,8 @@ function get_idwiz_initiative_daterange( $initiative_post_id ) {
 	$min_start_date = min( $start_dates );
 	$max_start_date = max( $start_dates );
 
-	$return['startDate'] = date( 'm/d/Y', $min_start_date / 1000 );
-	$return['endDate'] = date( 'm/d/Y', $max_start_date / 1000 );
-
+	$return['startDate'] = date( 'm/d/Y', intval($min_start_date / 1000) );
+	$return['endDate'] = date( 'm/d/Y', intval($max_start_date / 1000) );
 	return $return;
 }
 
@@ -178,7 +177,6 @@ function get_idwiz_initiative_daterange( $initiative_post_id ) {
 function idemailwiz_update_campaign_initiative_relationship( $campaignID, $initiativeID, $action ) {
 	global $wpdb;
 	$table_name = $wpdb->prefix . "idemailwiz_init_campaigns";
-	$campaigns_table = $wpdb->prefix . "idemailwiz_campaigns";
 
 	// Start transaction
 	$wpdb->query( 'START TRANSACTION' );
@@ -197,37 +195,12 @@ function idemailwiz_update_campaign_initiative_relationship( $campaignID, $initi
 		$wpdb->query( 'ROLLBACK' );
 		return [ 'success' => false, 'message' => "Failed to {$action} relationship" ];
 	}
-
-	// Get updated initiative IDs for the campaign
-	$initiativeIDs = idemailwiz_get_initiative_ids_for_campaign( $campaignID );
-
-	// Convert initiative IDs to links
-	$initiativeLinks = array_map( function ($id) {
-		$permalink = get_permalink( $id );
-		$title = get_the_title( $id );
-		return "<a href='{$permalink}'>{$title}</a>";
-	}, $initiativeIDs );
-
-	$initiativeLinksStr = implode( ", ", $initiativeLinks );
-
-	// Update the initiativeLinks column for the campaign
-	$update_result = $wpdb->update(
-		$campaigns_table,
-		[ 'initiativeLinks' => $initiativeLinksStr ],
-		[ 'id' => $campaignID ],
-		[ '%s' ],
-		[ '%d' ]
-	);
-
-	if ( $update_result === false ) {
-		$wpdb->query( 'ROLLBACK' );
-		return [ 'success' => false, 'message' => 'Failed to update initiativeLinks' ];
-	}
+	
 
 	// Commit transaction
 	$wpdb->query( 'COMMIT' );
 
-	return [ 'success' => true, 'message' => "Successfully {$action}ed relationship and updated initiativeLinks" ];
+	return [ 'success' => true, 'message' => "Successfully {$action}ed relationship" ];
 }
 
 
@@ -445,23 +418,23 @@ function generate_initiative_flags( $campaignId ) {
 	$initIds = idemailwiz_get_initiative_ids_for_campaign( $campaignId );
 	ob_start(); // Start output buffering
 	?>
-	<div class="campaign-init-flags">
+	<div class="campaign-meta-flags">
 		<?php if ( $initIds ) { ?>
 			<?php foreach ( $initIds as $initId ) : ?>
-				<span class="campaign-init-flag">
+				<span class="campaign-meta-flag">
 					<a href="<?php echo get_the_permalink( $initId ); ?>" title="Go to Initiative">
 						<?php echo get_the_title( $initId ); ?>
 					</a>
-					<span class="remove-initiative-icon fa fa-times" data-action="remove" data-initid="<?php echo $initId; ?>"
+					<span class="remove-initiative-from-campaign remove-meta-icon fa fa-times" data-action="remove" data-initid="<?php echo $initId; ?>"
 						data-campaignid="<?php echo $campaignId; ?>" title="Remove campaign from Initiative">
 					</span>
 				</span>
 			<?php endforeach; ?>
 		<?php } else {
-			echo '<em>No connected initiatives</em>';
+			echo '<span class="no-meta-message">No connected initiatives</span>';
 		} ?>
-		<span class="add-initiative-icon fa fa-plus" data-action="add" data-initids='<?php echo json_encode( $initIds ); ?>'
-			data-campaignid="<?php echo $campaignId; ?>" class="add-edit-campaign-initiative">
+		<span class="add-initiative-to-campaign add-meta-icon fa fa-plus" data-action="add" data-initids='<?php echo json_encode( $initIds ); ?>'
+			data-campaignid="<?php echo $campaignId; ?>" class="add-edit-campaign-initiative" title="Add campaign to initiative">
 		</span>
 	</div>
 	<?php

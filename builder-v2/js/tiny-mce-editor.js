@@ -63,11 +63,19 @@ function init_template_title_tinymce() {
                 clearTimeout(debounceTimeout);
                 debounceTimeout = setTimeout(function() {
                     var editorContent = editor.getContent();
-                    save_wiz_template_title(templateId, editorContent);
+                    var plainTextContent = stripHtml(editorContent);
+                    save_wiz_template_title(templateId, plainTextContent);
                 }, 500); // Adjust the debounce delay as needed (in milliseconds)
             });
         }
     });
+}
+
+// Function to strip HTML and return plain text
+function stripHtml(html) {
+    var temporaryElement = document.createElement("div");
+    temporaryElement.innerHTML = html;
+    return temporaryElement.textContent || temporaryElement.innerText || "";
 }
 
 // Destroy and re-initialize TinyMCE on each .wiz-wysiwyg element with option element selection

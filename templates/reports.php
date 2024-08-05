@@ -44,17 +44,17 @@ $reportType = $_GET['reportType'] ?? 'home';
                                 <a href="<?php echo esc_url(get_permalink()); ?>?reportType=home"></a>
                             </li>
                             <li class="<?php echo $reportType == 'open-click-trends' ? 'current' : ''; ?>">
-                                <div class="nav-item"><i class="fa-solid fa-chart-line"></i>  Open & Click Trends</div>
+                                <div class="nav-item"><i class="fa-solid fa-chart-line"></i>&nbsp;&nbsp;Open & Click Trends</div>
                                 <div class="nav-desc">See comparitive trends for open and click rates over time</div>
                                 <a href="<?php echo get_bloginfo('url'); ?>/reports/?reportType=open-click-trends<?php echo (isset($_GET['startDate']) && isset($_GET['endDate'])) ? '&startDate=' . $_GET['startDate'] . '&endDate=' . $_GET['endDate'] : ''; ?>"></a>
                             </li>
                             <li class="<?php echo $reportType == 'signup-to-purchase' ? 'current' : ''; ?>">
-                                <div class="nav-item"><i class="fa-solid fa-chart-line"></i>  Signup-To-Purchase</div>
+                                <div class="nav-item"><i class="fa-solid fa-chart-line"></i>&nbsp;&nbsp;Signup-To-Purchase</div>
                                 <div class="nav-desc">See length to conversion from sign-up based on date range.</div>
                                 <a href="<?php echo get_bloginfo('url'); ?>/reports/?reportType=signup-to-purchase<?php echo (isset($_GET['startDate']) && isset($_GET['endDate'])) ? '&startDate=' . $_GET['startDate'] . '&endDate=' . $_GET['endDate'] : ''; ?>"></a>
                             </li>
                             <li class="<?php echo $reportType == 'frequency' ? 'current' : ''; ?>">
-                                <div class="nav-item"><i class="fa-solid fa-chart-line"></i>  Campaign Send Frequency</div>
+                                <div class="nav-item"><i class="fa-solid fa-chart-line"></i>&nbsp;&nbsp;Campaign Send Frequency</div>
                                 <div class="nav-desc">See frequency of campaign sends by cohort or by send count.</div>
                                 <a href="<?php echo get_bloginfo('url'); ?>/reports/?reportType=frequency<?php echo (isset($_GET['startDate']) && isset($_GET['endDate'])) ? '&startDate=' . $_GET['startDate'] . '&endDate=' . $_GET['endDate'] : ''; ?>"></a>
                             </li>
@@ -68,9 +68,9 @@ $reportType = $_GET['reportType'] ?? 'home';
 
                 <?php
                 if ($reportType != 'home') {
-                    include plugin_dir_path(__FILE__) . 'parts/reports/reports-filter-fields.php'; 
+                    include plugin_dir_path(__FILE__) . 'parts/reports/reports-filter-fields.php';
                 }
-                
+
 
                 if ($reportType == 'home') {
                     include plugin_dir_path(__FILE__) . 'parts/reports/reports-home.php';

@@ -433,7 +433,6 @@ function idemailwiz_create_view()
             campaigns.messageMedium as message_medium,
             campaigns.name as campaign_name,
             campaigns.campaignState as campaign_state,
-            campaigns.initiativeLinks as initiative_links,
             campaigns.startAt as campaign_start,
             campaigns.labels as campaign_labels,
             campaigns.experimentIds as experiment_ids,
@@ -561,28 +560,24 @@ function build_idwiz_query($args, $table_name)
 			}
 
 			if ($interval) {
-				// Convert campaignStartAt from milliseconds to a date in the Pacific timezone
 				$campaignStartDate = "CONVERT_TZ(FROM_UNIXTIME(campaignStartAt / 1000), '+00:00', '-07:00')";
 
-				// Include purchases that occur after the campaignStartAt date and within the attribution interval
-				$sql .= " AND purchaseDate >= DATE($campaignStartDate)";
+				// Set purchase start date
+				if (!isset($args['startAt_start'])) {
+					$where_args['purchase_start_date'] = "DATE($campaignStartDate)";
+				}
 
-				// Check if startAt_start and startAt_end are provided
-				if (isset($args['startAt_start']) && isset($args['startAt_end'])) {
-					$startAtStart = DateTime::createFromFormat('Y-m-d', $args['startAt_start'], new DateTimeZone('America/Los_Angeles'));
-					$startAtEnd = DateTime::createFromFormat('Y-m-d', $args['startAt_end'], new DateTimeZone('America/Los_Angeles'));
-
-					if ($startAtStart && $startAtEnd) {
-						$formattedStartAtStart = $startAtStart->format('Y-m-d');
-						$formattedStartAtEnd = $startAtEnd->format('Y-m-d');
-
-						// Use the minimum of the attribution end date and startAt_end, but not earlier than startAt_start
-						$sql .= " AND purchaseDate <= LEAST(DATE_ADD(DATE($campaignStartDate), $interval), '$formattedStartAtEnd')";
-						$sql .= " AND purchaseDate >= '$formattedStartAtStart'";
-					}
+				// Set purchase end date
+				if (!isset($args['startAt_end'])) {
+					$where_args['purchase_end_date'] = "DATE_ADD(DATE($campaignStartDate), $interval)";
 				} else {
-					// If startAt_start and startAt_end are not provided, use the attribution end date
-					$sql .= " AND purchaseDate <= DATE_ADD(DATE($campaignStartDate), $interval)";
+					$startAtEnd = DateTime::createFromFormat('Y-m-d', $args['startAt_end'], new DateTimeZone('America/Los_Angeles'));
+					if ($startAtEnd) {
+						$formattedEndDate = $startAtEnd->format('Y-m-d');
+						$where_args['purchase_end_date'] = "LEAST('$formattedEndDate', DATE_ADD(DATE($campaignStartDate), $interval))";
+					} else {
+						$where_args['purchase_end_date'] = "DATE_ADD(DATE($campaignStartDate), $interval)";
+					}
 				}
 			}
 		}
@@ -617,11 +612,12 @@ function build_idwiz_query($args, $table_name)
 			}
 
 			if ($key === 'campaignIds') {
-				// Direct placeholder generation
-				$placeholders = rtrim(str_repeat('%d,', count($value)), ',');
-
-				// Prepare statement with placeholders
-				$sql .= $wpdb->prepare(" AND $campaignKey IN ($placeholders)", $value);
+				if (isset($args['campaignIds']) && !empty($args['campaignIds'])) {
+					$placeholders = rtrim(str_repeat('%d,', count($args['campaignIds'])), ',');
+					$sql .= $wpdb->prepare(" AND $campaignKey IN ($placeholders)", $args['campaignIds']);
+				} else {
+					return ['error' => 'No campaignIds were passed in the campaignIds array.'];
+				}
 				
 			} elseif ($key === 'purchaseIds') {
 				$placeholders = implode(',', array_fill(0, count($value), '%s'));
@@ -629,7 +625,7 @@ function build_idwiz_query($args, $table_name)
 			} elseif ($key === 'userIds') {
 				$placeholders = implode(',', array_fill(0, count($value), '%s'));
 				$sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND userId IN ($placeholders)"), $args['userIds']));
-			} elseif ($key === 'startAt_start') {
+			} elseif ($key === 'startAt_start'|| $key === 'purchase_start_date') {
 				$dt = DateTime::createFromFormat('Y-m-d', $value, new DateTimeZone('America/Los_Angeles'));
 				if ($dt) {
 					if ($dateKey === 'purchaseDate') {
@@ -646,7 +642,7 @@ function build_idwiz_query($args, $table_name)
 				} else {
 					return ['error' => 'Invalid date format for startAt_start'];
 				}
-			} elseif ($key === 'startAt_end') {
+			} elseif ($key === 'startAt_end'|| $key === 'purchase_end_date') {
 				$dt = DateTime::createFromFormat('Y-m-d', $value, new DateTimeZone('America/Los_Angeles'));
 				if ($dt) {
 					if ($dateKey === 'purchaseDate') {
@@ -711,48 +707,61 @@ function build_idwiz_query($args, $table_name)
 	return $sql;
 }
 
-// Does the sql query for the main get_ functions based on the passed parameters
 function execute_idwiz_query($sql, $args = [], $batch_size = 20000)
 {
 	global $wpdb;
 	$results = [];
 
+	// Check if $sql is actually a string
+	if (!is_string($sql)) {
+		error_log("Error: SQL query is not a string. Type: " . gettype($sql));
+		//error_log("SQL content: " . print_r($sql, true));
+		return false;
+	}
+
 	// Initialize offset and limit from $args if present, otherwise use defaults
 	$limit = isset($args['limit']) ? (int) $args['limit'] : $batch_size;
 	$offset = isset($args['offset']) ? (int) $args['offset'] : 0;
 
-	// Adjust initial query only if 'limit' and 'offset' are not provided in $args
-	if (!isset($args['limit']) && !isset($args['offset'])) {
-		$sql .= " LIMIT $offset, $limit"; // Default pagination logic
+	// Remove any existing LIMIT clause from the SQL
+	$sql = preg_replace('/\s+LIMIT\s+\d+(?:\s*,\s*\d+)?$/i', '', $sql);
+
+	// Add LIMIT clause
+	$sql .= " LIMIT $limit";
+
+	// Add OFFSET clause if necessary
+	if ($offset > 0) {
+		$sql .= " OFFSET $offset";
 	}
+
+	//error_log("Final SQL query: " . $sql);
 
 	do {
 		$current_batch = $wpdb->get_results($sql, ARRAY_A);
 
 		if ($wpdb->last_error) {
-			error_log($wpdb->last_error);
+			error_log("MySQL Error: " . $wpdb->last_error);
+			error_log("SQL Query: " . $sql);
 			return false;
 		}
 
 		if (!empty($current_batch)) {
-			$results = array_merge($results, $current_batch); // Merge batch results into the main results array
-			$offset += $limit; // Prepare offset for the next batch
+			$results = array_merge($results, $current_batch);
 
-			// Modify the SQL for the next batch if we're in control of pagination
+			// Only continue fetching if we're not using user-provided limit/offset
 			if (!isset($args['limit']) && !isset($args['offset'])) {
-				// Recalculate LIMIT clause for the next batch
-				if (strpos($sql, 'LIMIT') !== false) {
-					$sql = preg_replace('/LIMIT\s+\d+\s*,\s*\d+$/i', "LIMIT $offset, $limit", $sql);
-				} else {
-					$sql .= " LIMIT $offset, $limit";
-				}
+				$offset += $limit;
+				$sql = preg_replace('/LIMIT\s+\d+/i', "LIMIT $limit", $sql);
+				$sql = preg_replace('/OFFSET\s+\d+/i', "OFFSET $offset", $sql);
+			} else {
+				// If user provided limit/offset, we break after first batch
+				break;
 			}
 		}
-	} while (!empty($current_batch) && count($current_batch) == $limit && !isset($args['limit']) && !isset($args['offset']));
+	} while (!empty($current_batch) && count($current_batch) == $limit);
 
 	return $results;
 }
-
 
 
 

@@ -2651,29 +2651,42 @@ pre#generatedCode {
 .wizcampaign-single h3.single-wizcampaign-startAt {
 	text-align: center;
 }
-.campaign-init-flags {
-	padding: 10px 0;
+.campaign-interactive-meta {
+	display: flex;
+	gap: 20px;
+	margin-top: 20px;
+	justify-content: flex-end;
+}
+.interactive-meta-group {
+
+}
+.interactive-meta-group-title {
+	font-size: 12px;
+	
+}
+.campaign-meta-flags {
+	
 	display: flex;
 	gap: 10px;
 	align-items: center;
 	justify-content: left;
 }
-.campaign-init-flag {
+.campaign-meta-flag {
 	display: flex;
 	gap: 10px;
 	background-color: #eee;
 	padding: 3px 10px;
 	border-radius: 10px;
 }
-.campaign-init-flag:hover {
+.campaign-meta-flag:hover {
 	background-color: #cdcdcd;
 }
-.campaign-init-flag a {
+.campaign-meta-flag a {
 	color: #000 !important;
 	text-decoration: none;
 	font-size: 11px;
 }
-.campaign-init-flags .add-initiative-icon {
+.campaign-meta-flags .add-meta-icon {
 	padding: 3px;
 	display: flex;
 	height: 24px;
@@ -2684,10 +2697,10 @@ pre#generatedCode {
 	line-height: 1;
 	cursor: pointer;
 }
-.campaign-init-flags .add-initiative-icon:hover {
+.campaign-meta-flags .add-meta-icon:hover {
 	background-color: #94c52a;
 }
-.campaign-init-flag .remove-initiative-icon {
+.campaign-meta-flag .remove-meta-icon {
 	font-size: 12px;
 	height: 17px;
 	width: 17px;
@@ -2697,9 +2710,14 @@ pre#generatedCode {
 	padding: 3px;
 	cursor: pointer;
 }
-.campaign-init-flag .remove-initiative-icon:hover {
+.campaign-meta-flag .remove-meta-icon:hover {
 	background-color: red;
 	color: #fff;
+}
+
+.campaign-meta-flags .no-meta-message {
+	font-size: 12px;
+	font-style: italic;
 }
 
 h2.wizArticle-title {
@@ -3452,6 +3470,9 @@ select:focus {
 	text-align: center;
 }
 /* Template images timeline */
+.template-timeline-wrapper {
+	max-width: 50%;
+}
 .template-timeline {
 	display: flex;
 	justify-content: space-between;
@@ -3460,10 +3481,11 @@ select:focus {
 	padding-bottom: 10px;
 }
 .template-timeline-card {
-	flex: 0 0 300px;
-	width: 180px;
-	height: 350px;
+	flex: 0 0 250px;
+	width: 250px;
+	height: 300px;
 	border: 1px solid #eee;
+	box-sizing: border-box;
 }
 .template-timeline-card-title {
 	padding: 10px;
@@ -3476,7 +3498,7 @@ select:focus {
 }
 .template-timeline-card-image {
 	overflow-y: auto;
-	height: 280px;
+	height: 230px;
 }
 .template-timeline-card img {
 	width: 100%
@@ -3521,6 +3543,28 @@ select:focus {
 	width: auto !important;
 	max-width: 100%;
 	display: block !important;
+}
+
+
+/* Promo Codes */
+.swal2-popup .form-group {
+	margin-bottom: 15px;
+	text-align: left;
+}
+
+.swal2-popup .form-group label {
+	display: block;
+	margin-bottom: 5px;
+	font-weight: bold;
+}
+
+.swal2-popup .form-group input {
+	box-sizing: border-box;
+	width: 100%;
+	padding: 8px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	margin: 0;
 }
 
 /* Simple Table */

@@ -53,10 +53,7 @@ jQuery(document).ready(function($) {
 
 		
 
-		//Save the template title when updated
-		$("#builder").on("change", "#idwiz_templateTitle", function () {
-			//save_wiz_template_title($(this).data("templateid"), $(this).val());
-		});
+		
 
 	/*
 	****************

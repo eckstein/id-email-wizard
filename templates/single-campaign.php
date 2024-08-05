@@ -194,10 +194,12 @@ $linkedExperimentIds = array_map(function ($id) {
 				if ($campaignLabels) {
 					echo 'Cohorts: ' . implode(', ', $campaignLabels);
 				}
+
 				?>
+
+
 				</div>
 
-				<?php generate_initiative_flags($campaign['id']); ?>
 			</div>
 			<div class="wizHeader-right">
 				<div class="wizHeader-actions">
@@ -231,6 +233,16 @@ $linkedExperimentIds = array_map(function ($id) {
 					?>
 					Last synced: <?php echo $displayDate; ?>
 
+				</div>
+				<div class="campaign-interactive-meta">
+					<div class="interactive-meta-group">
+						<span class="interactive-meta-group-title">Initiatives:</span>
+						<?php echo generate_initiative_flags($campaign['id']); ?>
+					</div>
+					<div class="interactive-meta-group">
+						<span class="interactive-meta-group-title">Promo Codes:</span>
+						<?php echo generate_promo_code_flags($campaign['id']); ?>
+					</div>
 				</div>
 			</div>
 		</div>

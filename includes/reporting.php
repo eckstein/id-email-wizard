@@ -63,16 +63,16 @@ function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $return
 
             foreach ($userIds as $userId) {
                 $totalUsers++;
-                // Increment the send count group directly
-                $sendCountGroups[$sends]['count']++;
-
-                // Store user total sends for monthly data calculation
-                if (!isset($userTotalSends[$userId])) {
-                    $userTotalSends[$userId] = 0;
+                if ($sends && isset($sendCountGroups[$sends])) {
+                    // Increment the send count group directly
+                    $sendCountGroups[$sends]['count']++;
                 }
+                    // Store user total sends for monthly data calculation
+                    if (!isset($userTotalSends[$userId])) {
+                        $userTotalSends[$userId] = 0;
+                    }
+                
                 $userTotalSends[$userId] += $sends;
-
-
             }
         }
 
@@ -82,10 +82,10 @@ function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $return
 
     // Prepare the return data based on the requested timeframe
     if ($return === 'all') {
-        // Calculate the overall send count groups based on user total sends
-        $allSendCountGroups = [];
+        $allSendCountGroups = array_fill(0, 26, 0); // 0 to 25+ groups
         foreach ($userTotalSends as $totalSends) {
-            $allSendCountGroups[$totalSends]++;
+            $groupIndex = min($totalSends, 25); // Cap at 25+
+            $allSendCountGroups[$groupIndex]++;
         }
 
         return ['allData' => $allSendCountGroups, 'totalUsers' => count($userTotalSends)];
@@ -346,29 +346,31 @@ function calculate_send_data($data, $totalUsers, $multiplier)
     return $topSendCounts;
 }
 
-function get_campaigns_within_dates($startDate, $endDate)
-{
-    // Replace this with the actual implementation to fetch campaigns
-    return get_idwiz_campaigns([
-        'startAt_start' => $startDate,
-        'startAt_end' => $endDate,
-        'messageMedium' => 'Email'
-    ]);
-}
 
-function sort_campaigns_into_cohorts($campaigns, $mode)
+
+function sort_campaigns_into_cohorts($campaigns)
 {
     $cohorts = [];
+    $totalCampaigns = 0;
+
     foreach ($campaigns as $campaign) {
-        $cohort = $mode == 'separate' ? $campaign['cohortName'] : 'All Cohorts';
-        if (!isset($cohorts[$cohort])) {
-            $cohorts[$cohort] = [];
+        $campaignCohorts = $campaign['labels'] ? $campaign['labels'] : [];
+
+        $campaignCohorts = $campaign['labels'] ? unserialize($campaign['labels']) : [];
+
+        if (!empty($campaignCohorts)) {
+            $totalCampaigns++;
+            foreach ($campaignCohorts as $cohort) {
+                if (!isset($cohorts[$cohort])) {
+                    $cohorts[$cohort] = [];
+                }
+                $cohorts[$cohort][] = $campaign;
+            }
         }
-        $cohorts[$cohort][] = $campaign;
     }
 
     return [
         'cohorts' => $cohorts,
-        'totalCampaigns' => count($campaigns)
+        'totalCampaigns' => $totalCampaigns
     ];
 }

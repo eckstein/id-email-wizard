@@ -1,5 +1,6 @@
 <?php
-
+$startDate = $_GET['startDate'] ?? date('Y-d-01');
+$endDate = $_GET['endDate'] ?? date('Y-m-d');
 $frequencyView = $_GET['frequency-view'] ?? 'per-month';
 $cohortMode = $_GET['cohort-mode'] ?? 'combine';
 
@@ -31,6 +32,7 @@ $monthlyIterations = get_monthly_iterations($startDate, $endDate);
                         $weekRanges = get_weekly_data($iteration['start'], $iteration['end']);
                         foreach ($weekRanges as $weekRange) :
                             $weekData = get_sends_by_week_data($weekRange['start'], $weekRange['end'], 100, 'weekly');
+
                             $topSendCounts = calculate_send_data($weekData['weeklyData'], $weekData['totalUsers'], 50);
                         ?>
                             <div class="week-row">
@@ -49,6 +51,7 @@ $monthlyIterations = get_monthly_iterations($startDate, $endDate);
                     <?php else : ?>
                         <?php
                         $monthlyData = get_sends_by_week_data($iteration['start'], $iteration['end'], 100, 'monthly');
+
                         $topSendCounts = calculate_send_data($monthlyData['monthlyData'], $monthlyData['totalUsers'], 100);
                         ?>
                         <div class="month-data">
@@ -84,7 +87,7 @@ $monthlyIterations = get_monthly_iterations($startDate, $endDate);
                 </thead>
                 <tbody>
                     <?php
-                    $allData = get_sends_by_week_data($startDate, $endDate, 100, 'all');
+                    $allData = get_sends_by_week_data($startDate, $endDate, 100, 'all');;
 
                     foreach ($allData['allData'] as $sendCount => $userCount) :
                         if ($userCount > 0) : ?>
@@ -109,17 +112,15 @@ $monthlyIterations = get_monthly_iterations($startDate, $endDate);
     <div class="wizcampaign-section inset">
         <div class="wizcampaign-section-title-area">
             <h4>Cohort Frequency Within Dates</h4>
-            <div class="wizcampaign-section-title-area-right">
-                <?php if ($cohortMode == 'separate') : ?>
-                    <a href="<?php echo add_query_arg('cohort-mode', 'combine'); ?>">Combine Cohorts</a>
-                <?php else : ?>
-                    <a href="<?php echo add_query_arg('cohort-mode', 'separate'); ?>">Separate Cohorts</a>
-                <?php endif; ?>
-            </div>
+            
         </div>
         <?php
-        $campaignsInDates = get_campaigns_within_dates($startDate, $endDate);
-        $cohortResults = sort_campaigns_into_cohorts($campaignsInDates, $cohortMode);
+        $campaignsInDates = get_idwiz_campaigns([
+            'startAt_start' => $startDate,
+            'startAt_end' => $endDate,
+            'messageMedium' => 'Email'
+        ]);
+        $cohortResults = sort_campaigns_into_cohorts($campaignsInDates);
         ?>
         <div class="tinyTableWrapper" id="send-frequency-cohort-table" data-startdate="<?php echo $startDate; ?>" data-enddate="<?php echo $endDate; ?>">
             <table class="wizcampaign-tiny-table tall">

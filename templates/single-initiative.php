@@ -26,12 +26,13 @@
 ?>
 		<article id="post-<?php the_ID(); ?>" data-initiativeid="<?php echo get_the_ID(); ?>" <?php post_class('has-wiz-chart'); ?>>
 			<header class="wizHeader">
+				<h1 class="wizEntry-title single-wizcampaign-title" title="<?php echo get_the_title(); ?>" itemprop="name">
+					<input type="text" class="editableTitle" id="initiative-title-editable" data-updatetype="title" data-itemid="<?php echo get_the_ID(); ?>" value="<?php echo get_the_title(); ?>" />
+
+				</h1>
 				<div class="wizHeaderInnerWrap">
 					<div class="wizHeader-left">
-						<h1 class="wizEntry-title single-wizcampaign-title" title="<?php echo get_the_title(); ?>" itemprop="name">
-							<input type="text" class="editableTitle" id="initiative-title-editable" data-updatetype="title" data-itemid="<?php echo get_the_ID(); ?>" value="<?php echo get_the_title(); ?>" />
 
-						</h1>
 						<div class="wizEntry-meta"><strong>Initiative</strong>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Send dates:
 							<?php echo display_init_date_range($associated_campaign_ids); ?>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Includes
 							<?php echo count($associated_campaign_ids); ?> campaigns
@@ -73,7 +74,7 @@
 
 				?>
 
-				<div class="wizcampaign-sections-row">
+				<div class="wizcampaign-sections-row flex">
 					<div class="wizcampaign-section inset template-timeline-wrapper">
 						<div class="template-timeline">
 							<?php
@@ -85,7 +86,7 @@
 									<div class="template-timeline-card">
 										<div class="template-timeline-card-title">
 											<?php
-											$startStamp = $campaign['startAt'] / 1000;
+											$startStamp = intval($campaign['startAt'] / 1000);
 											echo date('m/d/Y', $startStamp) . '<br/>';
 											echo $campaign['name'];
 											?>
@@ -103,69 +104,6 @@
 							<?php }
 							} ?>
 						</div>
-					</div>
-
-
-				</div>
-
-
-				<div class="wizcampaign-sections-row">
-
-					<div class="wizcampaign-section inset">
-						<div class="initiative-about">
-							<h4>About
-								<?php the_title(); ?>
-							</h4>
-						</div>
-						<textarea id="initiative-content-editable" data-initUpdateType="content"><?php echo strip_tags(get_the_content()); ?></textarea>
-					</div>
-					<div id="initiativeTemplate" class="wizcampaign-section inset">
-						<?php $initBaseTemplate = get_field('base_template');
-						?>
-						<div class="wizcampaign-section-title-area">
-							<h4>Initiative Base Template</h4>
-							<div class="wizcampaign-section-icons">
-								<?php if ($initBaseTemplate) { ?>
-									<button data-postid="<?php echo $initBaseTemplate->ID; ?>" data-frombase="true" class="duplicate-template wiz-button green"><i class="fa-solid fa-plus"></i> Start New
-										Template</button>
-								<?php } ?>
-							</div>
-						</div>
-
-						<div id="initTemplateTools">
-							<?php if (!$initBaseTemplate) { ?>
-								<br />
-								<em>No base template set</em><br /><button class="wiz-button green attachBaseTemplate"><i class="fa-solid fa-plus"></i> Attach Base Template</button>
-							<?php } ?>
-							<div id="showAttachBaseTemplate">
-								<?php
-								acf_form(array('fields' => array('field_65032b84c2f62'), 'updated_message' => false, 'html_submit_button' => '<input type="submit" class="acf-button wiz-button green" value="%s" />'));
-								?>
-							</div>
-							<?php if ($initBaseTemplate) { ?>
-
-								<?php
-								$mockups = get_field('template_mock-ups', $initBaseTemplate->ID);
-								if ($mockups) {
-									echo '<div class="init-template-mock-ups">';
-									$dtMockup = $mockups['mock-up-image-desktop'];
-									$mobMockup = $mockups['mock-up-image-mobile'];
-									if ($dtMockup) {
-										echo '<div class="init-template-mock-up"><strong>Desktop</strong><br/><img src="' . $dtMockup . '"/></div>';
-									}
-									if ($mobMockup) {
-										echo '<div class="init-template-mock-up"><strong>Mobile</strong><br/><img src="' . $mobMockup . '"/></div>';
-									}
-									echo '</div>';
-								} else {
-									echo 'Base Template:<br/><strong>' . $initBaseTemplate->post_title . '</strong><br/><em>No mock-ups were found for this base template.</em>';
-								}
-								?>
-								<button class="wiz-button outline attachBaseTemplate" id="replaceBaseTemplate"><i class="fa-solid fa-shuffle"></i> Replace Base Template</button>
-							<?php } ?>
-
-						</div>
-
 					</div>
 					<div id="initiativeAssets" class="wizcampaign-section short inset span2">
 						<div class="wizcampaign-section-title-area">
@@ -186,7 +124,10 @@
 
 						</div>
 					</div>
+
 				</div>
+
+
 
 				<?php
 				if (!empty($associated_campaign_ids)) {
@@ -196,7 +137,7 @@
 
 					$startAts = array_column($initCampaigns, 'startAt');
 					$earliestDate = min($startAts);
-					$startDate = date('Y-m-d', $earliestDate / 1000);
+					$startDate = date('Y-m-d', intval($earliestDate / 1000));
 
 					$endDate = date('Y-m-d');
 					include plugin_dir_path(__FILE__) . 'parts/standard-charts.php';
@@ -253,38 +194,38 @@
 													<?php echo $campaign['name']; ?>
 												</a></td>
 											<td class="uniqueSends dtNumVal">
-												<?php echo number_format($campaignMetrics['uniqueEmailSends']); ?>
+												<?php echo number_format((float)$campaignMetrics['uniqueEmailSends'], 0); ?>
 											</td>
 											<td class="uniqueOpens dtNumVal">
-												<?php echo number_format($campaignMetrics['uniqueEmailOpens']); ?>
+												<?php echo number_format((float)$campaignMetrics['uniqueEmailOpens'], 0); ?>
 											</td>
 
 											<td class="openRate">
-												<?php echo number_format($campaignMetrics['wizOpenRate'] * 1, '2'); ?>%
+												<?php echo number_format((float)$campaignMetrics['wizOpenRate'] * 1, 2); ?>%
 											</td>
 											<td class="uniqueClicks dtNumVal">
-												<?php echo number_format($campaignMetrics['uniqueEmailClicks']); ?>
+												<?php echo number_format((float)$campaignMetrics['uniqueEmailClicks'], 0); ?>
 											</td>
 											<td class="ctr">
-												<?php echo number_format($campaignMetrics['wizCtr'] * 1, 2); ?>%
+												<?php echo number_format((float)$campaignMetrics['wizCtr'] * 1, 2); ?>%
 											</td>
 											<td class="cto">
-												<?php echo number_format($campaignMetrics['wizCto'] * 1, 2); ?>%
+												<?php echo isset($campaignMetrics['wizCto']) ? number_format((float)$campaignMetrics['wizCto'] * 1, 2) : '0.00'; ?>%
 											</td>
 											<td class="uniquePurchases dtNumVal">
-												<?php echo number_format($campaignMetrics['uniquePurchases']); ?>
+												<?php echo isset($campaignMetrics['uniquePurchases']) ? number_format((float)$campaignMetrics['uniquePurchases'], 0) : '0'; ?>
 											</td>
 											<td class="campaignRevenue dtNumVal">
-												<?php echo '$' . number_format($campaignMetrics['revenue'] * 1, 2); ?>
+												<?php echo number_format((float)$campaignMetrics['revenue'] * 1, 2); ?>
 											</td>
 											<td class="cvr">
-												<?php echo number_format($campaignMetrics['wizCvr'] * 1, 2); ?>%
+												<?php echo number_format((float)$campaignMetrics['wizCvr'] * 1, 2); ?>%
 											</td>
 											<td class="uniqueUnsubs dtNumVal">
-												<?php echo number_format($campaignMetrics['uniqueUnsubscribes']); ?>
+												<?php echo number_format((float)$campaignMetrics['uniqueUnsubscribes'], 0); ?>
 											</td>
 											<td class="unsubRate">
-												<?php echo number_format($campaignMetrics['wizUnsubRate'] * 1, 2); ?>%
+												<?php echo number_format((float)$campaignMetrics['wizUnsubRate'] * 1, 2); ?>%
 											</td>
 											<td class="campaignId">
 												<?php echo $campaign['id'] ?>

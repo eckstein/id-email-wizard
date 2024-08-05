@@ -1,4 +1,5 @@
 <?php
+
 add_action('wp_ajax_idwiz_catch_chart_request', 'idwiz_catch_chart_request');
 function idwiz_catch_chart_request()
 {
@@ -12,7 +13,7 @@ function idwiz_catch_chart_request()
 
     //error_log(print_r($_POST, true));
     foreach ($_POST as $key => $value) {
-        
+
         // Try decoding as JSON
         $decoded = json_decode(stripslashes($value), true);
 
@@ -38,26 +39,18 @@ function idwiz_catch_chart_request()
             break;
 
         case 'purchasesByDate':
+        case 'promoPurchasesByDate':
         case 'purchasesByDivision':
         case 'purchasesByLocation':
         case 'purchasesByTopic':
         case 'purchasesByGender':
+        
             $chartData = idwiz_get_byPurchaseField_chartdata($chartOptions);
             break;
 
-        case 'opensByCampaign':
-        case 'openRateByCampaign':
-        case 'clicksByCampaign':
-        case 'ctrByCampaign':
-        case 'ctoByCampaign':
-        case 'revenueByCampaign':
-        case 'gaRevenueByCampaign':
-        case 'purchasesByCampaign':
-        case 'cvrByCampaign':
-        case 'aovByCampaign':
-        case 'unsubsByCampaign':
-        case 'unsubRateByCampaign':
-            $chartData = idwiz_get_byCampaign_chartdata($chartOptions);
+
+        case 'customerTypesChart':
+            $chartData = idwiz_get_customer_types_chartdata($chartOptions);
             break;
 
             // case 'sendCountsByDate':
@@ -77,12 +70,58 @@ function idwiz_catch_chart_request()
     }
 }
 
+function idwiz_get_customer_types_chartdata($chartOptions)
+{
+    $purchaseArgs = [
+        'fields' => 'id, campaignId, orderId, accountNumber, purchaseDate',
+    ];
+
+    $campaignIds = $chartOptions['campaignIds'] ?? [];
+
+    if (!empty($campaignIds)) {
+        $purchaseArgs['campaignIds'] = $campaignIds;
+    }
+
+    $startDate = $chartOptions['startDate'] ?? '2021-11-01';
+    $endDate = $chartOptions['endDate'] ?? date('Y-m-d');
+
+    $purchaseArgs['startAt_start'] = $startDate;
+    $purchaseArgs['startAt_end'] = $endDate;
+
+    $purchases = get_idwiz_purchases($purchaseArgs);
+    $orderCounts = group_first_and_repeat_purchases($purchases);
+
+    $newCount = $orderCounts['new'];
+    $returningCount = $orderCounts['returning'];
+
+    return [
+        'type' => 'pie',
+        'data' => [
+            'labels' => ['New Customers', 'Returning Customers'],
+            'datasets' => [
+                [
+                    'data' => [$newCount, $returningCount],
+                    'backgroundColor' => ['#FF6384', '#36A2EB'],
+                ],
+            ],
+        ],
+        'options' => [
+            'responsive' => true,
+            'maintainAspectRatio' => false,
+            'plugins' => [
+                'tooltip' => [
+                    'callbacks' => [
+                        'label' => 'FORMAT_LABEL_JS_FUNCTION' // Placeholder
+                    ],
+                ],
+            ],
+        ],
+    ];
+}
 
 
 function idwiz_get_report_chartdata($chartOptions)
 {
-    global $wpdb;
-
     $chartId = $chartOptions['chartId'];
     switch ($chartId) {
         case 'opensReport':
@@ -92,13 +131,13 @@ function idwiz_get_report_chartdata($chartOptions)
             break;
         case 'ctrReport':
             $dbMetric = 'wizCtr';
-            $minMetric = isset($chartOptions['minMetric']) ? $chartOptions['minMetric'] * .01 : 0;
-            $maxMetric = isset($chartOptions['maxMetric']) ? $chartOptions['maxMetric'] * .01 : 2;
+            $minMetric = isset($chartOptions['minMetric']) ? $chartOptions['minMetric'] * .001 : 0;
+            $maxMetric = isset($chartOptions['maxMetric']) ? $chartOptions['maxMetric'] * .001 : 2;
             break;
         case 'ctoReport':
             $dbMetric = 'wizCto';
-            $minMetric = isset($chartOptions['minMetric']) ? $chartOptions['minMetric'] * .01 : 0;
-            $maxMetric = isset($chartOptions['maxMetric']) ? $chartOptions['maxMetric'] * .01 : 4;
+            $minMetric = isset($chartOptions['minMetric']) ? $chartOptions['minMetric'] * .001 : 0;
+            $maxMetric = isset($chartOptions['maxMetric']) ? $chartOptions['maxMetric'] * .001 : 4;
             break;
         case 'retentionReport':
             $dbMetric = 'wizUnsubRate';
@@ -129,51 +168,58 @@ function idwiz_get_report_chartdata($chartOptions)
     $startDate = $chartOptions['startDate'] ?? false;
     $endDate = $chartOptions['endDate'] ?? false;
 
+    // Calculate the start date for the previous year
+    $prevYearStartDate = date('Y-m-d', strtotime('-1 year', strtotime($startDate)));
+
     $campaignArgs = [
         'type' => ['Blast'],
-        'startAt_start' => $startDate,
+        'startAt_start' => $prevYearStartDate, // Start from previous year
         'startAt_end' => $endDate,
         'sortBy' => 'startAt',
         'sort' => 'ASC',
     ];
 
-    $campaigns = get_idwiz_campaigns($campaignArgs);
+    $allCampaigns = get_idwiz_campaigns($campaignArgs);
 
-    // Get campaigns from previous year
-    $prevCampaignArgs = $campaignArgs;
-    $prevCampaignArgs['startAt_start'] = date('Y-m-d', strtotime('-1 year', strtotime($startDate)));
-    $prevCampaignArgs['startAt_end'] = date('Y-m-d', strtotime('-1 year', strtotime($endDate)));
+    // Split campaigns into current year and previous year
+    $currentYear = date('Y', strtotime($startDate));
+    $campaigns = [];
+    $prevCampaigns = [];
 
-    $prevCampaigns = get_idwiz_campaigns($prevCampaignArgs);
+    foreach ($allCampaigns as $campaign) {
+        $campaignYear = date('Y', $campaign['startAt'] / 1000);
+        if ($campaignYear == $currentYear) {
+            $campaigns[] = $campaign;
+        } else {
+            $prevCampaigns[] = $campaign;
+        }
+    }
 
     $labels = [];
     $currentYearData = [];
     $prevYearData = [];
-    $toolTip = [];
 
     // Process current year campaigns
-    $currentYearResult = processCampaigns($campaigns, $dbMetric, $minSends, $maxSends, $minMetric, $maxMetric, $cohorts, $excludedCohorts);
+    $currentYearResult = get_campaigns_data_for_report($campaigns, $dbMetric, $minSends, $maxSends, $minMetric, $maxMetric, $cohorts, $excludedCohorts, true);
     $currentYearData = $currentYearResult['data'];
     $currentYearTooltips = $currentYearResult['tooltips'];
 
     // Process previous year campaigns
-    $prevYearResult = processCampaigns($prevCampaigns, $dbMetric, $minSends, $maxSends, $minMetric, $maxMetric, $cohorts, $excludedCohorts);
+    $prevYearResult = get_campaigns_data_for_report($prevCampaigns, $dbMetric, $minSends, $maxSends, $minMetric, $maxMetric, $cohorts, $excludedCohorts, false);
     $prevYearData = $prevYearResult['data'];
     $prevYearTooltips = $prevYearResult['tooltips'];
 
-    // Combine labels from both years
-    $allDates = array_unique(array_merge(array_keys($currentYearData), array_keys($prevYearData)));
-    sort($allDates);
+    // Generate date range
+    $dateRange = generate_date_range($startDate, $endDate);
 
     // Prepare final datasets
-    $labels = [];
-    $currentYearFinalData = [];
-    $prevYearFinalData = [];
+    $labels = $dateRange;
+    $currentYearFinalData = array_fill(0, count($dateRange), null);
+    $prevYearFinalData = array_fill(0, count($dateRange), null);
 
-    foreach ($allDates as $date) {
-        $labels[] = $date;
-        $currentYearFinalData[] = isset($currentYearData[$date]) ? $currentYearData[$date] : null;
-        $prevYearFinalData[] = isset($prevYearData[$date]) ? $prevYearData[$date] : null;
+    foreach ($dateRange as $index => $date) {
+        $currentYearFinalData[$index] = isset($currentYearData[$date]) ? $currentYearData[$date] : null;
+        $prevYearFinalData[$index] = isset($prevYearData[$date]) ? $prevYearData[$date] : null;
     }
 
     // Structuring data for a line chart
@@ -183,8 +229,9 @@ function idwiz_get_report_chartdata($chartOptions)
             'labels' => $labels,
             'datasets' => [
                 [
-                    'label' => $dbMetric . ' (Current Year)',
+                    'label' => 'Current Year',
                     'data' => $currentYearFinalData,
+                    'tooltipData' => $currentYearTooltips, // Pass tooltip data
                     'yAxisID' => 'y-axis-1',
                     'borderColor' => 'rgba(75, 192, 192, 1)',
                     'backgroundColor' => 'rgba(75, 192, 192, 0.2)',
@@ -192,8 +239,9 @@ function idwiz_get_report_chartdata($chartOptions)
                     'spanGaps' => true
                 ],
                 [
-                    'label' => $dbMetric . ' (Previous Year)',
+                    'label' => 'Previous Year',
                     'data' => $prevYearFinalData,
+                    'tooltipData' => $prevYearTooltips, // Pass tooltip data
                     'yAxisID' => 'y-axis-1',
                     'borderColor' => 'rgba(255, 99, 132, 1)',
                     'backgroundColor' => 'rgba(255, 99, 132, 0.2)',
@@ -205,36 +253,12 @@ function idwiz_get_report_chartdata($chartOptions)
         'options' => [
             'responsive' => true,
             'maintainAspectRatio' => false,
+            'hideTooltipLabel' => true,
             'plugins' => [
                 'tooltip' => [
                     'enabled' => true,
                     'mode' => 'index',
-                    'intersect' => false,
-                    'callbacks' => [
-                        'label' => 'function(context) {
-                            let label = context.dataset.label || "";
-                            if (label) {
-                                label += ": ";
-                            }
-                            if (context.parsed.y !== null) {
-                                let tooltips = ' . json_encode([$currentYearTooltips, $prevYearTooltips]) . ';
-                                let yearIndex = context.datasetIndex;
-                                let date = context.label;
-                                let tooltipData = tooltips[yearIndex][date];
-                                if (tooltipData) {
-                                    label += tooltipData.name + " - ";
-                                    label += date + " - ";
-                                    label += new Intl.NumberFormat("en-US", {
-                                        style: "percent",
-                                        minimumFractionDigits: 2
-                                    }).format(tooltipData.value / 100);
-                                } else {
-                                    label += "No data";
-                                }
-                            }
-                            return label;
-                        }'
-                    ],
+                    'intersect' => false
                 ],
                 'legend' => [
                     'display' => true,
@@ -268,12 +292,13 @@ function idwiz_get_report_chartdata($chartOptions)
                     'dataType' => 'percent'
                 ]
             ],
-        ]
+        ],
+        'customTooltip' => true,
     ];
 }
 
 // Function to process campaigns and collect data
-function processCampaigns($campaigns, $dbMetric, $minSends, $maxSends, $minMetric, $maxMetric, $cohorts, $excludedCohorts)
+function get_campaigns_data_for_report($campaigns, $dbMetric, $minSends, $maxSends, $minMetric, $maxMetric, $cohorts, $excludedCohorts, $isCurrentYear)
 {
     $data = [];
     $tooltips = [];
@@ -331,11 +356,20 @@ function processCampaigns($campaigns, $dbMetric, $minSends, $maxSends, $minMetri
             && $campaignMetrics[$dbMetric] <= $maxMetric
         ) {
             $campaignStartStamp = (int)($campaign['startAt'] / 1000);
-            $date = date('m/d/Y', $campaignStartStamp); // Full date format
-            $data[$date] = $campaignMetrics[$dbMetric];
-            $tooltips[$date] = [
+            $originalDate = date('m/d/Y', $campaignStartStamp);
+
+            // Adjust the date for previous year data
+            if (!$isCurrentYear) {
+                $adjustedDate = date('m/d/Y', strtotime('+1 year', $campaignStartStamp));
+            } else {
+                $adjustedDate = $originalDate;
+            }
+
+            $data[$adjustedDate] = $campaignMetrics[$dbMetric];
+            $tooltips[$adjustedDate] = [
                 'name' => $campaign['name'],
-                'value' => $campaignMetrics[$dbMetric]
+                'value' => $campaignMetrics[$dbMetric],
+                'originalDate' => $originalDate
             ];
         }
     }
@@ -343,11 +377,24 @@ function processCampaigns($campaigns, $dbMetric, $minSends, $maxSends, $minMetri
 }
 
 
+function generate_date_range($start, $end)
+{
+    $start = new DateTime($start);
+    $end = new DateTime($end);
+    $end->modify('+1 day'); // Include the end date
+
+    $range = new DatePeriod($start, new DateInterval('P1D'), $end);
+
+    $dates = [];
+    foreach ($range as $date) {
+        $dates[] = $date->format('m/d/Y');
+    }
+    return $dates;
+}
+
 
 function idwiz_get_byPurchaseField_chartdata($chartOptions)
 {
-
-    //error_log(print_r($chartOptions, true));
 
     $chartId = $chartOptions['chartId'];
     $chartType = $chartOptions['chartType'];
@@ -359,11 +406,16 @@ function idwiz_get_byPurchaseField_chartdata($chartOptions)
     if ($chartOptions['campaignIds']) {
         $purchaseArgs['campaignIds'] = $chartOptions['campaignIds'];
     }
+    if ($chartOptions['promoCode']) {
+        $purchaseArgs['shoppingCartItems_discountCode'] = $chartOptions['promoCode'];
+    }
+
+    $campaignTypes = $chartOptions['campaignTypes'] ?? ['Blast', 'Triggered'];
 
     $timeScale = $chartOptions['timeScale'] ?? 'daily';
 
     // Limit fields to what we need
-    $purchaseArgs['fields'] = ['campaignId', 'total', 'purchaseDate', 'shoppingCartItems_categories', 'shoppingCartItems_locationName', 'shoppingCartItems_divisionName'];
+    $purchaseArgs['fields'] = ['campaignId', 'total', 'purchaseDate', 'shoppingCartItems_categories', 'shoppingCartItems_locationName', 'shoppingCartItems_divisionName', 'shoppingCartItems_discountCode'];
 
     $allPurchases = get_idwiz_purchases($purchaseArgs);
     if (!$allPurchases) {
@@ -387,11 +439,11 @@ function idwiz_get_byPurchaseField_chartdata($chartOptions)
         }
     }
 
-    if (in_array('Blast', $chartOptions['campaignTypes']) && in_array('Triggered', $chartOptions['campaignTypes'])) {
+    if (in_array('Blast', $campaignTypes) && in_array('Triggered', $campaignTypes)) {
         $filteredPurchases = $allPurchases;
-    } elseif (in_array('Blast', $chartOptions['campaignTypes'])) {
+    } elseif (in_array('Blast', $campaignTypes)) {
         $filteredPurchases = $blastPurchases;
-    } elseif (in_array('Triggered', $chartOptions['campaignTypes'])) {
+    } elseif (in_array('Triggered', $campaignTypes)) {
         $filteredPurchases = $triggeredPurchases;
     } else {
         return ['error' => 'No campaign types were selected.'];
@@ -417,6 +469,10 @@ function idwiz_get_byPurchaseField_chartdata($chartOptions)
 
         case 'purchasesByTopic':
             $groupedData = idwiz_group_purchases_by_topic($filteredPurchases);
+            break;
+
+        case 'promoPurchasesByDate':
+            $groupedData = idwiz_group_purchases_by_date($filteredPurchases, $timeScale);
             break;
 
         default:
@@ -505,8 +561,6 @@ function idwiz_get_byPurchaseField_chartdata($chartOptions)
 // Charts triggered event data by date
 function idwiz_get_eventBydate_chartdata($chartOptions)
 {
-    global $wpdb;
-
     $chartId = $chartOptions['chartId'];
 
     $chartType = $chartOptions['chartType'];
@@ -657,156 +711,15 @@ function idwiz_get_eventBydate_chartdata($chartOptions)
 
 
 
-function generatePieChartColors($startColor, $endColor, $count)
-{
-    $startRGB = sscanf($startColor, "#%02x%02x%02x");
-    $endRGB = sscanf($endColor, "#%02x%02x%02x");
-    $diffRGB = [
-        $endRGB[0] - $startRGB[0],
-        $endRGB[1] - $startRGB[1],
-        $endRGB[2] - $startRGB[2]
-    ];
-
-    $colors = [];
-    for ($i = 0; $i < $count; $i++) {
-        $colors[] = sprintf(
-            "#%02x%02x%02x",
-            $startRGB[0] + ($diffRGB[0] * $i) / max($count - 1, 1),
-            $startRGB[1] + ($diffRGB[1] * $i) / max($count - 1, 1),
-            $startRGB[2] + ($diffRGB[2] * $i) / max($count - 1, 1)
-        );
-    }
-    return $colors;
-}
 
 
-function idwiz_get_byCampaign_chartdata($chartOptions)
-{
-    global $wpdb;
-
-    $chartId = $chartOptions['chartId'];
-
-    $campaignTypes = $chartOptions['campaignTypes'] ?? ['Blast', 'Triggered'];
-    $campaignIds = $chartOptions['campaignIds'] ?? false;
-    $startDate = $chartOptions['startDate'] ?? false;
-    $endDate = $chartOptions['endDate'] ?? false;
-
-    $campaignArgs = [];
-
-    if ($campaignIds) {
-        $campaignArgs['campaignIds'] = $campaignIds;
-    } else {
-        if ($campaignTypes) {
-            $campaignArgs['type'] = $campaignTypes;
-        }
-        if ($startDate) {
-            $campaignArgs['startAt_start'] = $startDate;
-        }
-        if ($endDate) {
-            $campaignArgs['startAt_end'] = $endDate;
-        }
-    }
-
-    $campaigns = get_idwiz_campaigns($campaignArgs);
-
-    $chartMetric = convert_chartId_db_field($chartId);
-
-    $chartData = [
-        'labels' => [],
-        'datasets' => [
-            [
-                'label' => $chartMetric,
-                'data' => []
-            ]
-        ]
-    ];
-
-    $metricValue = null;
-    foreach ($campaigns as $campaign) {
-        $campaignDate = $campaign['startAt'];
-        $dateLabel = date('m/d/Y', $campaignDate / 1000);
-        $campaignMetric = get_idwiz_metric([$campaign['id']]);
 
 
-        $metricValue = $campaignMetric[$chartMetric] ?? null;
-
-        // Append to chart data
-        $chartData['labels'][] = $dateLabel;
-        $chartData['datasets'][0]['data'][] = $metricValue;
-    }
-
-    // Determine the type of y-axis based on the chartMetric
-    $yAxisType = is_numeric($metricValue) ? 'num' : 'text';
-
-    return [
-        'type' => 'bar',
-        'data' => $chartData,
-        'options' => [
-            'yAxisDataType' => $yAxisType,
-            'dualYAxis' => false,
-            'dualYAxisDataType' => null
-        ]
-    ];
-}
 
 
-function convert_chartId_db_field($chartId)
-{
-    switch ($chartId) {
-        case 'opensByCampaign':
-            $dbField = 'uniqueEmailOpens';
-            break;
 
-        case 'openRateByCampaign':
-            $dbField = 'wizOpenRate';
-            break;
 
-        case 'clicksByCampaign':
-            $dbField = 'uniqueEmailClicks';
-            break;
 
-        case 'ctrByCampaign':
-            $dbField = 'wizCtr';
-            break;
-
-        case 'ctoByCampaign':
-            $dbField = 'wizCto';
-            break;
-
-        case 'revenueByCampaign':
-            $dbField = 'revenue';
-            break;
-
-        case 'gaRevenueByCampaign':
-            $dbField = 'gaRevenue';
-            break;
-
-        case 'purchasesByCampaign':
-            $dbField = 'uniquePurchases';
-            break;
-
-        case 'cvrByCampaign':
-            $dbField = 'wizCvr';
-            break;
-
-        case 'aovByCampaign':
-            $dbField = 'wizAov';
-            break;
-
-        case 'unsubsByCampaign':
-            $dbField = 'uniqueUnsubscribes';
-            break;
-
-        case 'unsubRateByCampaign':
-            $dbField = 'wizUnsubRate';
-            break;
-
-        default:
-            $dbField = false;
-            break;
-    }
-    return $dbField;
-}
 
 function idwiz_group_purchases_by_division($purchases)
 {
@@ -843,6 +756,28 @@ function idwiz_group_purchases_by_division($purchases)
     return $divisionData;
 }
 
+
+function generatePieChartColors($startColor, $endColor, $count)
+{
+    $startRGB = sscanf($startColor, "#%02x%02x%02x");
+    $endRGB = sscanf($endColor, "#%02x%02x%02x");
+    $diffRGB = [
+        $endRGB[0] - $startRGB[0],
+        $endRGB[1] - $startRGB[1],
+        $endRGB[2] - $startRGB[2]
+    ];
+
+    $colors = [];
+    for ($i = 0; $i < $count; $i++) {
+        $colors[] = sprintf(
+            "#%02x%02x%02x",
+            $startRGB[0] + ($diffRGB[0] * $i) / max($count - 1, 1),
+            $startRGB[1] + ($diffRGB[1] * $i) / max($count - 1, 1),
+            $startRGB[2] + ($diffRGB[2] * $i) / max($count - 1, 1)
+        );
+    }
+    return $colors;
+}
 function idwiz_group_purchases_by_topic($purchases)
 {
     $topicData = [];
@@ -868,6 +803,26 @@ function idwiz_group_purchases_by_topic($purchases)
     }
 
     return $topicData;
+}
+function idwiz_group_purchases_by_promo($purchases)
+{
+    $promoData = [];
+
+    foreach ($purchases as $purchase) {
+        $promo = $purchase['shoppingCartItems_discountCode'] ?? '';
+
+        $promo = trim($promo);
+
+        if (!isset($promoData[$promo])) {
+            // Start new promo array if not yet in our array
+            $promoData[$promo] = ['Purchases' => 0, 'Revenue' => 0];
+        }
+
+        $promoData[$promo]['Purchases'] += 1;
+        $promoData[$promo]['Revenue'] += $purchase['total'];
+    }
+
+    return $promoData;
 }
 
 function idwiz_group_purchases_by_location($purchases)
@@ -935,123 +890,3 @@ function idwiz_group_purchases_by_date($purchases, $timeScale)
 
     return $sortedDateData;
 }
-
-
-
-
-add_action('wp_ajax_idwiz_handle_monthly_goal_chart_request', 'idwiz_handle_monthly_goal_chart_request');
-function idwiz_handle_monthly_goal_chart_request()
-{
-    // Check nonce
-    check_ajax_referer('dashboard', 'security');
-
-    $startDate = $_POST['startDate'];
-    $endDate = $_POST['endDate'];
-
-    $startDateTime = new DateTime($startDate);
-    $month_num = $startDateTime->format('m');
-    $wizYear = $startDateTime->format('Y');
-
-    // Convert month number to full lowercase word
-    $dateObj = DateTime::createFromFormat('!m', $month_num);
-    $wizMonth = strtolower($dateObj->format('F'));
-
-    $data = idwiz_generate_monthly_to_goal_data($startDate, $endDate, $wizMonth, $wizYear);
-
-    if (isset($data['error'])) {
-        wp_send_json_error(array('message' => $data['error']));
-    } else {
-        wp_send_json_success($data);
-    }
-
-
-    wp_die();
-}
-
-function idwiz_generate_monthly_to_goal_data($startDate, $endDate, $wizMonth, $wizYear)
-{
-    // Initialize result array
-    $result = array(
-        'totalRevenue' => 0,
-        'monthlyProjection' => 0,
-        'percentToGoal' => 0,
-        'error' => null
-    );
-
-    // Fetch monthly projections from ACF
-    $projectionFieldGroup = 'fy_' . $wizYear . '_projections';
-    $projections = get_field($projectionFieldGroup, 'options');
-
-    // Check if projections exist for the month
-    if (isset($projections[$wizMonth]) && $projections[$wizMonth] > 0) {
-        $result['monthlyProjection'] = $projections[$wizMonth];
-    } else {
-        $result['error'] = "No projections found for month: $wizMonth";
-        return $result;
-    }
-
-    $result['totalRevenue'] = get_idwiz_revenue($startDate, $endDate, ['Blast', 'Triggered'], null, true);
-    $result['percentToGoal'] = round(($result['totalRevenue'] / $result['monthlyProjection']) * 100, 2);
-
-    return $result;
-}
-
-
-
-function idwiz_fetch_customer_types_chart_data()
-{
-    check_ajax_referer('wiz-charts', 'security');
-
-
-
-    $purchaseArgs = [
-        'fields' => 'id, campaignId, orderId, accountNumber, purchaseDate',
-        //'shoppingCartItems_utmMedium' => 'email',
-    ];
-
-    $campaignIds = isset($_POST['campaignIds']) ? json_decode(stripslashes($_POST['campaignIds']), true) : [];
-
-    if (!empty($campaignIds)) {
-        $purchaseArgs['campaignIds'] = $campaignIds;
-    }
-
-    $startDate = $_POST['startDate'] ?? '2021-11-01';
-    $endDate = $_POST['endDate'] ?? date('y-m-d');
-
-    $purchaseArgs['startAt_start'] = $startDate;
-    $purchaseArgs['startAt_end'] = $endDate;
-
-    $purchases = get_idwiz_purchases($purchaseArgs);
-    $orderCounts = group_first_and_repeat_purchases($purchases);
-
-
-    $newCount = $orderCounts['new'];
-    $returningCount = $orderCounts['returning'];
-
-    $data = [
-        'type' => 'pie',
-        'data' => [
-            'labels' => ['New Customers', 'Returning Customers'],
-            'datasets' => [
-                [
-                    'data' => [$newCount, $returningCount],
-                    'backgroundColor' => ['#FF6384', '#36A2EB'],
-                ],
-            ],
-        ],
-        'options' => [
-            'responsive' => true,
-            'maintainAspectRatio' => false,
-            'plugins' => [
-                'tooltip' => [
-                    'callbacks' => [
-                        'label' => 'FORMAT_LABEL_JS_FUNCTION' // A placeholder
-                    ],
-                ],
-            ],
-        ],
-    ];
-
-    wp_send_json_success($data);
-}
-add_action('wp_ajax_idwiz_fetch_customer_types_chart_data', 'idwiz_fetch_customer_types_chart_data');
