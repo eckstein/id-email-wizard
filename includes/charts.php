@@ -182,19 +182,22 @@ function idwiz_get_report_chartdata($chartOptions)
     $allCampaigns = get_idwiz_campaigns($campaignArgs);
 
     // Split campaigns into current year and previous year
-    $currentYear = date('Y', strtotime($startDate));
     $campaigns = [];
     $prevCampaigns = [];
 
+    $startTimestamp = strtotime($startDate);
+    $endTimestamp = strtotime($endDate);
+    $oneYearBeforeStart = strtotime('-1 year', $startTimestamp);
+
     foreach ($allCampaigns as $campaign) {
-        $campaignYear = date('Y', $campaign['startAt'] / 1000);
-        if ($campaignYear == $currentYear) {
+        $campaignTimestamp = $campaign['startAt'] / 1000;
+        if ($campaignTimestamp >= $startTimestamp && $campaignTimestamp <= $endTimestamp) {
             $campaigns[] = $campaign;
-        } else {
+        } elseif ($campaignTimestamp >= $oneYearBeforeStart && $campaignTimestamp < $startTimestamp) {
             $prevCampaigns[] = $campaign;
         }
     }
-
+    
     $labels = [];
     $currentYearData = [];
     $prevYearData = [];

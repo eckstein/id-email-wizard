@@ -3,7 +3,7 @@
 list($users, $userIds) = get_users_within_date_range($startDate, $endDate);
 $userPurchases = get_user_purchases($userIds);
 $lengthToPurchaseData = calculate_length_to_purchase_data($users, $userPurchases);
-$purchaseData = generate_purchase_data($users, $userPurchases, $startDate, $endDate);
+$purchaseData = generate_length_to_purchase_data($users, $userPurchases, $startDate, $endDate);
 $metrics = calculate_metrics($users, $lengthToPurchaseData);
 ?>
 

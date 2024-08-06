@@ -251,7 +251,7 @@ function calculate_length_to_purchase_data($users, $userPurchases)
     return $lengthToPurchaseData;
 }
 
-function generate_purchase_data($users, $userPurchases, $startDate, $endDate)
+function generate_length_to_purchase_data($users, $userPurchases, $startDate, $endDate)
 {
     $purchaseData = [];
 
