@@ -406,7 +406,7 @@ function idwiz_get_byPurchaseField_chartdata($chartOptions)
     if ($chartOptions['campaignIds']) {
         $purchaseArgs['campaignIds'] = $chartOptions['campaignIds'];
     }
-    if ($chartOptions['promoCode']) {
+    if (isset($chartOptions['promoCode'])) {
         $purchaseArgs['shoppingCartItems_discountCode'] = $chartOptions['promoCode'];
     }
 

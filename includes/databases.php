@@ -541,43 +541,43 @@ function build_idwiz_query($args, $table_name)
 		// Attribution length
 		$userAttLength = get_user_meta($currentUserId, 'purchase_attribution_length', true);
 
-		// Apply user attribution settings
-		if ($userAttLength && $userAttLength != 'allTime') {
+		// Attribution length
+		$userAttLength = get_user_meta($currentUserId, 'purchase_attribution_length', true);
+
+		// Apply user attribution settings for purchases
+		if ($table_name == $wpdb->prefix . 'idemailwiz_purchases' && $userAttLength && $userAttLength != 'allTime') {
 			$interval = '';
 			switch ($userAttLength) {
 				case '72Hours':
-					$interval = 'INTERVAL 3 DAY';
+					$interval = 'P3D'; // DateInterval format for 3 days
 					break;
 				case '30Days':
-					$interval = 'INTERVAL 30 DAY';
+					$interval = 'P30D';
 					break;
 				case '60Days':
-					$interval = 'INTERVAL 60 DAY';
+					$interval = 'P60D';
 					break;
 				case '90Days':
-					$interval = 'INTERVAL 90 DAY';
+					$interval = 'P90D';
 					break;
 			}
 
 			if ($interval) {
-				$campaignStartDate = "CONVERT_TZ(FROM_UNIXTIME(campaignStartAt / 1000), '+00:00', '-07:00')";
+				// If startAt_start is set, use it as the base for attribution
+				if (isset($where_args['startAt_start'])) {
+					$startDate = new DateTime($where_args['startAt_start'], new DateTimeZone('America/Los_Angeles'));
+					$endDate = clone $startDate;
+					$endDate->add(new DateInterval($interval));
 
-				// Set purchase start date
-				if (!isset($args['startAt_start'])) {
-					$where_args['purchase_start_date'] = "DATE($campaignStartDate)";
-				}
-
-				// Set purchase end date
-				if (!isset($args['startAt_end'])) {
-					$where_args['purchase_end_date'] = "DATE_ADD(DATE($campaignStartDate), $interval)";
-				} else {
-					$startAtEnd = DateTime::createFromFormat('Y-m-d', $args['startAt_end'], new DateTimeZone('America/Los_Angeles'));
-					if ($startAtEnd) {
-						$formattedEndDate = $startAtEnd->format('Y-m-d');
-						$where_args['purchase_end_date'] = "LEAST('$formattedEndDate', DATE_ADD(DATE($campaignStartDate), $interval))";
-					} else {
-						$where_args['purchase_end_date'] = "DATE_ADD(DATE($campaignStartDate), $interval)";
+					// If there's a specific end date provided, use the earlier of the two
+					if (isset($where_args['startAt_end'])) {
+						$providedEndDate = new DateTime($where_args['startAt_end'], new DateTimeZone('America/Los_Angeles'));
+						if ($endDate > $providedEndDate) {
+							$endDate = $providedEndDate;
+						}
 					}
+
+					$where_args['startAt_end'] = $endDate->format('Y-m-d');
 				}
 			}
 		}
@@ -625,7 +625,7 @@ function build_idwiz_query($args, $table_name)
 			} elseif ($key === 'userIds') {
 				$placeholders = implode(',', array_fill(0, count($value), '%s'));
 				$sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND userId IN ($placeholders)"), $args['userIds']));
-			} elseif ($key === 'startAt_start'|| $key === 'purchase_start_date') {
+			} elseif ($key === 'startAt_start') {
 				$dt = DateTime::createFromFormat('Y-m-d', $value, new DateTimeZone('America/Los_Angeles'));
 				if ($dt) {
 					if ($dateKey === 'purchaseDate') {
@@ -642,7 +642,7 @@ function build_idwiz_query($args, $table_name)
 				} else {
 					return ['error' => 'Invalid date format for startAt_start'];
 				}
-			} elseif ($key === 'startAt_end'|| $key === 'purchase_end_date') {
+			} elseif ($key === 'startAt_end') {
 				$dt = DateTime::createFromFormat('Y-m-d', $value, new DateTimeZone('America/Los_Angeles'));
 				if ($dt) {
 					if ($dateKey === 'purchaseDate') {
@@ -679,6 +679,8 @@ function build_idwiz_query($args, $table_name)
 		}
 	}
 
+
+
 	if (isset($args['not-ids']) && is_array($args['not-ids'])) {
 		$placeholders = implode(',', array_fill(0, count($args['not-ids']), '%d'));
 		$sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND id NOT IN ($placeholders)"), $args['not-ids']));
@@ -702,7 +704,7 @@ function build_idwiz_query($args, $table_name)
 		$sql .= $wpdb->prepare(" OFFSET %d", (int) $args['offset']);
 	}
 
-	//error_log('Query args: ' . print_r($sql, true));
+	error_log('Query args: ' . print_r($sql, true));
 	//print_r($sql);
 	return $sql;
 }
