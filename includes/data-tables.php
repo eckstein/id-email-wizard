@@ -67,6 +67,17 @@ function idwiz_get_campaign_table_view() {
             
             $row['initiative_links'] = implode(', ', $initLinks);
         }
+        //Add promo code IDs to the data
+        $campaignPromos = get_promo_codes_for_campaign($row['campaign_id']) ?? [];
+        $row['promo_links'] = '';
+        if (!empty($campaignPromos)) {
+            $promoLinks = [];
+            foreach ($campaignPromos as $promoId) {
+                $promoLinks[] = '<a href="'.get_the_permalink($promoId).'">'.get_the_title($promoId).'</a>';
+            }
+            
+            $row['promo_links'] = implode(', ', $promoLinks);
+        }
 
     }
 

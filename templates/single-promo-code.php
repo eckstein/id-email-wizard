@@ -43,7 +43,7 @@
 					<div class="wizHeader-left">
 
 						<div class="wizEntry-meta"><strong>Promo Code</strong>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Run dates:
-							<?php echo get_post_meta(get_the_ID(), 'start_date', true) ?? 'Not set'; ?> - <?php echo get_post_meta(get_the_ID(), 'end_date', true) ?? 'Not set'; ?>
+							<?php echo date('m/d/Y', strtotime(get_post_meta(get_the_ID(), 'start_date', true))) ?? 'Error: Start date not set!'; ?> - <?php echo get_post_meta(get_the_ID(), 'end_date', true) != '' ? get_post_meta(get_the_ID(), 'end_date', true) : 'Forever'; ?>
 							&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Includes
 							<?php echo !empty($associated_campaign_ids) ? count($associated_campaign_ids) : 0; ?> campaigns
 							<br />
@@ -80,7 +80,7 @@
 					<div class="metric-item"><span class="metric-label">All Purchases</span><span class="metric-value"><?php echo $singlePromoData['all_purchases']; ?></span></div>
 					<div class="metric-item"><span class="metric-label">Campaign Revenue</span><span class="metric-value"><?php echo '$'.number_format($singlePromoData['campaign_revenue']); ?></span></div>
 					<div class="metric-item"><span class="metric-label">All Revenue</span><span class="metric-value"><?php echo '$' . number_format($singlePromoData['all_revenue']); ?></span></div>
-					<div class="metric-item"><span class="metric-label">Last Used</span><span class="metric-value"><?php echo date('m-d-Y', strtotime($singlePromoData['last_used'])); ?></span></div>
+					<div class="metric-item"><span class="metric-label">Last Used</span><span class="metric-value"><?php echo $singlePromoData['last_used'] ? date('m-d-Y', strtotime($singlePromoData['last_used'])) : '<em>never</em>'; ?></span></div>
 				</div>
 
 

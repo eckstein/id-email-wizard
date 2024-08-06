@@ -30,7 +30,7 @@ function get_promo_code_data()
         $campaignIdsInPromo = array_column($campaignsInPromo, 'id');
 
         $promoCode = get_post_meta($promo->ID, 'code', true);
-        $promoStartDate = get_post_meta($promo->ID, 'start_date', true);
+        $promoStartDate = get_post_meta($promo->ID, 'start_date', true) ?? date('Y-m-d');
         $promoEndDate = get_post_meta($promo->ID, 'end_date', true);
 
         $idtcDiscount = get_post_meta($promo->ID, 'idtc_discount', true);
@@ -131,7 +131,7 @@ function get_single_promo_code_data($promo_id) {
         'idtc_discount' => get_post_meta($promo->ID, 'idtc_discount', true),
         'start_date' => get_post_meta($promo->ID, 'start_date', true),
         'last_used' => $lastUsed ? $lastUsed : '',
-        'end_date' => get_post_meta($promo->ID, 'end_date', true),
+        'end_date' => get_post_meta($promo->ID, 'end_date', true) > 0 ? get_post_meta($promo->ID, 'end_date', true) : '',
         'cohort' => get_post_meta($promo->ID, 'cohort', true) ?: '',
         'campaigns' => count($campaignsInPromo),
         'campaign_purchases' => $campaignPurchases ? count($campaignPurchases) : 0,
@@ -159,7 +159,7 @@ function get_single_promo_code_data_ajax()
 add_action('wp_ajax_get_single_promo_code_data_ajax', 'get_single_promo_code_data_ajax');
 
 // Create Promo Code
-function create_new_promo_code()
+function idemailwiz_create_new_promo_code()
 {
     if (!check_ajax_referer('promo-codes', 'security', false)) {
         wp_send_json_error(array('message' => 'Invalid nonce'));
@@ -179,14 +179,18 @@ function create_new_promo_code()
         'post_status' => 'publish'
     ));
 
-    if ($post_id) {
-        update_post_meta($post_id, 'discount_code', $promo_code);
-        wp_send_json_success();
+
+    if ($post_id > 0) {
+        update_post_meta($post_id, 'code', $promo_code);
+        update_post_meta($post_id, 'start_date', date('Y-m-d'));
+        update_post_meta($post_id, 'idtc_discount', 0);
+        wp_send_json_success(array('message' => 'Promo code created successfully', 'post_id' => $post_id));
     } else {
-        wp_send_json_error(array('message' => 'Failed to create promo code.'));
+        wp_send_json_error(array('message' => 'Failed to create the promo code'));
     }
+    
 }
-add_action('wp_ajax_create_new_promo_code', 'create_new_promo_code');
+add_action('wp_ajax_idemailwiz_create_new_promo_code', 'idemailwiz_create_new_promo_code');
 
 // Delete Promo Code
 function delete_promo_code()
@@ -228,6 +232,14 @@ function save_promo_code_update()
 
     $success = true;
 
+    if (!isset($updates['name']) || $updates['name'] != '') {
+        if (isset($updates['code'])) {
+            $updates['name'] == $updates['code'];
+        } else {
+            wp_send_json_error(array('message' => 'You must enter a code for this promo.'));
+            return;
+        }
+    }
     // Update post title if name is provided
     if (isset($updates['name'])) {
         $post_update = array(
@@ -247,7 +259,11 @@ function save_promo_code_update()
 
         // Make sure start_date and end_date are in Y-m-d format
         if ($field == 'start_date' || $field == 'end_date') {
-            $content = date('Y-m-d', strtotime($content));
+            if ($content && $content > 0) {
+                $content = date('Y-m-d', strtotime($content));
+            } else {
+                $content = '';
+            }
         }
 
         // Strip formatting from amount
@@ -255,8 +271,20 @@ function save_promo_code_update()
             intval($content);
         }
 
+        // Validate
+        $required = ['start_date', 'idtc_discount', 'code'];
+        if (in_array($field, $required)) {
+            if ($content == '') {
+                wp_send_json_error(array('message' => 'You must enter a '.$field.' for this promo.'));
+                return;
+            }
+        }
+
         if (!update_post_meta($promo_id, $field, $content)) {
-            $success = false;
+            if (get_post_meta($promo_id, $field, true) != $content) {
+                $success = false;
+            }
+            
         }
     }
 
@@ -269,57 +297,107 @@ function save_promo_code_update()
 add_action('wp_ajax_idemailwiz_save_promo_code_update', 'save_promo_code_update');
 
 
-add_action('wp_ajax_remove_promo_code_from_campaign', 'remove_promo_code_from_campaign');
-add_action('wp_ajax_add_promo_code', 'add_promo_code');
+add_action('wp_ajax_remove_promo_code_from_campaign_ajax', 'remove_promo_code_from_campaign_ajax');
+add_action('wp_ajax_add_promo_code_to_campaign_ajax', 'add_promo_code_to_campaign_ajax');
 add_action('wp_ajax_get_all_promo_codes', 'get_all_promo_codes_ajax');
 
-function remove_promo_code_from_campaign()
-{
+function remove_promo_code_from_campaign($campaignId, $promo_id) {
     global $wpdb;
-    $campaign_id = intval($_POST['campaign_id']);
-    $promo_id = intval($_POST['promo_id']);
-
-    $campaign = $wpdb->get_row($wpdb->prepare("SELECT * FROM wp_idemailwiz_campaigns WHERE id = %d", $campaign_id), ARRAY_A);
+    $campaign = $wpdb->get_row($wpdb->prepare("SELECT * FROM wp_idemailwiz_campaigns WHERE id = %d", $campaignId), ARRAY_A);
     $promo_codes = $campaign['promoCodes'] ? unserialize($campaign['promoCodes']) : [];
     if (($key = array_search($promo_id, $promo_codes)) !== false) {
         unset($promo_codes[$key]);
     }
     $new_promo_codes = serialize(array_values($promo_codes));
 
-    $wpdb->update(
+    return $wpdb->update(
         $wpdb->prefix . 'idemailwiz_campaigns',
         array('promoCodes' => $new_promo_codes),
-        array('id' => $campaign_id),
+        array('id' => $campaignId),
         array('%s'),
         array('%d')
     );
-
-    wp_send_json_success();
 }
-
-function add_promo_code()
+function remove_promo_code_from_campaign_ajax()
 {
-    global $wpdb;
+    
     $campaign_id = intval($_POST['campaign_id']);
     $promo_id = intval($_POST['promo_id']);
 
-    $campaign = $wpdb->get_row($wpdb->prepare("SELECT * FROM wp_idemailwiz_campaigns WHERE id = %d", $campaign_id), ARRAY_A);
+    $removePromo = remove_promo_code_from_campaign($campaign_id, $promo_id);
+
+    if ($removePromo) {
+        wp_send_json_success();
+    } else {
+        wp_send_json_error();
+    }
+}
+function add_promo_code_to_campaign($campaignId, $promo_id) {
+    global $wpdb;
+    $campaign = $wpdb->get_row($wpdb->prepare("SELECT * FROM wp_idemailwiz_campaigns WHERE id = %d", $campaignId), ARRAY_A);
     $promo_codes = $campaign['promoCodes'] ? unserialize($campaign['promoCodes']) : [];
     if (!in_array($promo_id, $promo_codes)) {
         $promo_codes[] = $promo_id;
     }
     $new_promo_codes = serialize($promo_codes);
 
-    $wpdb->update(
+    return $wpdb->update(
         'wp_idemailwiz_campaigns',
         array('promoCodes' => $new_promo_codes),
-        array('id' => $campaign_id),
+        array('id' => $campaignId),
         array('%s'),
         array('%d')
     );
-
-    wp_send_json_success();
 }
+function add_promo_code_to_campaign_ajax()
+{
+   
+    $campaign_id = intval($_POST['campaign_id']);
+    $promo_id = intval($_POST['promo_id']);
+
+    $addPromo = add_promo_code_to_campaign($campaign_id, $promo_id);
+    if ($addPromo) {
+        wp_send_json_success();
+    } else {
+        wp_send_json_error();
+    }
+}
+
+function idemailwiz_get_promo_codes_for_select()
+{
+    // Check for nonce and security
+    if (
+        !check_ajax_referer('promo-codes', 'security', false)
+        && !check_ajax_referer('id-general', 'security', false)
+        && !check_ajax_referer('data-tables', 'security', false)
+    ) {
+        wp_send_json_error(array('message' => 'Invalid nonce'));
+        return;
+    }
+
+    $searchTerm = isset($_POST['q']) ? $_POST['q'] : '';
+
+    // Fetch promo_codes
+    $allPromoCodes = get_posts(array(
+        'post_type' => 'wiz_promo_code', 
+        'posts_per_page' => -1,
+        's' => $searchTerm
+    ));
+
+    // Prepare data
+    $data = array_map(function ($promo_code) {
+        return array(
+            'id' => $promo_code->ID,
+            'text' => $promo_code->post_title
+        );
+    }, $allPromoCodes);
+
+    // Return JSON-encoded data
+    echo json_encode(array_values($data));
+    wp_die();
+}
+add_action('wp_ajax_idemailwiz_get_promo_codes_for_select', 'idemailwiz_get_promo_codes_for_select');
+
 
 function get_all_promo_codes_ajax()
 {
@@ -372,4 +450,66 @@ function get_campaigns_in_promo($promoCodeId)
         }
     }
     return $associated_campaigns;
+}
+
+add_action('wp_ajax_idemailwiz_add_remove_campaign_from_promo_code', 'idemailwiz_add_remove_campaign_from_promo_code');
+function idemailwiz_add_remove_campaign_from_promo_code()
+{
+    $response = [
+        'success' => true,
+        'message' => '',
+        'data' => []
+    ];
+
+    $isValidNonce = check_ajax_referer('data-tables', 'security', false)
+        || check_ajax_referer('promo-codes', 'security', false)
+        || check_ajax_referer('metrics', 'security', false);
+    if (!$isValidNonce) {
+        wp_send_json_error(['message' => 'Invalid nonce.']);
+        return;
+    }
+
+    $campaignIDs = $_POST['campaign_ids'];
+    if (!is_array($campaignIDs)) {
+        $campaignIDs = [$campaignIDs];
+    }
+    $promo_codeID = intval($_POST['promo_code_id']);
+    $action = $_POST['campaignAction'];
+
+    if ($action != 'add' && $action != 'remove') {
+        wp_send_json_error(['message' => 'Invalid action.']);
+        return;
+    }
+
+    $messages = [];
+    $successCount = 0;
+
+    foreach ($campaignIDs as $campaignID) {
+        if ($action == 'add') {
+            $result = add_promo_code_to_campaign($campaignID, $promo_codeID);
+        } else {
+            $result = remove_promo_code_from_campaign($campaignID, $promo_codeID);
+        }
+        
+        if ($result['success']) {
+            $successCount++;
+        }
+        $messages[] = $result['message'];
+    }
+
+    if ($successCount == count($campaignIDs)) {
+        $response['message'] = "All campaigns successfully processed for action: {$action}.";
+    } else {
+        $response['success'] = false;
+        $response['message'] = "Some campaigns could not be processed for action: {$action}.";
+    }
+
+    $response['data'] = [
+        'successCount' => $successCount,
+        'totalCount' => count($campaignIDs),
+        'messages' => $messages,
+        'action' => $action
+    ];
+
+    wp_send_json($response);
 }

@@ -142,12 +142,15 @@ jQuery(document).ready(function($) {
                 updates: updates
             },
             function(response) {
-                console.log(response);
+                if (response.success) {
                 if ($('#idemailwiz_promo_codes_table').length > 0) {
                     table.ajax.reload();
                 } else {
                     location.reload();
                 }
+            } else {
+                Swal.fire("Error", response.data.message, "error");
+            }
             },
             function(error) {
                 console.error(error);
@@ -263,7 +266,7 @@ jQuery(document).ready(function($) {
                     url: idAjax.ajaxurl,
                     type: 'POST',
                     data: {
-                        action: 'create_new_promo_code',
+                        action: 'idemailwiz_create_new_promo_code',
                         security: idAjax_promo_codes.nonce,
                         newPromoCode: code
                     },
@@ -357,7 +360,7 @@ jQuery(document).ready(function($) {
                     method: 'POST',
                     url: idAjax.ajaxurl,
                     data: {
-                        action: 'remove_promo_code_from_campaign',
+                        action: 'remove_promo_code_from_campaign_ajax',
                         promo_id: promoId,
                         campaign_id: campaignId
                     },
@@ -370,6 +373,7 @@ jQuery(document).ready(function($) {
             }
         });
     });
+
 
     // Handle Add Promo Code
     $(document).on('click', '.add-promo-to-campaign', function(e) {
@@ -411,7 +415,7 @@ jQuery(document).ready(function($) {
                                 method: 'POST',
                                 url: idAjax.ajaxurl,
                                 data: {
-                                    action: 'add_promo_code',
+                                    action: 'add_promo_code_to_campaign_ajax',
                                     promo_id: result.value,
                                     campaign_id: campaignId
                                 },
@@ -425,6 +429,127 @@ jQuery(document).ready(function($) {
             }
         });
     });
+
+
+    // Add or remove promo_codes from one or more campaigns
+    window.manageCampaignsInPromoCode = function (action, campaignIds, onSuccess = null, skipPromoCodeSelection = false, promo_codeId = null) {
+        const performAction = (promo_codeId) => {
+            // Perform AJAX call to manage campaigns in the selected promo_code
+            idemailwiz_do_ajax(
+                "idemailwiz_add_remove_campaign_from_promo_code",
+                idAjax_promo_codes.nonce,
+                {
+                    promo_code_id: promo_codeId,
+                    campaign_ids: campaignIds,
+                    campaignAction: action,
+                },
+                function (response) {
+                    var confirmMessage = "Promo code succesfully added to campaigns";
+                    if (response.data.action == "remove") {
+                        var confirmMessage = "Promo codes succesfully removed from campaigns!";
+                    }
+
+                    window.Swal.fire({
+                        icon: "success",
+                        title: "Success",
+                        text: confirmMessage,
+                    }).then(() => {
+                        if (onSuccess) {
+                            onSuccess();
+                        }
+                    });
+                },
+                function (errorData) {
+                    // Handle error
+                    console.error(`Failed to ${action} promo code from campaigns`, errorData);
+                }
+            );
+        };
+
+        // If skipping promo_code selection, perform the action immediately
+        if (skipPromoCodeSelection) {
+            performAction(promo_codeId);
+            return;
+        }
+
+        // Determine the action and title based on the action parameter
+        let titleText = action === "add" ? "Add to Promo Code" : "Remove from Promo Code";
+        let confirmText = action === "add" ? "Add" : "Remove";
+
+        const swalConfig = {
+            title: titleText,
+            html: '<select id="promo_code-select"></select><br/>- or -<br/><button id="create-new-promo_code" class="wiz-button green" type="button">Create New PromoCode</button>',
+            showCancelButton: true,
+            cancelButtonText: "Cancel",
+            confirmButtonText: confirmText,
+            preConfirm: () => {
+                let selectedPromoCode = jQuery("#promo_code-select").val();
+                performAction(selectedPromoCode);
+            },
+        };
+
+        // Conditionally add the 'didOpen' callback if we need to select an promo_code
+        if (!skipPromoCodeSelection) {
+            swalConfig.didOpen = () => {
+                jQuery("#promo_code-select").select2({
+                    minimumInputLength: 0,
+                    placeholder: "Search promo_codes...",
+                    allowClear: true,
+                    ajax: {
+                        delay: 250,
+                        transport: function (params, success, failure) {
+                            idemailwiz_do_ajax(
+                                "idemailwiz_get_promo_codes_for_select",
+                                idAjax_promo_codes.nonce,
+                                {
+                                    q: params.data.term,
+                                },
+                                function (data) {
+                                    success({ results: data });
+                                },
+                                function (error) {
+                                    console.error("Failed to fetch promo_codes", error);
+                                    failure();
+                                }
+                            );
+                        },
+                    },
+                });
+
+                jQuery("#create-new-promo_code").on("click", function () {
+                    Swal.fire({
+                        title: "Create New Promo Code",
+                        input: "text",
+                        inputPlaceholder: "Enter Promo Code...",
+                        showCancelButton: true,
+                        cancelButtonText: "Cancel",
+                        confirmButtonText: "Create",
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            const title = result.value;
+                            idemailwiz_do_ajax(
+                                "idemailwiz_create_new_promo_code",
+                                idAjax_promo_codes.nonce,
+                                { newPromoCode: title },
+                                function (data) {
+                                    console.log(data);
+                                    // After creating the new promo_code, perform the initial action (add/remove campaigns)
+                                    performAction(data.data.post_id);
+                                },
+                                function (error) {
+                                    console.log(error);
+                                    Swal.fire("Error", "An error occurred. Check the console for details.", "error");
+                                }
+                            );
+                        }
+                    });
+                });
+            };
+        }
+
+        window.Swal.fire(swalConfig);
+    };
+
 
 
 });

@@ -549,7 +549,7 @@ function build_idwiz_query($args, $table_name)
 			$interval = '';
 			switch ($userAttLength) {
 				case '72Hours':
-					$interval = 'P3D'; // DateInterval format for 3 days
+					$interval = 'P3D';
 					break;
 				case '30Days':
 					$interval = 'P30D';
@@ -704,7 +704,7 @@ function build_idwiz_query($args, $table_name)
 		$sql .= $wpdb->prepare(" OFFSET %d", (int) $args['offset']);
 	}
 
-	error_log('Query args: ' . print_r($sql, true));
+	//error_log('Query args: ' . print_r($sql, true));
 	//print_r($sql);
 	return $sql;
 }

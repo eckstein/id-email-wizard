@@ -626,6 +626,35 @@ jQuery(document).ready(function ($) {
 					},
 				},
 				{
+					data: "promo_links",
+					name: "promo_links",
+					title: "Promo Codes<div style='margin-right: 150px;'></div>",
+					className: "idwiz_searchBuilder_enabled",
+					searchBuilderType: "string",
+					render: function (data, type, row, meta) {
+						if (type === "display") {
+							return data || "";
+						}
+						if (type === "filter") {
+							// Extract the inner text (initiative names) for filtering in the SearchBuilder
+							if (data) {
+								var parser = new DOMParser();
+								var doc = parser.parseFromString(data, "text/html");
+								var anchorTags = doc.querySelectorAll("a");
+								var uniqueNames = Array.from(new Set(Array.from(anchorTags).map((a) => a.innerText)));
+
+								// Exclude blank or whitespace-only names
+								var filteredNames = uniqueNames.filter((name) => name.trim() !== "");
+
+								// If filteredNames is empty, return an empty string
+								return filteredNames.length > 0 ? filteredNames.join("~") : "";
+							}
+							return "";
+						}
+						return data;
+					},
+				},
+				{
 					data: "message_medium",
 					name: "message_medium",
 					title: "Medium",
@@ -702,28 +731,60 @@ jQuery(document).ready(function ($) {
 					}
 				},
 				{
-					extend: "selected",
-					text: '<i class="fa-regular fa-plus"></i>',
-					name: "Add",
-					className: "wiz-dt-button",
-					attr: { title: "Add to Initiative" },
-					action: function (e, dt, node, config) {
-						let selectedRowIndices = dt.rows({ selected: true }).indexes().toArray();
-						let selectedCampaignIds = selectedRowIndices.map((index) => dt.cell(index, "campaign_id:name").data());
-						window.manageCampaignsInInitiative("add", selectedCampaignIds, dt.ajax.reload);
-					},
-				},
-				{
-					extend: "selected",
-					text: '<i class="fa-solid fa-minus"></i>',
-					name: "Remove",
-					className: "wiz-dt-button",
-					attr: { title: "Remove from Initiative" },
-					action: function (e, dt, node, config) {
-						let selectedRowIndices = dt.rows({ selected: true }).indexes().toArray();
-						let selectedCampaignIds = selectedRowIndices.map((index) => dt.cell(index, "campaign_id:name").data());
-						window.manageCampaignsInInitiative("remove", selectedCampaignIds, dt.ajax.reload);
-					},
+					extend: "collection",
+					text: 'Connections',
+					className: 'wiz-dt-button',
+					background: false,
+					buttons: [
+						{
+							extend: "selected",
+							text: 'Add to Initiative',
+							name: "Add",
+							className: "wiz-dt-button",
+							attr: { title: "Add to Initiative" },
+							action: function (e, dt, node, config) {
+								let selectedRowIndices = dt.rows({ selected: true }).indexes().toArray();
+								let selectedCampaignIds = selectedRowIndices.map((index) => dt.cell(index, "campaign_id:name").data());
+								window.manageCampaignsInInitiative("add", selectedCampaignIds, dt.ajax.reload);
+							},
+						},
+						{
+							extend: "selected",
+							text: 'Remove from Initiative',
+							name: "Remove",
+							className: "wiz-dt-button",
+							attr: { title: "Remove from Initiative" },
+							action: function (e, dt, node, config) {
+								let selectedRowIndices = dt.rows({ selected: true }).indexes().toArray();
+								let selectedCampaignIds = selectedRowIndices.map((index) => dt.cell(index, "campaign_id:name").data());
+								window.manageCampaignsInInitiative("remove", selectedCampaignIds, dt.ajax.reload);
+							},
+						},
+						{
+							extend: "selected",
+							text: 'Add Promo Code',
+							name: "Add",
+							className: "wiz-dt-button",
+							attr: { title: "Add to Promo" },
+							action: function (e, dt, node, config) {
+								let selectedRowIndices = dt.rows({ selected: true }).indexes().toArray();
+								let selectedCampaignIds = selectedRowIndices.map((index) => dt.cell(index, "campaign_id:name").data());
+								window.manageCampaignsInPromoCode("add", selectedCampaignIds, dt.ajax.reload);
+							},
+						},
+						{
+							extend: "selected",
+							text: 'Remove Promo Code',
+							name: "Remove",
+							className: "wiz-dt-button",
+							attr: { title: "Remove from Promo" },
+							action: function (e, dt, node, config) {
+								let selectedRowIndices = dt.rows({ selected: true }).indexes().toArray();
+								let selectedCampaignIds = selectedRowIndices.map((index) => dt.cell(index, "campaign_id:name").data());
+								window.manageCampaignsInPromoCode("remove", selectedCampaignIds, dt.ajax.reload);
+							},
+						}
+					]
 				},
 
 				{

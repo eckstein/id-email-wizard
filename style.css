@@ -2543,6 +2543,16 @@ pre#generatedCode {
 	margin-left: 10px !important;
 }
 
+div.dt-button-collection .dt-button {
+	background-color: #fff!important;
+	color: #000!important;
+	border-radius: 0!important;
+
+}
+div.dt-button-collection .dt-button:hover {
+	background-color: #343434!important;
+	color: #fff!important;
+}
 
 
 /* Single Campaign Metrics Page */
@@ -3566,7 +3576,9 @@ select:focus {
 	border-radius: 4px;
 	margin: 0;
 }
-
+#promo-code-campaigns-table {
+	width: 100%;
+}
 /* Simple Table */
 .idwiz-initiative-table {
 	max-width: 100%;
