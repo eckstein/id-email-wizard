@@ -82,11 +82,14 @@ function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $return
 
     // Prepare the return data based on the requested timeframe
     if ($return === 'all') {
-        $allSendCountGroups = array_fill(0, 26, 0); // 0 to 25+ groups
+        $allSendCountGroups = [];
         foreach ($userTotalSends as $totalSends) {
-            $groupIndex = min($totalSends, 25); // Cap at 25+
-            $allSendCountGroups[$groupIndex]++;
+            if (!isset($allSendCountGroups[$totalSends])) {
+                $allSendCountGroups[$totalSends] = 0;
+            }
+            $allSendCountGroups[$totalSends]++;
         }
+        ksort($allSendCountGroups); // Sort the array by key (number of sends)
 
         return ['allData' => $allSendCountGroups, 'totalUsers' => count($userTotalSends)];
     } elseif ($return === 'weekly') {
@@ -99,12 +102,14 @@ function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $return
         return ['weeklyData' => $weeklyData, 'totalUsers' => $totalUsers];
     } elseif ($return === 'monthly') {
         // Calculate the overall send count groups based on user total sends
-        $monthlySendCountGroups = array_fill(1, 25, 0);
+        $monthlySendCountGroups = [];
         foreach ($userTotalSends as $totalSends) {
-            if ($totalSends <= 25) {
-                $monthlySendCountGroups[$totalSends]++;
+            if (!isset($monthlySendCountGroups[$totalSends])) {
+                $monthlySendCountGroups[$totalSends] = 0;
             }
+            $monthlySendCountGroups[$totalSends]++;
         }
+        ksort($monthlySendCountGroups); // Sort the array by key (number of sends)
         $monthlyTotalUsers = count($userTotalSends);
 
         return ['monthlyData' => $monthlySendCountGroups, 'totalUsers' => $monthlyTotalUsers];

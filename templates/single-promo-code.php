@@ -43,7 +43,7 @@
 					<div class="wizHeader-left">
 
 						<div class="wizEntry-meta"><strong>Promo Code</strong>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Run dates:
-							<?php echo date('m/d/Y', strtotime(get_post_meta(get_the_ID(), 'start_date', true))) ?? 'Error: Start date not set!'; ?> - <?php echo get_post_meta(get_the_ID(), 'end_date', true) != '' ? get_post_meta(get_the_ID(), 'end_date', true) : 'Forever'; ?>
+							<?php echo date('m/d/Y', strtotime(get_post_meta(get_the_ID(), 'start_date', true))) ?? 'Error: Start date not set!'; ?> - <?php echo date('m/d/Y', strtotime(get_post_meta(get_the_ID(), 'end_date', true))) != '' ? get_post_meta(get_the_ID(), 'end_date', true) : 'Forever'; ?>
 							&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Includes
 							<?php echo !empty($associated_campaign_ids) ? count($associated_campaign_ids) : 0; ?> campaigns
 							<br />
