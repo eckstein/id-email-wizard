@@ -177,46 +177,42 @@ function idwiz_fill_chart_canvas(canvas) {
 				} else {
 					// Other charts
 					if (options && options.plugins && options.plugins.tooltip) {
-						if (!options.plugins.tooltip.callbacks) {
-							options.plugins.tooltip.callbacks = {};
-						}
-						if (response.data.options.hideTooltipTitle) {
-							options.plugins.tooltip.callbacks.title = function () {
-								return ""; // hides the default label (x-axis label) from the tooltip
-							};
-						} else {
-							options.plugins.tooltip.callbacks.title = function (tooltipItems) {
-								return tooltipItems[0].label; // Label (date)
-							};
-						}
+						options.plugins.tooltip.mode = 'nearest';
+						options.plugins.tooltip.intersect = true;
+						options.plugins.tooltip.callbacks = {
+							title: function(tooltipItems) {
+								let item = tooltipItems[0];
+								let datasetIndex = item.datasetIndex;
+								let date = item.label;
+								let tooltipData = datasets[datasetIndex].tooltipData && datasets[datasetIndex].tooltipData[date];
 
-						options.plugins.tooltip.callbacks.label = function (context) {
-							let label = context.dataset.label || "";
-							if (label) {
-								label += ": ";
-							}
-
-							if (context.chart.config.type === "pie" || context.chart.config.type === "doughnut") {
-								let total = context.dataset.data.reduce((a, b) => a + b, 0);
-								let value = context.raw;
-								let percentage = ((value / total) * 100).toFixed(2);
-
-								// Check if there's a placeholder for pie chart formatting
-								if (response.data.options.plugins.tooltip.callbacks.label === 'FORMAT_LABEL_JS_FUNCTION') {
-									return formatLabelForCustomerTypes(context);
-								} else {
-									// If not, fallback to regular pie/doughnut chart formatting
-									label += `${value} (${percentage}%)`;
+								if (tooltipData) {
+									let displayDate = datasetIndex === 1 ? tooltipData.originalDate : date; // Use originalDate for previous year
+									return `${displayDate} | ${tooltipData.name}`;
 								}
-							} else {
-								if (context.parsed.y !== null) {
-									label += context.parsed.y;
+								return date;
+							},
+							label: function(context) {
+								let datasetIndex = context.datasetIndex;
+								let date = context.label;
+								let tooltipData = datasets[datasetIndex].tooltipData && datasets[datasetIndex].tooltipData[date];
+
+								let label = context.dataset.label || '';
+								if (label) {
+									label += ': ';
+								}
+
+								if (context.parsed.y !== null && tooltipData) {
+									label += new Intl.NumberFormat("en-US", {
+										style: "percent",
+										minimumFractionDigits: 2
+									}).format(tooltipData.value / 100);
 								} else {
 									label += "No data";
 								}
-							}
 
-							return label;
+								return label;
+							}
 						};
 					}
 				}

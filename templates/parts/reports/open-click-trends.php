@@ -30,6 +30,18 @@ $showCharts = [
         'minMetric' => isset($_GET['minCtoRate']) ? $_GET['minCtoRate'] * 100 : 0,
         'maxMetric' => isset($_GET['maxCtoRate']) ? $_GET['maxCtoRate'] * 100 : 4000
 
+    ],
+    'unsubReport' => [
+        'title' => 'Unsub rate (YoY)',
+        'minMetric' => 0,
+        'maxMetric' => 1
+
+    ],
+    'revReport' => [
+        'title' => 'Revenue (YoY)',
+        'minMetric' => 0,
+        'maxMetric' => 100000
+
     ]
 ];
 

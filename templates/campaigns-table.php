@@ -107,6 +107,6 @@ if (isset($_GET['startDate']) && $_GET['startDate'] !== '' && isset($_GET['endDa
     <div class="idemailwiz_bottom_spacer"></div>
 </div>
 <div id="campaign-table-selected-rollup">
-    Testing
+    Loading...
 </div>
 <?php get_footer(); ?>

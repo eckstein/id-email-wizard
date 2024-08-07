@@ -27,7 +27,8 @@ function idwiz_catch_chart_request()
         case 'opensReport':
         case 'ctrReport':
         case 'ctoReport':
-        case 'retentionReport':
+        case 'unsubReport':
+        case 'revReport':
             $chartData = idwiz_get_report_chartdata($chartOptions);
             break;
 
@@ -128,21 +129,31 @@ function idwiz_get_report_chartdata($chartOptions)
             $dbMetric = 'wizOpenRate';
             $minMetric = $chartOptions['minMetric'] ?? 0;
             $maxMetric = $chartOptions['maxMetric'] ?? 100;
+            $dataType = 'percent';
             break;
         case 'ctrReport':
             $dbMetric = 'wizCtr';
             $minMetric = isset($chartOptions['minMetric']) ? $chartOptions['minMetric'] * .001 : 0;
             $maxMetric = isset($chartOptions['maxMetric']) ? $chartOptions['maxMetric'] * .001 : 2;
+            $dataType = 'percent';
             break;
         case 'ctoReport':
             $dbMetric = 'wizCto';
             $minMetric = isset($chartOptions['minMetric']) ? $chartOptions['minMetric'] * .001 : 0;
             $maxMetric = isset($chartOptions['maxMetric']) ? $chartOptions['maxMetric'] * .001 : 4;
+            $dataType = 'percent';
             break;
-        case 'retentionReport':
+        case 'unsubReport':
             $dbMetric = 'wizUnsubRate';
             $minMetric = $chartOptions['minMetric'] ?? 0;
-            $maxMetric = $chartOptions['maxMetric'] ?? 100;
+            $maxMetric = $chartOptions['maxMetric'] ?? 5;
+            $dataType = 'percent';
+            break;
+        case 'revReport':
+            $dbMetric = 'revenue';
+            $minMetric = $chartOptions['minMetric'] ?? 0;
+            $maxMetric = $chartOptions['maxMetric'] ?? 100000;
+            $dataType = 'money';
             break;
     }
 
@@ -197,7 +208,7 @@ function idwiz_get_report_chartdata($chartOptions)
             $prevCampaigns[] = $campaign;
         }
     }
-    
+
     $labels = [];
     $currentYearData = [];
     $prevYearData = [];
@@ -287,12 +298,12 @@ function idwiz_get_report_chartdata($chartOptions)
                     'ticks' => [
                         'callback' => 'function(value, index, values) {
                             return new Intl.NumberFormat("en-US", {
-                                style: "percent",
+                                style: '.$dataType.',
                                 minimumFractionDigits: 2
                             }).format(value / 100);
                         }'
                     ],
-                    'dataType' => 'percent'
+                    'dataType' => $dataType
                 ]
             ],
         ],
