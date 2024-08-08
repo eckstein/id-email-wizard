@@ -48,6 +48,11 @@ $reportType = $_GET['reportType'] ?? 'home';
                                 <div class="nav-desc">See comparitive trends for open and click rates over time</div>
                                 <a href="<?php echo get_bloginfo('url'); ?>/reports/?reportType=open-click-trends<?php echo (isset($_GET['startDate']) && isset($_GET['endDate'])) ? '&startDate=' . $_GET['startDate'] . '&endDate=' . $_GET['endDate'] : ''; ?>"></a>
                             </li>
+                            <li class="<?php echo $reportType == 'purchase-explorer' ? 'current' : ''; ?>">
+                                <div class="nav-item"><i class="fa-solid fa-chart-line"></i>&nbsp;&nbsp;Open & Click Trends</div>
+                                <div class="nav-desc">Explore purchases based on date range and filters</div>
+                                <a href="<?php echo get_bloginfo('url'); ?>/reports/?reportType=purchase-explorer<?php echo (isset($_GET['startDate']) && isset($_GET['endDate'])) ? '&startDate=' . $_GET['startDate'] . '&endDate=' . $_GET['endDate'] : ''; ?>"></a>
+                            </li>
                             <li class="<?php echo $reportType == 'signup-to-purchase' ? 'current' : ''; ?>">
                                 <div class="nav-item"><i class="fa-solid fa-chart-line"></i>&nbsp;&nbsp;Signup-To-Purchase</div>
                                 <div class="nav-desc">See length to conversion from sign-up based on date range.</div>

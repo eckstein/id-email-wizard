@@ -41,10 +41,9 @@ function idemailwiz_create_databases()
 		) ENGINE=InnoDB $charset_collate;";
 
 		$engagementTablesSql[$full_table_name] = $sql;
-		
 	}
-	
-	
+
+
 	$wizTablesSql = [];
 
 	// Define Campaigns table
@@ -173,7 +172,7 @@ function idemailwiz_create_databases()
 		PARTITION future VALUES LESS THAN MAXVALUE
 	);";
 
-	
+
 
 	$wizTemplateTableName = $wpdb->prefix . 'wiz_templates';
 	$wizTablesSql[$wizTemplateTableName] = "CREATE TABLE IF NOT EXISTS $wizTemplateTableName (
@@ -407,7 +406,7 @@ function idemailwiz_create_databases()
 
 
 	require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-	
+
 	// Campaign metrics tables that all share the same columns
 	foreach ($engagementTablesSql as $full_table_name => $engagementTableSql) {
 		dbDelta($engagementTableSql);
@@ -416,7 +415,7 @@ function idemailwiz_create_databases()
 	foreach ($wizTablesSql as $full_table_name => $wizTableSql) {
 		dbDelta($wizTableSql);
 	}
-	
+
 	//Create our custom view for the campaigns datatable
 	idemailwiz_create_view();
 }
@@ -581,10 +580,6 @@ function build_idwiz_query($args, $table_name)
 				}
 			}
 		}
-
-
-
-		
 	}
 
 	// CampaignIds are under "id" for campaigns and metrics and under "campaignId" for everything else
@@ -618,7 +613,6 @@ function build_idwiz_query($args, $table_name)
 				} else {
 					return ['error' => 'No campaignIds were passed in the campaignIds array.'];
 				}
-				
 			} elseif ($key === 'purchaseIds') {
 				$placeholders = implode(',', array_fill(0, count($value), '%s'));
 				$sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND id IN ($placeholders)"), $args['purchaseIds']));
@@ -833,15 +827,17 @@ function get_idwiz_experiment($templateId)
 	return $experiments ? $experiments[0] : false;
 }
 
-function get_idwiz_user($wizId) {
+function get_idwiz_user($wizId)
+{
 	global $wpdb;
-	$userTable = $wpdb->prefix.'idemailwiz_users';
+	$userTable = $wpdb->prefix . 'idemailwiz_users';
 	$sql = "SELECT * FROM $userTable WHERE wizId = %s";
 	$wizUser = $wpdb->get_row($wpdb->prepare($sql, $wizId), ARRAY_A);
 	return $wizUser;
 }
 
-function get_idwiz_user_by_userID($userId) {
+function get_idwiz_user_by_userID($userId)
+{
 	global $wpdb;
 	$userTable = $wpdb->prefix . 'idemailwiz_users';
 	$sql = "SELECT * FROM $userTable WHERE userID = %s";
@@ -1102,18 +1098,84 @@ function idwiz_save_hourly_metrics($campaignId)
 	$serializedClicksByHour = serialize($clicksByHour);
 
 	$query = $wpdb->prepare(
-			"INSERT INTO $metricsTableName (id, opensByHour, clicksByHour)
+		"INSERT INTO $metricsTableName (id, opensByHour, clicksByHour)
 		 VALUES (%d, %s, %s)
 		 ON DUPLICATE KEY UPDATE opensByHour = VALUES(opensByHour), clicksByHour = VALUES(clicksByHour)",
-			$campaignId,
-			$serializedOpensByHour,
-			$serializedClicksByHour
-		);
+		$campaignId,
+		$serializedOpensByHour,
+		$serializedClicksByHour
+	);
 
 	$wpdb->query($query);
 }
 
 
+function idwiz_get_hourly_metrics($campaignIds, $metrics = ['opensByHour', 'clicksByHour'], $maxHours = 72)
+{
+	global $wpdb;
+
+	if (!is_array($campaignIds) || empty($campaignIds)) {
+		return false;
+	};
+
+	$metricsTableName = $wpdb->prefix . 'idemailwiz_metrics';
+	$metricsString = implode(', ', $metrics);
+
+	$return = [];
+
+	$wizCampaigns = get_idwiz_campaigns(['campaignIds' => $campaignIds, 'fields' => ['id', 'startAt']]);
+	foreach ($wizCampaigns as $campaign) {
+
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT $metricsString FROM $metricsTableName WHERE id = %d",
+				$campaign['id']
+			)
+		);
+
+		if ($row) {
+			foreach ($metrics as $metric) {
+				if ($row->$metric) {
+					$metricRow = unserialize($row->$metric);
+					$metricRow = array_filter($metricRow, function ($value, $hour) use ($maxHours) {
+						return $hour <= $maxHours;
+					}, ARRAY_FILTER_USE_BOTH); // Use both key and value in the callback
+					$return[$metric][$campaign['id']] = $metricRow;
+				}
+			}
+		}
+	}
+
+	return $return;
+}
+
+function group_by_hour_metrics($metrics, $hourly_threshold = 50)
+{
+	$grouped_campaigns = [];
+
+	foreach ($metrics as $metric_type => $campaigns) {
+		foreach ($campaigns as $campaign_id => $hourly_data) {
+			ksort($hourly_data); // Ensure data is sorted by hour
+
+			$last_hour_above_threshold = 0;
+
+			foreach ($hourly_data as $hour => $count) {
+				if ($count >= $hourly_threshold) {
+					$last_hour_above_threshold = $hour;
+				}
+			}
+
+			$grouped_campaigns[$metric_type][$last_hour_above_threshold][] = $campaign_id;
+		}
+	}
+
+	// Sort groups by hour (key) in ascending order
+	foreach ($grouped_campaigns as $metric_type => &$groups) {
+		ksort($groups);
+	}
+
+	return $grouped_campaigns;
+}
 
 function idwiz_display_hourly_metrics_table($campaignId)
 {
@@ -1126,11 +1188,11 @@ function idwiz_display_hourly_metrics_table($campaignId)
 	$campaignStartHour = (int) date('G', $campaignStartAt / 1000);
 
 	$row = $wpdb->get_row(
-			$wpdb->prepare(
-				"SELECT opensByHour, clicksByHour FROM $metricsTableName WHERE id = %d",
-				$campaignId
-			)
-		);
+		$wpdb->prepare(
+			"SELECT opensByHour, clicksByHour FROM $metricsTableName WHERE id = %d",
+			$campaignId
+		)
+	);
 
 	if ($row) {
 		$opensByHour = unserialize($row->opensByHour);
