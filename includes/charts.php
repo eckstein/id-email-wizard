@@ -904,3 +904,54 @@ function idwiz_group_purchases_by_date($purchases, $timeScale)
 
     return $sortedDateData;
 }
+
+add_action('wp_ajax_idwiz_get_engagement_by_hour_chart_data', 'idwiz_get_engagement_by_hour_chart_data');
+function idwiz_get_engagement_by_hour_chart_data()
+{
+    // Check for a valid nonce
+    if (!check_ajax_referer('wiz-charts', 'security', false)) {
+        wp_send_json_error(['message' => 'Security check failed'], 403);
+        exit;
+    }
+
+    // Get parameters from the request
+    $campaign_ids = isset($_POST['campaignIds']) ? $_POST['campaignIds'] : [];
+    $threshold = isset($_POST['threshold']) ? intval($_POST['threshold']) : 10;
+    $max_hours = isset($_POST['maxHours']) ? intval($_POST['maxHours']) : 72;
+
+    // Get the hourly metrics
+    $hourly_metrics = idwiz_get_hourly_metrics($campaign_ids, ['opensByHour', 'clicksByHour'], $max_hours);
+
+    // Group the metrics
+    $grouped_metrics = group_by_hour_metrics($hourly_metrics, $threshold);
+
+    // Prepare the chart data
+    $chart_data = [];
+    foreach (['opensByHour', 'clicksByHour'] as $metric_type) {
+        $hours = range(0, $max_hours);
+        $counts = array_fill(0, $max_hours + 1, 0);
+
+        if (isset($grouped_metrics[$metric_type])) {
+            foreach ($grouped_metrics[$metric_type] as $hour => $campaigns) {
+                if ($hour <= $max_hours) {
+                    $counts[$hour] = count($campaigns);
+                }
+            }
+        }
+
+        $chart_data[$metric_type] = [
+            'labels' => $hours,
+            'datasets' => [
+                [
+                    'label' => ucfirst(str_replace('ByHour', '', $metric_type)),
+                    'data' => $counts,
+                    'backgroundColor' => $metric_type === 'opensByHour' ? 'rgba(75, 192, 192, 0.6)' : 'rgba(255, 99, 132, 0.6)',
+                    'borderColor' => $metric_type === 'opensByHour' ? 'rgba(75, 192, 192, 1)' : 'rgba(255, 99, 132, 1)',
+                    'borderWidth' => 1
+                ]
+            ]
+        ];
+    }
+
+    wp_send_json_success($chart_data);
+}

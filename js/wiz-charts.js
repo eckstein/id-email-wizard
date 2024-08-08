@@ -38,8 +38,101 @@ jQuery(document).ready(function ($) {
 		});
 	});
 
+	$("canvas.engagementByHourChart").each(function() {
+		//alert('found');return;
+		let additionalData = {
+			campaignIds: jQuery(this).attr("data-campaignids"),
+			threshold: 10,  // or whatever threshold you want to use
+			maxHours: 72    // or whatever max hours you want to display
+		};
+
+		idemailwiz_do_ajax(
+			"idwiz_get_engagement_by_hour_chart_data",
+			idAjax_wiz_charts.nonce,
+			{
+				campaignIds: additionalData.campaignIds,
+				threshold: additionalData.threshold,
+				maxHours: additionalData.maxHours
+			},
+			function (response) {
+				if (response.success) {
+					createEngagementChart('opensByHourChart', response.data.opensByHour, 'Campaigns by Hours of Engagement (Opens)');
+					createEngagementChart('clicksByHourChart', response.data.clicksByHour, 'Campaigns by Hours of Engagement (Clicks)');
+				} else {
+					console.error('Error fetching chart data:', response.data.message);
+				}
+			}
+		);
+	});
+
 		
 });
+
+function createEngagementChart(canvasId, chartData, title) {
+	const ctx = document.getElementById(canvasId).getContext('2d');
+    
+	new Chart(ctx, {
+		type: 'bar',
+		data: chartData,
+		options: {
+			responsive: true,
+			maintainAspectRatio: false,
+			plugins: {
+				title: {
+					display: true,
+					text: title,
+					font: {
+						size: 16
+					}
+				},
+				legend: {
+					display: false
+				},
+				tooltip: {
+					callbacks: {
+						label: function(context) {
+							return `${context.parsed.y} campaigns`;
+						}
+					}
+				},
+				datalabels: {
+					anchor: 'end',
+					align: 'top',
+					formatter: function(value, context) {
+						return value > 0 ? value : ''; // Only show label if value is greater than 0
+					},
+					font: {
+						weight: 'bold'
+					}
+				}
+			},
+			scales: {
+				x: {
+					title: {
+						display: true,
+						text: 'Hours',
+						font: {
+							size: 14
+						}
+					}
+				},
+				y: {
+					beginAtZero: true,
+					title: {
+						display: true,
+						text: 'Number of Campaigns',
+						font: {
+							size: 14
+						}
+					},
+					ticks: {
+						precision: 0
+					}
+				}
+			}
+		}
+	});
+}
 
 function idwiz_fill_chart_canvas(canvas) {
 	const chartType = jQuery(canvas).attr("data-charttype");

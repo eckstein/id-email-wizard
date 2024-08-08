@@ -379,3 +379,4 @@ function sort_campaigns_into_cohorts($campaigns)
         'totalCampaigns' => $totalCampaigns
     ];
 }
+
