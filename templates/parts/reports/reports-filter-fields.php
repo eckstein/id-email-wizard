@@ -98,8 +98,12 @@
                     <label for="wiz-report-maxhours">Max Hours</label><input name="maxhours" type="number" min="0" step="1" value="<?php echo $setMaxhours; ?>" id="wiz-report-maxhours" />
                 </div>
                 <div class="wiz-report-controlset-field">
-                    <?php $setThreshold = isset($_GET['threshold']) ? $_GET['threshold'] : 50; ?>
-                    <label for="wiz-report-threshold">Threshold</label><input name="threshold" type="number" min="0" step="1" value="<?php echo $setThreshold; ?>" id="wiz-report-threshold" />
+                    <?php $setOpenThreshold = isset($_GET['openThreshold']) ? $_GET['openThreshold'] : 50; ?>
+                    <label for="wiz-report-open threshold">Open Threshold</label><input name="openThreshold" type="number" min="0" step="1" value="<?php echo $setOpenThreshold; ?>" id="wiz-report-open-threshold" />
+                </div>
+                <div class="wiz-report-controlset-field">
+                    <?php $setClickThreshold = isset($_GET['clickThreshold']) ? $_GET['clickThreshold'] : 10; ?>
+                    <label for="wiz-report-click-threshold">Click Threshold</label><input name="clickThreshold" type="number" min="0" step="1" value="<?php echo $setClickThreshold; ?>" id="wiz-report-click-threshold" />
                 </div>
 
             </fieldset>
