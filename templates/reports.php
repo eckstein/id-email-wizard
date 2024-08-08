@@ -48,10 +48,10 @@ $reportType = $_GET['reportType'] ?? 'home';
                                 <div class="nav-desc">See comparitive trends for open and click rates over time</div>
                                 <a href="<?php echo get_bloginfo('url'); ?>/reports/?reportType=open-click-trends<?php echo (isset($_GET['startDate']) && isset($_GET['endDate'])) ? '&startDate=' . $_GET['startDate'] . '&endDate=' . $_GET['endDate'] : ''; ?>"></a>
                             </li>
-                            <li class="<?php echo $reportType == 'purchase-explorer' ? 'current' : ''; ?>">
-                                <div class="nav-item"><i class="fa-solid fa-chart-line"></i>&nbsp;&nbsp;Open & Click Trends</div>
-                                <div class="nav-desc">Explore purchases based on date range and filters</div>
-                                <a href="<?php echo get_bloginfo('url'); ?>/reports/?reportType=purchase-explorer<?php echo (isset($_GET['startDate']) && isset($_GET['endDate'])) ? '&startDate=' . $_GET['startDate'] . '&endDate=' . $_GET['endDate'] : ''; ?>"></a>
+                            <li class="<?php echo $reportType == 'engagement-tails' ? 'current' : ''; ?>">
+                                <div class="nav-item"><i class="fa-solid fa-chart-line"></i>&nbsp;&nbsp;Engagement Tails</div>
+                                <div class="nav-desc">See length of opens and clicks (in hours) since send time for select campaigns.</div>
+                                <a href="<?php echo get_bloginfo('url'); ?>/reports/?reportType=engagement-tails<?php echo (isset($_GET['startDate']) && isset($_GET['endDate'])) ? '&startDate=' . $_GET['startDate'] . '&endDate=' . $_GET['endDate'] : ''; ?>"></a>
                             </li>
                             <li class="<?php echo $reportType == 'signup-to-purchase' ? 'current' : ''; ?>">
                                 <div class="nav-item"><i class="fa-solid fa-chart-line"></i>&nbsp;&nbsp;Signup-To-Purchase</div>
@@ -85,6 +85,8 @@ $reportType = $_GET['reportType'] ?? 'home';
                     include plugin_dir_path(__FILE__) . 'parts/reports/frequency.php';
                 } else if ($reportType == 'signup-to-purchase') {
                     include plugin_dir_path(__FILE__) . 'parts/reports/signup-to-purchase.php';
+                } else if ($reportType == 'engagement-tails') {
+                    include plugin_dir_path(__FILE__) . 'parts/reports/engagement-tails.php';
                 }
                 ?>
             </div>

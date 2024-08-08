@@ -38,33 +38,38 @@ jQuery(document).ready(function ($) {
 		});
 	});
 
-	$("canvas.engagementByHourChart").each(function() {
-		//alert('found');return;
-		let additionalData = {
-			campaignIds: jQuery(this).attr("data-campaignids"),
-			threshold: 10,  // or whatever threshold you want to use
-			maxHours: 72    // or whatever max hours you want to display
-		};
+	fill_engagement_charts();
+	function fill_engagement_charts() {
+		$("canvas.engagementByHourChart").each(function() {
+			//alert('found');return;
+			let additionalData = {
+				campaignIds: jQuery(this).attr("data-campaignids"),
+				startDate: jQuery(this).attr("data-startdate"),
+				endDate: jQuery(this).attr("data-enddate"),
+				threshold: jQuery(this).attr("data-threshold"),
+				maxHours: jQuery(this).attr("data-maxhours"),
+			};
 
-		idemailwiz_do_ajax(
-			"idwiz_get_engagement_by_hour_chart_data",
-			idAjax_wiz_charts.nonce,
-			{
-				campaignIds: additionalData.campaignIds,
-				threshold: additionalData.threshold,
-				maxHours: additionalData.maxHours
-			},
-			function (response) {
-				if (response.success) {
-					createEngagementChart('opensByHourChart', response.data.opensByHour, 'Campaigns by Hours of Engagement (Opens)');
-					createEngagementChart('clicksByHourChart', response.data.clicksByHour, 'Campaigns by Hours of Engagement (Clicks)');
-				} else {
-					console.error('Error fetching chart data:', response.data.message);
+			idemailwiz_do_ajax(
+				"idwiz_get_engagement_by_hour_chart_data",
+				idAjax_wiz_charts.nonce,
+				{
+					campaignIds: additionalData.campaignIds,
+					threshold: additionalData.threshold,
+					maxHours: additionalData.maxHours
+				},
+				function (response) {
+					if (response.success) {
+						createEngagementChart('opensByHourChart', response.data.opensByHour, 'Campaigns by Hours of Engagement (Opens)');
+						createEngagementChart('clicksByHourChart', response.data.clicksByHour, 'Campaigns by Hours of Engagement (Clicks)');
+					} else {
+						console.error('Error fetching chart data:', response.data.message);
+					}
 				}
-			}
-		);
-	});
-
+			);
+		});
+	}
+	
 		
 });
 

@@ -52,7 +52,8 @@ $("#reports-filter-form").on("submit", function(e) {
         }
 
     // Update charts dynamically after updating URL
-    $("canvas.wiz-canvas").each(function() {
+    
+    $("canvas").each(function() {
         const canvas = this;
 
         if (canvas.chartInstance) {
@@ -88,9 +89,9 @@ $("#reports-filter-form").on("submit", function(e) {
                 .attr('data-maxmetric', formDataObject.maxCtoRate ? formDataObject.maxCtoRate * 100 : 100);
         }
 
-        console.log("Updating chart for canvas: ", canvas);
-        idwiz_fill_chart_canvas(canvas); 
+        idwiz_fill_chart_canvas(canvas);
     });
+    fill_engagement_charts();
 });
 
 // Handle "All" selection in cohort selects
