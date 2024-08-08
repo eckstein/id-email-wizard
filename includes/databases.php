@@ -1149,7 +1149,7 @@ function idwiz_get_hourly_metrics($campaignIds, $metrics = ['opensByHour', 'clic
 	return $return;
 }
 
-function group_by_hour_metrics($metrics, $hourly_threshold = 50)
+function group_by_hour_metrics($metrics = [], $hourly_threshold = 50)
 {
 	$grouped_campaigns = [];
 

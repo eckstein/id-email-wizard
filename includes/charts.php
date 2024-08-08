@@ -915,7 +915,7 @@ function idwiz_get_engagement_by_hour_chart_data()
     }
 
     // Get parameters from the request
-    $campaign_ids = isset($_POST['campaignIds']) ? $_POST['campaignIds'] : [];
+    $campaign_ids = isset($_POST['campaignIds']) ? json_decode(stripslashes($_POST['campaignIds'])) : [];
     $threshold = isset($_POST['threshold']) ? intval($_POST['threshold']) : 10;
     $max_hours = isset($_POST['maxHours']) ? intval($_POST['maxHours']) : 72;
 
@@ -924,6 +924,7 @@ function idwiz_get_engagement_by_hour_chart_data()
 
     // Group the metrics
     $grouped_metrics = group_by_hour_metrics($hourly_metrics, $threshold);
+
 
     // Prepare the chart data
     $chart_data = [];
