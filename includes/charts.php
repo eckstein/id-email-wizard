@@ -916,14 +916,15 @@ function idwiz_get_engagement_by_hour_chart_data()
 
     // Get parameters from the request
     $campaign_ids = isset($_POST['campaignIds']) ? json_decode(stripslashes($_POST['campaignIds'])) : [];
-    $threshold = isset($_POST['threshold']) ? intval($_POST['threshold']) : 10;
+    $openThreshold = isset($_POST['openThreshold']) ? intval($_POST['openThreshold']) : 50;
+    $clickThreshold = isset($_POST['clickThreshold']) ? intval($_POST['clickThreshold']) : 10;
     $max_hours = isset($_POST['maxHours']) ? intval($_POST['maxHours']) : 72;
 
     // Get the hourly metrics
     $hourly_metrics = idwiz_get_hourly_metrics($campaign_ids, ['opensByHour', 'clicksByHour'], $max_hours);
 
     // Group the metrics
-    $grouped_metrics = group_by_hour_metrics($hourly_metrics, $threshold);
+    $grouped_metrics = group_by_hour_metrics($hourly_metrics, $openThreshold, $clickThreshold);
 
 
     // Prepare the chart data

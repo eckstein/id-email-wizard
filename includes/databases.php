@@ -1149,7 +1149,7 @@ function idwiz_get_hourly_metrics($campaignIds, $metrics = ['opensByHour', 'clic
 	return $return;
 }
 
-function group_by_hour_metrics($metrics = [], $hourly_threshold = 50)
+function group_by_hour_metrics($metrics = [], $openThreshold = 50, $clickThreshold = 10)
 {
 	$grouped_campaigns = [];
 
@@ -1158,9 +1158,17 @@ function group_by_hour_metrics($metrics = [], $hourly_threshold = 50)
 			ksort($hourly_data); // Ensure data is sorted by hour
 
 			foreach ($hourly_data as $hour => $count) {
-				if ($count >= $hourly_threshold) {
-					$grouped_campaigns[$metric_type][$hour][] = $campaign_id;
+				if ($metric_type == 'opensByHour') {
+					if ($count >= $openThreshold) {
+						$grouped_campaigns[$metric_type][$hour][] = $campaign_id;
+					}
 				}
+				if ($metric_type == 'clicksByHour') {
+					if ($count >= $clickThreshold) {
+						$grouped_campaigns[$metric_type][$hour][] = $campaign_id;
+					}
+				}
+				
 			}
 		}
 	}

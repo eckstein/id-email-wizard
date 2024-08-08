@@ -42,11 +42,14 @@ jQuery(document).ready(function ($) {
 	function fill_engagement_charts() {
 		$("canvas.engagementByHourChart").each(function() {
 			//alert('found');return;
+			let openThreshold = jQuery(this).attr("data-openthreshold") ? jQuery(this).attr("data-openthreshold") : false;
+			let clickThreshold = jQuery(this).attr("data-clickthreshold") ? jQuery(this).attr("data-clickthreshold") : false;
 			let additionalData = {
 				campaignIds: jQuery(this).attr("data-campaignids"),
 				startDate: jQuery(this).attr("data-startdate"),
 				endDate: jQuery(this).attr("data-enddate"),
-				threshold: jQuery(this).attr("data-threshold"),
+				openThreshold: openThreshold,
+				clickThreshold: clickThreshold,
 				maxHours: jQuery(this).attr("data-maxhours"),
 			};
 
@@ -56,7 +59,9 @@ jQuery(document).ready(function ($) {
 				{
 					campaignIds: additionalData.campaignIds,
 					threshold: additionalData.threshold,
-					maxHours: additionalData.maxHours
+					maxHours: additionalData.maxHours,
+					openThreshold: additionalData.openThreshold,
+					clickThreshold: additionalData.clickThreshold
 				},
 				function (response) {
 					if (response.success) {

@@ -94,8 +94,8 @@
         <?php if ($_GET['reportType'] && $_GET['reportType'] == 'engagement-tails') { ?>
             <fieldset class="wiz-report-controlset" id="wiz-report-maxhours-controls">
                 <div class="wiz-report-controlset-field">
-                    <?php $setMaxhours = isset($_GET['maxhours']) ? $_GET['maxhours'] : 72; ?>
-                    <label for="wiz-report-maxhours">Max Hours</label><input name="maxhours" type="number" min="0" step="1" value="<?php echo $setMaxhours; ?>" id="wiz-report-maxhours" />
+                    <?php $setMaxhours = isset($_GET['maxHours']) ? $_GET['maxHours'] : 72; ?>
+                    <label for="wiz-report-maxhours">Max Hours</label><input name="maxHours" type="number" min="0" step="1" value="<?php echo $setMaxhours; ?>" id="wiz-report-maxhours" />
                 </div>
                 <div class="wiz-report-controlset-field">
                     <?php $setOpenThreshold = isset($_GET['openThreshold']) ? $_GET['openThreshold'] : 50; ?>
