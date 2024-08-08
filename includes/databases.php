@@ -1157,15 +1157,11 @@ function group_by_hour_metrics($metrics = [], $hourly_threshold = 50)
 		foreach ($campaigns as $campaign_id => $hourly_data) {
 			ksort($hourly_data); // Ensure data is sorted by hour
 
-			$last_hour_above_threshold = 0;
-
 			foreach ($hourly_data as $hour => $count) {
 				if ($count >= $hourly_threshold) {
-					$last_hour_above_threshold = $hour;
+					$grouped_campaigns[$metric_type][$hour][] = $campaign_id;
 				}
 			}
-
-			$grouped_campaigns[$metric_type][$last_hour_above_threshold][] = $campaign_id;
 		}
 	}
 

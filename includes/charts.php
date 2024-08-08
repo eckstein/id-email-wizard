@@ -941,17 +941,17 @@ function idwiz_get_engagement_by_hour_chart_data()
         }
 
         $chart_data[$metric_type] = [
-            'labels' => $hours,
-            'datasets' => [
-                [
-                    'label' => ucfirst(str_replace('ByHour', '', $metric_type)),
-                    'data' => $counts,
-                    'backgroundColor' => $metric_type === 'opensByHour' ? 'rgba(75, 192, 192, 0.6)' : 'rgba(255, 99, 132, 0.6)',
-                    'borderColor' => $metric_type === 'opensByHour' ? 'rgba(75, 192, 192, 1)' : 'rgba(255, 99, 132, 1)',
-                    'borderWidth' => 1
+                'labels' => $hours,
+                'datasets' => [
+                    [
+                        'label' => ucfirst(str_replace('ByHour', '', $metric_type)),
+                        'data' => $counts,
+                        'backgroundColor' => $metric_type === 'opensByHour' ? 'rgba(75, 192, 192, 0.6)' : 'rgba(255, 99, 132, 0.6)',
+                        'borderColor' => $metric_type === 'opensByHour' ? 'rgba(75, 192, 192, 1)' : 'rgba(255, 99, 132, 1)',
+                        'borderWidth' => 1
+                    ]
                 ]
-            ]
-        ];
+            ];
     }
 
     wp_send_json_success($chart_data);

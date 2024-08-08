@@ -1,6 +1,5 @@
 <?php
 $fy24Campaigns = get_idwiz_campaigns(['startAt_start' => $startDate, 'startAt_end' => $endDate, 'type' => ['Blast']]);
-$hourlyMetrics = idwiz_get_hourly_metrics(array_column($fy24Campaigns, 'id'), ['opensByHour', 'clicksByHour'], 72);
 
 $byHourAttsString = 'data-startdate="' . $startDate . '" data-enddate="' . $endDate . '" data-maxhours="72" data-threshold="10"';
 ?>
