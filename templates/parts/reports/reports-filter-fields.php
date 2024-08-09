@@ -99,7 +99,7 @@
                 </div>
                 <div class="wiz-report-controlset-field">
                     <?php $setOpenThreshold = isset($_GET['openThreshold']) ? $_GET['openThreshold'] : 50; ?>
-                    <label for="wiz-report-open threshold">Open Threshold</label><input name="openThreshold" type="number" min="0" step="1" value="<?php echo $setOpenThreshold; ?>" id="wiz-report-open-threshold" />
+                    <label for="wiz-report-open-threshold">Open Threshold</label><input name="openThreshold" type="number" min="0" step="1" value="<?php echo $setOpenThreshold; ?>" id="wiz-report-open-threshold" />
                 </div>
                 <div class="wiz-report-controlset-field">
                     <?php $setClickThreshold = isset($_GET['clickThreshold']) ? $_GET['clickThreshold'] : 10; ?>

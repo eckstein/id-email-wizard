@@ -54,7 +54,7 @@ jQuery(document).ready(function ($) {
 				maxHours: $canvas.attr("data-maxhours"),
 			};
 
-			idemailwiz_do_ajax(
+			idemailwiz_do_ajax( 
 				"idwiz_get_engagement_by_hour_chart_data",
 				idAjax_wiz_charts.nonce,
 				{
