@@ -29,7 +29,7 @@ $monthlyIterations = get_monthly_iterations($startDate, $endDate);
                     <h3 class="month-header"><?php echo date('F Y', strtotime($iteration['start'])); ?></h3>
                     <?php if ($frequencyView === 'per-week') : ?>
                         <?php
-                        $weekRanges = get_weekly_data($iteration['start'], $iteration['end']);
+                        $weekRanges = get_week_ranges($iteration['start'], $iteration['end']);
                         foreach ($weekRanges as $weekRange) :
                             $weekData = get_sends_by_week_data($weekRange['start'], $weekRange['end'], 100, 'weekly');
 

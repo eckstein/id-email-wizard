@@ -41,16 +41,17 @@ jQuery(document).ready(function ($) {
 	fill_engagement_charts();
 	function fill_engagement_charts() {
 		$("canvas.engagementByHourChart").each(function() {
-			//alert('found');return;
-			let openThreshold = jQuery(this).attr("data-openthreshold") ? jQuery(this).attr("data-openthreshold") : false;
-			let clickThreshold = jQuery(this).attr("data-clickthreshold") ? jQuery(this).attr("data-clickthreshold") : false;
+			let $canvas = $(this);
+			let canvasId = $canvas.attr('id');
+			let openThreshold = $canvas.attr("data-openthreshold") || false;
+			let clickThreshold = $canvas.attr("data-clickthreshold") || false;
 			let additionalData = {
-				campaignIds: jQuery(this).attr("data-campaignids"),
-				startDate: jQuery(this).attr("data-startdate"),
-				endDate: jQuery(this).attr("data-enddate"),
+				campaignIds: $canvas.attr("data-campaignids"),
+				startDate: $canvas.attr("data-startdate"),
+				endDate: $canvas.attr("data-enddate"),
 				openThreshold: openThreshold,
 				clickThreshold: clickThreshold,
-				maxHours: jQuery(this).attr("data-maxhours"),
+				maxHours: $canvas.attr("data-maxhours"),
 			};
 
 			idemailwiz_do_ajax(
@@ -58,15 +59,20 @@ jQuery(document).ready(function ($) {
 				idAjax_wiz_charts.nonce,
 				{
 					campaignIds: additionalData.campaignIds,
-					threshold: additionalData.threshold,
+					startDate: additionalData.startDate,
+					endDate: additionalData.endDate,
 					maxHours: additionalData.maxHours,
 					openThreshold: additionalData.openThreshold,
-					clickThreshold: additionalData.clickThreshold
+					clickThreshold: additionalData.clickThreshold,
+					chartType: canvasId === 'opensByHourChart' ? 'opens' : 'clicks'
 				},
 				function (response) {
 					if (response.success) {
-						createEngagementChart('opensByHourChart', response.data.opensByHour, 'Campaigns by Hours of Engagement (Opens)');
-						createEngagementChart('clicksByHourChart', response.data.clicksByHour, 'Campaigns by Hours of Engagement (Clicks)');
+						if (canvasId === 'opensByHourChart') {
+							createEngagementChart('opensByHourChart', response.data.opensByHour, 'Campaigns by Hours of Engagement (Opens)');
+						} else if (canvasId === 'clicksByHourChart') {
+							createEngagementChart('clicksByHourChart', response.data.clicksByHour, 'Campaigns by Hours of Engagement (Clicks)');
+						}
 					} else {
 						console.error('Error fetching chart data:', response.data.message);
 					}

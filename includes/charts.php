@@ -45,7 +45,7 @@ function idwiz_catch_chart_request()
         case 'purchasesByLocation':
         case 'purchasesByTopic':
         case 'purchasesByGender':
-        
+
             $chartData = idwiz_get_byPurchaseField_chartdata($chartOptions);
             break;
 
@@ -298,7 +298,7 @@ function idwiz_get_report_chartdata($chartOptions)
                     'ticks' => [
                         'callback' => 'function(value, index, values) {
                             return new Intl.NumberFormat("en-US", {
-                                style: '.$dataType.',
+                                style: ' . $dataType . ',
                                 minimumFractionDigits: 2
                             }).format(value / 100);
                         }'
@@ -920,40 +920,46 @@ function idwiz_get_engagement_by_hour_chart_data()
     $clickThreshold = isset($_POST['clickThreshold']) ? intval($_POST['clickThreshold']) : 10;
     $max_hours = isset($_POST['maxHours']) ? intval($_POST['maxHours']) : 72;
 
-    // Get the hourly metrics
-    $hourly_metrics = idwiz_get_hourly_metrics($campaign_ids, ['opensByHour', 'clicksByHour'], $max_hours);
+    $chartType = isset($_POST['chartType']) ? $_POST['chartType'] : 'both';
 
-    // Group the metrics
+    $hourly_metrics = idwiz_get_hourly_metrics($campaign_ids, ['opensByHour', 'clicksByHour'], $max_hours);
     $grouped_metrics = group_by_hour_metrics($hourly_metrics, $openThreshold, $clickThreshold);
 
-
-    // Prepare the chart data
     $chart_data = [];
-    foreach (['opensByHour', 'clicksByHour'] as $metric_type) {
-        $hours = range(0, $max_hours);
-        $counts = array_fill(0, $max_hours + 1, 0);
-
-        if (isset($grouped_metrics[$metric_type])) {
-            foreach ($grouped_metrics[$metric_type] as $hour => $campaigns) {
-                if ($hour <= $max_hours) {
-                    $counts[$hour] = count($campaigns);
-                }
-            }
-        }
-
-        $chart_data[$metric_type] = [
-                'labels' => $hours,
-                'datasets' => [
-                    [
-                        'label' => ucfirst(str_replace('ByHour', '', $metric_type)),
-                        'data' => $counts,
-                        'backgroundColor' => $metric_type === 'opensByHour' ? 'rgba(75, 192, 192, 0.6)' : 'rgba(255, 99, 132, 0.6)',
-                        'borderColor' => $metric_type === 'opensByHour' ? 'rgba(75, 192, 192, 1)' : 'rgba(255, 99, 132, 1)',
-                        'borderWidth' => 1
-                    ]
-                ]
-            ];
+    if ($chartType === 'opens' || $chartType === 'both') {
+        $chart_data['opensByHour'] = prepare_chart_data($grouped_metrics['opensByHour'], $max_hours, 'Opens');
+    }
+    if ($chartType === 'clicks' || $chartType === 'both') {
+        $chart_data['clicksByHour'] = prepare_chart_data($grouped_metrics['clicksByHour'], $max_hours, 'Clicks');
     }
 
     wp_send_json_success($chart_data);
+}
+
+function prepare_chart_data($metric_data, $max_hours, $label)
+{
+    $hours = range(0, $max_hours);
+    $counts = array_fill(0, $max_hours + 1, 0);
+
+    if (isset($metric_data)) {
+        foreach ($metric_data as $hour => $campaigns) {
+            if ($hour <= $max_hours) {
+                $counts[$hour] = count($campaigns);
+            }
+        }
+    }
+
+    return [
+        'labels' => $hours,
+        'datasets' => [
+            [
+                'label' => $label,
+                'data' => $counts,
+                'backgroundColor' => $label === 'Opens' ? 'rgba(75, 192, 192, 0.6)' : 'rgba(255, 99, 132, 0.6)',
+                'borderColor' => $label === 'Opens' ? 'rgba(75, 192, 192, 1)' : 'rgba(255, 99, 132, 1)',
+                'borderWidth' => 1
+            ]
+        ]
+    ];
+
 }

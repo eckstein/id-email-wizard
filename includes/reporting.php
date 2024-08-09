@@ -116,50 +116,6 @@ function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $return
     }
 }
 
-
-
-
-function sortCampaignsIntoCohorts($campaigns, $mode = 'combine')
-{
-    $cohorts = array();
-    $totalCampaigns = 0;
-    foreach ($campaigns as $campaign) {
-        //print_r($campaign);
-        // Unserialize the labels array
-        if (!isset($campaign['labels']) || !$campaign['labels']) {
-            continue;
-        }
-        $totalCampaigns++;
-        $labels = unserialize($campaign['labels']);
-        //print_r($labels);
-
-        if ($mode === 'combine') {
-            // Sort the labels to ensure consistent concatenation order
-            sort($labels);
-
-            // Concatenate the labels into a unique cohort key
-            $cohortKey = implode(', ', $labels);
-
-            // Add the campaign to the corresponding cohort
-            if (!isset($cohorts[$cohortKey])) {
-                $cohorts[$cohortKey] = array();
-            }
-            $cohorts[$cohortKey][] = $campaign;
-        } elseif ($mode === 'separate') {
-            // Add the campaign to each label bucket separately
-            foreach ($labels as $label) {
-                if (!isset($cohorts[$label])) {
-                    $cohorts[$label] = array();
-                }
-                $cohorts[$label][] = $campaign;
-            }
-        }
-    }
-
-    return ['cohorts' => $cohorts, 'totalCampaigns' => $totalCampaigns];
-}
-
-
 function get_users_within_date_range($startDate, $endDate, $batchSize = 10000)
 {
     global $wpdb;
@@ -322,7 +278,7 @@ function get_monthly_iterations($startDate, $endDate)
     return $iterations;
 }
 
-function get_weekly_data($startDate, $endDate)
+function get_week_ranges($startDate, $endDate)
 {
     $weekRanges = [];
     $currentDate = new DateTime($startDate);
@@ -380,3 +336,78 @@ function sort_campaigns_into_cohorts($campaigns)
     ];
 }
 
+
+function idwiz_get_hourly_metrics($campaignIds, $metrics = ['opensByHour', 'clicksByHour'], $maxHours = 72)
+{
+    global $wpdb;
+
+    if (!is_array($campaignIds) || empty($campaignIds)) {
+        return false;
+    };
+
+    $metricsTableName = $wpdb->prefix . 'idemailwiz_metrics';
+    $metricsString = implode(', ', $metrics);
+
+    $return = [];
+
+    $wizCampaigns = get_idwiz_campaigns(['campaignIds' => $campaignIds, 'fields' => ['id', 'startAt']]);
+    foreach ($wizCampaigns as $campaign) {
+        $row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT $metricsString FROM $metricsTableName WHERE id = %d",
+                $campaign['id']
+            )
+        );
+
+        if ($row) {
+            foreach ($metrics as $metric) {
+                if ($row->$metric) {
+                    $metricRow = unserialize($row->$metric);
+                    if (!is_array($metricRow)) {
+                        error_log("Invalid data for campaign {$campaign['id']}, metric $metric: " . print_r($metricRow, true));
+                        continue;
+                    }
+                    $metricRow = array_filter($metricRow, function ($value, $hour) use ($maxHours) {
+                        return $hour <= $maxHours && $value > 0; // Only keep non-zero values within maxHours
+                    }, ARRAY_FILTER_USE_BOTH);
+
+                    if (!empty($metricRow)) { // Only add if there's any non-zero data
+                        $return[$metric][$campaign['id']] = $metricRow;
+                    }
+                }
+            }
+        }
+    }
+
+    return $return;
+}
+
+function group_by_hour_metrics($metrics = [], $openThreshold = 50, $clickThreshold = 10)
+{
+    $grouped_campaigns = [];
+
+    foreach ($metrics as $metric_type => $campaigns) {
+        if (!isset($grouped_campaigns[$metric_type])) {
+            $grouped_campaigns[$metric_type] = [];
+        }
+        foreach ($campaigns as $campaign_id => $hourly_data) {
+            if (array_sum($hourly_data) == 0) continue; // Skip campaigns with all-zero data
+
+            ksort($hourly_data); // Ensure data is sorted by hour
+
+            foreach ($hourly_data as $hour => $count) {
+                $threshold = ($metric_type == 'opensByHour') ? $openThreshold : $clickThreshold;
+                if ($count >= $threshold) {
+                    $grouped_campaigns[$metric_type][$hour][] = $campaign_id;
+                }
+            }
+        }
+    }
+
+    // Sort groups by hour (key) in ascending order
+    foreach ($grouped_campaigns as $metric_type => &$groups) {
+        ksort($groups);
+    }
+
+    return $grouped_campaigns;
+}
