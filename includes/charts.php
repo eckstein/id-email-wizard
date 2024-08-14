@@ -511,17 +511,35 @@ function idwiz_get_byPurchaseField_chartdata($chartOptions)
         ]
     ];
 
+
     if ($chartType === 'bar') {
+        $purchasesTooltipData = [];
+        $revenuesTooltipData = [];
+        foreach ($groupedData as $date => $data) {
+            $purchasesTooltipData[$date] = [
+                'value' => $data['Purchases'],
+                'name' => 'Purchases',
+                'dataType' => 'number'
+            ];
+            $revenuesTooltipData[$date] = [
+                'value' => $data['Revenue'],
+                'name' => 'Revenue',
+                'dataType' => 'money'
+            ];
+        }
+
         $response['data']['datasets'] = [
             [
                 'label' => 'Purchases',
                 'data' => array_column($groupedData, 'Purchases'),
-                'yAxisID' => 'y-axis-num'
+                'yAxisID' => 'y-axis-num',
+                'tooltipData' => $purchasesTooltipData
             ],
             [
                 'label' => 'Revenue',
                 'data' => array_column($groupedData, 'Revenue'),
-                'yAxisID' => 'y-axis-rev'
+                'yAxisID' => 'y-axis-rev',
+                'tooltipData' => $revenuesTooltipData
             ]
         ];
 
@@ -557,13 +575,23 @@ function idwiz_get_byPurchaseField_chartdata($chartOptions)
         $purchasesData = array_column($groupedData, 'Purchases');
         $revenuesData = array_column($groupedData, 'Revenue');
 
+        $tooltipData = [];
+        foreach (array_keys($groupedData) as $index => $key) {
+            $tooltipData[$key] = [
+                'value' => $purchasesData[$index],
+                'name' => $key,
+                'revenue' => $revenuesData[$index],
+                'dataType' => 'percent'
+            ];
+        }
+
         $datasets = [
             'data' => $purchasesData,
             'backgroundColor' => $colors,
-            'metaData' => $revenuesData // Include revenue data as meta data
+            'tooltipData' => $tooltipData
         ];
 
-        $response['data']['datasets'] = [$datasets]; // Chart.js expects datasets to be an array
+        $response['data']['datasets'] = [$datasets];
     }
 
 

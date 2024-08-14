@@ -312,10 +312,20 @@ function idwiz_fill_chart_canvas(canvas) {
 								}
 
 								if (context.parsed.y !== null && tooltipData) {
+									if (!tooltipData.dataType || tooltipData.dataType === 'percent') {
 									label += new Intl.NumberFormat("en-US", {
 										style: "percent",
 										minimumFractionDigits: 2
 									}).format(tooltipData.value / 100);
+									} else if (tooltipData.dataType === 'money') {
+										label += new Intl.NumberFormat("en-US", {
+											style: "currency",
+											currency: "USD",
+										}).format(tooltipData.value);
+									} else {
+										label += tooltipData.value;
+										
+									}
 								} else {
 									label += "No data";
 								}

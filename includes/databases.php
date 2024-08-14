@@ -1057,6 +1057,7 @@ function idwiz_save_hourly_metrics($campaignId)
 	$campaignSendTimeMs = $wizCampaign['startAt'];
 
 	$opensData = get_idemailwiz_triggered_data(database: "idemailwiz_" . $campaignType . "_opens", args: ['campaignIds' => [$campaignId]], uniqueMessageIds: false);
+	
 	$clicksData = get_idemailwiz_triggered_data(database: "idemailwiz_" . $campaignType . "_clicks", args: ['campaignIds' => [$campaignId]], uniqueMessageIds: false);
 
 	$opensByHour = [];
