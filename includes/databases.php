@@ -558,7 +558,7 @@ function build_idwiz_query($args, $table_name)
 					break;
 			}
 
-			if ($interval && $table_name == $wpdb->prefix . 'idemailwiz_purchases') {
+			if ($interval) {
 				// Add a join to the campaigns table to get the campaign start date
 				$campaigns_table = $wpdb->prefix . 'idemailwiz_campaigns';
 				$sql .= " JOIN $campaigns_table ON $table_name.campaignId = $campaigns_table.id";
@@ -568,6 +568,14 @@ function build_idwiz_query($args, $table_name)
 					" AND $table_name.purchaseDate <= DATE_ADD($campaigns_table.startAt, INTERVAL %s)",
 					$interval
 				);
+			}
+
+			// Keep the original date range conditions
+			if (isset($where_args['startAt_start'])) {
+				$sql .= $wpdb->prepare(" AND $table_name.purchaseDate >= %s", $where_args['startAt_start']);
+			}
+			if (isset($where_args['startAt_end'])) {
+				$sql .= $wpdb->prepare(" AND $table_name.purchaseDate <= %s", $where_args['startAt_end']);
 			}
 		}
 	}
