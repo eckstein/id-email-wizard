@@ -540,9 +540,6 @@ function build_idwiz_query($args, $table_name)
 		// Attribution length
 		$userAttLength = get_user_meta($currentUserId, 'purchase_attribution_length', true);
 
-		// Attribution length
-		$userAttLength = get_user_meta($currentUserId, 'purchase_attribution_length', true);
-
 		// Apply user attribution settings for purchases
 		if ($table_name == $wpdb->prefix . 'idemailwiz_purchases' && $userAttLength && $userAttLength != 'allTime') {
 			$interval = '';
@@ -561,23 +558,16 @@ function build_idwiz_query($args, $table_name)
 					break;
 			}
 
-			if ($interval) {
-				// If startAt_start is set, use it as the base for attribution
-				if (isset($where_args['startAt_start'])) {
-					$startDate = new DateTime($where_args['startAt_start'], new DateTimeZone('America/Los_Angeles'));
-					$endDate = clone $startDate;
-					$endDate->add(new DateInterval($interval));
+			if ($interval && $table_name == $wpdb->prefix . 'idemailwiz_purchases') {
+				// Add a join to the campaigns table to get the campaign start date
+				$campaigns_table = $wpdb->prefix . 'idemailwiz_campaigns';
+				$sql .= " JOIN $campaigns_table ON $table_name.campaignId = $campaigns_table.id";
 
-					// If there's a specific end date provided, use the earlier of the two
-					if (isset($where_args['startAt_end'])) {
-						$providedEndDate = new DateTime($where_args['startAt_end'], new DateTimeZone('America/Los_Angeles'));
-						if ($endDate > $providedEndDate) {
-							$endDate = $providedEndDate;
-						}
-					}
-
-					$where_args['startAt_end'] = $endDate->format('Y-m-d');
-				}
+				// Add the attribution length condition
+				$sql .= $wpdb->prepare(
+					" AND $table_name.purchaseDate <= DATE_ADD($campaigns_table.startAt, INTERVAL %s)",
+					$interval
+				);
 			}
 		}
 	}
