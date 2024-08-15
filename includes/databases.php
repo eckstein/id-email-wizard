@@ -541,7 +541,7 @@ function build_idwiz_query($args, $table_name)
 		$userAttLength = get_user_meta($currentUserId, 'purchase_attribution_length', true);
 
 		// Apply user attribution settings for purchases
-		if ($table_name == $wpdb->prefix . 'idemailwiz_purchases' && $userAttLength && $userAttLength != 'allTime') {
+		if ($userAttLength && $userAttLength != 'allTime') {
 			$interval = '';
 			switch ($userAttLength) {
 				case '72Hours':
@@ -563,10 +563,10 @@ function build_idwiz_query($args, $table_name)
 				$campaigns_table = $wpdb->prefix . 'idemailwiz_campaigns';
 				$sql .= " JOIN $campaigns_table ON $table_name.campaignId = $campaigns_table.id";
 
-				// Add the attribution length condition
+				// Convert millisecond timestamp to date and add interval
 				$sql .= $wpdb->prepare(
-					" AND $table_name.purchaseDate <= DATE_ADD($campaigns_table.startAt, INTERVAL %s)",
-					$interval
+					" AND $table_name.purchaseDate <= DATE(FROM_UNIXTIME($campaigns_table.startAt / 1000)) + INTERVAL %s DAY",
+					substr($interval, 1, -1)  // Remove 'P' and 'D' from interval string
 				);
 			}
 
