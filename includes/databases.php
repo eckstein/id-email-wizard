@@ -517,10 +517,8 @@ function build_idwiz_query($args, $table_name)
 	if ($table_name == $wpdb->prefix . 'idemailwiz_purchases') {
 		$dateKey = 'purchaseDate';
 
-		//exclude terciary purchases (lunches, add-ons, etc)
-		$sql .= $wpdb->prepare(" AND shoppingCartItems_productCategory != %s", '17004');
-		$sql .= $wpdb->prepare(" AND shoppingCartItems_productCategory != %s", '17003');
-		$sql .= $wpdb->prepare(" AND shoppingCartItems_productCategory != %s", '17001');
+		// Exclude tertiary purchases (lunches, add-ons, etc)
+		$sql .= $wpdb->prepare(" AND shoppingCartItems_productCategory NOT IN (%s, %s, %s)", '17004', '17003', '17001');
 		$sql .= $wpdb->prepare(" AND (campaignId != %d OR campaignId IS NULL)", -12345);
 
 		// Set attribution mode
@@ -528,55 +526,52 @@ function build_idwiz_query($args, $table_name)
 		$currentUserId = $currentUser->ID;
 		$userAttMode = get_user_meta($currentUserId, 'purchase_attribution_mode', true);
 
-		// default mode is campaign-id, which gets no extra parameters here
-		if ($userAttMode == 'broad-channel-match') {
-			$placeholders = implode(', ', array_fill(0, count(['email', '']), '%s'));
-			$sql .= $wpdb->prepare(" AND shoppingCartItems_utmMedium IN ($placeholders)", ['email', '']);
-		} elseif ($userAttMode == 'email-channel-match') {
-			$sql .= $wpdb->prepare(" AND shoppingCartItems_utmMedium = %s", 'email');
+		// Apply attribution mode
+		switch ($userAttMode) {
+			case 'broad-channel-match':
+				$sql .= $wpdb->prepare(" AND shoppingCartItems_utmMedium IN (%s, %s)", 'email', '');
+				break;
+			case 'email-channel-match':
+				$sql .= $wpdb->prepare(" AND shoppingCartItems_utmMedium = %s", 'email');
+				break;
+				// default 'campaign-id' mode doesn't need extra parameters
 		}
-
 
 		// Attribution length
 		$userAttLength = get_user_meta($currentUserId, 'purchase_attribution_length', true);
 
-		// Apply user attribution settings for purchases
 		if ($userAttLength && $userAttLength != 'allTime') {
 			$interval = '';
 			switch ($userAttLength) {
 				case '72Hours':
-					$interval = 'P3D';
+					$interval = 3;
 					break;
 				case '30Days':
-					$interval = 'P30D';
+					$interval = 30;
 					break;
 				case '60Days':
-					$interval = 'P60D';
+					$interval = 60;
 					break;
 				case '90Days':
-					$interval = 'P90D';
+					$interval = 90;
 					break;
 			}
 
 			if ($interval) {
-				// Add a join to the campaigns table to get the campaign start date
-				$campaigns_table = $wpdb->prefix . 'idemailwiz_campaigns';
-				$sql .= " JOIN $campaigns_table ON $table_name.campaignId = $campaigns_table.id";
-
-				// Convert millisecond timestamp to date and add interval
+				// Apply attribution length logic
 				$sql .= $wpdb->prepare(
-					" AND $table_name.purchaseDate <= DATE(FROM_UNIXTIME($campaigns_table.startAt / 1000)) + INTERVAL %s DAY",
-					substr($interval, 1, -1)  // Remove 'P' and 'D' from interval string
+					" AND DATE(purchaseDate) <= DATE(FROM_UNIXTIME(campaignStartAt / 1000)) + INTERVAL %d DAY",
+					$interval
 				);
 			}
+		}
 
-			// Keep the original date range conditions
-			if (isset($where_args['startAt_start'])) {
-				$sql .= $wpdb->prepare(" AND $table_name.purchaseDate >= %s", $where_args['startAt_start']);
-			}
-			if (isset($where_args['startAt_end'])) {
-				$sql .= $wpdb->prepare(" AND $table_name.purchaseDate <= %s", $where_args['startAt_end']);
-			}
+		// Apply date range if provided
+		if (isset($where_args['startAt_start'])) {
+			$sql .= $wpdb->prepare(" AND purchaseDate >= %s", $where_args['startAt_start']);
+		}
+		if (isset($where_args['startAt_end'])) {
+			$sql .= $wpdb->prepare(" AND purchaseDate <= %s", $where_args['startAt_end']);
 		}
 	}
 
