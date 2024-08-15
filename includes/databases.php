@@ -1014,13 +1014,13 @@ function get_idemailwiz_triggered_data($database, $args = [], $batchSize = 20000
 			if ($uniqueMessageIds) {
 				$messageId = $result['messageId'];
 				$startAt = $result['startAt'];
-
+				
 				if (!isset($seenMessageIds[$messageId])) {
 					// First time seeing this messageId
 					$allResults[] = $result;
 					$seenMessageIds[$messageId] = true;
 					$earliestStartAt[$messageId] = $startAt;
-				} elseif ($startAt < $earliestStartAt[$messageId]) {
+				} elseif (isset($earliestStartAt[$messageId]) && $startAt < $earliestStartAt[$messageId]) {
 					// We've seen this messageId before, but this is an earlier startAt
 					// Remove the old result
 					$allResults = array_filter($allResults, function ($item) use ($messageId) {
