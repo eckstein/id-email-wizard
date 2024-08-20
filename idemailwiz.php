@@ -10,6 +10,10 @@
 //define the path to the plugin file
 define('IDEMAILWIZ_ROOT', __FILE__);
 
+// Set memory and timeout limits
+ini_set('memory_limit', '256M');
+set_time_limit(300);
+
 
 //Add ACF to header
 function idwizacfheader()
