@@ -270,6 +270,7 @@ function idwiz_extract_campaigns_images($campaignIds = [])
 
 			// Loop through all the <img> tags in this template
 			$images = $dom->getElementsByTagName('img');
+			/** @var DOMElement $image */ // Makes $image a dom element so getAttribute() is valid
 			foreach ($images as $image) {
 				$src = $image->getAttribute('src');
 				$alt = $image->getAttribute('alt') ?? '';

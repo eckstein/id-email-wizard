@@ -59,18 +59,37 @@ jQuery(document).ready(function ($) {
 
 	// Success handling function for getting template data
 	function handleTemplateDataSuccess(data) {
-		//console.log(data);
 		var existingTemplateId = $('#iterable_template_id').val();
-		
-		const fieldsToList = Object.entries(data.fields)
-			.filter(([key]) => key !== "postId")
-			.map(([key, value]) => {
-				const val = value || "<em>No value set</em>";
-				return `<li><strong>${key}</strong>: ${val}</li>`;
-			})
-			.join("");
+    
+		// Function to format the display of a field
+		function formatField(label, val, isOptional = false) {
+			val = val || (isOptional ? "<em>Not set</em>" : "<em>No value set (REQUIRED)</em>");
+			return `<li><strong>${label}:</strong> ${val}</li>`;
+		}
 
-		const fieldList = `<ul style="text-align: left;">${fieldsToList}</ul>`;
+		// Function to format UTM parameters
+		function formatUTMs(utmParams) {
+			if (!utmParams || !Array.isArray(utmParams) || utmParams.length === 0) {
+				return "<li><strong>UTM Parameters:</strong> <em>None set</em></li>";
+			}
+			const utmList = utmParams.map(param => 
+				`<li style="margin-left: 20px;">${param.key}: ${param.value || "<em>No value</em>"}</li>`
+			).join('');
+			return `<li><strong>UTM Parameters:</strong><ul>${utmList}</ul></li>`;
+		}
+
+		const fieldList = `
+			<ul style="text-align: left;">
+				${formatField("Subject Line", data.fields.emailSubject)}
+				${formatField("Preheader", data.fields.preheader, true)}
+				${formatField("Type", data.fields.messageType.charAt(0).toUpperCase() + data.fields.messageType.slice(1))}
+				${formatField("From", `${data.fields.fromName} <${data.fields.fromEmail}>`)}
+				${formatField("Reply To", data.fields.replyToEmail)}
+				${formatField("GA Campaign", data.fields.googleAnalyticsCampaignName, true)}
+				${formatUTMs(data.fields.linkParams)}
+			</ul>
+		`;
+		
 		var existingTemplateMessage = 'Enter an existing template ID or leave blank to create a new base template.';
 		
 		if (existingTemplateId) {
@@ -85,13 +104,18 @@ jQuery(document).ready(function ($) {
 
 		Swal.fire({
 			title: "Confirm Sync Details",
-			html: `${fieldList}<br/><em>${existingTemplateMessage}</em>`,
-			icon: "warning",
+			html: `${fieldList}`,
+			icon: false,
 			showCancelButton: true,
 			confirmButtonText: "Confirm & Sync!",
 			input: 'text',
 			inputValue: existingTemplateId,
-			inputPlaceholder: 'Leave blank to create new base template'
+			inputLabel: 'Iterable Template ID',
+			inputPlaceholder: 'Leave blank to create new base template',
+			footer: `<em>${existingTemplateMessage}</em>`,
+			customClass: {
+				htmlContainer: 'sync-to-iterable-container'
+			}
 		}).then((result) => {
 			existingTemplateId = result.value;
 			if (!existingTemplateId) {
@@ -172,6 +196,9 @@ jQuery(document).ready(function ($) {
 				emailSubject,
 				preheader,
 				fromName,
+				plainText,
+				googleAnalyticsCampaignName,
+				linkParams,
 			} = templateData;
 
 			const messageTypeId = messageType == "transactional" ? config.TRANSACTIONAL_MESSAGE_TYPE_ID : config.PROMOTIONAL_MESSAGE_TYPE_ID;
@@ -181,12 +208,7 @@ jQuery(document).ready(function ($) {
 				action: "generate_template_html_from_ajax",
 				template_id: idAjax_template_editor.currentPost.ID,
 				session_data: get_template_from_session(),
-				//security: idAjax_template_editor.nonce
 			};
-
-			
-
-			//idemailwiz_do_ajax('generate_template_html_from_ajax', idAjax_template_editor.nonce, additionalData, getHTMLsuccessCallback, getHTMLerrorCallback);
 
 			
 			jQuery.ajax({
@@ -207,7 +229,7 @@ jQuery(document).ready(function ($) {
 				  
 				// Replace curly quotes with straight quotes
 				templateHtml = decodeHtml(templateHtml);
-
+				
 				const apiData = {
 					name: templateName,
 					fromName: fromName,
@@ -218,14 +240,9 @@ jQuery(document).ready(function ($) {
 					creatorUserId: createdBy,
 					messageTypeId,
 					html: templateHtml,
-					googleAnalyticsCampaignName: '{{campaignId}}',
-					linkParams: [
-						{
-							key: 'utm_content',
-							value: '{{templateId}}'
-						},
-						
-					]
+					plainText: plainText,
+					googleAnalyticsCampaignName: googleAnalyticsCampaignName,
+					linkParams: linkParams,
 				};
 
 				if (existingTemplateId) {

@@ -1,0 +1,40 @@
+{
+"WizProfileName": "Diego Rodriguez, NB, 2017 (single)",
+"WizProfileId": "jenkins-nb-single",
+"AccountCreatedDate": "2012-09-23",
+"AccountNumber": "XKPQRST7LM",
+"AccountUpdatedDate": "2023-11-30",
+"Address": "123 Cactus Lane",
+"FirstName": "Maria",
+"L10Level": "3",
+"LastName": "Rodriguez",
+"PostalCode": "85001",
+"RAFCouponCode": "ZXCVBNMASD",
+"RAFExpirationDate": "2025-03-15",
+"StudentArray": [
+    {
+    "L10Level": 4,
+    "StudentAccountNumber": "QWERTY1234",
+    "StudentBirthDay": 17,
+    "StudentBirthMonth": 9,
+    "StudentBirthYear": 2017,
+    "StudentDOB": "2017-09-17",
+    "StudentFirstName": "Diego",
+    "StudentGender": "99002",
+    "StudentLastName": "Rodriguez",
+    "UnscheduledLessons": 5
+    }
+],
+"SuppressCommunications": true,
+"VIPStatus": 1,
+"city": "Phoenix",
+"country": "United States",
+"email": "maria.rodriguez@example.com",
+"ip": "redacted",
+"region": "AZ",
+"signupDate": "2022-03-12 14:30:22 +00:00",
+"signupSource": "Web",
+"state": "Arizona",
+"timeZone": "America/Phoenix",
+"userId": "2345678"
+}

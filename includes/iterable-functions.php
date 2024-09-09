@@ -28,10 +28,24 @@ function idemailwiz_get_template_data_for_iterable()
 
 	$current_user = wp_get_current_user();
 
+	// Format link params
+	$iterableUtms = [];
+
+	if (isset($messageSettings['utm_parameters']) && is_array($messageSettings['utm_parameters'])) {
+		foreach ($messageSettings['utm_parameters'] as $key => $value) {
+			$iterableUtms[] = [
+				'key' => $key,
+				'value' => $value
+			];
+		}
+	}	
+
 	$templateFields = array(
 		'preheader' => html_entity_decode($messageSettings['preview_text'], ENT_QUOTES, 'UTF-8') ?? '',
 		'fromName' => $messageSettings['from_name'] ?? 'iD Tech Camps',
-		'utmTerm' => $messageSettings['utm_term'] ?? '',
+		'googleAnalyticsCampaignName' => $messageSettings['ga_campaign_name'] ?? '',
+		'linkParams' => $iterableUtms,
+		'plainText' => $messageSettings['plain-text-content'] ?? '',
 	);
 	$reqTemplateFields = array(
 		'templateName' => html_entity_decode(get_the_title($post_id), ENT_QUOTES, 'UTF-8'),

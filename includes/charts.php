@@ -470,6 +470,7 @@ function idwiz_get_byPurchaseField_chartdata($chartOptions)
     $groupedData = [];
     switch ($chartId) {
         case 'purchasesByDate':
+        case 'promoPurchasesByDate':
             $groupedData = idwiz_group_purchases_by_date($filteredPurchases, $timeScale);
             break;
 
@@ -483,10 +484,6 @@ function idwiz_get_byPurchaseField_chartdata($chartOptions)
 
         case 'purchasesByTopic':
             $groupedData = idwiz_group_purchases_by_topic($filteredPurchases);
-            break;
-
-        case 'promoPurchasesByDate':
-            $groupedData = idwiz_group_purchases_by_date($filteredPurchases, $timeScale);
             break;
 
         default:

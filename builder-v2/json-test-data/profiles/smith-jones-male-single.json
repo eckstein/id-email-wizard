@@ -1,0 +1,40 @@
+{
+"WizProfileName": "Timothy Smith-Jones, M, 2011 (single)",
+"WizProfileId": "smith-jones-male-single",
+"AccountCreatedDate": "1900-01-01",
+"AccountNumber": "JEICKWOKJM",
+"AccountUpdatedDate": "2024-05-17",
+"Address": "12345 Street Ave.",
+"FirstName": "Rachel",
+"L10Level": "2",
+"LastName": "Smith-Jones",
+"PostalCode": "11101",
+"RAFCouponCode": "KFNTHRRZWJ",
+"RAFExpirationDate": "2024-08-25",
+"StudentArray": [
+    {
+    "L10Level": 2,
+    "StudentAccountNumber": "EINW6IE9UN",
+    "StudentBirthDay": 9,
+    "StudentBirthMonth": 2,
+    "StudentBirthYear": 2011,
+    "StudentDOB": "2011-02-09",
+    "StudentFirstName": "Timothy",
+    "StudentGender": "99000",
+    "StudentLastName": "Smith-Jones",
+    "UnscheduledLessons": 1
+    }
+],
+"SuppressCommunications": false,
+"VIPStatus": 0,
+"city": "Long Island City",
+"country": "USA",
+"email": "rachelsfakeinbox@fakemail.com",
+"ip": "redacted",
+"region": "NY",
+"signupDate": "2023-07-08 04:59:13 +00:00",
+"signupSource": "API",
+"state": "New York",
+"timeZone": "America/New_York",
+"userId": "1188925"
+}

@@ -44,23 +44,25 @@ function get_snippet_css( $rows ) {
 	$css = '';
 
 	foreach ( $rows as $row ) {
-        $columns = $row['columns'] ?? [];
-		foreach ( $columns as $column ) {
-            $chunks = $column['chunks'] ?? [];
-			foreach (  $chunks as $chunk ) {
-				if ( $chunk['field_type'] == 'snippet' ) {
-					$snippet_id = $chunk['fields']['select_snippet'] ?? null;
-					if ( $snippet_id ) {
-						$snippet_css = get_post_meta( $snippet_id, 'snippet_css', true );
-						if ( ! empty( $snippet_css ) ) {
-							$css .= $snippet_css . "\n";
+        $columnSets = $row['columnSets'] ?? [];
+		foreach ($columnSets as $columnSet ) {
+        	$columns = $columnSet['columns'] ?? [];
+			foreach ( $columns as $column ) {
+				$chunks = $column['chunks'] ?? [];
+				foreach (  $chunks as $chunk ) {
+					if ( $chunk['field_type'] == 'snippet' ) {
+						$snippet_id = $chunk['fields']['select_snippet'] ?? null;
+						if ( $snippet_id ) {
+							$snippet_css = get_post_meta( $snippet_id, 'snippet_css', true );
+							if ( ! empty( $snippet_css ) ) {
+								$css .= $snippet_css . "\n";
+							}
 						}
 					}
 				}
 			}
 		}
 	}
-
 	return $css;
 }
 

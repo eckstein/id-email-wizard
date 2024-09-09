@@ -1,21 +1,22 @@
 // Function to fetch JSON data and display or export it
-function get_wiztemplate_json(templateId, callback) {
+function get_wiztemplate_json(templateId, successCallback, errorCallback) {
     var sessionData = get_template_from_session();
     if (sessionData) {
-        callback(sessionData);
+        successCallback(sessionData);
     } else {
         var additionalData = { template_id: templateId };
         idemailwiz_do_ajax("get_wiztemplate_with_ajax", idAjax_template_editor.nonce, additionalData, 
             function(data) { // Success callback
-                callback(data.data);
+                successCallback(data.data);
             }, 
             function(xhr, status, error) { // Error callback
                 console.error('Error retrieving or generating JSON for template');
-                Swal.fire({
+                swal.fire({
                     icon: 'error',
                     title: 'Oops...',
                     text: 'Error retrieving or generating JSON for template!',
                 });
+                errorCallback();
             }, 
             "json");
     }
@@ -51,16 +52,50 @@ function wizEscapeHtml(text) {
 
 function download_template_json($clicked) {
     var templateId = $clicked.data("post-id");
-    get_wiztemplate_json(templateId, function(jsonData) {
-        var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonData, null, 2));
-        var downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "template_data.json");
-        document.body.appendChild(downloadAnchorNode); // required for firefox
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
-    });
-};
+    var $icon = $clicked.find('i');
+
+    // Show spinner if there's an icon
+    if ($icon.length) {
+        $icon.removeClass('fa-file-export').addClass('fa-spinner fa-spin');
+    }
+
+    get_wiztemplate_json(templateId, 
+        function(jsonData) {
+            // Success callback
+            var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonData, null, 2));
+            var downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "template_data.json");
+            document.body.appendChild(downloadAnchorNode); // required for firefox
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+
+            
+            // Reset icon
+            if ($icon.length) {
+                setTimeout(function() {
+                    $icon.removeClass('fa-spinner fa-spin').addClass('fa-file-export');
+                }, 500);
+            }
+        },
+        function() {
+            // Error callback
+            console.error('Error downloading template JSON');
+            swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: 'Error downloading template JSON!',
+            });
+
+            // Reset icon
+            if ($icon.length) {
+                setTimeout(function() {
+                    $icon.removeClass('fa-spinner fa-spin').addClass('fa-file-export');
+                }, 500);
+            }
+        }
+    );
+}
 
 function import_wiztemplate_json() {
     Swal.fire({

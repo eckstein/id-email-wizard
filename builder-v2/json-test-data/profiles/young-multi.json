@@ -1,0 +1,52 @@
+{
+"WizProfileName": "Sophia and Ethan Young, F/M, 2016/2011 (multi)",
+"WizProfileId": "young-multi",
+"AccountCreatedDate": "2015-07-18",
+"AccountNumber": "LMNOPQ9XYZ",
+"AccountUpdatedDate": "2023-09-05",
+"Address": "789 Oak Avenue",
+"FirstName": "Michael",
+"L10Level": "4",
+"LastName": "Young",
+"PostalCode": "90210",
+"RAFCouponCode": "QWERTYUIOP",
+"RAFExpirationDate": "2024-11-30",
+"StudentArray": [
+    {
+    "L10Level": 4,
+    "StudentAccountNumber": "ASDFGH5678",
+    "StudentBirthDay": 22,
+    "StudentBirthMonth": 4,
+    "StudentBirthYear": 2016,
+    "StudentDOB": "2016-04-22",
+    "StudentFirstName": "Sophia",
+    "StudentGender": "99001",
+    "StudentLastName": "Young",
+    "UnscheduledLessons": 3
+    },
+    {
+    "L10Level": 2,
+    "StudentAccountNumber": "ZXCVBN9876",
+    "StudentBirthDay": 8,
+    "StudentBirthMonth": 11,
+    "StudentBirthYear": 2011,
+    "StudentDOB": "2011-11-08",
+    "StudentFirstName": "Ethan",
+    "StudentGender": "99000",
+    "StudentLastName": "Young",
+    "UnscheduledLessons": 0
+    }
+],
+"SuppressCommunications": false,
+"VIPStatus": 2,
+"city": "Beverly Hills",
+"country": "USA",
+"email": "michael.Young@example.com",
+"ip": "redacted",
+"region": "CA",
+"signupDate": "2023-01-25 09:45:37 +00:00",
+"signupSource": "Mobile",
+"state": "California",
+"timeZone": "America/Los_Angeles",
+"userId": "8765432"
+}

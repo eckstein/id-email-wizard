@@ -21,7 +21,18 @@ function save_wiz_template_title(templateId, value) {
 // Wizard Tab controller
 function switch_wizard_tab(clickedTabSelector) {
     var $clickedTab = jQuery(clickedTabSelector);
-    var tabId = $clickedTab.data('tab');
+    var newTabId = $clickedTab.data('tab');
+    var scrollBodyId = $clickedTab.closest('.wizard-tabs').data('scroll-body');
+    var $scrollBody = jQuery('#' + scrollBodyId);
+    var currentScrollPosition = $scrollBody.scrollTop();
+    
+    
+    // Save scroll position for the currently active tab
+    var $currentActiveTab = $clickedTab.closest('.wizard-tabs').find('.wizard-tab.--active');
+    if ($currentActiveTab.length && $scrollBody.length) {
+        var currentTabId = $currentActiveTab.data('tab');
+        sessionStorage.setItem('scrollPosition_' + currentTabId, currentScrollPosition);
+    }
 
     // Remove --active class from all tabs in the same container
     $clickedTab.closest('.wizard-tabs').find('.wizard-tab').removeClass('--active');
@@ -30,13 +41,19 @@ function switch_wizard_tab(clickedTabSelector) {
     $clickedTab.addClass('--active');
 
     // Hide all sibling content areas
-    jQuery(tabId).siblings('.wizard-tab-content').removeClass('--active');
+    jQuery(newTabId).siblings('.wizard-tab-content').removeClass('--active');
 
     // Show the content area corresponding to the clicked tab
-    jQuery(tabId).addClass('--active');
+    jQuery(newTabId).addClass('--active');
+
+    if ($scrollBody.length) {
+        // Restore scroll position from session storage based on clicked tab, or default to 0
+        var restoredScrollPosition = sessionStorage.getItem('scrollPosition_' + newTabId) || 0;
+        $scrollBody.scrollTop(parseInt(restoredScrollPosition, 10));
+    }
 }
 
-// Reindex data attributes for a given attribute name when elements are moved around added or deleted
+// Reindex data attributes in the builder for a given attribute name when elements are moved around added or deleted
 function reindexDataAttributes(attributeName) {
     // Find all elements with the specified data attribute
         jQuery('[data-' + attributeName + ']').each(function() {
@@ -78,31 +95,7 @@ function copy_code_to_clipboard($element) {
     });
 }
 
-// Function to handle common finalization tasks
-function finalize_new_item($element, response) {
-    $element.attr('data-chunk-data', JSON.stringify(response.data.chunk_data));
-    $element.addClass('newly-added');
-    setTimeout(() => $element.removeClass('newly-added'), 3000);
-    save_template_to_session();
-    update_template_preview();
-    sessionStorage.setItem('unsavedChanges', 'true');
-}
 
-function apply_gradient_to_picker_label($clicked) {
-    var gradientData = $clicked.attr('data-gradientstyles');
-    if (gradientData) {
-			
-        try {
-            var gradientObj = JSON.parse(gradientData);
-            // Apply the gradient style directly
-            $clicked.css('background', gradientObj.style);
-            save_template_to_session();
-            update_template_preview();
-        } catch (e) {
-            console.error("Error parsing gradient data: ", e);
-        }
-    }
-};
 
 function toggle_wizard_button_group($clicked) {
     var $checkbox = $clicked.siblings('.wiz-check-toggle').first();
@@ -121,25 +114,17 @@ function toggle_wizard_button_group($clicked) {
     }		
 };
 
-// Utility function to update the gradient preview
-function update_gradient_preview($label, $input) {
-    var gradientValue = $input.val();
-	
-    if (gradientValue) {
-        var gradientConfig = JSON.parse(gradientValue);
-        $label.css('background-image', gradientConfig.style);
-    }
-}
+
 
 function generate_chunk_image_preview_flyover(src) {
-    if (jQuery('#chunk-image-preview').length === 0) {
-        jQuery('body').append('<div id="chunk-image-preview" style="position: absolute; display: none;"><img src="" style="max-width: 200px; max-height: 200px;"></div>');
+    if (jQuery('.chunk-image-preview').length === 0) {
+        jQuery('body').append('<div class="chunk-image-preview" style="position: absolute; display: none; background-color:#fff; padding:3px; border-radius:3px; overflow:hidden;"><img src="" style="max-width: 200px; max-height: 200px;"></div>');
     }
-    jQuery('#chunk-image-preview img').attr('src', src);
+    jQuery('.chunk-image-preview img').attr('src', src);
 }
 
 function update_chunk_image_preview_flyover_position(e) {
-    jQuery('#chunk-image-preview').css({
+    jQuery('.chunk-image-preview').css({
         'display': 'block',
         'left': e.pageX + 10, // Offset from cursor
         'top': e.pageY + 10
@@ -151,11 +136,16 @@ function beautify_html(html) {
     const beautifiedHtml = htmlCrush.crush(html, {
         removeHTMLComments: 1, // set to 1 to remove all comment except Outlook,
         removeCSSComments: true,
-        removeIndentations: true,
+        removeIndentations: false,
         removeLineBreaks: false,
         breakToTheLeftOf: [
+            "<p",
+            "</p",
             "<div",
             "</div",
+            "<tr",
+            "</tr",
+            "<td",
             "</td",
             "<html",
             "</html",
@@ -164,6 +154,7 @@ function beautify_html(html) {
             "<meta",
             "<link",
             "<table",
+            "</table",
             "<script",
             "</script",
             "<!DOCTYPE",
@@ -172,10 +163,8 @@ function beautify_html(html) {
             "<title",
             "<body",
             "@media",
-            "</body",
-            "<!--[if",
-            "<!--<![endif",
-            "<![endif]"
+            "<!",
+            
           ],
     }).result;
 
@@ -183,3 +172,58 @@ function beautify_html(html) {
 }
 
 
+function wizSmoothScroll(element, to, duration) {
+    const start = element.scrollTop;
+    const change = to - start;
+    let currentTime = 0;
+    const increment = 20;
+
+    function animateScroll() {
+        currentTime += increment;
+        const val = Math.easeInOutQuad(currentTime, start, change, duration);
+        element.scrollTop = val;
+        if (currentTime < duration) {
+            requestAnimationFrame(animateScroll);
+        } 
+    }
+
+    Math.easeInOutQuad = function(t, b, c, d) {
+        t /= d / 2;
+        if (t < 1) return c / 2 * t * t + b;
+        t--;
+        return -c / 2 * (t * (t - 2) - 1) + b;
+    };
+
+    requestAnimationFrame(animateScroll);
+}
+
+function sanitizeTextArea(input) {
+  // Remove HTML tags
+  let sanitized = input.replace(/<[^>]*>/g, '');
+  
+  // Remove script tags and their contents
+  sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  
+  // Remove style tags and their contents
+  sanitized = sanitized.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+  
+  // Remove potentially dangerous attributes
+  sanitized = sanitized.replace(/ on\w+="[^"]*"/g, '');
+  
+  // Encode special characters
+  sanitized = sanitized
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;');
+  
+  // Remove any remaining HTML entity references
+  sanitized = sanitized.replace(/&[^\s;]+;/g, '');
+  
+  // Remove non-printable ASCII characters
+  sanitized = sanitized.replace(/[^\x20-\x7E]/g, '');
+  
+  return sanitized.trim();
+}

@@ -104,22 +104,30 @@ function reinitTinyMCE($optionalElement = null) {
 
 }
 
-var isInitialTinyMCELoad = true;
+
 function builder_init_tinymce($optionalElement) {
+    var isInitialTinyMCELoad = true;
     var selector = $optionalElement ? '#' + $optionalElement.attr('id') + ' .wiz-wysiwyg' : '.wiz-wysiwyg';
     
-
+    let editorUpdateTimeout;
     function updateEditorContent(editor) {
-        var $chunk = jQuery('#' + editor.id).closest('.builder-chunk');
-        
-        if (!isInitialTinyMCELoad) {
+        clearTimeout(editorUpdateTimeout);
+        editorUpdateTimeout = setTimeout(() => {
+            var $chunk = jQuery('#' + editor.id).closest('.builder-chunk');
             handleEditorUpdate(editor);
-            //updateChunkPreviews($chunk.attr('id'));
             update_chunk_data_attr_data($chunk);
             save_template_to_session();
-            sessionStorage.setItem('unsavedChanges', 'true');
-            update_template_preview();
-        }
+            sessionStorage.setItem('unsavedChanges',true);
+        }, 300); // Adjust the delay as needed
+    }
+
+    let titleUpdateTimeout;
+    function handleEditorUpdate(editor) {
+        clearTimeout(titleUpdateTimeout);
+        titleUpdateTimeout = setTimeout(() => {
+            update_builder_chunk_title(editor);
+            update_template_preview_part(jQuery(editor.getElement()).closest('.builder-chunk'));
+        }, 300); // Adjust the delay as needed
     }
 
     // Function to update the builder chunk title when tinyMce content is updated
@@ -136,13 +144,6 @@ function builder_init_tinymce($optionalElement) {
         if (builderChunkTitle.length) {
             builderChunkTitle.text(textContent + '...');
         }
-    }
-
-    // Debouncing logic integrated into the event listener or similar
-    let debounceTimeout;
-    function handleEditorUpdate(editor) {
-        clearTimeout(debounceTimeout);
-        debounceTimeout = setTimeout(() => update_builder_chunk_title(editor), 1000);
     }
     
 
@@ -284,6 +285,12 @@ function builder_init_tinymce($optionalElement) {
             });
 
             editor.on('init', function() {
+                
+                // Set isInitialTinyMCELoad to false after the initial content update
+                setTimeout(function() {
+                    isInitialTinyMCELoad = false;
+                }, 0);
+
                 var editorContainer = jQuery(editor.getContainer());
                 var $baseColorInput = editorContainer.closest('.builder-chunk').find('input[name="text_base_color"]');
                 var baseColor = $baseColorInput.attr('data-color-value');
@@ -298,28 +305,33 @@ function builder_init_tinymce($optionalElement) {
                     }
                 });
 
-                // Set isInitialTinyMCELoad to false after the initial content update
-                setTimeout(function() {
-                    isInitialTinyMCELoad = false;
-                }, 0);
+                
 
                
             });
 
             editor.on('input', function() {
-                updateEditorContent(editor);
+                if (!isInitialTinyMCELoad) {
+                    updateEditorContent(editor);
+                }
             });
 
             editor.on('AddUndo', function(e) {
-                updateEditorContent(editor);
+                if (!isInitialTinyMCELoad) {
+                    updateEditorContent(editor);
+                }
             });
 
             editor.on('Undo', function(e) {
-                updateEditorContent(editor);
+                if (!isInitialTinyMCELoad) {
+                    updateEditorContent(editor);
+                }
             });
 
             editor.on('Redo', function(e) {
-                updateEditorContent(editor);
+                if (!isInitialTinyMCELoad) {
+                    updateEditorContent(editor);
+                }
             });
 
             editor.on('SetContent', function(e) {
@@ -355,6 +367,8 @@ function builder_init_tinymce($optionalElement) {
         ],
         fontsize_formats: "8pt 10pt 12pt 14pt 18pt 24pt 36pt",
     });
+
+    
 }
 
 function save_all_tiny_mces($optionalElement = null) {

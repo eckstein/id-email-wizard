@@ -18,6 +18,11 @@
 		background-color: #fff;
 	}
 
+	.merged-value.highlighted {
+		background-color: #f7ff66;
+		color: #000!important;
+	}
+
 	@media screen and (max-width: 460px) {
 
 	}
@@ -30,12 +35,36 @@
 		line-height: inherit;
 	}
 
+	.chunk {
+		position:relative
+	}
 	.chunk.active {
-		outline: 2px dashed #343434;
+		outline: 2px dashed rgb(255, 208, 0);
 		outline-offset: -2px;
 	}
-	.chunk:not(.active):hover {
-		outline: 2px dashed #666;
+	.chunk:not(.active):not(.off):hover {
+		outline: 2px dashed rgb(255, 208, 0);
 		outline-offset: -2px;
 	}
+
+	
+	.chunk.image-ratio-error {
+		outline: 2px dashed rgb(255, 0, 0);
+		outline-offset: -2px;
+		
+	}
+	.chunk.image-ratio-error:after {
+		content: "Image data could not be fetched from the server";
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		width: 100%;
+		background-color: yellow;
+		color: red;
+		font-size: 12px;
+		text-align:center;
+	}
+	
 </style>

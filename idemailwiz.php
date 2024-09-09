@@ -16,11 +16,11 @@ set_time_limit(300);
 
 
 //Add ACF to header
-function idwizacfheader()
-{
-    acf_form_head();
-}
-add_action('wp_head', 'idwizacfheader');
+// function idwizacfheader()
+// {
+//     acf_form_head();
+// }
+// add_action('wp_head', 'idwizacfheader');
 
 
 // Plugin Activation
@@ -148,6 +148,8 @@ function custom_template_permalink($post_link, $post) {
 add_action('init', 'idwiz_register_custom_post_types', 0);
 function idwiz_register_custom_post_types()
 {
+    
+
     $promoCodeLabels = array(
         'name' => 'Promo Codes',
         'singular_name' => 'Promo Code',
@@ -171,6 +173,9 @@ function idwiz_register_custom_post_types()
         'items_list_navigation' => __('Promo codes list navigation', 'idemailwiz'),
         'filter_items_list' => __('Filter promo codes list', 'idemailwiz'),
     );
+
+    
+
 
     $promoCodeArgs = array(
         'labels' => $promoCodeLabels,
@@ -499,9 +504,15 @@ function idemailwiz_custom_rewrite_rule()
     add_rewrite_endpoint('course-mapping', EP_ROOT);
 
     add_rewrite_endpoint('endpoints/iterable-triggeredSend', EP_ROOT);
+
+    // Custom ajax endpoint
+    add_rewrite_rule('^idwiz-ajax/?$', 'index.php?idwiz_ajax_endpoint=1', 'top');
+    add_rewrite_tag('%idwiz_ajax_endpoint%', '([0-9]+)');
 }
 
 add_action('init', 'idemailwiz_custom_rewrite_rule', 10);
+
+
 
 
 
@@ -691,26 +702,54 @@ add_filter('body_class', 'idemailwiz_body_classes');
 function redirect_to_proper_url()
 {
     global $post;
-    //Redirect any weird/wrong template URLs to the proper/current URL (handles cases where the slug changed but an old link was used)
-    // if (is_singular('idemailwiz_template')) {
-    //     $post_slug = $post->post_name;
-    //     if ( isset( $_SERVER['REQUEST_URI'] ) && $_SERVER['REQUEST_URI'] != "/template/{$post->ID}/{$post_slug}/" ) {
-	// 		wp_redirect( home_url( "/template/{$post->ID}/{$post_slug}/" ) . $_SERVER['QUERY_STRING'], 301 );
-	// 		exit;
-	// 	}
+    
+    if (get_query_var('idwiz_ajax_endpoint')) {
+        // This is where we'll handle the request
+        idwiz_process_custom_request();
+        exit;
+    }
 
-    // }
     //If someone lands on /templates, redirect them to /templates/all
     if (isset($_SERVER['REQUEST_URI']) && trim($_SERVER['REQUEST_URI'], '/') == 'templates') {
         wp_redirect(site_url('/templates/all'), 301);
         exit;
     }
+
+    //Redirect any weird/wrong template URLs to the proper/current URL (handles cases where the slug changed but an old link was used)
+    // if (is_singular('idemailwiz_template')) {
+    //     $post_slug = $post->post_name;
+    //     if ( isset( $_SERVER['REQUEST_URI'] ) && $_SERVER['REQUEST_URI'] != "/template/{$post->ID}/{$post_slug}/" ) {
+    // 		wp_redirect( home_url( "/template/{$post->ID}/{$post_slug}/" ) . $_SERVER['QUERY_STRING'], 301 );
+    // 		exit;
+    // 	}
+
+    // }
 }
 add_action('template_redirect', 'redirect_to_proper_url', 11);
 
 
 
+function idwiz_process_custom_request()
+{
+    // Ensure this is a POST request
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        wp_send_json_error('Invalid request method');
+    }
 
+    // Verify nonce for security
+    // if (!isset($_POST['security']) || !wp_verify_nonce($_POST['security'], 'wizAjaxNonce')) {
+    //     wp_send_json_error('Security check failed');
+    // }
+
+    // Get the action
+    $action = isset($_POST['action']) ? sanitize_key($_POST['action']) : '';
+
+    // Dispatch to the appropriate handler
+    do_action("wp_ajax_{$action}", $_POST);
+
+    // If we reach here, it means no action was taken
+    wp_send_json_error('Invalid action');
+}
 
 
 
@@ -721,7 +760,9 @@ add_action('wp_enqueue_scripts', 'idemailwiz_enqueue_assets');
 function idemailwiz_enqueue_assets()
 {
 
+    
     wp_enqueue_script('jquery');
+    wp_enqueue_script('wiz-polyfill', plugin_dir_url(__FILE__) . 'js/wiz-polyfills.js', array('jquery'), '1.0', true);
     wp_enqueue_script('jquery-ui');
     wp_enqueue_script('jquery-ui-sortable', null, array('jquery'));
     wp_enqueue_script('jquery-ui-resizable', null, array('jquery','jquery-ui'));
@@ -742,9 +783,6 @@ function idemailwiz_enqueue_assets()
 
     // Enqueue the data labels plugin for Chart.js. Only dependent on Chart.js.
     wp_enqueue_script('charts-js-datalabels', 'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels', array('charts-js'), null, true);
-
-    //wp_enqueue_script('gradientGenerator', plugin_dir_url(__FILE__) . 'vendors/eckstein/gradientGenerator/gradientGeneratorFinal.js', array('jquery'), null, true);
-    wp_enqueue_script('gradx', plugin_dir_url(__FILE__) . 'vendors/gradx/gradX.js', array('jquery'), null, true);
 
     wp_enqueue_script('crush', 'https://cdn.jsdelivr.net/npm/html-crush/dist/html-crush.umd.js', array(), null, true);
 
@@ -771,9 +809,6 @@ function idemailwiz_enqueue_assets()
 
     wp_enqueue_style('spectrum-styles', plugin_dir_url(__FILE__) . 'vendors/spectrum/spectrum.css', array());
 
-
-    //wp_enqueue_style('gradientGeneratorStyle', plugin_dir_url(__FILE__) . 'vendors/eckstein/gradientGenerator/gradientGeneratorFinal.css', array());
-    wp_enqueue_style('gradx-css', plugin_dir_url(__FILE__) . 'vendors/gradx/gradX.css', array());
 
 
     wp_enqueue_style('DataTablesCss', plugin_dir_url(__FILE__) . 'vendors/DataTables/datatables.css', array());
@@ -821,15 +856,15 @@ function idemailwiz_enqueue_assets()
         'id-general' => array('/js/id-general.js', array('jquery')),
         'mergeTags' => array('/js/mergeTags.js', array()),
 
-		'wiz-inits' => array( '/builder-v2/js/wiz-inits.js', array( 'jquery', 'id-general', 'jquery-ui-resizable', 'editable', 'spectrum', 'tinymce', 'gradx', 'crush', 'mergeTags') ),
+		'wiz-inits' => array( '/builder-v2/js/wiz-inits.js', array( 'jquery', 'id-general', 'jquery-ui-resizable', 'editable', 'spectrum', 'tinymce', 'crush', 'mergeTags') ),
 		'utilities' => array( '/builder-v2/js/utilities.js', array( 'wiz-inits') ),
 		'builder-functions' => array( '/builder-v2/js/builder-functions.js', array( 'wiz-inits', 'utilities' ) ),
-            'template-editor' => array( '/builder-v2/js/template-editor.js', array( 'builder-functions' ) ),
+            'template-editor' => array('/builder-v2/js/template-editor.js?v=08232024831pm', array( 'builder-functions' ) ),
             'template-actions' => array('/builder-v2/js/template-actions.js', array('builder-functions')),        
-            'save-functions' => array('/builder-v2/js/save-functions.js', array('builder-functions')),        
+            'save-functions' => array('/builder-v2/js/save-functions.js?v=1.1', array('builder-functions')),        
             'import-export' => array('/builder-v2/js/import-export.js', array('builder-functions')),        
-            'tiny-mce-editor' => array('/builder-v2/js/tiny-mce-editor.js', array('builder-functions')),        
-                
+            'tiny-mce-editor' => array('/builder-v2/js/tiny-mce-editor.js', array('builder-functions')),           
+
         'preview-pane' => array('/builder-v2/js/preview-pane.js', array('builder-functions')),        
 
         'wizSnippets' => array('/js/wizSnippets.js', array('jquery', 'id-general', 'codemirror')),
@@ -847,6 +882,7 @@ function idemailwiz_enqueue_assets()
         'google-sheets-api' => array('/js/google-sheets-api.js', array('jquery', 'id-general')),
         'wiz-endpoints' => array('/js/endpoints.js', array('jquery', 'id-general')),
         'promo-codes' => array('/js/promo-codes.js', array('jquery', 'id-general')),
+        
         'reporting' => array('/js/reporting.js', array('jquery', 'id-general', 'wiz-charts', 'data-tables')),
         
 
@@ -871,7 +907,9 @@ function idemailwiz_enqueue_assets()
             array(
                 'nonce' => wp_create_nonce($handle),
                 'ajaxurl' => esc_url(admin_url('admin-ajax.php')),
+                
                 'currentPost' => get_post(get_the_ID()),
+                'currentPostId' => get_the_ID(),
                 'stylesheet' => plugins_url('', __FILE__),
                 'plugin_url' => plugin_dir_url(__FILE__),
                 'site_url' => get_bloginfo('url'),
@@ -887,7 +925,10 @@ function idemailwiz_enqueue_assets()
         array(
             'plugin_url' => plugin_dir_url(__FILE__),
             'ajaxurl' => esc_url(admin_url('admin-ajax.php')),
+            'wizAjaxUrl' => get_bloginfo('url') . '/idwiz-ajax/',
+            'wizAjaxNonce' => wp_create_nonce('wizAjaxNonce'),
             'currentPost' => get_post(get_the_ID()),
+            'currentPostId' => get_the_ID(),
             'stylesheet' => plugins_url('', __FILE__),
             'site_url' => get_bloginfo('url'),
             'current_user' => wp_get_current_user(),

@@ -1,0 +1,40 @@
+{
+"WizProfileName": "Samantha Brown, F, 2015 (single)",
+"WizProfileId": "brown-female-single",
+"AccountCreatedDate": "1900-01-01",
+"AccountNumber": "FFUIJNN8UH",
+"AccountUpdatedDate": "2024-05-17",
+"Address": "98765 Avenue Way.",
+"FirstName": "Jonathan",
+"L10Level": "5",
+"LastName": "Brown",
+"PostalCode": "98542",
+"RAFCouponCode": "KFNTHRRZWJ",
+"RAFExpirationDate": "2024-08-25",
+"StudentArray": [
+    {
+    "L10Level": 2,
+    "StudentAccountNumber": "PONUQWWER6",
+    "StudentBirthDay": 24,
+    "StudentBirthMonth": 4,
+    "StudentBirthYear": 2015,
+    "StudentDOB": "2015-04-24",
+    "StudentFirstName": "Samantha",
+    "StudentGender": "99001",
+    "StudentLastName": "Brown",
+    "UnscheduledLessons": 3
+    }
+],
+"SuppressCommunications": false,
+"VIPStatus": 0,
+"city": "Ethel",
+"country": "USA",
+"email": "j.j.brown@notreal.net",
+"ip": "redacted",
+"region": "WA",
+"signupDate": "2023-07-08 04:59:13 +00:00",
+"signupSource": "API",
+"state": "Washington",
+"timeZone": "America/Los_Angeles",
+"userId": "1188925"
+}
