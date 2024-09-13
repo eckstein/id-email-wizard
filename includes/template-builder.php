@@ -1748,6 +1748,7 @@ function get_columnset_html($templateId, $rowIndex, $columnSetIndex, $templateDa
 
 	$return .= "<div class='columnSet $layoutClass' $colSetDataAttr $magicRtl style='$colSetBackgroundCss text-align: center; font-size: 0; width: 100%; " . $displayTable . "'>";
 	$return .= "<!--[if mso]><table role='presentation' class='columnSet' role='presentation' width='100%' style='width: 100%; border: 0; border-spacing: 0;margin: 0 auto;text-align: center;'><tr><td style='$colSetBackgroundCssMso'><![endif]-->";
+	$return .= "<table role='presentation' width='100%' style='width: 100%; border: 0; border-spacing: 0;margin: 0 auto;'><tr>";
 
 
 	// If Magic Wrap is on, reverse the order of columns but keep the keys intact
@@ -1761,6 +1762,7 @@ function get_columnset_html($templateId, $rowIndex, $columnSetIndex, $templateDa
 
 	$return .= implode('', $colsArray);
 
+	$return .= "</tr></table>";
 	$return .= "<!--[if mso]></td></tr></table><![endif]-->";
 	$return .= "</div>"; // Close the colset layout div
 
