@@ -95,6 +95,7 @@
     <style type="text/css">
         html * {
             font-family: 'Poppins', Helvetica, Arial, sans-serif;
+            color: #000;
         }
 
         #outlook a {

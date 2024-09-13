@@ -293,9 +293,11 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 			$output .= '<div class="gmail-blend-screen ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
 			$output .= '<div class="gmail-blend-difference ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
 		}
-	} else if ($isEditor) {
+	} 
+	
+
 		$output .= '<div class="chunk id-raw-html" ' . $chunkDataAttr . '>';
-	}
+	
 
 	$output .= $rawHtmlContent;
 
@@ -320,9 +322,10 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 		}
 
 		$output .= '</div>';
-	} else if ($isEditor) {
+	} 
+
 		$output .= '</div>';
-	}
+
 
 	return $output;
 }
