@@ -271,9 +271,9 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 
 	$output = '';
 
-	if ($chunkWrap) {
+	
 		$output .= '<div class="chunk id-raw-html ' . $chunkClasses . ' ' . $visibility['class'] . '" ' . $$chunkDataAttr . ' style="' . $visibility['inlineStyle'] . ' ' . $backgroundColorCss . ' color: ' . $baseTextColor . '; padding: ' . $chunkPadding . '; font-size: ' . $templateFontSize . ';">';
-
+	if ($chunkWrap) {
 		if ($visibility['class'] == 'mobile-only') {
 			$output .= '<!--[if !mso]><!-->';
 		}
@@ -312,8 +312,9 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 			$output .= '<!--<![endif]-->';
 		}
 
-		$output .= '</div>'; // Close the main wrapper div
+		
 	}
+	$output .= '</div>'; // Close the main wrapper div
 
 	return $output;
 }
