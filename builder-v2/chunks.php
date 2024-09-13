@@ -272,7 +272,7 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 	$output = '';
 
 	if ($chunkWrap) {
-		$output .= '<div class="chunk id-raw-html ' . $chunkClasses . ' ' . $visibility['class'] . '" ' . $chunkDataAttr . ' style="' . $visibility['inlineStyle'] . ' ' . $backgroundColorCss . ' color: ' . $baseTextColor . '; padding: ' . $chunkPadding . '; font-size: ' . $templateFontSize . ';">';
+		$output .= '<div class="chunk id-raw-html ' . $chunkClasses . ' ' . $visibility['class'] . '" ' . $$chunkDataAttr . ' style="' . $visibility['inlineStyle'] . ' ' . $backgroundColorCss . ' color: ' . $baseTextColor . '; padding: ' . $chunkPadding . '; font-size: ' . $templateFontSize . ';">';
 
 		if ($visibility['class'] == 'mobile-only') {
 			$output .= '<!--[if !mso]><!-->';
@@ -280,24 +280,18 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 
 		$output .= '
 		<!--[if mso]>
-	<table ' . $tableClassHtml . ' role="presentation"
-		style="width:100%;border:0;border-spacing:0; ' . $visibility['inlineStyle'] . ' ' . $msoBackgroundColorCss . '">
-		<tr>
-			
-			<td class="id-raw-html" style="' . $msoBackgroundColorCss . ' padding: ' . $chunkPadding . '; color: ' . $baseTextColor . '; font-family: Poppins, Arial, sans-serif!important; font-size: ' . $templateFontSize . ';">
-			<![endif]-->
-
+		<table ' . $tableClassHtml . ' role="presentation"
+			style="width:100%;border:0;border-spacing:0; ' . $visibility['inlineStyle'] . ' ' . $msoBackgroundColorCss . '">
+			<tr>
+				<td class="id-raw-html" style="' . $msoBackgroundColorCss . ' padding: ' . $chunkPadding . '; color: ' . $baseTextColor . '; font-family: Poppins, Arial, sans-serif!important; font-size: ' . $templateFontSize . ';">
+		<![endif]-->
 		';
 
 		if ($gmailBlendDesktopClass || $gmailBlendMobileClass) {
 			$output .= '<div class="gmail-blend-screen ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
 			$output .= '<div class="gmail-blend-difference ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
 		}
-	} 
-	
-
-		$output .= '<div class="chunk id-raw-html" ' . $chunkDataAttr . '>';
-	
+	}
 
 	$output .= $rawHtmlContent;
 
@@ -308,24 +302,18 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 		}
 
 		$output .= '
-		
-
 		<!--[if mso]>
-			</td>
-			
-		</tr>
-	</table>
-	<![endif]-->';
+				</td>
+			</tr>
+		</table>
+		<![endif]-->';
 
 		if ($visibility['class'] == 'mobile-only') {
 			$output .= '<!--<![endif]-->';
 		}
 
-		$output .= '</div>';
-	} 
-
-		$output .= '</div>';
-
+		$output .= '</div>'; // Close the main wrapper div
+	}
 
 	return $output;
 }
