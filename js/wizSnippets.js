@@ -1,18 +1,29 @@
 jQuery(document).ready(function ($) {
 
-    if ($('#wizSnippet-editor').length) {
+    if ($('#snippet-code-editors').length) {
         var snippetEditor = CodeMirror.fromTextArea(document.getElementById('wizSnippet-editor'), {
             mode: 'htmlmixed',
             lineNumbers: true,
             theme: 'mbo',
-            viewportMargin: Infinity
+            viewportMargin: Infinity,
+            lineWrapping: true,
+            resize: 'vertical'
         });
 
         var snippetCssEditor = CodeMirror.fromTextArea(document.getElementById('wizSnippet-css-editor'), {
             mode: 'css',
             lineNumbers: true,
             theme: 'mbo',
-            viewportMargin: Infinity
+            viewportMargin: Infinity,
+            lineWrapping: true,
+            resize: 'vertical'
+        });
+
+        $('.CodeMirror').resizable({
+            resize: function() {
+                snippetEditor.refresh();
+                snippetCssEditor.refresh();
+            }
         });
     }
 

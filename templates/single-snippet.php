@@ -36,9 +36,9 @@ $endDate = $_GET['endDate'] ?? date( 'Y-m-d' );
 <article id="post-<?php the_ID(); ?>" data-journey="<?php echo get_the_ID(); ?>">
 
 	<div class="entry-content" itemprop="mainContentOfPage">
-		<div class="wizcampaign-sections-row">
+		<div class="wizcampaign-sections-row" id="snippet-code-editors">
 
-			<div class="wizcampaign-section inset">
+			<div class="wizcampaign-section inset" id="snippet-html-editor">
 				<div class="wizcampaign-section-title-area">
 					<h4>Edit HTML</h4>
 					HTML will be inserted into template at desired position
@@ -47,7 +47,7 @@ $endDate = $_GET['endDate'] ?? date( 'Y-m-d' );
 					class="wizCodeEditor html"><?php echo get_post_meta( get_the_ID(), 'snippet_content', true ); ?></textarea>
 
 			</div>
-			<div class="wizcampaign-section inset">
+			<div class="wizcampaign-section inset" id="snippet-css-editor">
 				<div class="wizcampaign-section-title-area">
 					<h4>Edit CSS</h4>
 					CSS will be inserted into &lt;head&gt;

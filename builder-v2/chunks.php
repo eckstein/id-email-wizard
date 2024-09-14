@@ -188,7 +188,7 @@ function idwiz_get_snippet_chunk($chunk, $templateOptions, $chunkIndex = null, $
 
 	$msoTableWrap = $chunkSettings['mso_table_wrap'] ?? false;
 
-	// Retrieve the post object from the 'snippet' ACF field
+	// Retrieve the post id
 	$snippetPostId = $chunkFields['select_snippet'];
 
 	// $shortcode = '[wiz_snippet id="' . $snippetPostId . '"]';
@@ -206,13 +206,11 @@ function idwiz_get_snippet_chunk($chunk, $templateOptions, $chunkIndex = null, $
 	if ($msoTableWrap) {
 		$output .= '<!--[if mso]>';
 		$output .= '<table ' . $tableClassHtml . ' role="presentation" width="100%" style="table-layout:fixed; ' . esc_attr($fontCss . $msoBackgroundColorCss . $visibility['inlineStyle']) . '">';
-		$output .= '<tr><td style="width:100%;text-align:center; ' . esc_attr($msoBackgroundColorCss) . '" valign="middle">';
+		$output .= '<tr><td style="display: block;width:100%;text-align:center; ' . esc_attr($msoBackgroundColorCss) . '" valign="middle">';
 		$output .= '<![endif]-->';
 	}
 
-
 	$output .= $snippetContent;
-
 
 	if ($msoTableWrap) {
 		$output .= '<!--[if mso]>';
@@ -274,7 +272,7 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 	$output = '';
 
 	
-		$output .= '<div class="chunk id-raw-html ' . $chunkClasses . ' ' . $visibility['class'] . '" ' . $$chunkDataAttr . ' style="' . $visibility['inlineStyle'] . ' ' . $backgroundColorCss . ' color: ' . $baseTextColor . '; padding: ' . $chunkPadding . '; font-size: ' . $templateFontSize . ';">';
+		$output .= '<div class="chunk id-raw-html ' . $chunkClasses . ' ' . $visibility['class'] . '" ' . $chunkDataAttr . ' style="' . $visibility['inlineStyle'] . ' ' . $backgroundColorCss . ' color: ' . $baseTextColor . '; padding: ' . $chunkPadding . '; font-size: ' . $templateFontSize . ';">';
 	if ($chunkWrap) {
 		if ($visibility['class'] == 'mobile-only') {
 			$output .= '<!--[if !mso]><!-->';
@@ -493,7 +491,7 @@ function idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex = null, $is
 	$msoPaddingToMargin = $chunkPadding ? 'margin:' . $chunkPadding . ';' : 'margin: 0;';
 
 	$image_context = $chunkSettings['image_context'] ?? '';
-	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
+	$chunkClasses = 'id-image '.$chunkSettings['chunk_classes'] ?? '';
 
 	$chunkDataAttr = $isEditor ? "data-chunk-index='" . $chunkIndex . "'" : "";
 

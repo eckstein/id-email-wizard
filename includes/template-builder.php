@@ -42,21 +42,18 @@ function idemailwiz_handle_builder_v2_request()
 		$mergeTags = false;
 		$previewMode = 'desktop';
 
-		ob_start();
-
-		if ($templateData && $templateData['template_options'] &&  !empty($templateData['template_options'])) {
-
+		if ($templateData && $templateData['template_options'] && !empty($templateData['template_options'])) {
 			// Preview pane styles
 			include dirname(plugin_dir_path(__FILE__)) . '/builder-v2/preview-pane-styles.html';
 
+			// Directly output the template HTML
 			echo generate_template_html($templateData, true);
 
 			// Add spacer for proper scrolling in preview pane
 			echo '<div style="height: 100vh; color: #cdcdcd; padding: 20px; font-family: Poppins, sans-serif; text-align: center; border-top: 2px dashed #fff;" class="scrollSpace"><em>The extra space below allows proper scrolling in the builder and will not appear in the template</em></div>';
 		} else {
-			echo '<div style="height: 100vh; color: #cdcdcd; padding: 20px; font-family: Poppins, sans-serif; text-align: center; border-top: 2px dashed #fff;">Start adding sections and your preview will show here.</em></div>';
+			echo '<div style="height: 100vh; color: #cdcdcd; padding: 20px; font-family: Poppins, sans-serif; text-align: center; border-top: 2px dashed #fff;">Start adding sections and your preview will show here.</div>';
 		}
-		echo ob_get_clean();
 		exit;
 	}
 }
@@ -1628,25 +1625,7 @@ function generate_template_html($templateData, $forEditor = false)
 }
 
 
-function convertStringBooleans(&$data)
-{
-	if (is_array($data) || is_object($data)) {
-		foreach ($data as &$value) {
-			if (is_array($value) || is_object($value)) {
-				convertStringBooleans($value);
-			} elseif ($value === 'true') {
-				$value = true;
-			} elseif ($value === 'false') {
-				$value = false;
-			}
-		}
-		unset($value); // Unset the reference to avoid potential issues
-	} elseif ($data === 'true') {
-		$data = true;
-	} elseif ($data === 'false') {
-		$data = false;
-	}
-}
+
 
 function get_allRows_html($templateId = null, $templateData = null, $rowIndexes = null, $isEditor = false)
 {
@@ -1732,7 +1711,6 @@ function get_columnset_html($templateId, $rowIndex, $columnSetIndex, $templateDa
 			unset($allColumns[$columnIndex]);
 		}
 	}
-	//$columns = array_values(array_reverse($allColumns, true));
 	$columns = $allColumns;
 
 	$numActiveColumns = count($allColumns);
@@ -1867,22 +1845,22 @@ function idwiz_get_chunk_template($templateId, $rowIndex, $columnSetIndex, $colu
 
 	switch ($chunkType) {
 		case 'text':
-			$return .= idwiz_get_plain_text_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
+			$return = idwiz_get_plain_text_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
 			break;
 		case 'image':
-			$return .= idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
+			$return = idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
 			break;
 		case 'button':
-			$return .= idwiz_get_button_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
+			$return = idwiz_get_button_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
 			break;
 		case 'spacer':
-			$return .= idwiz_get_spacer_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
+			$return = idwiz_get_spacer_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
 			break;
 		case 'snippet':
-			$return .= idwiz_get_snippet_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
+			$return = idwiz_get_snippet_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
 			break;
 		case 'html':
-			$return .= idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
+			$return = idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
 			break;
 	}
 
@@ -2400,4 +2378,24 @@ function get_wizbuilder_image_src($image_url, $isEditor)
 
 	// If we're not in editor mode or if caching failed, return the original URL
 	return $image_url;
+}
+
+function convertStringBooleans(&$data)
+{
+	if (is_array($data) || is_object($data)) {
+		foreach ($data as &$value) {
+			if (is_array($value) || is_object($value)) {
+				convertStringBooleans($value);
+			} elseif ($value === 'true') {
+				$value = true;
+			} elseif ($value === 'false') {
+				$value = false;
+			}
+		}
+		unset($value); // Unset the reference to avoid potential issues
+	} elseif ($data === 'true') {
+		$data = true;
+	} elseif ($data === 'false') {
+		$data = false;
+	}
 }

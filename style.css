@@ -2228,7 +2228,16 @@ pre#generatedCode {
 	.fullModeViewWrapper.mobile::-webkit-scrollbar {
 		display: none; /* For Chrome, Safari, and Opera */
 	}
-
+#snippet-code-editors {
+	display: flex;
+	gap: 20px;
+	flex-wrap: nowrap;
+}
+#snippet-html-editor,
+#snippet-css-editor {
+	max-width: 50%;
+	resize:vertical;	
+}
 .copyConfirm,
 .copySnippetConfirm {
 	display: none;
