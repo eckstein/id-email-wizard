@@ -192,7 +192,9 @@ function idwiz_get_snippet_chunk($chunk, $templateOptions, $chunkIndex = null, $
 	$snippetPostId = $chunkFields['select_snippet'];
 
 	$shortcode = '[wiz_snippet id="' . $snippetPostId . '"]';
-	$snippetContent = do_shortcode($shortcode);
+	ob_start();
+	do_shortcode($shortcode);
+	$snippetContent = ob_get_clean();
 
 	$output = '';
 	$output .= '<div class="chunk id-snippet ' . $chunkClasses . '" ' . $chunkDataAttr . ' style="' . esc_attr($fontCss . $backgroundColorCss . $visibility['inlineStyle']) . '">';
