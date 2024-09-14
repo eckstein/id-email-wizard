@@ -193,7 +193,7 @@ function idwiz_get_snippet_chunk($chunk, $templateOptions, $chunkIndex = null, $
 
 	$shortcode = '[wiz_snippet id="' . $snippetPostId . '"]';
 	ob_start();
-	do_shortcode($shortcode);
+	echo do_shortcode($shortcode);
 	$snippetContent = ob_get_clean();
 
 	$output = '';
