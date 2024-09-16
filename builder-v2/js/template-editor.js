@@ -165,6 +165,7 @@ jQuery(document).ready(function($) {
 		// File upload functionality
 		$('.mockup-upload-field').on('change', function () {
 			upload_wiz_mock(this);
+			console.log('Uploading mock...');
 		});
 
 

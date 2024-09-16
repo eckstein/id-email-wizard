@@ -461,7 +461,7 @@ function generate_builder_row($rowId, $rowData = [])
 	return $html;
 }
 
-function generate_builder_columnset($colSetIndex, $columnSet, $rowId, $framesMode = false)
+function generate_builder_columnset($colSetIndex, $columnSet, $rowId, $framesMode = 'false')
 {
 	$uniqueId = uniqid('wiz-columnset-');
 
@@ -595,7 +595,7 @@ function generate_builder_columnset($colSetIndex, $columnSet, $rowId, $framesMod
 	if ($magicWrap == 'on') {
 		$html .= '<div class="magic-wrap-indicator"><i class="fa-solid fa-wand-magic-sparkles"></i>&nbsp;&nbsp;Magic wrap is on! Columns will be reversed when wrapped for mobile.</div>';
 	}
-	if ($framesMode) {
+	if ($framesMode === 'true') {
 		$html .= '<div class="builder-columnset-frame-settings">';
 		$html .= '<div class="builder-columnset-frame-settings-title">Frame Settings</div>';
 		$html .= '<div class="builder-columnset-frame-settings-content">';
@@ -1810,7 +1810,7 @@ function get_column_html($templateId, $rowIndex, $columnSetIndex, $columnIndex, 
 		$columnWidthPct = 100;
 	}
 
-	$columnStyle = "width: {$columnWidthPct}%; max-width: {$columnWidthPx}px; font-size: {$templateStyles['font-styles']['template_font_size']}; vertical-align: {$colValign}; text-align: left; display: inline-block;";
+	$columnStyle = "width: {$columnWidthPct}%; max-width: {$columnWidthPx}px; font-size: {$templateStyles['font-styles']['template_font_size']}; vertical-align: {$colValign}; text-align: left; display: inline-block;padding: 1px solid transparent;";
 
 	$columnDataAttr = $isEditor ? 'data-column-index=' . $columnIndex : '';
 	$return = "<div class='column $mobileWrapClass' $columnDataAttr style='$columnStyle $colBackgroundCSS' dir='ltr'>";
@@ -2064,7 +2064,18 @@ function generate_background_css($backgroundSettings, $prefix = '', $forMso = fa
 add_action('wp_ajax_upload_mockup', 'handle_mockup_upload');
 function handle_mockup_upload()
 {
-	if (! isset($_FILES['file'])) {
+	// Define ABSPATH if not already defined
+	if (!defined('ABSPATH')) {
+		define('ABSPATH', dirname(__FILE__) . '/../../../');
+	}
+
+	// Include necessary WordPress files
+	require_once(ABSPATH . 'wp-load.php');
+	require_once(ABSPATH . 'wp-admin/includes/file.php');
+	require_once(ABSPATH . 'wp-admin/includes/image.php');
+	require_once(ABSPATH . 'wp-admin/includes/media.php');
+
+	if (!isset($_FILES['file'])) {
 		wp_send_json_error('No file uploaded');
 		wp_die();
 	}
@@ -2094,7 +2105,22 @@ function handle_mockup_upload()
 	wp_die();
 }
 
+function resize_image($file_path, $max_width = 1920, $max_height = 1080)
+{
+	$image = wp_get_image_editor($file_path);
+	if (!is_wp_error($image)) {
+		$size = $image->get_size();
+		$ratio = min($max_width / $size['width'], $max_height / $size['height']);
 
+		if ($ratio < 1) {
+			$new_width = round($size['width'] * $ratio);
+			$new_height = round($size['height'] * $ratio);
+			$image->resize($new_width, $new_height, false);
+			$image->save($file_path);
+		}
+	}
+	return $file_path;
+}
 
 function get_preview_text_hack()
 {

@@ -90,21 +90,19 @@ function idwiz_get_button_chunk($chunk, $templateOptions, $chunkIndex = null, $i
 
 	$buttonPadding = $chunkFields['button_padding'] ?? "12px 60px";
 
-	// For MSO buttons, set the border to 2px solid the background color for dark mode on MSO
-	$vmlBorderColor = $backgroundColor;
-	$vmlBorderWeight = '2';
-
 	// For MSO, base width of the button in pixels
 	$baseWidth = 200;
 	// Additional width per character over the threshold
 	$additionalWidthPerChar = 10;
 	// Character threshold after which the button width increases
 	$charThreshold = 14;
+	// Maximum width for the button
+	$maxWidth = 400;
 
 	// Calculate the width of the button based on the length of ctaText
 	$ctaTextLength = strlen($ctaText);
 	$additionalWidth = ($ctaTextLength > $charThreshold) ? ($ctaTextLength - $charThreshold) * $additionalWidthPerChar : 0;
-	$buttonWidth = $baseWidth + $additionalWidth;
+	$buttonWidth = min($baseWidth + $additionalWidth, $maxWidth);
 
 	$visibility = get_visibility_class_and_style($chunkSettings);
 	if ($visibility['class'] != '') {
@@ -113,39 +111,32 @@ function idwiz_get_button_chunk($chunk, $templateOptions, $chunkIndex = null, $i
 		$tableClassHtml = '';
 	}
 
-	//print_r( $chunkSettings );
 	$output = '';
 	$output = '<div class="chunk id-button ' . $chunkClasses . ' ' . $visibility['class'] . '" ' . $chunkDataAttr . ' style="width: 100%; border: 0; border-spacing: 0; ' . $visibility['inlineStyle'] . ' ' . $backgroundColorCss . '">';
 
-	$output .= '<!--[if mso]>';
-	$output .= '<table ' . $tableClassHtml . ' role="presentation" width="100%" style="table-layout:fixed; ' . esc_attr($msoBackgroundColorCss . $visibility['inlineStyle']) . '">';
-	$output .= '<tr><td style="width:100%;text-align:center; ' . esc_attr($msoBackgroundColorCss) . ' ' . $chunkPaddingCss . '" valign="middle">';
+	// MSO version
+	$output .= '<!--[if mso]>
+	<table ' . $tableClassHtml . ' role="presentation" width="100%" style="table-layout:fixed; ' . esc_attr($msoBackgroundColorCss . $visibility['inlineStyle']) . '">
+	<tr><td style="width:100%;text-align:' . $textAlign . '; ' . esc_attr($msoBackgroundColorCss) . ' ' . $chunkPaddingCss . '" valign="middle">
+	<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="' . $ctaUrl . '" style="height:50px;v-text-anchor:middle;width:' . $buttonWidth . 'px;" arcsize="' . $msoBorderPerc . '%" strokecolor="' . $textColor . '" strokeweight="2px" fillcolor="none">
+	<w:anchorlock/>
+	<center style="color:' . $btnBgColor . ';font-family:Poppins,Arial,sans-serif;font-size:' . ($chunk['fields']['button_font_size'] ?? '1.2em') . ';font-weight:bold;">' . $ctaText . '</center>
+	</v:roundrect>
+	</td></tr></table>
+	<![endif]-->';
 
-	// Convert the button background color to RGBA format
-	$btnBgColorRGBA = hex2rgba($btnBgColor, 1);
-
-	$output .= '<br/>';
-	$output .= '<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="' . $ctaUrl . '" style="height: 50px; v-text-anchor: middle; width: ' . $buttonWidth . 'px;" arcsize="' . $msoBorderPerc . '%" strokecolor="' . $vmlBorderColor . '" strokeweight="' . $vmlBorderWeight . 'px" fillcolor="' . $btnBgColor . '">';
-	$output .= '<w:anchorlock/>';
-	$output .= '<center class="id-button" style="color: ' . $textColor . ' !important; font-family: Poppins, Arial, sans-serif; font-size: ' . ($chunk['fields']['button_font_size'] ?? '1.2em') . '!important; line-height: 1.6em;font-weight: bold;mso-text-raise: 10pt;">' . $ctaText . '</center>';
-	$output .= '</v:roundrect>';
-	$output .= '<br/>';
-	$output .= '</td></tr></table>';
-	$output .= '<![endif]-->';
-
+	// Non-MSO version
 	$output .= '<!--[if !mso]><!-->';
 	$output .= '
-	
 		<div style="' . $backgroundColorCss . ' ' . $chunkPaddingCss . '; border: 0!important; text-align: ' . $textAlign . '; font-family: Poppins, Arial, sans-serif; font-size: ' . ($templateOptions['template_styles']['template_font_size'] ?? '16px') . '">
-			<a href="' . $ctaUrl . '" aria-label="' . $ctaText . '" class="id-button" style="font-size: ' . ($chunk['fields']['button_font_size'] ?? '1.2em') . '; line-height: 1;text-align: center; font-weight: bold;background-color: ' . $btnBgColorRGBA . '; ' . $btnBorderCss . ' text-decoration: none; padding:' . $buttonPadding . '; color: ' . $textColor . ' !important; border-radius: ' . $borderRadius . '; display: inline-block;">
+			<a href="' . $ctaUrl . '" aria-label="' . $ctaText . '" class="id-button" style="font-size: ' . ($chunk['fields']['button_font_size'] ?? '1.2em') . '; line-height: 1;text-align: center; font-weight: bold;background-color: ' . $btnBgColor . '; ' . $btnBorderCss . ' text-decoration: none; padding:' . $buttonPadding . '; color: ' . $textColor . ' !important; border-radius: ' . $borderRadius . '; display: inline-block;">
 				' . $ctaText . '
 			</a>
 		</div>
-
 	';
-	$output .= '<!--<![endif]-->
-	
-	</div>';
+	$output .= '<!--<![endif]-->';
+
+	$output .= '</div>';
 
 	return $output;
 }
@@ -153,10 +144,30 @@ function idwiz_get_button_chunk($chunk, $templateOptions, $chunkIndex = null, $i
 
 function hex2rgba($color, $opacity = 1)
 {
+	// Check if already rgba and return it
+	if (strpos($color, 'rgba') === 0) {
+		return $color;
+	}
+
+	// Remove any leading '#' if present
 	$color = ltrim($color, '#');
+
+	// Ensure the color is a valid hex color
+	if (!ctype_xdigit($color) || (strlen($color) != 6 && strlen($color) != 3)) {
+		return "rgba(0, 0, 0, $opacity)"; // Return black if invalid color
+	}
+
+	// If it's a 3 digit hex, convert to 6 digit
+	if (strlen($color) == 3) {
+		$color = $color[0] . $color[0] . $color[1] . $color[1] . $color[2] . $color[2];
+	}
+
+	// Convert hex to RGB
 	$r = hexdec(substr($color, 0, 2));
 	$g = hexdec(substr($color, 2, 2));
 	$b = hexdec(substr($color, 4, 2));
+
+	// Return the rgba string
 	return "rgba($r, $g, $b, $opacity)";
 }
 
@@ -370,7 +381,7 @@ function idwiz_get_plain_text_chunk($chunk, $templateOptions, $chunkIndex = null
 	$textContent = add_aria_label_to_links($textContent);
 
 	$output = '';
-	$output .= '<div class="chunk id-plain-text ' . $chunkClasses . ' ' . $pPaddingClass . ' ' . $visibility['class'] . '" ' . $chunkDataAttr . ' style="' . $visibility['inlineStyle'] . ' ' . $backgroundColorCss . ' color: ' . $baseTextColor . '; padding: ' . $chunkPadding . '; font-size: ' . $templateFontSize . '; border:1px solid transparent;">';
+	$output .= '<div class="chunk id-plain-text ' . $chunkClasses . ' ' . $pPaddingClass . ' ' . $visibility['class'] . '" ' . $chunkDataAttr . ' style="' . $visibility['inlineStyle'] . ' ' . $backgroundColorCss . ' color: ' . $baseTextColor . '; padding: ' . $chunkPadding . '; font-size: ' . $templateFontSize . ';">';
 
 	if ($visibility['class'] == 'mobile-only') {
 		$output .= '<!--[if !mso]><!-->';

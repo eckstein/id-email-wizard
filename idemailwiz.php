@@ -97,6 +97,11 @@ function idemailwiz_set_trash_term()
 //Options pages
 include(plugin_dir_path(__FILE__) . 'includes/wiz-options.php');
 
+// WP Big Image Size Threshold
+add_filter('big_image_size_threshold', function ($threshold) {
+    return 1920; // Sets maximum image dimension to 1920 pixels
+});
+
 
 // Deactivation
 register_deactivation_hook(__FILE__, 'idemailwiz_deactivate');
@@ -826,13 +831,17 @@ function idemailwiz_enqueue_assets()
 
     $codemirror_files = array(
         
-        array('codemirror', 'lib/codemirror.js', array('jquery', 'csslint'), '', true),
+        array('codemirror', 'lib/codemirror.js', array('jquery'), '', true),
         array('codemirror-mode-css', 'mode/css/css.js', array('jquery', 'codemirror'), '', true),
         array('codemirror-lint', 'addon/lint/lint.js', array('jquery', 'codemirror'), '', true),
         array('codemirror-lint-css', 'addon/lint/css-lint.js', array('jquery', 'codemirror', 'codemirror-lint'), '', true),
-        array('codemirror-lint-html', 'addon/lint/html-lint.js', array('jquery', 'codemirror', 'codemirror-lint'), '', true),
+        array('htmlhint', 'addon/hint/html-hint.js', array(), '1.1.4', true),
+        array('codemirror-lint-html', 'addon/lint/html-lint.js', array('jquery', 'codemirror', 'codemirror-lint', 'htmlhint'), '', true),
         array('codemirror-addon-hint', 'addon/hint/show-hint.js', array('jquery', 'codemirror'), '', true),
         array('codemirror-addon-hint-css', 'addon/hint/css-hint.js', array('jquery', 'codemirror', 'codemirror-addon-hint'), '', true),
+        array('codemirror-mode-xml', 'mode/xml/xml.js', array('jquery', 'codemirror'), '', true),
+        array('codemirror-mode-javascript', 'mode/javascript/javascript.js', array('jquery', 'codemirror'), '', true),
+        array('codemirror-mode-htmlmixed', 'mode/htmlmixed/htmlmixed.js', array('jquery', 'codemirror', 'codemirror-mode-xml', 'codemirror-mode-javascript', 'codemirror-mode-css'), '', true),
     );
 
     foreach ($codemirror_files as $file) {
