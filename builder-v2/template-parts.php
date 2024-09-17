@@ -35,7 +35,7 @@ function generate_template_structure($templateData, $isEditor = false)
     $showIdHeader = filter_var($templateStyles['header-and-footer']['show_id_header'] ?? false, FILTER_VALIDATE_BOOLEAN);
     $showIdFooter = filter_var($templateStyles['header-and-footer']['show_id_footer'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
-    $structure = ['top'=> [], 'rows'=> [], 'bottom' => []];
+    $structure = ['top' => [], 'rows' => [], 'bottom' => []];
 
     $structure['top']['head'] = idwiz_get_email_top($templateSettings, $templateStyles, $rows);
     $structure['top']['body_start'] = idwiz_get_email_body_top($templateStyles);
@@ -68,16 +68,19 @@ function generate_template_structure($templateData, $isEditor = false)
             }
 
             foreach ($columns as $colIndex => $column) {
-                $structure['rows'][$rowIndex]['columnSets'][$colSetIndex]['columns'][$colIndex] = [
-                    'start' => generate_column_start($rowIndex, $colSetIndex, $colIndex, $templateData, $isEditor ),
-                    'chunks' => [],
-                    'end' => generate_column_end()
-                ];
-
-                foreach ($column['chunks'] as $chunkIndex => $chunk) {
-                    $structure['rows'][$rowIndex]['columnSets'][$colSetIndex]['columns'][$colIndex]['chunks'][$chunkIndex] = [
-                        'chunk' => idwiz_get_chunk_template(false, $rowIndex, $colSetIndex, $colIndex, $chunkIndex, $templateData, $isEditor)
+                if ($column['activation'] == 'active') {
+                    $structure['rows'][$rowIndex]['columnSets'][$colSetIndex]['columns'][$colIndex] = [
+                        'start' => generate_column_start($rowIndex, $colSetIndex, $colIndex, $templateData, $isEditor),
+                        'chunks' => [],
+                        'end' => generate_column_end()
                     ];
+
+
+                    foreach ($column['chunks'] as $chunkIndex => $chunk) {
+                        $structure['rows'][$rowIndex]['columnSets'][$colSetIndex]['columns'][$colIndex]['chunks'][$chunkIndex] = [
+                            'chunk' => idwiz_get_chunk_template(false, $rowIndex, $colSetIndex, $colIndex, $chunkIndex, $templateData, $isEditor)
+                        ];
+                    }
                 }
             }
         }
@@ -133,76 +136,9 @@ function generate_template_html($templateData, $forEditor = false)
 {
     //convert string true/false in booleans through the template data
     convertStringBooleans($templateData);
-    
+
     $templateStructure = generate_template_structure($templateData, $forEditor);
     return render_template_from_structure($templateStructure);
-    
-
-    $rows = $templateData['rows'] ?? [];
-    $templateOptions = $templateData['template_options'] ?? [];
-    $message_settings = $templateOptions['message_settings'] ?? [];
-    $templateStyles = $templateOptions['template_styles'] ?? [];
-
-    $return = '';
-    // Start a timer to track the time it takes to generate the template
-    $startTime = microtime(true);
-
-    // Email top
-    error_log('Generating Email Top');
-    $return .= idwiz_get_email_top($message_settings, $templateStyles, $rows);
-    error_log(
-    'Generating Email Top - Done. Time taken: ' . round((microtime(true) - $startTime) * 1000, 2) . ' ms');
-
-    // Email <body> start
-    error_log('Generating Email Body Top');
-    $return .= idwiz_get_email_body_top($templateStyles);
-    error_log(
-    'Generating Email Body Top - Done. Time taken: ' . round((microtime(true) - $startTime) * 1000, 2) . ' ms');
-
-    // iD Logo Header
-    $showIdHeader = filter_var($templateStyles['header-and-footer']['show_id_header'] ?? false, FILTER_VALIDATE_BOOLEAN);
-    $showIdFooter = filter_var($templateStyles['header-and-footer']['show_id_footer'] ?? false, FILTER_VALIDATE_BOOLEAN);
-
-    if ($showIdHeader) {
-        error_log('Generating Standard Header');
-        $return .= idwiz_get_standard_header($templateOptions);
-        error_log(
-        'Generating Standard Header - Done. Time taken: ' . round((microtime(true) - $startTime) * 1000, 2) . ' ms');
-    }
-
-    // Generates cols and chunks from row object
-    error_log('Generating Rows');
-    $return .= get_allRows_html(null, $templateData, null, $forEditor);
-    error_log(
-    'Generating Rows - Done. Time taken: ' . round((microtime(true) - $startTime) * 1000, 2) . ' ms');
-
-    // Email Footer
-    if ($showIdFooter) {
-        error_log('Generating Standard Footer');
-        $return .= idwiz_get_standard_footer($templateStyles);
-        error_log(
-        'Generating Standard Footer - Done. Time taken: ' . round((microtime(true) - $startTime) * 1000, 2) . ' ms');
-    }
-
-    // Fine print/disclaimer
-    if (! empty($message_settings['fine_print_disclaimer'])) {
-        error_log('Generating fine print');
-        $return .= idwiz_get_fine_print_disclaimer($templateOptions);
-        error_log(
-        'Generating fine print - Done. Time taken: ' . round((microtime(true) - $startTime) * 1000, 2) . ' ms');
-    }
-
-    // Body Bottom
-    error_log('Generating Email Body Bottom');
-    $return .= idwiz_get_email_body_bottom();
-    error_log('Generating Email Body Bottom - Done. Time taken: ' . round((microtime(true) - $startTime) * 1000, 2) . ' ms');
-
-    // Email Bottom
-    error_log('Generating Email Bottom');
-    $return .= idwiz_get_email_bottom();
-    error_log('Generating Email Bottom - Done. Time taken: ' . round((microtime(true) - $startTime) * 1000, 2) . ' ms');
-
-    return $return;
 }
 
 
@@ -267,7 +203,8 @@ function get_row_html($templateId, $rowIndex, $templateData = null, $isEditor = 
     return $return;
 }
 
-function generate_row_start($rowIndex, $templateData = null, $isEditor = false) {
+function generate_row_start($rowIndex, $templateData = null, $isEditor = false)
+{
     if (!$templateData) {
         return;
     }
@@ -285,7 +222,8 @@ function generate_row_start($rowIndex, $templateData = null, $isEditor = false) 
     $return .= "<!--[if mso]><table role='presentation' class='row' role='presentation' width='100%' style='$rowBackgroundCssMso white-space:nowrap;width: 100%; border: 0; border-spacing: 0;margin: 0 auto;text-align:center; '><tr><td><![endif]-->";
     return $return;
 }
-function generate_row_end() {
+function generate_row_end()
+{
     $return = "<!--[if mso]></td></tr></table><![endif]-->";
     $return .= "</div>"; // Close the row layout div
     return $return;
@@ -361,9 +299,10 @@ function get_columnset_html($templateId, $rowIndex, $columnSetIndex, $templateDa
 }
 
 function
-generate_columnset_start($rowIndex, $columnSetIndex, $templateData = null, $isEditor = false) {
+generate_columnset_start($rowIndex, $columnSetIndex, $templateData = null, $isEditor = false)
+{
     if (!$templateData) {
-       return;
+        return;
     }
 
     $columnSet = $templateData['rows'][$rowIndex]['columnSets'][$columnSetIndex] ?? null;
@@ -408,7 +347,8 @@ generate_columnset_start($rowIndex, $columnSetIndex, $templateData = null, $isEd
     return $return;
 }
 
-function generate_columnset_end() {
+function generate_columnset_end()
+{
     $return = "</tr></table>";
     $return .= "<!--[if mso]></td></tr></table><![endif]-->";
     $return .= "</div>"; // Close the colset layout div
@@ -498,7 +438,8 @@ function get_column_html($templateId, $rowIndex, $columnSetIndex, $columnIndex, 
     return $return;
 }
 
-function generate_column_start($rowIndex, $columnSetIndex, $columnIndex, $templateData = null, $isEditor = false) {
+function generate_column_start($rowIndex, $columnSetIndex, $columnIndex, $templateData = null, $isEditor = false)
+{
     if (!$templateData) {
         return;
     }
@@ -566,7 +507,8 @@ function generate_column_start($rowIndex, $columnSetIndex, $columnIndex, $templa
     return  $return;
 }
 
-function generate_column_end() {
+function generate_column_end()
+{
     $return = "<!--[if mso]></td><![endif]-->";
     $return .= "</div>"; // Close .column div
 
