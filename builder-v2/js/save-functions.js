@@ -65,6 +65,7 @@ function gather_force_white_settings(templateData) {
 function get_default_template_data() {
     var templateData = {
         template_name: jQuery('#idwiz_templateTitle').val(),
+        template_id: idAjax_template_editor.currentPost.ID,
         last_updated: new Date().toISOString(),
         template_options: {
             message_settings: {},

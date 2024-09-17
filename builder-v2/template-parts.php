@@ -98,18 +98,21 @@ function generate_template_structure($templateData, $isEditor = false)
     return $structure;
 }
 
-function render_template_from_structure($structure)
+function render_template_from_structure($structure, $template_id)
 {
-    $html = '';
+    $transient_key = 'template_html_' . $template_id;
+    delete_transient($transient_key); // Clear any existing data
 
     // Render top section
+    $html = '';
     foreach ($structure['top'] as $topElement) {
         $html .= $topElement;
     }
+    append_to_transient($transient_key, $html);
 
     // Render rows
-    foreach ($structure['rows'] as $row) {
-        $html .= $row['start'];
+    foreach ($structure['rows'] as $row_index => $row) {
+        $html = $row['start'];
         foreach ($row['columnSets'] as $columnSet) {
             $html .= $columnSet['start'];
             foreach ($columnSet['columns'] as $column) {
@@ -122,14 +125,29 @@ function render_template_from_structure($structure)
             $html .= $columnSet['end'];
         }
         $html .= $row['end'];
+        append_to_transient($transient_key, $html);
     }
 
     // Render bottom section
+    $html = '';
     foreach ($structure['bottom'] as $bottomElement) {
         $html .= $bottomElement;
     }
+    append_to_transient($transient_key, $html);
 
-    return $html;
+    // Return the html
+    return get_transient($transient_key);
+}
+
+// Helper function to append data to a transient
+function append_to_transient($key, $value)
+{
+    $existing = get_transient($key);
+    if ($existing === false) {
+        $existing = '';
+    }
+    $new_value = $existing . $value;
+    set_transient($key, $new_value, HOUR_IN_SECONDS); // 1 hour expiration
 }
 
 function generate_template_html($templateData, $forEditor = false)
@@ -138,7 +156,7 @@ function generate_template_html($templateData, $forEditor = false)
     convertStringBooleans($templateData);
 
     $templateStructure = generate_template_structure($templateData, $forEditor);
-    return render_template_from_structure($templateStructure);
+    return render_template_from_structure($templateStructure, $templateData['template_id']);
 }
 
 
