@@ -154,6 +154,9 @@ function get_row_html($templateId, $rowIndex, $templateData = null, $isEditor = 
         error_log('Generating Column Set ' . $columnSetIndex . ' - Done');
     }
     $return .= implode('', $columnSetsArray);
+    $columnSetsArray = []; // Clear memory
+    ob_flush();
+    flush();
     $return .= "<!--[if mso]></td></tr></table><![endif]-->";
     $return .= "</div>"; // Close the row layout div
 
