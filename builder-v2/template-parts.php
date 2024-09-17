@@ -25,12 +25,119 @@ function generate_template_html_from_ajax()
     }
 }
 
+function generate_template_structure($templateData, $isEditor = false)
+{
+    $rows = $templateData['rows'] ?? [];
+    $templateOptions = $templateData['template_options'] ?? [];
+    $templateSettings = $templateOptions['message_settings'] ?? [];
+    $templateStyles = $templateOptions['template_styles'] ?? [];
 
+    $showIdHeader = filter_var($templateStyles['header-and-footer']['show_id_header'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    $showIdFooter = filter_var($templateStyles['header-and-footer']['show_id_footer'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+    $structure = ['top'=> [], 'rows'=> [], 'bottom' => []];
+
+    $structure['top']['head'] = idwiz_get_email_top($templateSettings, $templateStyles, $rows);
+    $structure['top']['body_start'] = idwiz_get_email_body_top($templateStyles);
+    if ($showIdHeader) {
+        $structure['top']['header'] = idwiz_get_standard_header($templateOptions);
+    }
+
+    $structure['rows'] = [];
+
+    foreach ($templateData['rows'] as $rowIndex => $row) {
+        $structure['rows'][$rowIndex] = [
+            'start' => generate_row_start($rowIndex, $templateData, $isEditor),
+            'columnSets' => [],
+            'end' => generate_row_end($row)
+        ];
+
+        foreach ($row['columnSets'] as $colSetIndex => $columnSet) {
+            $structure['rows'][$rowIndex]['columnSets'][$colSetIndex] = [
+                'start' => generate_columnset_start($rowIndex, $colSetIndex, $templateData, $isEditor),
+                'columns' => [],
+                'end' => generate_columnset_end($columnSet)
+            ];
+
+            $columns = $columnSet['columns'] ?? [];
+
+            // If Magic Wrap is on, reverse the order of columns but keep the keys intact
+            $magicWrap = $columnSet['magic_wrap'] ?? 'off';
+            if ($magicWrap == 'on') {
+                $columns = array_reverse($columnSet['columns'], true);
+            }
+
+            foreach ($columns as $colIndex => $column) {
+                $structure['rows'][$rowIndex]['columnSets'][$colSetIndex]['columns'][$colIndex] = [
+                    'start' => generate_column_start($rowIndex, $colSetIndex, $colIndex, $templateData, $isEditor ),
+                    'chunks' => [],
+                    'end' => generate_column_end()
+                ];
+
+                foreach ($column['chunks'] as $chunkIndex => $chunk) {
+                    $structure['rows'][$rowIndex]['columnSets'][$colSetIndex]['columns'][$colIndex]['chunks'][$chunkIndex] = [
+                        'chunk' => idwiz_get_chunk_template(false, $rowIndex, $colSetIndex, $colIndex, $chunkIndex, $templateData, $isEditor)
+                    ];
+                }
+            }
+        }
+    }
+
+    if ($showIdFooter) {
+        $structure['bottom']['footer'] = idwiz_get_standard_footer($templateStyles);
+    }
+    if (! empty($message_settings['fine_print_disclaimer'])) {
+        $structure['bottom']['fine_print'] = idwiz_get_fine_print_disclaimer($templateOptions);
+    }
+    $structure['bottom']['body_end'] = idwiz_get_email_body_bottom();
+    $structure['bottom']['closetags'] = idwiz_get_email_bottom();
+
+    return $structure;
+}
+
+function render_template_from_structure($structure)
+{
+    $html = '';
+
+    // Render top section
+    foreach ($structure['top'] as $topElement) {
+        $html .= $topElement;
+    }
+
+    // Render rows
+    foreach ($structure['rows'] as $row) {
+        $html .= $row['start'];
+        foreach ($row['columnSets'] as $columnSet) {
+            $html .= $columnSet['start'];
+            foreach ($columnSet['columns'] as $column) {
+                $html .= $column['start'];
+                foreach ($column['chunks'] as $chunk) {
+                    $html .= $chunk['chunk'];
+                }
+                $html .= $column['end'];
+            }
+            $html .= $columnSet['end'];
+        }
+        $html .= $row['end'];
+    }
+
+    // Render bottom section
+    foreach ($structure['bottom'] as $bottomElement) {
+        $html .= $bottomElement;
+    }
+
+    return $html;
+}
 
 function generate_template_html($templateData, $forEditor = false)
 {
     //convert string true/false in booleans through the template data
     convertStringBooleans($templateData);
+    
+    $templateStructure = generate_template_structure($templateData, $forEditor);
+    return render_template_from_structure($templateStructure);
+    
+
     $rows = $templateData['rows'] ?? [];
     $templateOptions = $templateData['template_options'] ?? [];
     $message_settings = $templateOptions['message_settings'] ?? [];
@@ -154,12 +261,33 @@ function get_row_html($templateId, $rowIndex, $templateData = null, $isEditor = 
         error_log('Generating Column Set ' . $columnSetIndex . ' - Done');
     }
     $return .= implode('', $columnSetsArray);
-    $columnSetsArray = []; // Clear memory
-    ob_flush();
-    flush();
     $return .= "<!--[if mso]></td></tr></table><![endif]-->";
     $return .= "</div>"; // Close the row layout div
 
+    return $return;
+}
+
+function generate_row_start($rowIndex, $templateData = null, $isEditor = false) {
+    if (!$templateData) {
+        return;
+    }
+    $row = $templateData['rows'][$rowIndex] ?? null;
+    if (!$row) return '';
+    $return = '';
+
+    $rowBackgroundCss = generate_background_css($row['background_settings']);
+    $rowBackgroundCssMso = generate_background_css($row['background_settings'], '', true);
+
+    // If this is showing in the editor, add a data attribute to the row
+    $rowDataAttr = $isEditor ? 'data-row-index=' . $rowIndex : '';
+
+    $return .= "<div class='row' $rowDataAttr style='font-size:0; width: 100%; margin: 0; padding: 0; " . $rowBackgroundCss . "'>";
+    $return .= "<!--[if mso]><table role='presentation' class='row' role='presentation' width='100%' style='$rowBackgroundCssMso white-space:nowrap;width: 100%; border: 0; border-spacing: 0;margin: 0 auto;text-align:center; '><tr><td><![endif]-->";
+    return $return;
+}
+function generate_row_end() {
+    $return = "<!--[if mso]></td></tr></table><![endif]-->";
+    $return .= "</div>"; // Close the row layout div
     return $return;
 }
 
@@ -232,7 +360,61 @@ function get_columnset_html($templateId, $rowIndex, $columnSetIndex, $templateDa
     return $return;
 }
 
+function
+generate_columnset_start($rowIndex, $columnSetIndex, $templateData = null, $isEditor = false) {
+    if (!$templateData) {
+       return;
+    }
 
+    $columnSet = $templateData['rows'][$rowIndex]['columnSets'][$columnSetIndex] ?? null;
+    if (!$columnSet) return '';
+
+    $return = '';
+
+    $allColumns = $columnSet['columns'] ?? []; // includes inactive columns
+
+    $magicRtl = '';
+    $magicWrap = $columnSet['magic_wrap'] ?? 'off';
+    if ($magicWrap == 'on') {
+        $magicRtl = 'dir="rtl"';
+    }
+
+    $mobileWrap = $columnSet['mobile_wrap'] ?? 'on';
+    $mobileWrapClass = '';
+    if ($mobileWrap !== 'on') {
+        $mobileWrapClass = 'noWrap';
+    }
+
+    foreach ($allColumns as $columnIndex => $allColumn) {
+        if ($allColumn['activation'] !== 'active') {
+            unset($allColumns[$columnIndex]);
+        }
+    }
+
+    $numActiveColumns = count($allColumns);
+
+    $colSetBackgroundCss = generate_background_css($columnSet['background_settings'], '', false);
+    $colSetBackgroundCssMso = generate_background_css($columnSet['background_settings'], '', true);
+
+    $layoutClass = $columnSet['layout'] ?? '';
+
+    $colSetDataAttr = $isEditor ? 'data-columnset-index=' . $columnSetIndex : '';
+
+    $displayTable = $numActiveColumns > 1 ? 'display: table;' : '';
+
+    $return .= "<div class='columnSet $layoutClass  $mobileWrapClass' $colSetDataAttr $magicRtl style='$colSetBackgroundCss text-align: center; font-size: 0; width: 100%; " . $displayTable . "'>";
+    $return .= "<!--[if mso]><table role='presentation' class='columnSet' role='presentation' width='100%' style='width: 100%; border: 0; border-spacing: 0;margin: 0 auto;text-align: center;'><tr><td style='$colSetBackgroundCssMso'><![endif]-->";
+    $return .= "<table role='presentation' width='100%' style='width: 100%; border: 0; border-spacing: 0;margin: 0 auto;'><tr>";
+    return $return;
+}
+
+function generate_columnset_end() {
+    $return = "</tr></table>";
+    $return .= "<!--[if mso]></td></tr></table><![endif]-->";
+    $return .= "</div>"; // Close the colset layout div
+
+    return $return;
+}
 
 function get_column_html($templateId, $rowIndex, $columnSetIndex, $columnIndex, $templateData = null, $isEditor = false)
 {
@@ -316,6 +498,80 @@ function get_column_html($templateId, $rowIndex, $columnSetIndex, $columnIndex, 
     return $return;
 }
 
+function generate_column_start($rowIndex, $columnSetIndex, $columnIndex, $templateData = null, $isEditor = false) {
+    if (!$templateData) {
+        return;
+    }
+
+    $columnSet = $templateData['rows'][$rowIndex]['columnSets'][$columnSetIndex] ?? null;
+    if (!$columnSet) return '';
+    $layoutClass = $columnSet['layout'] ?? '';
+    $mobileWrap = $columnSet['mobile_wrap'] ?? 'on';
+    $mobileWrapClass = '';
+
+    if ($mobileWrap == 'on') {
+        $mobileWrapClass = 'wrap';
+    }
+    $columns = $columnSet['columns'];
+    $column = $columns[$columnIndex] ?? null;
+
+    if (!$column || $column['activation'] !== 'active') {
+        return '';
+    }
+
+    $templateStyles = $templateData['template_options']['template_styles'];
+    $colValign = $column['settings']['valign'] ? strtolower($column['settings']['valign']) : 'top';
+
+    $colBackgroundCSS = generate_background_css($column['settings'], '');
+    $msoColBackgroundCSS = generate_background_css($column['settings'], '', true);
+
+    $templateWidth = $templateStyles['body-and-background']['template_width'];
+    $templateWidth = (int) $templateWidth > 0 ? (int) $templateWidth : 648;
+
+    // Determine column width based on layout and style index
+    if ($layoutClass === 'two-col') {
+        $columnWidthPx = round($templateWidth / 2, 0);
+        $columnWidthPct = 50;
+    } elseif ($layoutClass === 'three-col') {
+        $columnWidthPx = round($templateWidth / 3, 0);
+        $columnWidthPct = 33.33;
+    } elseif ($layoutClass === 'sidebar-left') {
+        if ($columnIndex === 0) {
+            $columnWidthPx = round($templateWidth * 0.33, 0);
+            $columnWidthPct = 33.33;
+        } else {
+            $columnWidthPx = round($templateWidth * 0.67, 0);
+            $columnWidthPct = 66.67;
+        }
+    } elseif ($layoutClass === 'sidebar-right') {
+        if ($columnIndex === 0) {
+            $columnWidthPx = round($templateWidth * 0.67, 0);
+            $columnWidthPct = 66.67;
+        } else {
+            $columnWidthPx = round($templateWidth * 0.33, 0);
+            $columnWidthPct = 33.33;
+        }
+    } else {
+        // Default layout (single column)
+        $columnWidthPx = $templateWidth;
+        $columnWidthPct = 100;
+    }
+
+    $columnStyle = "width: {$columnWidthPct}%; max-width: {$columnWidthPx}px; font-size: {$templateStyles['font-styles']['template_font_size']}; vertical-align: {$colValign}; text-align: left; display: inline-block;";
+
+    $columnDataAttr = $isEditor ? 'data-column-index=' . $columnIndex : '';
+    $return = "<div class='column $mobileWrapClass' $columnDataAttr style='$columnStyle $colBackgroundCSS' dir='ltr'>";
+    $return .= "<!--[if mso]><td style='width:{$columnWidthPx}px; $msoColBackgroundCSS' width='{$columnWidthPx}' valign='{$colValign}'><![endif]-->";
+
+    return  $return;
+}
+
+function generate_column_end() {
+    $return = "<!--[if mso]></td><![endif]-->";
+    $return .= "</div>"; // Close .column div
+
+    return $return;
+}
 
 function idwiz_get_chunk_template($templateId, $rowIndex, $columnSetIndex, $columnIndex, $chunkIndex, $templateData = null, $isEditor = false)
 {

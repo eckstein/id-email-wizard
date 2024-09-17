@@ -687,7 +687,6 @@ function render_chunk_settings($chunkType, $chunkData, $uniqueId)
                 'div',
                 'list_width',
                 'icon_width',
-                'icon_width_mobile',
                 'div',
                 'background_settings'
             );
@@ -844,12 +843,6 @@ function show_specific_chunk_settings($chunkData, $uniqueId, $settings, $chunkTy
                     $iconWidth = $chunkSettings['icon_width'] ?? '100px';
                     echo "<div class='builder-field-wrapper icon-width'><label for='{$uniqueId}-icon-width'>Icon Width</label>";
                     echo "<input type='text' name='icon_width' id='{$uniqueId}-icon-width' value='{$iconWidth}'>";
-                    echo "</div>";
-                    break;
-                case 'icon_width_mobile':
-                    $iconWidthMobile = $chunkSettings['icon_width_mobile'] ?? '80px';
-                    echo "<div class='builder-field-wrapper icon-width-mobile'><label for='{$uniqueId}-icon-width-mobile'>Icon Width (mobile)</label>";
-                    echo "<input type='text' name='icon_width_mobile' id='{$uniqueId}-icon-width-mobile' value='{$iconWidthMobile}'>";
                     echo "</div>";
                     break;
                 case 'background_settings':
@@ -1059,7 +1052,7 @@ function get_chunk_preview($chunkData = [], $chunkType = null)
     if (!$chunkType) {
         return;
     }
-    $chunkPreview = ucfirst($chunkType);
+    $chunkPreview = ucwords(str_replace('-',' ',$chunkType));
 
     if ($chunkType == 'text' && isset($chunkData['fields'])) {
         $chunkPreview = $chunkData['fields']['plain_text_content'] ? mb_substr(strip_tags(stripslashes($chunkData['fields']['plain_text_content'])), 0, 32) . '...' : '';

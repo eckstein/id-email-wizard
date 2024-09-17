@@ -316,6 +316,7 @@ function idwiz_get_icon_list_chunk($chunk, $templateOptions, $chunkIndex = null,
 	$msoBackgroundColorCss = generate_background_css($chunkSettings, '', true);
 
 	$chunkPadding = $chunkSettings['chunk_padding'] ?? '0px';
+	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
 	$chunkPaddingCss = $chunkPadding ? 'padding:' . $chunkPadding . ';' : '';
 	$msoPaddingToMargin = $chunkPadding ? 'margin:' . $chunkPadding . ';' : 'margin: 0;';
 
@@ -324,7 +325,6 @@ function idwiz_get_icon_list_chunk($chunk, $templateOptions, $chunkIndex = null,
 
 	$listWidth = $chunkSettings['list_width'] ?? '600px';
 	$iconWidth = $chunkSettings['icon_width'] ?? '80px';
-	$iconWidthMobile = $chunkSettings['icon_width_mobile'] ?? '75px';
 
 	$imageSrc = $chunkFields['image_url'] ?? '';
 	$cachedImageSrc = get_wizbuilder_image_src($imageSrc ?? '', $isEditor);
@@ -338,7 +338,7 @@ function idwiz_get_icon_list_chunk($chunk, $templateOptions, $chunkIndex = null,
 	$baseTextColor = $chunkSettings['text_base_color'] ?? '#000000';
 
 	$output = '';
-	$output .= '<div class="chunk id-icon-list ' . $visibility['class'] . ' ' . $pPaddingClass . '" ' . $chunkDataAttr . ' style="' . $backgroundColorCss . ' ' . $visibility['inlineStyle'] . $chunkPaddingCss . ' color:'. $baseTextColor.'">';
+	$output .= '<div class="chunk id-icon-list ' . $chunkClasses . ' ' .$visibility['class'] . ' ' . $pPaddingClass . '" ' . $chunkDataAttr . ' style="' . $backgroundColorCss . ' ' . $visibility['inlineStyle'] . $chunkPaddingCss . ' color:'. $baseTextColor.'">';
 
 	if ($visibility['class'] == 'mobile-only') {
 		$output .= '<!--[if !mso]><!-->';
@@ -850,8 +850,12 @@ function idwiz_get_email_top($templateSettings, $templateStyles, $rows)
 		<title>
 			<?php
 			$subjectLine = $templateSettings['subject_line'] ?? '';
-			// re-convert back to non-html-entities
-			echo html_entity_decode($subjectLine);
+
+			// Remove anything that's not plain text and re-convert back to non-html-entities
+			$subjectLine = strip_tags($subjectLine);
+			$subjectLine = html_entity_decode($subjectLine, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+			
+			echo $subjectLine;
 			?>
 		</title>
 
@@ -879,12 +883,6 @@ function idwiz_get_email_top($templateSettings, $templateStyles, $rows)
 		</noscript>
 		<![endif]-->
 	</head>
-
-	<?php
-
-	?>
-
-
 <?php
 	return ob_get_clean();
 }
