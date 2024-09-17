@@ -253,7 +253,17 @@
         font-family: 'Poppins', Helvetica, Arial, sans-serif;
     }
 
+    .columnSet {
+       white-space: nowrap;
+    }
+    .column {
+        white-space: normal;
+    }
+
     @media screen and (max-width: 460px) {
+        .columnSet.noWrap {
+            white-space: nowrap;
+        }
 
         /* Mobile Headers */
         h1 {

@@ -515,6 +515,7 @@ function toggle_chunk_type_choices($clicked) {
             '<div class="wiz-tiny-dropdown-options" data-layout="text"><i class="fas fa-align-left"></i> Text</div>' +
             '<div class="wiz-tiny-dropdown-options" data-layout="image"><i class="fas fa-image"></i> Image</div>' +
             '<div class="wiz-tiny-dropdown-options" data-layout="button"><i class="fas fa-square"></i> Button</div>' +
+            '<div class="wiz-tiny-dropdown-options" data-layout="icon-list"><i class="fa-solid fa-list"></i> Icon List</div>' +
             '<div class="wiz-tiny-dropdown-options" data-layout="spacer"><i class="fas fa-arrows-alt-v"></i> Spacer</div>' +
             '<div class="wiz-tiny-dropdown-options" data-layout="html"><i class="fa-solid fa-code"></i> Raw HTML</div>' +
             '<div class="wiz-tiny-dropdown-options" data-layout="snippet"><i class="fa-solid fa-file-code"></i> Snippet</div>' +

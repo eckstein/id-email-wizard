@@ -196,3 +196,137 @@ function inline_button($inlineButton=false) {
  
 return ob_get_clean();
 }
+
+
+
+function get_visibility_class_and_style($settingsObject)
+{
+
+    $desktopVisibility = filter_var($settingsObject['desktop_visibility'] ?? true, FILTER_VALIDATE_BOOLEAN);
+    $mobileVisibility = filter_var($settingsObject['mobile_visibility'] ?? true, FILTER_VALIDATE_BOOLEAN);
+
+    // Initialize class and inline style
+    $classes = [];
+    $inlineStyle = 'display: block;';
+
+    // Determine classes and inline style based on visibility
+    if ($desktopVisibility === true && $mobileVisibility === false) {
+        // Visible on desktop only
+        $classes[] = 'desktop-only';
+    } elseif ($desktopVisibility === false && $mobileVisibility === true) {
+        // Visible on mobile only
+        $classes[] = 'mobile-only';
+        $inlineStyle = 'display: none;'; // Hide by default, shown on mobile
+    } elseif ($desktopVisibility === false && $mobileVisibility === false) {
+        // Hidden on all devices
+        $inlineStyle = 'display: none !important;';
+    }
+
+    // Join all classes into a single string
+    $class = implode(' ', $classes);
+
+    // Return the class and style as an associative array
+    return [
+        'class' => $class,
+        'inlineStyle' => $inlineStyle
+    ];
+}
+
+add_action('wp_ajax_generate_background_css_ajax', 'generate_background_css_ajax');
+function generate_background_css_ajax()
+{
+    $backgroundSettings = $_POST['backgroundSettings'] ?? [];
+    $prefix = $_POST['prefix'] ?? '';
+    $css = generate_background_css($backgroundSettings, $prefix);
+    echo json_encode($css);
+    die();
+}
+function generate_background_css($backgroundSettings, $prefix = '', $forMso = false)
+{
+    $bg_type = $backgroundSettings[$prefix . 'background-type'] ?? 'none';
+    $css = [];
+
+    switch ($bg_type) {
+
+
+        case 'custom':
+            // No fallbacks, just send the custom CSS as-is
+            $custom_css = $backgroundSettings[$prefix . 'custom-background-css'] ? trim($backgroundSettings[$prefix . 'custom-background-css']) : '';
+            $css[] = $custom_css;
+            break;
+        case 'image':
+            // Image properties
+            $image_url = $backgroundSettings[$prefix . 'background-image-url'];
+            $position = $backgroundSettings[$prefix . 'background-image-position'] != '' ? $backgroundSettings[$prefix . 'background-image-position'] : 'center';
+            $size = $backgroundSettings[$prefix . 'background-image-size'] != '' ? $backgroundSettings[$prefix . 'background-image-size'] : 'cover';
+
+            // Fallback color and additional properties
+            $fallback_color = $backgroundSettings[$prefix . 'background-color'] ?? 'transparent';
+            if ($fallback_color == 'rgba(0,0,0,0)') {
+                $fallback_color = 'transparent';
+            }
+
+            // Only include fallback color for mso clients
+            if ($forMso) {
+                $css[] = "background-color: $fallback_color;";
+            }
+            if ($image_url) {
+                $css[] = "background-image: url($image_url);";
+                $css[] = "background-position: $position;";
+                $css[] = "background-size: $size;";
+            }
+
+
+
+            // For outlook, exclude image position stuff since not necessary
+            if (! $forMso) {
+                // Background repeat
+                $bgRepeatY = $backgroundSettings[$prefix . 'background-repeat-vertical'] ?? false;
+                $bgRepeatX = $backgroundSettings[$prefix . 'background-repeat-horizontal'] ?? false;
+                if ($bgRepeatY === true && $bgRepeatX === true) {
+                    $css[] = "background-repeat: repeat;";
+                } else if ($bgRepeatY === true) {
+                    $css[] = "background-repeat: repeat-y;";
+                } else if ($bgRepeatX === true) {
+                    $css[] = "background-repeat: repeat-x;";
+                } else {
+                    $css[] = "background-repeat: no-repeat;";
+                }
+            }
+
+            break;
+
+        case 'solid':
+            // Solid color background
+            $color = $backgroundSettings[$prefix . 'background-color'] ?? 'transparent';
+            if ($color == 'rgba(0,0,0,0)') {
+                $color = 'transparent';
+            }
+            $css[] = "background-color: $color;";
+
+            break;
+
+        case 'none':
+            // Transparent background
+            $css[] = "background-color: transparent;";
+            break;
+    }
+
+    // Check for forced background color
+    $forceBackground = $backgroundSettings[$prefix . 'force-background'] ?? false;
+
+    // If a background color is set and not transparent, force it using linear gradient
+    if (
+        $forceBackground == 'true'
+        && $bg_type != 'none'
+        && isset($backgroundSettings[$prefix . 'background-color'])
+        && $backgroundSettings[$prefix . 'background-color'] != 'transparent'
+        && ! $forMso
+    ) {
+        $css[] = "background-image: linear-gradient({$backgroundSettings[$prefix . 'background-color']}, {$backgroundSettings[$prefix . 'background-color']});";
+    }
+
+
+
+    return implode(" ", $css);
+}

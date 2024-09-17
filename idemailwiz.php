@@ -7,6 +7,11 @@
  * Author: Zac Eckstein for iD Tech
  * License: Private
  */
+
+if (!defined('ABSPATH')) {
+    exit; // Exit if accessed directly
+}
+
 //define the path to the plugin file
 define('IDEMAILWIZ_ROOT', __FILE__);
 
@@ -50,58 +55,6 @@ function idemailwiz_post_activate()
     //flush permalinks
     flush_rewrite_rules();
 }
-//Get the term ID of the default folder and save it to options (runs on first page load after activation)
-function idemailwiz_set_root_folder()
-{
-    // Retrieve the current settings
-    $options = get_option('idemailwiz_settings');
-
-    // Check if the 'folder_base' setting is already set
-    if (empty($options['folder_base'])) {
-        // Create a new term for the root folder
-        $trashTerm = wp_insert_term('Trash', 'idemailwiz_folder', array('slug' => 'trash'));
-
-        // Check if the term was created successfully
-        if (!is_wp_error($trashTerm)) {
-            // Update the 'folder_base' setting with the newly created term ID
-            $options['folder_base'] = $trashTerm['term_id'];
-
-            // Save the updated options back to the database
-            update_option('idemailwiz_settings', $options);
-        }
-    }
-}
-
-//Create a term for the trash folder (runs on first page load after activation)
-function idemailwiz_set_trash_term()
-{
-    // Retrieve the current settings
-    $options = get_option('idemailwiz_settings');
-
-    // Check if the 'folder_trash' setting is already set
-    if (empty($options['folder_trash'])) {
-        // Create a new term for the trash folder
-        $trashTerm = wp_insert_term('Trash', 'idemailwiz_folder', array('slug' => 'trash'));
-
-        // Check if the term was created successfully
-        if (!is_wp_error($trashTerm)) {
-            // Update the 'folder_trash' setting with the newly created term ID
-            $options['folder_trash'] = $trashTerm['term_id'];
-
-            // Save the updated options back to the database
-            update_option('idemailwiz_settings', $options);
-        }
-    }
-}
-
-//Options pages
-include(plugin_dir_path(__FILE__) . 'includes/wiz-options.php');
-
-// WP Big Image Size Threshold
-add_filter('big_image_size_threshold', function ($threshold) {
-    return 1920; // Sets maximum image dimension to 1920 pixels
-});
-
 
 // Deactivation
 register_deactivation_hook(__FILE__, 'idemailwiz_deactivate');
@@ -111,583 +64,48 @@ function idemailwiz_deactivate()
 }
 
 //require files
-require_once(plugin_dir_path(__FILE__) . 'includes/functions.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/databases.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/database-cleanup.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/initiatives.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/journeys.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/wizSnippets.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/comparisons.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/sync.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/manual-import.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/wiz-log.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/cUrl.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/wiz-rest.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/pulse-connection.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/data-tables.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/charts.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/reporting.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/promo-codes.php');
+$files = [
+    'includes/functions.php',
+    'includes/databases.php',
+    'includes/types-and-taxes.php',
+    'includes/rewrites-and-redirects.php',
+    'includes/template-router.php',
+    'includes/wiz-ajax.php',
+    'includes/database-cleanup.php',
+    'includes/initiatives.php',
+    'includes/journeys.php',
+    'includes/wizSnippets.php',
+    'includes/comparisons.php',
+    'includes/sync.php',
+    'includes/manual-import.php',
+    'includes/wiz-log.php',
+    'includes/cUrl.php',
+    'includes/wiz-rest.php',
+    'includes/pulse-connection.php',
+    'includes/data-tables.php',
+    'includes/charts.php',
+    'includes/reporting.php',
+    'includes/promo-codes.php',
+    'builder-v2/wiz-folder-init.php',
+    'builder-v2/template-request-handler.php',
+    'builder-v2/template-get-and-save.php',
+    'builder-v2/builder-functions.php',
+    'builder-v2/template-parts.php',
+    'builder-v2/template-data.php',
+    'builder-v2/image-handling.php',
+    'builder-v2/chunks.php',
+    'builder-v2/chunk-helpers.php',
+    'builder-v2/wysiwyg-utils.php',
+    'includes/folder-tree.php',
+    'includes/folder-template-actions.php',
+    'includes/archive-query.php',
+    'includes/iterable-functions.php',
+    'includes/google-sheets-api.php'
+];
 
-require_once(plugin_dir_path(__FILE__) . 'builder-v2/chunks.php');
-
-//require_once(plugin_dir_path(__FILE__) . 'includes/wysiwyg.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/template-builder.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/chunk-helpers.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/folder-tree.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/folder-template-actions.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/archive-query.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/iterable-functions.php');
-require_once(plugin_dir_path(__FILE__) . 'includes/google-sheets-api.php');
-
-
-add_filter('post_type_link', 'custom_template_permalink', 10, 2);
-function custom_template_permalink($post_link, $post) {
-    if ($post->post_type === 'idemailwiz_template') {
-        return home_url("/template/{$post->ID}/" . $post->post_name . '/');
-    }
-    return $post_link;
+foreach ($files as $file) {
+    require_once(plugin_dir_path(__FILE__) . $file);
 }
-
-// Register custom post types
-add_action('init', 'idwiz_register_custom_post_types', 0);
-function idwiz_register_custom_post_types()
-{
-    
-
-    $promoCodeLabels = array(
-        'name' => 'Promo Codes',
-        'singular_name' => 'Promo Code',
-        'menu_name' => __('Promo Codes', 'idemailwiz'),
-        'name_admin_bar' => __('Promo Code', 'idemailwiz'),
-        'archives' => __('Promo Code Archives', 'idemailwiz'),
-        'attributes' => __('Promo Code Attributes', 'idemailwiz'),
-        'parent_item_colon' => __('Parent Promo Code:', 'idemailwiz'),
-        'all_items' => __('All Promo Codes', 'idemailwiz'),
-        'add_new_item' => __('Add New Promo Code', 'idemailwiz'),
-        'add_new' => __('Add New', 'idemailwiz'),
-        'new_item' => __('New Promo Code', 'idemailwiz'),
-        'edit_item' => __('Edit Promo Code', 'idemailwiz'),
-        'update_item' => __('Update Promo Code', 'idemailwiz'),
-        'view_item' => __('View Promo Code', 'idemailwiz'),
-        'view_items' => __('View Promo Codes', 'idemailwiz'),
-        'search_items' => __('Search Promo Code', 'idemailwiz'),
-        'insert_into_item' => __('Insert into promo code', 'idemailwiz'),
-        'uploaded_to_this_item' => __('Uploaded to this promo code', 'idemailwiz'),
-        'items_list' => __('Promo codes list', 'idemailwiz'),
-        'items_list_navigation' => __('Promo codes list navigation', 'idemailwiz'),
-        'filter_items_list' => __('Filter promo codes list', 'idemailwiz'),
-    );
-
-    
-
-
-    $promoCodeArgs = array(
-        'labels' => $promoCodeLabels,
-        'public' => true,
-        'has_archive' => 'promo-codes',
-        'supports' => array('title', 'custom-fields'),
-        'rewrite' => array(
-            'slug' => 'promo-code',
-            'with_front' => false
-        ),
-    );
-    register_post_type('wiz_promo_code', $promoCodeArgs);
-
-    function custom_promo_code_rewrite_rules()
-    {
-        add_rewrite_rule(
-            'promo-code/([0-9]+)/?$',
-            'index.php?post_type=wiz_promo_code&p=$matches[1]',
-            'top'
-        );
-
-        // Preserve the archive page rule
-        add_rewrite_rule(
-            'promo-codes/?$',
-            'index.php?post_type=wiz_promo_code',
-            'top'
-        );
-    }
-    add_action('init', 'custom_promo_code_rewrite_rules', 10, 0);
-
-    function custom_promo_code_post_link($post_link, $post)
-    {
-        if ($post->post_type === 'wiz_promo_code') {
-            return home_url("promo-code/{$post->ID}/");
-        }
-        return $post_link;
-    }
-    add_filter('post_type_link', 'custom_promo_code_post_link', 10, 2);
-
-    function custom_promo_code_request($query_vars)
-    {
-        if (
-            isset($query_vars['post_type']) && $query_vars['post_type'] === 'wiz_promo_code'
-            && isset($query_vars['name'])
-        ) {
-            $query_vars['p'] = $query_vars['name'];
-            unset($query_vars['name']);
-        }
-        return $query_vars;
-    }
-    add_filter('request', 'custom_promo_code_request');
-
-    $templateLabels = array(
-        'name' => 'Templates',
-        'singular_name' => 'Template',
-        // Add other labels as needed
-    );
-
-    $templateArgs = array(
-        'labels' => $templateLabels,
-        'public' => true,
-        'has_archive' => true,
-        'supports' => array('title', 'editor', 'thumbnail', 'custom-fields'),
-        'show_in_rest' => true, // This is required if you want to use this post type with Gutenberg
-        'rewrite' => array(
-            'slug' => 'template', // This is the base slug for your templates
-            'with_front' => false, // This ensures that the slug is exactly what you specify, not prepended with a front base
-        ),
-    );
-
-
-   
-
-    register_post_type('idemailwiz_template', $templateArgs);
-
-    $initiativeLabels = array(
-        'name' => _x('Initiatives', 'Post Type General Name', 'idemailwiz'),
-        'singular_name' => _x('Initiative', 'Post Type Singular Name', 'idemailwiz'),
-        'menu_name' => __('Initiatives', 'idemailwiz'),
-        'name_admin_bar' => __('Initiative', 'idemailwiz'),
-        'archives' => __('Initiative Archives', 'idemailwiz'),
-        'attributes' => __('Initiative Attributes', 'idemailwiz'),
-        'parent_item_colon' => __('Parent Initiative:', 'idemailwiz'),
-        'all_items' => __('All Initiatives', 'idemailwiz'),
-        'add_new_item' => __('Add New Initiative', 'idemailwiz'),
-        'add_new' => __('Add New', 'idemailwiz'),
-        'new_item' => __('New Initiative', 'idemailwiz'),
-        'edit_item' => __('Edit Initiative', 'idemailwiz'),
-        'update_item' => __('Update Initiative', 'idemailwiz'),
-        'view_item' => __('View Initiative', 'idemailwiz'),
-        'view_items' => __('View Initiatives', 'idemailwiz'),
-        'search_items' => __('Search Initiative', 'idemailwiz'),
-        'not_found' => __('Not found', 'idemailwiz'),
-        'not_found_in_trash' => __('Not found in Trash', 'idemailwiz'),
-        'featured_image' => __('Featured Image', 'idemailwiz'),
-        'set_featured_image' => __('Set featured image', 'idemailwiz'),
-        'remove_featured_image' => __('Remove featured image', 'idemailwiz'),
-        'use_featured_image' => __('Use as featured image', 'idemailwiz'),
-        'insert_into_item' => __('Insert into initiative', 'idemailwiz'),
-        'uploaded_to_this_item' => __('Uploaded to this initiative', 'idemailwiz'),
-        'items_list' => __('Initiatives list', 'idemailwiz'),
-        'items_list_navigation' => __('Initiatives list navigation', 'idemailwiz'),
-        'filter_items_list' => __('Filter initiatives list', 'idemailwiz'),
-    );
-
-    $initiativeArgs = array(
-        'label' => __('Initiative', 'idemailwiz'),
-        'description' => __('Initiative Description', 'idemailwiz'),
-        'labels' => $initiativeLabels,
-        'supports' => array('title', 'editor', 'thumbnail', 'custom-fields', 'revisions', 'page-attributes'),
-        'taxonomies' => array('category', 'post_tag'),
-        // Optional
-        'hierarchical' => true,
-        'public' => true,
-        'show_ui' => true,
-        'show_in_menu' => true,
-        'menu_position' => 5,
-        'show_in_admin_bar' => true,
-        'show_in_nav_menus' => true,
-        'can_export' => true,
-        'exclude_from_search' => false,
-        'publicly_queryable' => true,
-        'rewrite' => ['slug' => 'initiative'],
-        'has_archive' => 'initiatives',
-        'capability_type' => 'post',
-        'show_in_rest' => true,
-        // Enable Gutenberg editor
-    );
-
-    register_post_type('idwiz_initiative', $initiativeArgs);
-
-    $comparisonLabels = array(
-        'name' => _x('Comparisons', 'Post Type General Name', 'idemailwiz'),
-        'singular_name' => _x('Comparison', 'Post Type Singular Name', 'idemailwiz'),
-        'menu_name' => __('Comparisons', 'idemailwiz'),
-        'name_admin_bar' => __('Comparison', 'idemailwiz'),
-        'archives' => __('Comparison Archives', 'idemailwiz'),
-        'attributes' => __('Comparison Attributes', 'idemailwiz'),
-        'parent_item_colon' => __('Parent Comparison:', 'idemailwiz'),
-        'all_items' => __('All Comparisons', 'idemailwiz'),
-        'add_new_item' => __('Add New Comparison', 'idemailwiz'),
-        'add_new' => __('Add New', 'idemailwiz'),
-        'new_item' => __('New Comparison', 'idemailwiz'),
-        'edit_item' => __('Edit Comparison', 'idemailwiz'),
-        'update_item' => __('Update Comparison', 'idemailwiz'),
-        'view_item' => __('View Comparison', 'idemailwiz'),
-        'view_items' => __('View Comparisons', 'idemailwiz'),
-        'search_items' => __('Search Comparison', 'idemailwiz'),
-        'not_found' => __('Not found', 'idemailwiz'),
-        'not_found_in_trash' => __('Not found in Trash', 'idemailwiz'),
-        'featured_image' => __('Featured Image', 'idemailwiz'),
-        'set_featured_image' => __('Set featured image', 'idemailwiz'),
-        'remove_featured_image' => __('Remove featured image', 'idemailwiz'),
-        'use_featured_image' => __('Use as featured image', 'idemailwiz'),
-        'insert_into_item' => __('Insert into comparison', 'idemailwiz'),
-        'uploaded_to_this_item' => __('Uploaded to this comparison', 'idemailwiz'),
-        'items_list' => __('Comparisons list', 'idemailwiz'),
-        'items_list_navigation' => __('Comparisons list navigation', 'idemailwiz'),
-        'filter_items_list' => __('Filter comparisons list', 'idemailwiz'),
-    );
-     $comparisonArgs = array(
-        'label' => __('Comparison', 'idemailwiz'),
-        'description' => __('Comparison Description', 'idemailwiz'),
-        'labels' => $comparisonLabels,
-        'supports' => array('title', 'editor', 'thumbnail', 'custom-fields', 'revisions', 'page-attributes'),
-        'taxonomies' => array('category', 'post_tag'),
-        // Optional
-        'hierarchical' => true,
-        'public' => true,
-        'show_ui' => true,
-        'show_in_menu' => true,
-        'menu_position' => 5,
-        'show_in_admin_bar' => true,
-        'show_in_nav_menus' => true,
-        'can_export' => true,
-        'exclude_from_search' => false,
-        'publicly_queryable' => true,
-        'rewrite' => ['slug' => 'comparison'],
-        'has_archive' => 'comparisons',
-        'capability_type' => 'post',
-        'show_in_rest' => true,
-        // Enable Gutenberg editor
-    );
-
-    register_post_type('idwiz_comparison', $comparisonArgs);
-
-
-
-    // register_post_type('journey', array(
-    //     'labels' => array(
-    //         'name' => 'Journeys',
-    //         'singular_name' => 'Journey',
-    //         'menu_name' => 'Journeys',
-    //         'all_items' => 'All Journeys',
-    //         'edit_item' => 'Edit Journey',
-    //         'view_item' => 'View Journey',
-    //         'view_items' => 'View Journeys',
-    //         'add_new_item' => 'Add New Journey',
-    //         'new_item' => 'New Journey',
-    //         'parent_item_colon' => 'Parent Journey:',
-    //         'search_items' => 'Search Journeys',
-    //         'not_found' => 'No journeys found',
-    //         'not_found_in_trash' => 'No journeys found in Trash',
-    //         'archives' => 'Journey Archives',
-    //         'attributes' => 'Journey Attributes',
-    //         'insert_into_item' => 'Insert into journey',
-    //         'uploaded_to_this_item' => 'Uploaded to this journey',
-    //         'filter_items_list' => 'Filter journeys list',
-    //         'filter_by_date' => 'Filter journeys by date',
-    //         'items_list_navigation' => 'Journeys list navigation',
-    //         'items_list' => 'Journeys list',
-    //         'item_published' => 'Journey published.',
-    //         'item_published_privately' => 'Journey published privately.',
-    //         'item_reverted_to_draft' => 'Journey reverted to draft.',
-    //         'item_scheduled' => 'Journey scheduled.',
-    //         'item_updated' => 'Journey updated.',
-    //         'item_link' => 'Journey Link',
-    //         'item_link_description' => 'A link to a journey.',
-    //     ),
-    //     'public' => true,
-    //     'show_in_rest' => true,
-    //     'menu_icon' => 'dashicons-schedule',
-    //     'supports' => ['title', 'editor', 'custom-fields', 'thumbnail'],
-    //     'has_archive' => 'journeys',
-    //     'rewrite' => ['slug' => 'journey'],
-    //     'delete_with_user' => false,
-    // )
-    // );
-
-    register_post_type('wysiwyg_snippet', [
-        'labels' => ['name' => __('Snippets'), 'singular_name' => __('Snippet')],
-        'public' => true,
-        'has_archive' => 'snippets',
-        'rewrite' => ['slug' => 'snippet'],
-        'supports' => ['title', 'editor', 'custom-fields'], 
-        'delete_with_user' => false,
-        'capability_type' => 'post',
-        'show_in_rest' => true,
-        'show_in_menu' => 'edit.php?post_type=idemailwiz_template',
-    ]);
-
-
-
-}
-
-add_post_type_support('idwiz_initiative', 'thumbnail');
-
-function idemailwiz_custom_archive_templates($tpl)
-{
-    if (is_post_type_archive('idwiz_initiative')) {
-        $tpl = plugin_dir_path(__FILE__) . 'templates/archive-initiative.php';
-    }
-
-    if (is_post_type_archive('idwiz_comparison')) {
-        $tpl = plugin_dir_path(__FILE__) . 'templates/archive-comparison.php';
-    }
-
-    if (is_post_type_archive('wiz_promo_code')) {
-        $tpl = plugin_dir_path(__FILE__) . 'templates/archive-promo-code.php';
-    }
-
-    return $tpl;
-
-}
-
-add_filter('archive_template', 'idemailwiz_custom_archive_templates');
-
-//Register folder taxonomy
-add_action('init', 'idemailwiz_create_taxonomies', 10);
-function idemailwiz_create_taxonomies()
-{
-    $folderLabels = array(
-        'name' => 'Folders',
-        'singular_name' => 'Folder',
-        'public' => true,
-        'show_admin_column' => true,
-        // Add other labels as needed
-    );
-
-    $folderargs = array(
-        'labels' => $folderLabels,
-        'public' => true,
-        'hierarchical' => true,
-        'show_in_rest' => true,
-        // This is required if you want to use this taxonomy with Gutenberg
-
-        'default_term' => array(
-            'name' => 'All Templates',
-            'slug' => 'all',
-        ),
-        'has_archive' => true,
-        'rewrite' => array(
-            'slug' => 'templates',
-            'hierarchical' => true,
-            'with_front' => false,
-        ),
-        'query_var' => true,
-    );
-
-    register_taxonomy('idemailwiz_folder', 'idemailwiz_template', $folderargs);
-
- 
-
-
-
-}
-
-
-
-
-// Custom rewrite rules and endpoints
-function idemailwiz_custom_rewrite_rule()
-{
-    // Template editor rewrite
-    add_rewrite_rule('^template/([0-9]+)/([^/]+)/?', 'index.php?post_type=idemailwiz_template&p=$matches[1]', 'top');
-
-    // Add custom endpoints
-    add_rewrite_endpoint('metrics/campaign', EP_ROOT);
-    add_rewrite_endpoint('metrics/journey', EP_ROOT);
-    //add_rewrite_endpoint('build-template', EP_ROOT);
-    add_rewrite_endpoint('build-template-v2', EP_ROOT);
-    add_rewrite_endpoint('user-profile', EP_ROOT);
-    add_rewrite_endpoint('settings', EP_ROOT);
-    add_rewrite_endpoint('sync-station', EP_ROOT);
-    add_rewrite_endpoint('campaign-monitor', EP_ROOT);
-    add_rewrite_endpoint('course-mapping', EP_ROOT);
-
-    add_rewrite_endpoint('endpoints/iterable-triggeredSend', EP_ROOT);
-
-    // Custom ajax endpoint
-    add_rewrite_rule('^idwiz-ajax/?$', 'index.php?idwiz_ajax_endpoint=1', 'top');
-    add_rewrite_tag('%idwiz_ajax_endpoint%', '([0-9]+)');
-}
-
-add_action('init', 'idemailwiz_custom_rewrite_rule', 10);
-
-
-
-
-
-
-
-//Use our custom templates for archives, single templates, etc
-function idemailwiz_template_chooser($template) 
-{
-    global $wp_query;
-    $post_type = get_query_var('post_type');
-
-    
-    if (is_page('playground')) {
-        return dirname(__FILE__) . '/templates/wiz-playground.php';
-    }
-
-    if (is_post_type_archive('idemailwiz_template') || is_tax('idemailwiz_folder')) {
-        return dirname(__FILE__) . '/templates/taxonomy-idemailwiz_folder.php';
-    }
-
-    if (get_post_type() == 'idemailwiz_template' && is_single()) {
-        return dirname(__FILE__) . '/templates/single-idemailwiz_template-v2.php';
-    }
-
-    if (get_post_type() == 'idwiz_initiative' && is_single()) {
-        return dirname(__FILE__) . '/templates/single-initiative.php';
-    }
-    if (get_post_type() == 'wiz_promo_code' && is_single()) {
-        return dirname(__FILE__) . '/templates/single-promo-code.php';
-    }
-
-    if (get_post_type() == 'idwiz_comparison' && is_single()) {
-        return dirname(__FILE__) . '/templates/single-comparison.php';
-    }
-
-    // if (get_post_type() == 'journey' && is_single()) {
-    //     return dirname(__FILE__) . '/templates/single-journey.php';
-    // }
-    
-    if (get_post_type() == 'wysiwyg_snippet' && is_single()) {
-        return dirname(__FILE__) . '/templates/single-snippet.php';
-    }
-
-    if (strpos($_SERVER['REQUEST_URI'], '/metrics/campaign') !== false) {
-        return dirname(__FILE__) . '/templates/single-campaign.php';
-    }
-
-
-    if (strpos($_SERVER['REQUEST_URI'], '/journeys') !== false) {
-        return dirname(__FILE__) . '/templates/archive-journeys.php';
-    }
-
-	if ( strpos( $_SERVER['REQUEST_URI'], '/metrics/journey' ) !== false ) {
-		return dirname( __FILE__ ) . '/templates/single-journey.php';
-	}
-
-    if (strpos($_SERVER['REQUEST_URI'], '/snippets') !== false) {
-        return dirname(__FILE__) . '/templates/archive-snippet.php';
-    }
-
-	if ( strpos( $_SERVER['REQUEST_URI'], '/tools/subject-line-builder' ) !== false ) {
-		return dirname( __FILE__ ) . '/templates/subject-line-builder.php';
-	}
-
-    if (strpos($_SERVER['REQUEST_URI'], '/wiz-rest') !== false) {
-        return dirname(__FILE__) . '/templates/wiz-rest-ui.php';
-    }
-
-    
-
-
-    // If user-profile endpoint is accessed
-    if (isset($wp_query->query_vars['user-profile'])) {
-        $userProfileTemplate = plugin_dir_path(__FILE__) . 'templates/user-profile.php';
-
-        // Use the custom template if it exists
-        if (!empty($userProfileTemplate)) {
-            return $userProfileTemplate;
-        }
-    }
-
-    // If settings page endpoint is accessed
-    if (isset($wp_query->query_vars['settings'])) {
-        $wizSettingsTemplate = plugin_dir_path(__FILE__) . 'templates/wiz-settings.php';
-
-        // Use the custom template if it exists
-        if (!empty($wizSettingsTemplate)) {
-            return $wizSettingsTemplate;
-        }
-    }
-
-    // If sync station page endpoint is accessed
-    if (isset($wp_query->query_vars['sync-station'])) {
-        $syncStationTemplate = plugin_dir_path(__FILE__) . 'templates/sync-station.php';
-
-        // Use the custom template if it exists
-        if (!empty($syncStationTemplate)) {
-            return $syncStationTemplate;
-        }
-    }
-
-    // If campaign monitor page endpoint is accessed
-    if (isset($wp_query->query_vars['campaign-monitor'])) {
-        $campaignMonitorTemplate = plugin_dir_path(__FILE__) . 'templates/campaign-monitor.php';
-
-        // Use the custom template if it exists
-        if (!empty($campaignMonitorTemplate)) {
-            return $campaignMonitorTemplate;
-        }
-    }
-
-    // If Iterable triggered send endpoint is accessed
-    if (isset($wp_query->query_vars['endpoints/iterable-triggeredSend'])) {
-        $endpointTriggeredSendTemplate = plugin_dir_path(__FILE__) . 'endpoints/iterable-triggeredSend.php';
-
-        // Use the custom template if it exists
-        if (!empty($endpointTriggeredSendTemplate)) {
-            return $endpointTriggeredSendTemplate;
-        }
-    }
-
-    // If course mapping page endpoint is accessed
-    if (isset($wp_query->query_vars['course-mapping'])) {
-        $courseMappingTemplate = plugin_dir_path(__FILE__) . 'templates/course-mapping.php';
-
-        // Use the custom template if it exists
-        if (!empty($courseMappingTemplate)) {
-            return $courseMappingTemplate;
-        }
-    }
-
-    // Set templates based on plugin settings
-    $options = get_option('idemailwiz_settings');
-    $dashboard_page = isset($options['dashboard_page']) ? $options['dashboard_page'] : '';
-    if ($dashboard_page) {
-        if (is_page($dashboard_page)) {
-            return dirname(__FILE__) . '/templates/dashboard.php';
-        }
-    }
-
-    $campaigns_page = isset($options['campaigns_page']) ? $options['campaigns_page'] : '';
-    if ($campaigns_page) {
-        if (is_page($campaigns_page)) {
-            return dirname(__FILE__) . '/templates/campaigns-table.php';
-        }
-    }
-
-    $experiments_page = isset($options['experiments_page']) ? $options['experiments_page'] : '';
-    if ($experiments_page) {
-        if (is_page($experiments_page)) {
-            return dirname(__FILE__) . '/templates/experiments.php';
-        }
-    }
-
-    $reports_page = isset($options['reports_page']) ? $options['reports_page'] : '';
-
-    if ($reports_page) {
-
-        // Check if the current page is either the reports page or a child of the reports page
-        if (is_page($reports_page)) {
-            return dirname(__FILE__) . '/templates/reports.php';
-        }
-
-        
-    }
-
-
-    return $template;
-}
-add_filter('template_include', 'idemailwiz_template_chooser');
 
 // Add custom body classes
 function idemailwiz_body_classes($classes)
@@ -699,64 +117,10 @@ function idemailwiz_body_classes($classes)
     }
     return $classes;
 }
-
 add_filter('body_class', 'idemailwiz_body_classes');
 
-
-//Custom redirects
-function redirect_to_proper_url()
-{
-    global $post;
-    
-    if (get_query_var('idwiz_ajax_endpoint')) {
-        // This is where we'll handle the request
-        idwiz_process_custom_request();
-        exit;
-    }
-
-    //If someone lands on /templates, redirect them to /templates/all
-    if (isset($_SERVER['REQUEST_URI']) && trim($_SERVER['REQUEST_URI'], '/') == 'templates') {
-        wp_redirect(site_url('/templates/all'), 301);
-        exit;
-    }
-
-    //Redirect any weird/wrong template URLs to the proper/current URL (handles cases where the slug changed but an old link was used)
-    // if (is_singular('idemailwiz_template')) {
-    //     $post_slug = $post->post_name;
-    //     if ( isset( $_SERVER['REQUEST_URI'] ) && $_SERVER['REQUEST_URI'] != "/template/{$post->ID}/{$post_slug}/" ) {
-    // 		wp_redirect( home_url( "/template/{$post->ID}/{$post_slug}/" ) . $_SERVER['QUERY_STRING'], 301 );
-    // 		exit;
-    // 	}
-
-    // }
-}
-add_action('template_redirect', 'redirect_to_proper_url', 11);
-
-
-
-function idwiz_process_custom_request()
-{
-    // Ensure this is a POST request
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        wp_send_json_error('Invalid request method');
-    }
-
-    // Verify nonce for security
-    // if (!isset($_POST['security']) || !wp_verify_nonce($_POST['security'], 'wizAjaxNonce')) {
-    //     wp_send_json_error('Security check failed');
-    // }
-
-    // Get the action
-    $action = isset($_POST['action']) ? sanitize_key($_POST['action']) : '';
-
-    // Dispatch to the appropriate handler
-    do_action("wp_ajax_{$action}", $_POST);
-
-    // If we reach here, it means no action was taken
-    wp_send_json_error('Invalid action');
-}
-
-
+//Options pages
+include(plugin_dir_path(__FILE__) . 'includes/wiz-options.php');
 
 
 
@@ -765,12 +129,12 @@ add_action('wp_enqueue_scripts', 'idemailwiz_enqueue_assets');
 function idemailwiz_enqueue_assets()
 {
 
-    
+
     wp_enqueue_script('jquery');
     wp_enqueue_script('wiz-polyfill', plugin_dir_url(__FILE__) . 'js/wiz-polyfills.js', array('jquery'), '1.0', true);
     wp_enqueue_script('jquery-ui');
     wp_enqueue_script('jquery-ui-sortable', null, array('jquery'));
-    wp_enqueue_script('jquery-ui-resizable', null, array('jquery','jquery-ui'));
+    wp_enqueue_script('jquery-ui-resizable', null, array('jquery', 'jquery-ui'));
 
 
     wp_enqueue_script('sweetalert2', 'https://cdn.jsdelivr.net/npm/sweetalert2@11', array(), '11.0', true);
@@ -801,7 +165,7 @@ function idemailwiz_enqueue_assets()
 
     wp_enqueue_script('spectrum', plugin_dir_url(__FILE__) . 'vendors/spectrum/spectrum.js', array());
 
-    wp_enqueue_script('tinymce', plugin_dir_url( __FILE__ ) . 'vendors/tinymce/js/tinymce/tinymce.min.js');
+    wp_enqueue_script('tinymce', plugin_dir_url(__FILE__) . 'vendors/tinymce/js/tinymce/tinymce.min.js');
 
 
     wp_enqueue_script('editable', plugin_dir_url(__FILE__) . 'vendors/tiny-edit-in-place/jquery.editable.min.js', array());
@@ -830,7 +194,7 @@ function idemailwiz_enqueue_assets()
     $codemirror_path = plugin_dir_url(__FILE__) . 'vendors/codemirror-5.65.16/';
 
     $codemirror_files = array(
-        
+
         array('codemirror', 'lib/codemirror.js', array('jquery'), '', true),
         array('codemirror-mode-css', 'mode/css/css.js', array('jquery', 'codemirror'), '', true),
         array('codemirror-lint', 'addon/lint/lint.js', array('jquery', 'codemirror'), '', true),
@@ -865,16 +229,16 @@ function idemailwiz_enqueue_assets()
         'id-general' => array('/js/id-general.js', array('jquery')),
         'mergeTags' => array('/js/mergeTags.js', array()),
 
-		'wiz-inits' => array( '/builder-v2/js/wiz-inits.js', array( 'jquery', 'id-general', 'jquery-ui-resizable', 'editable', 'spectrum', 'tinymce', 'crush', 'mergeTags') ),
-		'utilities' => array( '/builder-v2/js/utilities.js', array( 'wiz-inits') ),
-		'builder-functions' => array( '/builder-v2/js/builder-functions.js', array( 'wiz-inits', 'utilities' ) ),
-            'template-editor' => array('/builder-v2/js/template-editor.js?v=08232024831pm', array( 'builder-functions' ) ),
-            'template-actions' => array('/builder-v2/js/template-actions.js', array('builder-functions')),        
-            'save-functions' => array('/builder-v2/js/save-functions.js?v=1.1', array('builder-functions')),        
-            'import-export' => array('/builder-v2/js/import-export.js', array('builder-functions')),        
-            'tiny-mce-editor' => array('/builder-v2/js/tiny-mce-editor.js', array('builder-functions')),           
+        'wiz-inits' => array('/builder-v2/js/wiz-inits.js', array('jquery', 'id-general', 'jquery-ui-resizable', 'editable', 'spectrum', 'tinymce', 'crush', 'mergeTags')),
+        'utilities' => array('/builder-v2/js/utilities.js', array('wiz-inits')),
+        'builder-functions' => array('/builder-v2/js/builder-functions.js', array('wiz-inits', 'utilities')),
+        'template-editor' => array('/builder-v2/js/template-editor.js?v=08232024831pm', array('builder-functions')),
+        'template-actions' => array('/builder-v2/js/template-actions.js', array('builder-functions')),
+        'save-functions' => array('/builder-v2/js/save-functions.js?v=1.1', array('builder-functions')),
+        'import-export' => array('/builder-v2/js/import-export.js', array('builder-functions')),
+        'tiny-mce-editor' => array('/builder-v2/js/tiny-mce-editor.js', array('builder-functions')),
 
-        'preview-pane' => array('/builder-v2/js/preview-pane.js', array('builder-functions')),        
+        'preview-pane' => array('/builder-v2/js/preview-pane.js', array('builder-functions')),
 
         'wizSnippets' => array('/js/wizSnippets.js', array('jquery', 'id-general', 'codemirror')),
         'folder-actions' => array('/js/folder-actions.js', array('jquery', 'id-general')),
@@ -891,19 +255,19 @@ function idemailwiz_enqueue_assets()
         'google-sheets-api' => array('/js/google-sheets-api.js', array('jquery', 'id-general')),
         'wiz-endpoints' => array('/js/endpoints.js', array('jquery', 'id-general')),
         'promo-codes' => array('/js/promo-codes.js', array('jquery', 'id-general')),
-        
+
         'reporting' => array('/js/reporting.js', array('jquery', 'id-general', 'wiz-charts', 'data-tables')),
-        
+
 
     );
     $stylesheetCacheBuster = time();
     wp_enqueue_style(
         'id-style',
-        plugins_url('/style.css?v='. $stylesheetCacheBuster, __FILE__),
+        plugins_url('/style.css?v=' . $stylesheetCacheBuster, __FILE__),
         array()
     );
 
-    $wizSettings = get_option( 'idemailwiz_settings' );
+    $wizSettings = get_option('idemailwiz_settings');
 
     $iterableApiKey = $wizSettings['iterable_api_key'] ?? false;
 
@@ -916,7 +280,7 @@ function idemailwiz_enqueue_assets()
             array(
                 'nonce' => wp_create_nonce($handle),
                 'ajaxurl' => esc_url(admin_url('admin-ajax.php')),
-                
+
                 'currentPost' => get_post(get_the_ID()),
                 'currentPostId' => get_the_ID(),
                 'stylesheet' => plugins_url('', __FILE__),
@@ -947,3 +311,6 @@ function idemailwiz_enqueue_assets()
     wp_enqueue_script('highlighterjs', '//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js', array('jquery'), '11.7.0', true);
     wp_enqueue_style('highlighter-agate', plugins_url('/styles/agate.css', __FILE__), array(), '11.7.0');
 }
+
+
+

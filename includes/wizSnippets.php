@@ -116,3 +116,25 @@ function idemailwiz_delete_snippets() {
 	wp_send_json_success( array( 'message' => 'Snippets deleted successfully' ) );
 }
 add_action( 'wp_ajax_idemailwiz_delete_snippets', 'idemailwiz_delete_snippets' );
+
+function get_snippets_for_select()
+{
+	$snippetArgs = [
+		'post_type' => 'wysiwyg_snippet',
+		'posts_per_page' => -1,
+		'orderby' => 'post_title',
+		'order' => 'ASC'
+	];
+	$snippets = get_posts($snippetArgs);
+
+	$snippetsData = [];
+	foreach ($snippets as $snippet) {
+		$snippetsData[$snippet->ID] = $snippet->post_title;
+	}
+
+	if ($snippets) {
+		return $snippetsData;
+	} else {
+		return 'No snippets found';
+	}
+}

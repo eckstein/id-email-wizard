@@ -1000,6 +1000,13 @@ body.single-idemailwiz_template {
 	
 }
 
+.icon-list-image-fields {
+	flex: 0 1 40%;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
 .chunk-wrap-hide-settings {
 	display: none;
 }

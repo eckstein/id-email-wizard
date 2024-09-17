@@ -142,34 +142,6 @@ function idwiz_get_button_chunk($chunk, $templateOptions, $chunkIndex = null, $i
 }
 
 
-function hex2rgba($color, $opacity = 1)
-{
-	// Check if already rgba and return it
-	if (strpos($color, 'rgba') === 0) {
-		return $color;
-	}
-
-	// Remove any leading '#' if present
-	$color = ltrim($color, '#');
-
-	// Ensure the color is a valid hex color
-	if (!ctype_xdigit($color) || (strlen($color) != 6 && strlen($color) != 3)) {
-		return "rgba(0, 0, 0, $opacity)"; // Return black if invalid color
-	}
-
-	// If it's a 3 digit hex, convert to 6 digit
-	if (strlen($color) == 3) {
-		$color = $color[0] . $color[0] . $color[1] . $color[1] . $color[2] . $color[2];
-	}
-
-	// Convert hex to RGB
-	$r = hexdec(substr($color, 0, 2));
-	$g = hexdec(substr($color, 2, 2));
-	$b = hexdec(substr($color, 4, 2));
-
-	// Return the rgba string
-	return "rgba($r, $g, $b, $opacity)";
-}
 
 
 function idwiz_get_snippet_chunk($chunk, $templateOptions, $chunkIndex = null, $isEditor = false)
@@ -330,6 +302,78 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 	return $output;
 }
 
+function idwiz_get_icon_list_chunk($chunk, $templateOptions, $chunkIndex = null, $isEditor = false)
+{
+	$chunkFields = $chunk['fields'] ?? [];
+	$chunkSettings = $chunk['settings'] ?? [];
+
+	$visibility = get_visibility_class_and_style($chunkSettings);
+	$classAttr = $visibility['class'] ? 'class="' . esc_attr($visibility['class']) . '"' : '';
+
+	$chunkDataAttr = $isEditor ? "data-chunk-index='" . $chunkIndex . "'" : "";
+
+	$backgroundColorCss = generate_background_css($chunkSettings);
+	$msoBackgroundColorCss = generate_background_css($chunkSettings, '', true);
+
+	$chunkPadding = $chunkSettings['chunk_padding'] ?? '0px';
+	$chunkPaddingCss = $chunkPadding ? 'padding:' . $chunkPadding . ';' : '';
+	$msoPaddingToMargin = $chunkPadding ? 'margin:' . $chunkPadding . ';' : 'margin: 0;';
+
+	$pPadding = $chunkSettings['p_padding'] ?? true;
+	$pPaddingClass = $pPadding ? '' : 'noPpad';
+
+	$listWidth = $chunkSettings['list_width'] ?? '600px';
+	$iconWidth = $chunkSettings['icon_width'] ?? '80px';
+	$iconWidthMobile = $chunkSettings['icon_width_mobile'] ?? '75px';
+
+	$imageSrc = $chunkFields['image_url'] ?? '';
+	$cachedImageSrc = get_wizbuilder_image_src($imageSrc ?? '', $isEditor);
+	$imageLink = $chunkFields['image_link'] ?? '';
+	$imageAlt = $chunkFields['image_alt'] ?? '';
+
+	$textContent = $chunkFields['plain_text_content'] ?? '<p>Your content goes here!</p>';
+	$textContent = add_aria_label_to_links($textContent);
+
+	$templateFontSize = $templateOptions['template_styles']['font-size']['template_font_size'] ?? '16px';
+	$baseTextColor = $chunkSettings['text_base_color'] ?? '#000000';
+
+	$output = '';
+	$output .= '<div class="chunk id-icon-list ' . $visibility['class'] . ' ' . $pPaddingClass . '" ' . $chunkDataAttr . ' style="' . $backgroundColorCss . ' ' . $visibility['inlineStyle'] . $chunkPaddingCss . ' color:'. $baseTextColor.'">';
+
+	if ($visibility['class'] == 'mobile-only') {
+		$output .= '<!--[if !mso]><!-->';
+	}
+
+	$output .= '<!--[if mso]>
+	<table ' . $classAttr . ' role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" align="center" style="width:100%; max-width: ' . $listWidth . '; ' . $msoBackgroundColorCss . ' ' . $msoPaddingToMargin . '">
+	<tr>
+	<td width="' . $iconWidth . '" valign="top" align="right" style="width: ' . $iconWidth . '; max-width: ' . $iconWidth . ';">
+	<![endif]-->
+	<div class="icon-bullet-wrapper" style="max-width: ' . $listWidth . '; width: 100%; margin: 0 auto; font-family: Arial, sans-serif; font-size: ' . $templateFontSize . '; line-height: 1.5;">
+	  <div class="icon-bullet-image-wrap" style="width: ' . $iconWidth . '; float: left;">
+		<a href="' . $imageLink . '" style="display: block; text-align: right;">
+		  <img class="icon-bullet-image" src="' . $cachedImageSrc . '" style="max-width: 100%; width: ' . $iconWidth . '; height: auto;" width="' . $iconWidth . '" alt="' . $imageAlt . '">
+		</a>
+	  </div>
+	<!--[if mso]></td><td valign="top"><![endif]-->
+	  <div class="icon-bullet-content-wrap" style="margin-left: ' . (intval($iconWidth) + 10) . 'px;">
+		' . wpautop(stripslashes($textContent)) . '
+	  </div>
+	</div>
+	<!--[if mso]>
+	</td>
+	</tr>
+	</table>
+	<![endif]-->';
+
+	if ($visibility['class'] == 'mobile-only') {
+		$output .= '<!--<![endif]-->';
+	}
+	$output .= '</div>';
+
+	return $output;
+}
+
 function idwiz_get_plain_text_chunk($chunk, $templateOptions, $chunkIndex = null, $isEditor = false)
 {
 	$templateStyles = $templateOptions['template_styles'] ?? [];
@@ -425,58 +469,6 @@ function idwiz_get_plain_text_chunk($chunk, $templateOptions, $chunkIndex = null
 	return $output;
 }
 
-function add_aria_label_to_links($html)
-{
-	return preg_replace_callback(
-		'/<a\s+(.*?)>(.*?)<\/a>/is',
-		function ($matches) {
-			$attributes = $matches[1];
-			$content = $matches[2];
-
-			// Extract link text or use alt attribute if content is empty
-			if (trim(strip_tags($content)) === '') {
-				// If content is empty, try to get alt attribute
-				if (preg_match('/\balt=["\'](.+?)["\']/i', $attributes, $alt_match)) {
-					$linkText = $alt_match[1];
-				} else {
-					$linkText = '';
-				}
-			} else {
-				$linkText = strip_tags($content);
-			}
-
-			$linkText = preg_replace('/\s+/', ' ', $linkText); // Replace multiple whitespaces with a single space
-			$linkText = trim($linkText); // Trim whitespace from the beginning and end
-
-			// Check if aria-label or title already exists
-			$hasAriaLabel = preg_match('/\baria-label=["\'].*?["\']/i', $attributes);
-			$hasTitle = preg_match('/\btitle=["\'].*?["\']/i', $attributes);
-
-			// Add aria-label and title if they don't exist and linkText is not empty
-			if (!empty($linkText)) {
-				if (!$hasAriaLabel) {
-					$attributes .= ' aria-label="' . esc_attr($linkText) . '"';
-				}
-				if (!$hasTitle) {
-					$attributes .= ' title="' . esc_attr($linkText) . '"';
-				}
-			}
-
-			// Open all links in new tab
-			if (!preg_match('/\btarget=["\'].*?["\']/i', $attributes)) {
-				$attributes .= ' target="_blank"';
-			}
-			if (!preg_match('/\brel=["\'].*?["\']/i', $attributes)) {
-				$attributes .= ' rel="noopener noreferrer"';
-			}
-
-			// Create the new <a> tag
-			return '<a ' . $attributes . '>' . $content . '</a>';
-		},
-		$html
-	);
-}
-
 
 
 function idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex = null, $isEditor = false)
@@ -509,7 +501,10 @@ function idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex = null, $is
 	$templateWidth = $templateOptions['template_styles']['body-and-background']['template_width'] ?? '648';
 
 	$imageSrc = $chunkFields['image_url'] ?? '';
+	$startLogTime = microtime(true);
+	error_log('Getting cached image src');
 	$cachedImageSrc = get_wizbuilder_image_src($chunkFields['image_url'] ?? '', $isEditor);
+	error_log('Got cached image src. Time taken: ' . round((microtime(true) - $startLogTime) * 1000, 2) . ' ms');
 
 	$imageLink = $chunkFields['image_link'] ?? '';
 	$imageAlt = $chunkFields['image_alt'] ?? '';
@@ -528,11 +523,12 @@ function idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex = null, $is
 	}
 
 	// Determine the aspect ratio of the image
+	$startLogTime = microtime(true);
+	error_log('Getting image aspect ratio');
 	$imageAspectRatioResult = get_image_aspect_ratio($imageSrc);// we pass the remote URL here, not the cached data
+	error_log('Got image aspect ratio. Time taken: ' . round((microtime(true) - $startLogTime) * 1000, 2) . ' ms');
 	$status = $imageAspectRatioResult['status'];
 	$imageAspectRatio = $imageAspectRatioResult['data'];
-
-	//error_log(print_r($imageAspectRatioResult, true));
 
 	$imageRatioSuccess = ($status === 'success');
 	if (!$imageRatioSuccess && $isEditor) {

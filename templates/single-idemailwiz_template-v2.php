@@ -771,20 +771,6 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 		<div id="templateActions">
 
 			<div class="innerWrap">
-				<?php
-				// if ( is_user_favorite( $postId, 'Template' ) ) {
-				// 	$fileStarClass = 'fa-solid';
-				// } else {
-				// 	$fileStarClass = 'fa-regular';
-				// }
-				?>
-				<!-- <i title="Add/Remove Favorite" class="addRemoveFavorite <?php //echo $fileStarClass;                                                                                     
-																				?> fa-star"
-					data-objecttype="Template" data-objectid="<?php //echo $postId;                                                                                     
-																?>"></i> -->
-
-
-
 				<div id="templatePreviewIcons">
 					<i title="Desktop Preview" class="fas fa-desktop showDesktopPreview active"
 						data-frame="#previewFrame"></i>
