@@ -55,4 +55,23 @@ function idemailwiz_handle_builder_v2_request()
 	}
 }
 
+function idemailwiz_custom_archive_templates($tpl)
+{
+	if (is_post_type_archive('idwiz_initiative')) {
+		$tpl = dirname(plugin_dir_path(__FILE__)) . '/templates/archive-initiative.php';
+	}
+
+	if (is_post_type_archive('idwiz_comparison')) {
+		$tpl = dirname(plugin_dir_path(__FILE__)) . '/templates/archive-comparison.php';
+	}
+
+	if (is_post_type_archive('wiz_promo_code')) {
+		$tpl = dirname(plugin_dir_path(__FILE__)) . '/templates/archive-promo-code.php';
+	}
+
+	return $tpl;
+}
+
+add_filter('archive_template', 'idemailwiz_custom_archive_templates');
+
 

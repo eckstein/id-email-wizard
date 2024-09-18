@@ -237,24 +237,7 @@ function idwiz_register_custom_post_types()
 
 add_post_type_support('idwiz_initiative', 'thumbnail');
 
-function idemailwiz_custom_archive_templates($tpl)
-{
-    if (is_post_type_archive('idwiz_initiative')) {
-        $tpl = plugin_dir_path(__FILE__) . 'templates/archive-initiative.php';
-    }
 
-    if (is_post_type_archive('idwiz_comparison')) {
-        $tpl = plugin_dir_path(__FILE__) . 'templates/archive-comparison.php';
-    }
-
-    if (is_post_type_archive('wiz_promo_code')) {
-        $tpl = plugin_dir_path(__FILE__) . 'templates/archive-promo-code.php';
-    }
-
-    return $tpl;
-}
-
-add_filter('archive_template', 'idemailwiz_custom_archive_templates');
 
 //Register folder taxonomy
 add_action('init', 'idemailwiz_create_taxonomies', 10);
