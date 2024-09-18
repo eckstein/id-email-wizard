@@ -453,11 +453,11 @@ function generate_column_start($rowIndex, $columnSetIndex, $columnIndex, $templa
     $column = $columns[$columnIndex] ?? null;
 
     if (!$column || $column['activation'] !== 'active') {
-        error_log('Column ' . $columnIndex . 'not found or not active');
+    error_log('Not active or found: Row ' . $rowIndex . ' ColSet ' . $columnSetIndex . ' Column ' . $columnIndex);
         return '';
     }
 
-    error_log('Column ' . $columnIndex . ' in columnset ' . $columnSetIndex . ' in row ' . $rowIndex . ' found and active');
+    error_log('Generating: Row ' . $rowIndex . ' ColSet ' . $columnSetIndex . ' Column ' . $columnIndex);
 
     $templateStyles = $templateData['template_options']['template_styles'];
     $colValign = $column['settings']['valign'] ? strtolower($column['settings']['valign']) : 'top';
