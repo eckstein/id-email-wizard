@@ -80,6 +80,8 @@ function generate_template_structure($templateData, $isEditor = false)
                     'end' => generate_column_end()
                 ];
 
+                
+
 
                 foreach ($column['chunks'] as $chunkIndex => $chunk) {
                     $structure['rows'][$rowIndex]['columnSets'][$colSetIndex]['columns'][$colIndex]['chunks'][$chunkIndex] = [
@@ -300,7 +302,7 @@ function
 generate_columnset_start($rowIndex, $columnSetIndex, $templateData = null, $isEditor = false)
 {
     if (!$templateData) {
-        error_log('No template data provided');
+        error_log('No template data provided for columnSet ' . $columnSetIndex);
         return;
     }
     error_log('Generating: Row ' . $rowIndex . ' ColSet ' . $columnSetIndex);
@@ -440,7 +442,9 @@ function get_column_html($templateId, $rowIndex, $columnSetIndex, $columnIndex, 
 
 function generate_column_start($rowIndex, $columnSetIndex, $columnIndex, $templateData = null, $isEditor = false)
 {
+    error_log('Start generating: Row ' . $rowIndex . ' ColSet ' . $columnSetIndex . ' Column ' . $columnIndex);
     if (!$templateData) {
+        error_log('No template data provided for column ' . $columnIndex);
         return;
     }
 
@@ -461,7 +465,7 @@ function generate_column_start($rowIndex, $columnSetIndex, $columnIndex, $templa
         return '';
     }
 
-    error_log('Generating: Row ' . $rowIndex . ' ColSet ' . $columnSetIndex . ' Column ' . $columnIndex);
+    
 
     $templateStyles = $templateData['template_options']['template_styles'];
     $colValign = $column['settings']['valign'] ? strtolower($column['settings']['valign']) : 'top';
