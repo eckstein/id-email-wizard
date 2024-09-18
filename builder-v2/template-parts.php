@@ -100,35 +100,36 @@ function generate_template_structure($templateData, $isEditor = false)
 
 function render_template_from_structure($structure)
 {
-    $html = '';
+    $html = [];
 
     // Render top section
     foreach ($structure['top'] as $topElement) {
-        $html .= $topElement;
+        $html[] = $topElement;
     }
 
     // Render rows
     foreach ($structure['rows'] as $row) {
-        $html .= $row['start'];
+        $html[] = $row['start'];
         foreach ($row['columnSets'] as $columnSet) {
-            $html .= $columnSet['start'];
+            $html[] = $columnSet['start'];
             foreach ($columnSet['columns'] as $column) {
-                $html .= $column['start'];
+                $html[] = $column['start'];
                 foreach ($column['chunks'] as $chunk) {
-                    $html .= $chunk['chunk'];
+                    $html[] = $chunk['chunk'];
                 }
-                $html .= $column['end'];
+                $html[] = $column['end'];
             }
-            $html .= $columnSet['end'];
+            $html[] = $columnSet['end'];
         }
-        $html .= $row['end'];
+        $html[] = $row['end'];
     }
 
     // Render bottom section
     foreach ($structure['bottom'] as $bottomElement) {
-        $html .= $bottomElement;
+        $html[] = $bottomElement;
     }
-
+    // Combine all HTML elements into a single string
+    $html = implode('', $html);
     return $html;
 }
 
@@ -161,9 +162,7 @@ function get_allRows_html($templateId = null, $templateData = null, $rowIndexes 
 
     foreach ($rowIndexes as $rowIndex) {
         if (isset($rows[$rowIndex])) {
-            error_log('Generating Row ' . $rowIndex);
             $return .= get_row_html($templateId, $rowIndex, $templateData, $isEditor);
-            error_log('Generating Row ' . $rowIndex . ' - Done.');
         }
     }
 
@@ -192,9 +191,7 @@ function get_row_html($templateId, $rowIndex, $templateData = null, $isEditor = 
 
     $columnSetsArray = [];
     foreach ($columnSets as $columnSetIndex => $columnSet) {
-        error_log('Generating Column Set ' . $columnSetIndex);
         $columnSetsArray[] = get_columnset_html($templateId, $rowIndex, $columnSetIndex, $templateData, $isEditor);
-        error_log('Generating Column Set ' . $columnSetIndex . ' - Done');
     }
     $return .= implode('', $columnSetsArray);
     $return .= "<!--[if mso]></td></tr></table><![endif]-->";
@@ -284,9 +281,7 @@ function get_columnset_html($templateId, $rowIndex, $columnSetIndex, $templateDa
     }
     $colsArray = [];
     foreach ($columns as $columnIndex => $column) {
-        error_log('Generating Column ' . $columnIndex);
         $colsArray[] = get_column_html($templateId, $rowIndex, $columnSetIndex, $columnIndex, $templateData, $isEditor);
-        error_log('Generating Column ' . $columnIndex . ' - Done');
     }
 
     $return .= implode('', $colsArray);
@@ -425,9 +420,7 @@ function get_column_html($templateId, $rowIndex, $columnSetIndex, $columnIndex, 
 
 
     foreach ($columnChunks as $chunkIndex => $chunk) {
-        error_log('Generating Chunk ' . $chunkIndex);
         $return .= idwiz_get_chunk_template($templateId, $rowIndex, $columnSetIndex, $columnIndex, $chunkIndex, $templateData, $isEditor);
-        error_log('Generating Chunk ' . $chunkIndex . ' - Done');
     }
 
     $return .= "<!--[if mso]></td><![endif]-->";
@@ -530,42 +523,27 @@ function idwiz_get_chunk_template($templateId, $rowIndex, $columnSetIndex, $colu
     $startLogTime = microtime(true);
     switch ($chunkType) {
         case 'text':
-            error_log('Generating Text Chunk ' . $chunkIndex);
             $return = idwiz_get_plain_text_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
-            error_log('Generating Text Chunk ' . $chunkIndex . ' - Done. Time taken: ' . round((microtime(true) - $startLogTime) * 1000, 2) . ' ms');
             break;
         case 'image':
-            error_log('Generating Image Chunk ' . $chunkIndex);
             $return = idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
-            error_log('Generating Image Chunk ' . $chunkIndex . ' - Done. Time taken: ' . round((microtime(true) - $startLogTime) * 1000, 2) . ' ms');
             break;
         case 'button':
-            error_log('Generating Button Chunk ' . $chunkIndex);
             $return = idwiz_get_button_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
-            error_log('Generating Button Chunk ' . $chunkIndex . ' - Done. Time taken: ' . round((microtime(true) - $startLogTime) * 1000, 2) . ' ms');
             break;
         case 'icon-list':
-            error_log('Generating Icon List Chunk ' . $chunkIndex);
             $return = idwiz_get_icon_list_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
-            error_log('Generating Icon List Chunk ' . $chunkIndex . ' - Done. Time taken: ' . round((microtime(true) - $startLogTime) * 1000, 2) . ' ms');
             break;
         case 'spacer':
-            error_log('Generating Spacer Chunk ' . $chunkIndex);
             $return = idwiz_get_spacer_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
-            error_log('Generating Spacer Chunk ' . $chunkIndex . ' - Done. Time taken: ' . round((microtime(true) - $startLogTime) * 1000, 2) . ' ms');
             break;
         case 'snippet':
-            error_log('Generating Snippet Chunk ' . $chunkIndex);
             $return = idwiz_get_snippet_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
-            error_log('Generating Snippet Chunk ' . $chunkIndex . ' - Done. Time taken: ' . round((microtime(true) - $startLogTime) * 1000, 2) . ' ms');
             break;
         case 'html':
-            error_log('Generating Raw HTML Chunk ' . $chunkIndex);
             $return = idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
-            error_log('Generating Raw HTML Chunk ' . $chunkIndex . ' - Done. Time taken: ' . round((microtime(true) - $startLogTime) * 1000, 2) . ' ms');
             break;
         default:
-            error_log('Generating Unknown Chunk ' . $chunkIndex);
             return 'Unknown chunk type passed for generation';
             break;
     }
