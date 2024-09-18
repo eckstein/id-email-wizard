@@ -180,7 +180,6 @@ jQuery(document).ready(function ($) {
 
 	// Function to create or update Iterable template
 	function create_or_update_iterable_template(templateData, existingTemplateId = null, alreadySent = false) {
-		
 		return new Promise((resolve, reject) => {
 			// Check early if we're trying to update an already sent template and bail if so
 			if (existingTemplateId && alreadySent === true) {
@@ -204,32 +203,29 @@ jQuery(document).ready(function ($) {
 			const messageTypeId = messageType == "transactional" ? config.TRANSACTIONAL_MESSAGE_TYPE_ID : config.PROMOTIONAL_MESSAGE_TYPE_ID;
 			const fromSender = messageType == "transactional" ? config.TRANSACTIONAL_FROM_EMAIL : config.PROMOTIONAL_FROM_EMAIL;
 
-			var additionalData = {
-				action: "generate_template_html_from_ajax",
-				template_id: idAjax_template_editor.currentPost.ID,
-				session_data: get_template_from_session(),
+			// Set up parameters for get_template_part_do_callback
+			var params = {
+				partType: 'fullTemplate',
+				isEditor: false,
+				templateId: idAjax_builder_functions.currentPostId,
+				security: idAjax_template_editor.nonce,
 			};
 
-			
-			jQuery.ajax({
-				type: "POST",
-				url: idAjax.ajaxurl,
-				data: additionalData,
-				//dataType: "json",
-				success: getHTMLsuccessCallback,
-				error: getHTMLerrorCallback
-			});
-			
-			function getHTMLsuccessCallback(response) {
+			// Call get_template_part_do_callback to get the HTML
+			get_template_part_do_callback(params, function(error, data) {
+				if (error) {
+					reject("Failed to fetch template HTML: " + error.message);
+					return;
+				}
 
-				let templateHtml = $('<div/>').html(response).text();
+				let templateHtml = data.html;
 
-				 // Replace curly quotes with straight quotes
-				  templateHtml = templateHtml.replace(/[\u201C\u201D]/g, '"');
-				  
 				// Replace curly quotes with straight quotes
+				templateHtml = templateHtml.replace(/[\u201C\u201D]/g, '"');
+            
+				// Decode HTML entities
 				templateHtml = decodeHtml(templateHtml);
-				
+            
 				const apiData = {
 					name: templateName,
 					fromName: fromName,
@@ -272,9 +268,8 @@ jQuery(document).ready(function ($) {
 					resolve(existingTemplateId);
 				})
 				.fail(function(jqXHR) {
-					
 					var errorResponse = JSON.parse(jqXHR.responseText);
-    
+
 					// Construct a detailed error message
 					var errorMessage = "Failed to update or create Iterable template. ";
 					if (errorResponse && errorResponse.msg) {
@@ -286,11 +281,7 @@ jQuery(document).ready(function ($) {
 					// Pass the detailed error message to the reject function
 					reject(errorMessage);
 				});
-			}
-
-			function getHTMLerrorCallback() {
-				reject("Failed to fetch template HTML");
-			}
+			});
 		});
 	}
 

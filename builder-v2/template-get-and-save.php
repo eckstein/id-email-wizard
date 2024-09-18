@@ -100,7 +100,6 @@ function idemailwiz_save_template_session_to_transient()
 
         set_transient($transientKey, $templateData, 10);
 
-        //error_log( print_r( $_SESSION, true ) );
 
         wp_send_json_success();
     } else {

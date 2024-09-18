@@ -138,12 +138,12 @@ function render_template_from_structure($structure)
     return $html;
 }
 
-function generate_template_html($templateData, $forEditor = false)
+function generate_template_html($templateData, $isEditor = false)
 {
     //convert string true/false in booleans through the template data
     convertStringBooleans($templateData);
 
-    $templateStructure = generate_template_structure($templateData, $forEditor);
+    $templateStructure = generate_template_structure($templateData, $isEditor);
     return render_template_from_structure($templateStructure);
 }
 
@@ -305,7 +305,6 @@ generate_columnset_start($rowIndex, $columnSetIndex, $templateData = null, $isEd
         error_log('No template data provided for columnSet ' . $columnSetIndex);
         return;
     }
-    error_log('Generating: Row ' . $rowIndex . ' ColSet ' . $columnSetIndex);
     $columnSet = $templateData['rows'][$rowIndex]['columnSets'][$columnSetIndex] ?? null;
     if (!$columnSet) {
         error_log('No columnSet found');
@@ -442,7 +441,6 @@ function get_column_html($templateId, $rowIndex, $columnSetIndex, $columnIndex, 
 
 function generate_column_start($rowIndex, $columnSetIndex, $columnIndex, $templateData = null, $isEditor = false)
 {
-    error_log('Start generating: Row ' . $rowIndex . ' ColSet ' . $columnSetIndex . ' Column ' . $columnIndex);
     if (!$templateData) {
         error_log('No template data provided for column ' . $columnIndex);
         return;
@@ -534,7 +532,6 @@ function idwiz_get_chunk_template($templateId, $rowIndex, $columnSetIndex, $colu
     $chunkType = $chunk['field_type'];
     $templateOptions = $templateData['template_options'];
     $return = '';
-    $startLogTime = microtime(true);
     switch ($chunkType) {
         case 'text':
             $return = idwiz_get_plain_text_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
@@ -608,7 +605,7 @@ function get_wiztemplate_part_html()
     $html = '';
     switch ($partType) {
         case 'fullTemplate':
-            $html = generate_template_html($templateData, true);
+            $html = generate_template_html($templateData, $isEditor);
             break;
         case 'emailTop':
             $html = idwiz_get_email_top($templateSettings, $templateStyles, $rows);

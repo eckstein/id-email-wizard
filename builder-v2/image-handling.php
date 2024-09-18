@@ -103,9 +103,9 @@ if (!wp_next_scheduled('cleanup_wiz_image_cache')) {
     wp_schedule_event(time(), 'daily', 'cleanup_wiz_image_cache');
 }
 
-function get_wizbuilder_image_src($image_url, $is_editor_mode)
+function get_wizbuilder_image_src($image_url, $isEditor)
 {
-    if ($is_editor_mode) {
+    if ($isEditor !== false && $isEditor !== 'false') {
         $cached_data = get_cached_image_data($image_url);
         if ($cached_data && isset($cached_data['data_uri'])) {
             return $cached_data['data_uri'];

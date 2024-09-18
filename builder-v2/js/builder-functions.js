@@ -1268,49 +1268,55 @@ function refresh_chunk_html_tab($chunkChild) {
 }
 
 
+
 function refresh_template_html() {
     jQuery('#copyCode').addClass('disabled');
-    jQuery('.builder-code-actions').append('<div id="code-refresh-message"><i class="fas fa-spinner fa-spin"></i>&nbsp;&nbsp;Refreshing HTML, please wait...</div>');
-    var additionalData = {
-        action: "generate_template_html_from_ajax",
-        template_id: idAjax_template_editor.currentPost.ID,
-        session_data: get_template_from_session(),
+    jQuery('.builder-code-actions').append('<div id="code-refresh-message"><i class="fas fa-spinner fa-spin"></i> Refreshing HTML, please wait...</div>');
+
+    var params = {
+        partType: 'fullTemplate',
+        isEditor: false,
+        templateId: idAjax_builder_functions.currentPostId,
         security: idAjax_template_editor.nonce,
     };
 
-    jQuery.ajax({
-        type: "POST",
-        url: idAjax.wizAjaxUrl,
-        data: additionalData,
-        success: function(data) {
-            // Handling success
-            var $codeElement = jQuery('.builder-code-wrapper').find('code');
-            if ($codeElement.length === 0) {
-                // If <code> doesn't exist, create it
-                jQuery('#templateCode').html('<code></code>');
-                $codeElement = jQuery('#templateCode').find('code');
-            }
-
-            // Decode the HTML entities
-            var decodedHtml = jQuery('<textarea/>').html(data).text();
-
-           var beautifiedHtml = beautify_html(decodedHtml);
-
-            // Update the content of the <code> element with the beautified HTML
-            $codeElement.text(beautifiedHtml);
-            hljs.highlightElement($codeElement.get(0));
-
-            jQuery('#code-refresh-message').remove();
-            jQuery('#copyCode').removeClass('disabled');
-        },
-        error: function(xhr, status, error) {
-            // Handling error
-            console.log('Error retrieving or generating HTML for template');
-            console.log(xhr);
-            console.log(status);
-            console.log(error);
-            do_wiz_notif({ message: 'Error updating template HTML code', duration: 3000 });
+    get_template_part_do_callback(params, function(error, data) {
+        if (error) {
+            console.error('Error:', error.message);
+            return;
         }
+
+        var $templateCode = jQuery(document).find('#templateCode');
+        var $codeElement = $templateCode.find('code');
+        if ($codeElement.length === 0) {
+            $templateCode.html('<pre><code></code></pre>');
+            $codeElement = $templateCode.find('code');
+        }
+        
+        // Directly use the HTML from the response
+        var htmlString = data.html;
+        
+        // Escape HTML entities to display as raw text
+        function escapehtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+        
+        // Beautify the HTML (optional, remove if causing issues)
+        var beautifiedHtml = beautify_html(htmlString);
+        
+        // Escape and set the HTML content
+        $codeElement.html(escapehtml(beautifiedHtml));
+        
+        // Apply syntax highlighting
+        hljs.highlightElement($codeElement[0]);
+
+        jQuery('#code-refresh-message').remove();
+        jQuery('#copyCode').removeClass('disabled');
     });
 }
 

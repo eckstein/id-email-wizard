@@ -353,7 +353,6 @@ function get_campaigns_data_for_report($campaigns, $dbMetric, $minSends, $maxSen
 
         // Check for excluded cohorts
         if ($excludedCohorts && is_array($excludedCohorts)) {
-            error_log('Comparing campaign cohorts: ' . json_encode($campaignCohorts) . ' with excluded cohorts: ' . json_encode($excludedCohorts));
             if (!empty(array_intersect($campaignCohorts, $excludedCohorts))) {
                 error_log('Skipping campaign due to excluded cohorts. Campaign ID: ' . $campaign['id']);
                 continue; // Skip this campaign if it has any of the excluded cohorts

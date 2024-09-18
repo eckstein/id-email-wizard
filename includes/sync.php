@@ -1218,9 +1218,6 @@ function idemailwiz_sync_metrics($passedCampaigns = null)
 			}
 		}
 	}
-	//error_log('Metrics Records to update: '. count($records_to_update));
-	//error_log('Metrics Records to insert: '. count($records_to_insert));
-
 	// Does our wiz_logging and returns data about the insert/update
 	return idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update);
 }
