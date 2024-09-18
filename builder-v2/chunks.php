@@ -112,7 +112,7 @@ function idwiz_get_button_chunk($chunk, $templateOptions, $chunkIndex = null, $i
 	}
 
 	$output = '';
-	$output = '<div class="chunk id-button ' . $chunkClasses . ' ' . $visibility['class'] . '" ' . $chunkDataAttr . ' style="width: 100%; border: 0; border-spacing: 0; ' . $visibility['inlineStyle'] . ' ' . $backgroundColorCss . '">';
+	$output = '<div class="chunk id-button ' . $chunkClasses . ' ' . $visibility['class'] . '" ' . $chunkDataAttr . ' style="width: 100%; border: 0; ' . $visibility['inlineStyle'] . ' ' . $backgroundColorCss . '">';
 
 	// MSO version
 	$output .= '<!--[if mso]>
@@ -431,11 +431,8 @@ function idwiz_get_plain_text_chunk($chunk, $templateOptions, $chunkIndex = null
 		$output .= '<!--[if !mso]><!-->';
 	}
 
-	$output .= '<!--[if mso]>
-	<table ' . $tableClassHtml . ' role="presentation" 
-		style="width:100%;border:0;border-spacing:0; ' . $visibility['inlineStyle'] . ' ' . $msoBackgroundColorCss . '">
+	$output .= '<!--[if mso]><table ' . $tableClassHtml . ' role="presentation" style="width:100%;border:0;border-spacing:0; ' . $visibility['inlineStyle'] . ' ' . $msoBackgroundColorCss . '">
 		<tr>
-			
 			<td class="id-plain-text" style="' . $msoBackgroundColorCss . ' padding: ' . $chunkPadding . '; color: ' . $baseTextColor . '; font-family: Poppins, Arial, sans-serif!important; font-size: ' . $templateFontSize . ';">
 			<![endif]-->';
 
@@ -453,12 +450,7 @@ function idwiz_get_plain_text_chunk($chunk, $templateOptions, $chunkIndex = null
 
 
 
-	$output .= '<!--[if mso]>
-			</td>
-			
-		</tr>
-	</table>
-	<![endif]-->';
+	$output .= '<!--[if mso]></td></tr></table><![endif]-->';
 
 	if ($visibility['class'] == 'mobile-only') {
 		$output .= '<!--<![endif]-->';
@@ -501,10 +493,7 @@ function idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex = null, $is
 	$templateWidth = $templateOptions['template_styles']['body-and-background']['template_width'] ?? '648';
 
 	$imageSrc = $chunkFields['image_url'] ?? '';
-	$startLogTime = microtime(true);
-	error_log('Getting cached image src');
 	$cachedImageSrc = get_wizbuilder_image_src($chunkFields['image_url'] ?? '', $isEditor);
-	error_log('Got cached image src. Time taken: ' . round((microtime(true) - $startLogTime) * 1000, 2) . ' ms');
 
 	$imageLink = $chunkFields['image_link'] ?? '';
 	$imageAlt = $chunkFields['image_alt'] ?? '';
@@ -523,10 +512,7 @@ function idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex = null, $is
 	}
 
 	// Determine the aspect ratio of the image
-	$startLogTime = microtime(true);
-	error_log('Getting image aspect ratio');
 	$imageAspectRatioResult = get_image_aspect_ratio($imageSrc);// we pass the remote URL here, not the cached data
-	error_log('Got image aspect ratio. Time taken: ' . round((microtime(true) - $startLogTime) * 1000, 2) . ' ms');
 	$status = $imageAspectRatioResult['status'];
 	$imageAspectRatio = $imageAspectRatioResult['data'];
 
@@ -897,7 +883,7 @@ function idwiz_get_email_body_top($templateStyles)
 
 	$previewTextHack = get_preview_text_hack();
 
-	$return = '<body class="body" id="body" style="margin: 0; padding: 0; word-spacing: normal;">
+	$return = '<body class="body" id="body" style="margin: 0; padding: 0; word-spacing: normal; '. $bodyBackgroundCss.'">
 	<div style="display: none; max-height: 0px; overflow: hidden;">
 	' . $previewTextHack . '
 	</div>

@@ -173,11 +173,11 @@ function setupPreviewFrameEventHandlers() {
         clickedElement.addClass('active');
 
         if (clickedElement.hasClass('id-footer')) {
-            switch_wizard_tab(jQuery('[data-tab=#builder-tab-styles]'));
+            switch_wizard_tab(jQuery('[data-tab="#builder-tab-styles"]'));
         } else if (clickedElement.hasClass('id-fine-print')) {
-            switch_wizard_tab(jQuery('[data-tab=#builder-tab-message-settings]'));
+            switch_wizard_tab(jQuery('[data-tab="#builder-tab-message-settings"]'));
         } else {
-            switch_wizard_tab(jQuery('[data-tab=#builder-tab-chunks]'));     
+            switch_wizard_tab(jQuery('[data-tab="#builder-tab-chunks"]'));     
 
             // Find corresponding builder elements
             var rowIndex = clickedElement.closest('.row').attr('data-row-index');
