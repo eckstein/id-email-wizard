@@ -300,11 +300,15 @@ function
 generate_columnset_start($rowIndex, $columnSetIndex, $templateData = null, $isEditor = false)
 {
     if (!$templateData) {
+        error_log('No template data provided');
         return;
     }
-
+    error_log('Generating: Row ' . $rowIndex . ' ColSet ' . $columnSetIndex);
     $columnSet = $templateData['rows'][$rowIndex]['columnSets'][$columnSetIndex] ?? null;
-    if (!$columnSet) return '';
+    if (!$columnSet) {
+        error_log('No columnSet found');
+        return '';
+    }
 
     $return = '';
 
