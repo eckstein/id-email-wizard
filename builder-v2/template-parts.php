@@ -98,21 +98,18 @@ function generate_template_structure($templateData, $isEditor = false)
     return $structure;
 }
 
-function render_template_from_structure($structure, $template_id)
+function render_template_from_structure($structure)
 {
-    $transient_key = 'template_html_' . $template_id;
-    delete_transient($transient_key); // Clear any existing data
+    $html = '';
 
     // Render top section
-    $html = '';
     foreach ($structure['top'] as $topElement) {
         $html .= $topElement;
     }
-    append_to_transient($transient_key, $html);
 
     // Render rows
-    foreach ($structure['rows'] as $row_index => $row) {
-        $html = $row['start'];
+    foreach ($structure['rows'] as $row) {
+        $html .= $row['start'];
         foreach ($row['columnSets'] as $columnSet) {
             $html .= $columnSet['start'];
             foreach ($columnSet['columns'] as $column) {
@@ -125,29 +122,14 @@ function render_template_from_structure($structure, $template_id)
             $html .= $columnSet['end'];
         }
         $html .= $row['end'];
-        append_to_transient($transient_key, $html);
     }
 
     // Render bottom section
-    $html = '';
     foreach ($structure['bottom'] as $bottomElement) {
         $html .= $bottomElement;
     }
-    append_to_transient($transient_key, $html);
 
-    // Return the html
-    return get_transient($transient_key);
-}
-
-// Helper function to append data to a transient
-function append_to_transient($key, $value)
-{
-    $existing = get_transient($key);
-    if ($existing === false) {
-        $existing = '';
-    }
-    $new_value = $existing . $value;
-    set_transient($key, $new_value, HOUR_IN_SECONDS); // 1 hour expiration
+    return $html;
 }
 
 function generate_template_html($templateData, $forEditor = false)
@@ -156,7 +138,7 @@ function generate_template_html($templateData, $forEditor = false)
     convertStringBooleans($templateData);
 
     $templateStructure = generate_template_structure($templateData, $forEditor);
-    return render_template_from_structure($templateStructure, $templateData['template_id']);
+    return render_template_from_structure($templateStructure);
 }
 
 
@@ -581,6 +563,10 @@ function idwiz_get_chunk_template($templateId, $rowIndex, $columnSetIndex, $colu
             error_log('Generating Raw HTML Chunk ' . $chunkIndex);
             $return = idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
             error_log('Generating Raw HTML Chunk ' . $chunkIndex . ' - Done. Time taken: ' . round((microtime(true) - $startLogTime) * 1000, 2) . ' ms');
+            break;
+        default:
+            error_log('Generating Unknown Chunk ' . $chunkIndex);
+            return 'Unknown chunk type passed for generation';
             break;
     }
 
