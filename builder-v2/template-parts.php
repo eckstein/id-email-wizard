@@ -61,6 +61,12 @@ function generate_template_structure($templateData, $isEditor = false)
 
             $columns = $columnSet['columns'] ?? [];
 
+            foreach ($columns as $columnIndex => $column) {
+                if ($column['activation'] !== 'active') {
+                    unset($columns[$columnIndex]);
+                }
+            }
+
             // If Magic Wrap is on, reverse the order of columns but keep the keys intact
             $magicWrap = $columnSet['magic_wrap'] ?? 'off';
             if ($magicWrap == 'on') {
@@ -68,19 +74,17 @@ function generate_template_structure($templateData, $isEditor = false)
             }
 
             foreach ($columns as $colIndex => $column) {
-                if ($column['activation'] == 'active') {
-                    $structure['rows'][$rowIndex]['columnSets'][$colSetIndex]['columns'][$colIndex] = [
-                        'start' => generate_column_start($rowIndex, $colSetIndex, $colIndex, $templateData, $isEditor),
-                        'chunks' => [],
-                        'end' => generate_column_end()
+                $structure['rows'][$rowIndex]['columnSets'][$colSetIndex]['columns'][$colIndex] = [
+                    'start' => generate_column_start($rowIndex, $colSetIndex, $colIndex, $templateData, $isEditor),
+                    'chunks' => [],
+                    'end' => generate_column_end()
+                ];
+
+
+                foreach ($column['chunks'] as $chunkIndex => $chunk) {
+                    $structure['rows'][$rowIndex]['columnSets'][$colSetIndex]['columns'][$colIndex]['chunks'][$chunkIndex] = [
+                        'chunk' => idwiz_get_chunk_template(false, $rowIndex, $colSetIndex, $colIndex, $chunkIndex, $templateData, $isEditor)
                     ];
-
-
-                    foreach ($column['chunks'] as $chunkIndex => $chunk) {
-                        $structure['rows'][$rowIndex]['columnSets'][$colSetIndex]['columns'][$colIndex]['chunks'][$chunkIndex] = [
-                            'chunk' => idwiz_get_chunk_template(false, $rowIndex, $colSetIndex, $colIndex, $chunkIndex, $templateData, $isEditor)
-                        ];
-                    }
                 }
             }
         }
@@ -100,36 +104,35 @@ function generate_template_structure($templateData, $isEditor = false)
 
 function render_template_from_structure($structure)
 {
-    $html = [];
+    $html = '';
 
     // Render top section
     foreach ($structure['top'] as $topElement) {
-        $html[] = $topElement;
+        $html .= $topElement;
     }
 
     // Render rows
     foreach ($structure['rows'] as $row) {
-        $html[] = $row['start'];
+        $html .= $row['start'];
         foreach ($row['columnSets'] as $columnSet) {
-            $html[] = $columnSet['start'];
+            $html .= $columnSet['start'];
             foreach ($columnSet['columns'] as $column) {
-                $html[] = $column['start'];
+                $html .= $column['start'];
                 foreach ($column['chunks'] as $chunk) {
-                    $html[] = $chunk['chunk'];
+                    $html .= $chunk['chunk'];
                 }
-                $html[] = $column['end'];
+                $html .= $column['end'];
             }
-            $html[] = $columnSet['end'];
+            $html .= $columnSet['end'];
         }
-        $html[] = $row['end'];
+        $html .= $row['end'];
     }
 
     // Render bottom section
     foreach ($structure['bottom'] as $bottomElement) {
-        $html[] = $bottomElement;
+        $html .= $bottomElement;
     }
-    // Combine all HTML elements into a single string
-    $html = implode('', $html);
+
     return $html;
 }
 
