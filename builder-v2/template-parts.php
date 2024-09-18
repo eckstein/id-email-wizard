@@ -329,9 +329,9 @@ generate_columnset_start($rowIndex, $columnSetIndex, $templateData = null, $isEd
     }
 
     $numActiveColumns = count($allColumns);
-
-    $colSetBackgroundCss = generate_background_css($columnSet['background_settings'], '', false);
-    $colSetBackgroundCssMso = generate_background_css($columnSet['background_settings'], '', true);
+    $colSetBGSettings = $columnSet['background_settings'] ?? [];
+    $colSetBackgroundCss = generate_background_css($colSetBGSettings, '', false);
+    $colSetBackgroundCssMso = generate_background_css($colSetBGSettings, '', true);
 
     $layoutClass = $columnSet['layout'] ?? '';
 
