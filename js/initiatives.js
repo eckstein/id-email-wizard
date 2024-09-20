@@ -436,9 +436,6 @@ jQuery(document).ready(function ($) {
 						// Get selected rows
 						var selectedRows = dt.rows(".selected").nodes().to$();
 
-						// Array to store Deferred objects
-						var ajaxCalls = [];
-
 						// Prepare an array to store the initiative IDs
 						var initiativeIds = [];
 
@@ -451,42 +448,43 @@ jQuery(document).ready(function ($) {
 						});
 
 						// Make the AJAX call to toggle the archive status
-						var ajaxCall = $.ajax({
+						$.ajax({
 							url: idAjax.ajaxurl,
 							type: "POST",
 							data: {
 								action: "idemailwiz_archive_initiative",
-								security: idAjax_initiatives.nonce, // Replace this with the actual nonce for the action
+								security: idAjax_initiatives.nonce,
 								initiativeIds: initiativeIds,
 							},
+							dataType: 'json'
 						}).done(function (response) {
 							console.log("AJAX Response:", response);
-						});
-
-						ajaxCalls.push(ajaxCall);
-
-						// Wait for the AJAX call to complete
-						$.when
-							.apply($, ajaxCalls)
-							.then(function () {
-								Swal.fire({
+							if (response.success) {
+								swal.fire({
 									icon: "success",
-									title: "Initiatives are being updated...",
-									text: "The page will refresh once finished!",
+									title: "Success!",
+									text: response.data.message,
 									showConfirmButton: false,
 									timer: 1500,
 								});
 								setTimeout(function () {
 									location.reload();
 								}, 1500);
-							})
-							.fail(function () {
-								Swal.fire({
+							} else {
+								swal.fire({
 									icon: "error",
-									title: "Oops...",
-									text: "Something went wrong!",
+									title: "Error",
+									text: response.data.message,
 								});
+							}
+						}).fail(function (jqXHR, textStatus, errorThrown) {
+							console.error("AJAX Error:", textStatus, errorThrown);
+							swal.fire({
+								icon: "error",
+								title: "Oops...",
+								text: "Something went wrong with the request!",
 							});
+						});
 					},
 				},
 				{

@@ -83,10 +83,10 @@ function idemailwiz_archive_initiative() {
 		}
 	}
 
-	if ( ! empty( $errors ) ) {
-		wp_send_json_error( array( 'message' => 'Some initiatives could not be archived/unarchived', 'errors' => $errors ) );
+	if (! empty($errors)) {
+		wp_send_json_error(array('message' => 'Some initiatives could not be archived/unarchived', 'errors' => $errors));
 	} else {
-		wp_send_json_success( array( 'message' => 'Successfully archived/unarchived initiatives' ) );
+		wp_send_json_success(array('message' => 'Successfully archived/unarchived initiatives'));
 	}
 }
 add_action( 'wp_ajax_idemailwiz_archive_initiative', 'idemailwiz_archive_initiative' );
