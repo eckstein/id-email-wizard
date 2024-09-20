@@ -42,38 +42,33 @@ jQuery(document).ready(function($) {
 		});
 	
 
-	$("#builder .button-group label").on('click', function() {
-			setTimeout(function () {
-				handle_builder_field_changes($(this));
-			}, 100);
-	});
-
-	
-	$("#builder").on('change', 'input, select, textarea, .button-group *', function() {
-		handle_builder_field_changes($(this));
-	});
 	
 
-	function handle_builder_field_changes($clicked) {
-		// Determine what tab of the builder we're on
-		let currentTab = $clicked.closest('.builder-tab-content').attr('id');
-
-		if (currentTab == 'builder-tab-chunks') {
-			update_chunk_data_attr_data();
-			requestAnimationFrame(() => {
-				updateChunkPreviews($clicked.closest('.builder-chunk'));
-				update_template_preview_part($clicked);
-			});
-		} else if (currentTab == 'builder-tab-styles') {
-			update_template_preview();
-		}
-
+		// Handle global actions on any builder update
+		$("#builder").on('change', 'input, select, textarea, .wiz-check-toggle, .button-group input', function (e) {
 		// Delay these operations slightly to allow UI updates to complete
-		setTimeout(() => {
-			save_template_to_session();
-			sessionStorage.setItem('unsavedChanges',true);
-		}, 100);
-	}
+			setTimeout(() => {
+				save_template_to_session();
+				sessionStorage.setItem('unsavedChanges',true);
+			}, 200);
+
+		})
+	
+		// Handle field changes in the layout tab
+		$("#builder-tab-chunks").on('change', 'input, select, textarea', function() {
+			handle_layout_field_changes($(this));
+		});
+
+
+		// Handle field changes in the styles and options tabs
+		$("#builder-tab-styles, #builder-tab-message-settings").on('change', 'input, select, textarea, .wiz-check-toggle, .button-group input', function() {
+			handle_style_field_changes($(this));
+		});
+
+	
+		
+
+		
 		
 
 		
@@ -465,12 +460,7 @@ jQuery(document).ready(function($) {
 	*/
 
 		// Add new blank row
-		$("#builder").on('click', '.add-row', function() {
-			create_or_dupe_builder_row($(this));		
-		});
-
-		// Duplicate existing row 
-		$("#builder").on('click', '.duplicate-row', function() {
+		$("#builder").on('click', '.add-row, .duplicate-row', function() {
 			create_or_dupe_builder_row($(this));		
 		});
 		
@@ -488,12 +478,7 @@ jQuery(document).ready(function($) {
 	****************
 	*/
 		// Add new blank columnset
-		$("#builder").on('click', '.add-columnset', function() {
-			create_or_dupe_builder_columnset($(this));		
-		});
-
-		// Duplicate existing columnset 
-		$("#builder").on('click', '.duplicate-columnset', function() {
+		$("#builder").on('click', '.add-columnset, .duplicate-columnset', function() {
 			create_or_dupe_builder_columnset($(this));		
 		});
 
@@ -574,7 +559,7 @@ jQuery(document).ready(function($) {
 		
 	});
 
-	// Handle column selection from the pop-up
+	// Handle JSON actions select
 	$("#builder").on('click', '.json-action-option', function () {
 		var action = $(this).data('action');
 		handle_wiz_json_action($(this), action);
@@ -623,7 +608,7 @@ jQuery(document).ready(function($) {
 			toggle_chunk_type_choices($(this));
 		});
 
-		// Handle add chunk menu seleciton
+		// Handle add chunk menu selection
 		$("#builder").on('click', '.wiz-tiny-dropdown-options', function(event) {
 			var $this = $(this);
 
@@ -693,7 +678,7 @@ jQuery(document).ready(function($) {
 			e.preventDefault();
 
 			var $changedElement = $(this);
-			toggle_wizard_button_group($changedElement);
+			toggle_wiz_check_toggle($changedElement);
 
 			save_template_to_session();
 

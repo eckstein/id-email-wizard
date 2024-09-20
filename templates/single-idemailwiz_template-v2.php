@@ -146,7 +146,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 									<div class="builder-field-wrapper">
 										<label class="checkbox-toggle-label">Show Header</label>
 										<div class="wiz-checkbox-toggle">
-											<input type="checkbox" class="wiz-check-toggle"
+											<input type="checkbox" class="wiz-check-toggle" data-preview-part="standard_header"
 												id="template_settings_show_id_header" name="show_id_header" hidden
 												<?php echo $showHeader ? 'checked' : ''; ?>>
 											<label for="template_settings_show_id_header"
@@ -160,7 +160,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 										$templateHeaderLogo = $templateHeaderFooterStyles['template_header_logo'] ?? '';
 										?>
 										<label for="template_header_logo">Header Logo Image</label>
-										<select name="template_header_logo" id="template_header_logo" data-preview-update="header">
+										<select name="template_header_logo" id="template_header_logo" data-preview-part="standard_header">
 											<option
 												value="https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/cd7e1e87-607c-4e56-ad9c-0b0d34671949.png"
 												<?php if ($templateHeaderLogo == "https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/cd7e1e87-607c-4e56-ad9c-0b0d34671949.png") {
@@ -194,18 +194,21 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 									<div
 										class="builder-field-wrapper template-header-logo-manual <?php echo $showManualHeaderUrlField; ?>">
 										<?php
-										$templateHeaderLogo = $templateHeaderFooterStyles['template_header_logo_manual'] ?? '';
+										$manualLogoLink = $templateHeaderFooterStyles['template_header_logo_manual'];
+										if ($manualLogoLink == '') {
+											$manualLogoLink = 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/cd7e1e87-607c-4e56-ad9c-0b0d34671949.png';
+										}
 										?>
 										<label for=" template_header_logo_manual">Header Logo Image</label>
 										<input type="text" name="template_header_logo_manual"
 											id="template_header_logo_manual"
-											value="<?php echo $templateHeaderLogo; ?>">
+											value="<?php echo $manualLogoLink; ?>">
 									</div>
 
 									<?php $headerPadding = $templateHeaderFooterStyles['header_padding'] ?? '20px 0'; ?>
 									<div class='builder-field-wrapper header-padding small-input'><label
 											for='header-chunk-padding'>Header Padding</label>
-										<input type='text' name='header_padding' id='header-padding'
+										<input type='text' name='header_padding' id='header-padding' data-preview-part="standard_header"
 											value='<?php echo $headerPadding; ?>'>
 									</div>
 
@@ -218,7 +221,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 										<?php $showFooter = $templateSettings['template_styles']['header-and-footer']['show_id_footer'] ?? true; ?>
 										<label class="checkbox-toggle-label">Show Footer</label>
 										<div class="wiz-checkbox-toggle">
-											<input type="checkbox" class="wiz-check-toggle"
+											<input type="checkbox" class="wiz-check-toggle" data-preview-part="standard_footer"
 												id="template_settings_show_id_footer" name="show_id_footer" hidden
 												<?php echo $showFooter ? 'checked' : ''; ?>>
 											<label for="template_settings_show_id_footer"
@@ -244,7 +247,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 										$templateFooterTextColor = $templateHeaderFooterStyles['template_footer_text_color'] ?? '#000';
 										?>
 										<label for="template_styles_footer_text_color">Text</label>
-										<input class="builder-colorpicker" type="color"
+										<input class="builder-colorpicker" type="color" data-preview-part="standard_footer"
 											name="template_footer_text_color" id="template_styles_footer_text_color"
 											data-color-value="<?php echo $templateFooterTextColor; ?>">
 									</div>
@@ -253,7 +256,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 										$templateFooterLinkColor = $templateHeaderFooterStyles['template_footer_link_color'] ?? '#000';
 										?>
 										<label for="template_styles_footer_link_color">Links</label>
-										<input class="builder-colorpicker" type="color"
+										<input class="builder-colorpicker" type="color" data-preview-part="standard_footer"
 											name="template_footer_link_color" id="template_styles_footer_link_color"
 											data-color-value="<?php echo $templateFooterLinkColor; ?>">
 									</div>
@@ -293,7 +296,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 												$isChecked = isset($templateHeaderFooterStyles[$opt['name']]) && $templateHeaderFooterStyles[$opt['name']] ? 'checked' : '';
 												?>
 
-												<input type='checkbox' id='<?php echo $fieldID; ?>'
+												<input type='checkbox' id='<?php echo $fieldID; ?>' data-preview-part='standard_footer'
 													name='<?php echo $opt['name']; ?>'
 													value='<?php echo $opt['value']; ?>' <?php echo $isChecked; ?>>
 												<label for='<?php echo $fieldID; ?>' class='button-label'
@@ -315,7 +318,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 										?>
 										<label for="template_styles_footer_color">Footer BG</label>
 										<fieldset name="footer-background" id="template-footer-background">
-											<?php echo generateBackgroundSettingsModule($templateHeaderFooterStyles['footer-background'] ?? [], '', false); ?>
+											<?php echo generateBackgroundSettingsModule($templateHeaderFooterStyles['footer-background'] ?? [], '', false, 'standard_footer'); ?>
 										</fieldset>
 									</div>
 								</div>
@@ -556,7 +559,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 
 						<div class="builder-field-wrapper block">
 							<label for="template_settings_fine_print_disclaimer">Fine Print/Disclaimer</label>
-							<textarea id="template_settings_fine_print_disclaimer" name="fine_print_disclaimer"
+							<textarea id="template_settings_fine_print_disclaimer" name="fine_print_disclaimer" data-preview-part="fine_print"
 								class="builder-field"><?php echo $templateSettings['fine_print_disclaimer'] ?? ''; ?></textarea>
 						</div>
 						<div class="builder-field-group flex noWrap">
@@ -788,7 +791,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 						data-mode="trans" data-frame="#previewFrame">
 					</div>
 					<span class="templateActions-divider"></span>
-					
+
 					<div title="Fill Merge Tags" class="fill-merge-tags" data-postid="<?php echo $postId; ?>">
 						&nbsp;<span style="font-size:.8em;">{{X}}</span>&nbsp;</div>
 					<i title="Template Data" class="fa-solid fa-database manage-template-data"></i>

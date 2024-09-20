@@ -121,6 +121,14 @@ function syncPreviewElement($builderElement, isExpanding) {
         }, 300);
     }
 
+    // check that the data-chunk-type data attributes match on the synced elements
+        $builderFirstChunk = $builderElement.hasClass('builder-chunk') ? $builderElement : $builderElement.find('.builder-chunk').first();
+        if ($firstChunk.data('chunk-type') !== $builderFirstChunk.data('chunk-type')) {
+            console.warn('Mismatched data-chunk-type data attributes');
+            update_template_preview();
+            return;
+        }
+
     setTimeout(function() {
         if ($previewElement.length && isExpanding) {
             $previewElement.closest('body').find('.chunk').removeClass('active');
@@ -536,11 +544,16 @@ function toggle_chunk_type_choices($clicked) {
 
 
 // Create new builder row
-function create_new_builder_row(rowData, $clicked) {
+function create_new_builder_row(rowData, $clicked, duplicate = false) {
     idemailwiz_do_ajax('create_new_row', idAjax_template_editor.nonce, rowData, 
         function(response) { // Success callback
             if(response.data.html) {
-                let $newRow = jQuery(response.data.html).appendTo('.builder-rows-wrapper');
+                let $newRow;
+                if (duplicate) {
+                    $newRow = jQuery(response.data.html).insertAfter($clicked.closest('.builder-row'));
+                } else {
+                    $newRow = jQuery(response.data.html).appendTo('.builder-rows-wrapper');
+                }
                 let $originalRow = $clicked.closest('.builder-row');
                 reinitialize_wiz_sortables_for_cloned($originalRow, $newRow);
 
@@ -561,19 +574,19 @@ function create_or_dupe_builder_row($clicked) {
         post_id: postId,
         user_id: userId
     };
-
+    var duplicate = false;
     if ($clicked.hasClass('add-row')) {
         const lastRow = jQuery('.builder-rows-wrapper .builder-row').last();
         rowData.row_above = lastRow.length ? lastRow.attr('data-row-id') : false;
     } else if ($clicked.hasClass('duplicate-row')) {
+        duplicate = true;
         const rowToDupe = $clicked.closest('.builder-row');
-        console.log('Duplicating row', rowToDupe.attr('data-row-id'));
         rowData.row_to_dupe = rowToDupe.length ? rowToDupe.attr('data-row-id') : false;
         rowData.session_data = JSON.stringify(get_template_from_session()); // Ensure this is a string
     }
 
     // Create a new row
-    create_new_builder_row(rowData, $clicked);
+    create_new_builder_row(rowData, $clicked, duplicate);
 }
 
 // Create or dupe columnset
@@ -588,14 +601,13 @@ function create_or_dupe_builder_columnset($clicked) {
         post_id: postId,
         row_id: rowId
     };
-
-    if ($clicked.hasClass('add-columnset')) {
-        const lastColumnSet = row.find('.builder-columnset').last();
-        colSetIndex = lastColumnSet.length ? lastColumnSet.attr('data-columnset-id') + 1 : 0;
-        colSetData.colset_index = colSetIndex;
+      if ($clicked.hasClass('add-columnset')) {
+          const lastColumnSet = row.find('.builder-columnset').last();
+          colSetIndex = lastColumnSet.length ? parseInt(lastColumnSet.attr('data-columnset-id')) + 1 : 0;
+          colSetData.colset_index = colSetIndex;
     } else if ($clicked.hasClass('duplicate-columnset')) {
         const colSetToDupe = $clicked.closest('.builder-columnset');
-        colSetIndex = colSetToDupe.attr('data-columnset-id') + 1;
+        colSetIndex = parseInt(colSetToDupe.attr('data-columnset-id')) + 1;
         colSetData.colset_index = colSetIndex;
         colSetData.colset_to_dupe = colSetToDupe.attr('data-columnset-id');
     }
@@ -611,6 +623,7 @@ function create_or_dupe_builder_columnset($clicked) {
                 } else if ($clicked.hasClass('duplicate-columnset')) {
                     $newColumnSet = jQuery(response.data.html).insertAfter($colSet);
                 }
+
                 init_ui_for_new_chunk($newColumnSet);
                 reinitialize_wiz_sortables_for_cloned($colSet, $newColumnSet);
                 finalize_new_item($newColumnSet, response);
@@ -896,7 +909,9 @@ function handle_column_selection($element, selectedLayout) {
 
     colSetIndex = $columnSet.attr('data-columnset-id');
 
-    update_template_preview_part($columnSet);
+    $row = $columnSet.closest('.builder-row');
+
+    update_template_preview_part($row);
 
 
     sessionStorage.setItem('unsavedChanges', 'true');
@@ -1040,6 +1055,10 @@ function add_chunk_by_type(chunkType, addChunkTrigger, duplicate = false) {
                 init_ui_for_new_chunk(newChunk);
                 reinitialize_wiz_sortables_for_cloned(thisChunk, newChunk);
                 finalize_new_item(newChunk, response);
+
+                var columnSet = newChunk.closest('.builder-columnset');
+
+                update_template_preview_part(columnSet);
             }
         },
         function(xhr, status, error) {
@@ -1076,21 +1095,24 @@ function finalize_new_item($element, response) {
     $element.attr('data-chunk-data', JSON.stringify(response.data.chunk_data));
     $element.addClass('newly-added');
     setTimeout(() => $element.removeClass('newly-added'), 3000);
-    
-    let previewElement;
-    let $refreshElement;
 
     if ($element.hasClass('builder-row')) {
-        $refreshElement = $element;
-        previewElement = 'newRow';
+        reindexDataAttributes('row-id');
+        update_template_preview_part(jQuery('#builder').find($element), 'newRow');
     } else {
-        $refreshElement = $element.parents('.builder-column, .builder-columnset, .builder-row').first();
+        if ($element.hasClass('builder-columnset')) {
+            reindexDataAttributes('columnset-id');
+            update_template_preview_part($element.closest('.builder-row'));
+        } else if ($element.hasClass('builder-column')) {
+            reindexDataAttributes('column-id');
+            update_template_preview_part($element.closest('.builder-columnset'));
+        } else if ($element.hasClass('builder-chunk')) {
+            reindexDataAttributes('chunk-id');
+            update_template_preview_part($element.closest('.builder-column'));
+        }
+        
     }
 
-				
-    update_template_preview_part($refreshElement, previewElement);
-
-    reindexDataAttributes('row-id');
     save_template_to_session();
 
     sessionStorage.setItem('unsavedChanges', 'true');
@@ -1208,9 +1230,7 @@ function get_template_part_do_callback(params, callback) {
             callback(null, data.data);
         } else {
             callback(new Error(data.data.message), null);
-            if (isEditor) {
-                update_template_preview();
-            }
+            
         }
     })
     .catch(error => {
@@ -1357,13 +1377,31 @@ function decodeHTMLEntities(text) {
     return textArea.value;
 }
 
+
+let templateUpdateQueue = [];
+let templateUpdateProcessing = false;
+
+
 function update_template_preview_part($changedElement, previewElement=null) {
+    templateUpdateQueue.push({$changedElement, previewElement});
+    processPreviewUpdateQueue();
+}
+
+function processPreviewUpdateQueue() {
+    if (templateUpdateProcessing || templateUpdateQueue.length === 0) return;
+
+    templateUpdateProcessing = true;
+    let {$changedElement, previewElement} = templateUpdateQueue.shift();
+
     save_template_to_session();
 
     previewElement = previewElement ? previewElement : find_matching_preview_element($changedElement);
 
-    if (!previewElement) {
+
+    if (previewElement.length === 0) {
         update_template_preview();
+        templateUpdateProcessing = false;
+        processPreviewUpdateQueue();
         return;
     }
 
@@ -1371,55 +1409,82 @@ function update_template_preview_part($changedElement, previewElement=null) {
         isEditor: true,
     };
 
-    if ($changedElement.closest('.builder-chunk').length) {
-        const $chunk = $changedElement.closest('.builder-chunk');
-        params.partType = 'chunk';
-        params.rowIndex = $chunk.closest('.builder-row').data('row-id');
-        params.columnSetIndex = $chunk.closest('.builder-columnset').data('columnset-id');
-        params.columnIndex = $chunk.closest('.builder-column').data('column-id');
-        params.chunkIndex = $chunk.data('chunk-id');
-    } else if ($changedElement.closest('.builder-column').length) {
-        const $column = $changedElement.closest('.builder-column');
-        params.partType = 'column';
-        params.rowIndex = $column.closest('.builder-row').data('row-id');
-        params.columnSetIndex = $column.closest('.builder-columnset').data('columnset-id');
-        params.columnIndex = $column.data('column-id');
-    } else if ($changedElement.closest('.builder-columnset').length) {
-        const $columnset = $changedElement.closest('.builder-columnset');
-        params.partType = 'columnset';
-        params.rowIndex = $columnset.closest('.builder-row').data('row-id');
-        params.columnSetIndex = $columnset.data('columnset-id');
-    } else if ($changedElement.closest('.builder-row').length) {
-        const $row = $changedElement.closest('.builder-row');
-        params.partType = 'row';
-        params.rowIndex = $row.data('row-id');
+    // Catch changes within the builder layout elements
+    if ($changedElement.closest('.builder-rows-wrapper').length) {
+        if ($changedElement.closest('.builder-chunk').length) {
+            const $chunk = $changedElement.closest('.builder-chunk');
+            params.partType = 'chunk';
+            params.rowIndex = $chunk.closest('.builder-row').data('row-id');
+            params.columnSetIndex = $chunk.closest('.builder-columnset').data('columnset-id');
+            params.columnIndex = $chunk.closest('.builder-column').data('column-id');
+            params.chunkIndex = $chunk.data('chunk-id');
+        } else if ($changedElement.closest('.builder-column').length) {
+            const $column = $changedElement.closest('.builder-column');
+            params.partType = 'column';
+            params.rowIndex = $column.closest('.builder-row').data('row-id');
+            params.columnSetIndex = $column.closest('.builder-columnset').data('columnset-id');
+            params.columnIndex = $column.data('column-id');
+        } else if ($changedElement.closest('.builder-columnset').length) {
+            const $columnset = $changedElement.closest('.builder-columnset');
+            params.partType = 'columnset';
+            params.rowIndex = $columnset.closest('.builder-row').data('row-id');
+            params.columnSetIndex = $columnset.data('columnset-id');
+        } else if ($changedElement.closest('.builder-row').length) {
+            const $row = $changedElement.closest('.builder-row');
+            params.partType = 'row';
+            params.rowIndex = $row.data('row-id');
+        } else {
+            update_template_preview();
+            templateUpdateProcessing = false;
+            processPreviewUpdateQueue();
+            return;
+        }
     } else {
-        update_template_preview();
-        return;
+        // For fields outside the layout/chunks tab
+        params.partType = previewElement;
     }
 
-    
     get_template_part_do_callback(params, function(error, data) {
         if (error) {
             console.error('Error:', error.message);
+            templateUpdateProcessing = false;
+            processPreviewUpdateQueue();
             return;
         }
         const decodedHTML = decodeHTMLEntities(data.html);
-        
+        const iframe = jQuery('#previewFrame')[0].contentWindow.document;
+        // Special handling for a new row
         if (previewElement == 'newRow') {            
-            const iframe = jQuery('#previewFrame')[0].contentWindow.document;
+            
             const previousRow = iframe.querySelector('.row[data-row-index="' + (parseInt(params.rowIndex) - 1) + '"]');
             if (previousRow) {
                 previousRow.insertAdjacentHTML('afterend', decodedHTML);
             } else {
-                // Append to the container
                 iframe.querySelector('.builder-rows-wrapper').insertAdjacentHTML('beforeend', decodedHTML);
             }
+            // if the changed element has the data-preview-part attribute, we replace the content between the placeholders
+        } else if ($changedElement.is("[data-preview-part]")) {
+            var previewPart = $changedElement.data('preview-part');
+            // Replace everything between the placeholders
+            const rangeStart = iframe.querySelector('wizPlaceholder[data-preview-part="'+previewPart+'_start"]');
+            const rangeEnd = iframe.querySelector('wizPlaceholder[data-preview-part="'+previewPart+'_end"]');
+            if (rangeStart && rangeEnd) {
+                
+            const range = new Range();
+            range.setStartAfter(rangeStart);
+            range.setEndBefore(rangeEnd);
+            range.deleteContents();
+            range.insertNode(document.createRange().createContextualFragment(decodedHTML));
+
+            }
+            // Regular updates of chunks, columns, rows, etc.
         } else {
             previewElement.replaceWith(decodedHTML);
         }
         reindexPreviewElements();
 
+        templateUpdateProcessing = false;
+        processPreviewUpdateQueue();
     });
 }
 
@@ -1466,25 +1531,23 @@ function analyzeTemplateLinks() {
                 '</div>';
     jQuery('body').append(modal);
 
-    var additionalData = {
-        action: "generate_template_html_from_ajax",
-        template_id: idAjax_template_editor.currentPost.ID,
-        session_data: get_template_from_session(),
+    var params = {
+        partType: 'fullTemplate',
+        isEditor: false,
+        templateId: idAjax_builder_functions.currentPostId,
         security: idAjax_template_editor.nonce,
     };
 
-    jQuery.ajax({
-        type: "POST",
-        url: idAjax.wizAjaxUrl,
-        data: additionalData,
-        success: function(templateHtml) {
-            analyzeLinks(templateHtml);
-        },
-        error: function(xhr, status, error) {
-            console.log('Error retrieving template HTML');
+    get_template_part_do_callback(params, function(error, data) {
+        if (error) {
+            console.log('Error retrieving template HTML:', error.message);
             do_wiz_notif({ message: 'Error retrieving template HTML', duration: 3000 });
             closeAnalysisModal();
+            return;
         }
+
+        var templateHtml = data.html;
+        analyzeLinks(templateHtml);
     });
 }
 
@@ -1496,6 +1559,7 @@ function analyzeLinks(encodedHtml) {
     
     // Create a Set to store unique URLs and a Map for occurrences
     const uniqueUrls = new Set();
+    const untestableUrls = [];
     const urlOccurrences = new Map();
     
     // Filter and collect unique URLs and count occurrences
@@ -1504,6 +1568,9 @@ function analyzeLinks(encodedHtml) {
         if (href && !href.startsWith('javascript:') && !href.startsWith('#') && !href.match(/\{\{.*\}\}/)) {
             uniqueUrls.add(href);
             urlOccurrences.set(href, (urlOccurrences.get(href) || 0) + 1);
+        } else {
+            // collect untestable url strings
+            untestableUrls.push(href);
         }
     });
 
@@ -1521,7 +1588,7 @@ function analyzeLinks(encodedHtml) {
                 checkNextLink();
             });
         } else {
-            displayResults(results);
+            displayResults(results, allLinks, untestableUrls);
         }
     }
 
@@ -1572,7 +1639,7 @@ function updateProgressDisplay(current, total) {
         '<div class="link-analysis-progress-bar"><div class="link-analysis-progress" style="width:' + percentage + '%;"></div></div>');
 }
 
-function displayResults(results) {
+function displayResults(results, allLinks, untestableUrls) {
     const uniqueResults = results.reduce((acc, curr) => {
         acc[curr.original_url] = curr;
         return acc;
@@ -1580,8 +1647,9 @@ function displayResults(results) {
 
 
     let resultsHtml = '<div class="link-analysis-header"><h3>Link Analysis Summary</h3>' +
-                      '<div class="link-analysis-counts">Total Links: ' + results.length + '&nbsp;&nbsp;|&nbsp;&nbsp;' +
-                      'Unique Links: ' + Object.keys(uniqueResults).length  +
+                      '<div class="link-analysis-counts">Total Links: ' + allLinks.length + '&nbsp;&nbsp;|&nbsp;&nbsp;' +
+                      'Unique Links: ' + Object.keys(uniqueResults).length  + '&nbsp;&nbsp;|&nbsp;&nbsp;' +
+                      'Untestable: ' + untestableUrls.length  +
                       '</div>' +
         '<div class="link-analysis-last-updated">Last Checked: ' + new Date().toLocaleString() + '</div>' + 
                       '<button class="wiz-button green re-start-link-checker">Re-Run Check</button>' +
@@ -1642,6 +1710,14 @@ function displayResults(results) {
             '</tr>';
     }
 
+    // Loop through the array of untestable URLs and add to bottom of table
+    for (const url of untestableUrls) {
+        resultsHtml += '<tr>' +
+            '<td><div><a href="' + url + '" target="_blank">' + url + '</a></div></td>' +
+            '<td colspan="7"><div class="center">Unable to test</div></td>' +
+            '</tr>'
+    }    
+
     resultsHtml += '</table></div>';
     jQuery('#link-analysis-progress').hide();
     jQuery('.link-analysis-progress-title').hide();
@@ -1654,3 +1730,37 @@ function closeAnalysisModal() {
 }
 
 
+
+function handle_colorpicker_changes($inputField) {
+    var previewPart = $inputField.attr('data-preview-part');
+    if (previewPart) {
+        update_template_preview_part($inputField, previewPart);
+    }
+}
+
+function handle_codemirror_changes($textArea) {
+    var previewPart = $textArea.attr('data-preview-part');
+    if (previewPart) {
+        update_template_preview_part($textArea, previewPart);
+    } else {
+        update_template_preview_part($textArea);
+    }
+}
+
+function handle_style_field_changes($inputField) {
+        var previewPart = $inputField.attr('data-preview-part');
+        if (previewPart) {
+            update_template_preview_part($inputField, previewPart);
+        } else {
+            update_template_preview_part($inputField);
+        }
+    }
+
+function handle_layout_field_changes($clicked) {
+    update_chunk_data_attr_data();
+    requestAnimationFrame(() => {
+        updateChunkPreviews($clicked.closest('.builder-chunk'));
+        update_template_preview_part($clicked);
+    });
+		
+}

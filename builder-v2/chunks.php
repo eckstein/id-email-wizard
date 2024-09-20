@@ -7,7 +7,7 @@ function idwiz_get_spacer_chunk($chunk, $templateOptions, $chunkIndex = null, $i
 	$chunkSettings = $chunk['settings'];
 	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
 
-	$chunkDataAttr = $isEditor ? "data-chunk-index='" . $chunkIndex . "'" : "";
+	$chunkDataAttr = $isEditor ? "data-chunk-index='" . $chunkIndex . "' data-chunk-type='" . $chunk["field_type"] . "'" : "";
 
 	$chunkFields = $chunk['fields'];
 
@@ -58,7 +58,7 @@ function idwiz_get_button_chunk($chunk, $templateOptions, $chunkIndex = null, $i
 	$chunkPaddingCss = 'padding: ' . $chunkPadding;
 	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
 
-	$chunkDataAttr = $isEditor ? 'data-chunk-index="' . $chunkIndex . '"' : '';
+	$chunkDataAttr = $isEditor ? "data-chunk-index='" . $chunkIndex . "' data-chunk-type='" . $chunk["field_type"] . "'" : "";
 
 	$ctaText = $chunkFields['button_text'] ?? 'Click here';
 	$ctaUrl = $chunkFields['button_link'] ?? 'https://www.idtech.com';
@@ -149,7 +149,7 @@ function idwiz_get_snippet_chunk($chunk, $templateOptions, $chunkIndex = null, $
 	$chunkSettings = $chunk['settings'];
 	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
 
-	$chunkDataAttr = $isEditor ? 'data-chunk-index="' . $chunkIndex . '"' : '';
+	$chunkDataAttr = $isEditor ? "data-chunk-index='" . $chunkIndex . "' data-chunk-type='" . $chunk["field_type"] . "'" : "";
 
 	$chunkFields = $chunk['fields'];
 
@@ -220,7 +220,7 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 
 	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
 
-	$chunkDataAttr = $isEditor ? 'data-chunk-index="' . $chunkIndex . '"' : '';
+	$chunkDataAttr = $isEditor ? "data-chunk-index='" . $chunkIndex . "' data-chunk-type='" . $chunk["field_type"] . "'" : "";
 
 	$visibility = get_visibility_class_and_style($chunkSettings);
 	if ($visibility['class'] != '') {
@@ -254,8 +254,8 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 
 	$output = '';
 
-	
-		$output .= '<div class="chunk id-raw-html ' . $chunkClasses . ' ' . $visibility['class'] . '" ' . $chunkDataAttr . ' style="' . $visibility['inlineStyle'] . ' ' . $backgroundColorCss . ' color: ' . $baseTextColor . '; padding: ' . $chunkPadding . '; font-size: ' . $templateFontSize . ';">';
+
+	$output .= '<div class="chunk id-raw-html ' . $chunkClasses . ' ' . $visibility['class'] . '" ' . $chunkDataAttr . ' style="' . $visibility['inlineStyle'] . ' ' . $backgroundColorCss . ' color: ' . $baseTextColor . '; padding: ' . $chunkPadding . '; font-size: ' . $templateFontSize . ';">';
 	if ($chunkWrap) {
 		if ($visibility['class'] == 'mobile-only') {
 			$output .= '<!--[if !mso]><!-->';
@@ -294,8 +294,6 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 		if ($visibility['class'] == 'mobile-only') {
 			$output .= '<!--<![endif]-->';
 		}
-
-		
 	}
 	$output .= '</div>'; // Close the main wrapper div
 
@@ -310,7 +308,7 @@ function idwiz_get_icon_list_chunk($chunk, $templateOptions, $chunkIndex = null,
 	$visibility = get_visibility_class_and_style($chunkSettings);
 	$classAttr = $visibility['class'] ? 'class="' . esc_attr($visibility['class']) . '"' : '';
 
-	$chunkDataAttr = $isEditor ? "data-chunk-index='" . $chunkIndex . "'" : "";
+	$chunkDataAttr = $isEditor ? "data-chunk-index='" . $chunkIndex . "' data-chunk-type='" . $chunk["field_type"] . "'" : "";
 
 	$backgroundColorCss = generate_background_css($chunkSettings);
 	$msoBackgroundColorCss = generate_background_css($chunkSettings, '', true);
@@ -338,7 +336,7 @@ function idwiz_get_icon_list_chunk($chunk, $templateOptions, $chunkIndex = null,
 	$baseTextColor = $chunkSettings['text_base_color'] ?? '#000000';
 
 	$output = '';
-	$output .= '<div class="chunk id-icon-list ' . $chunkClasses . ' ' .$visibility['class'] . ' ' . $pPaddingClass . '" ' . $chunkDataAttr . ' style="' . $backgroundColorCss . ' ' . $visibility['inlineStyle'] . $chunkPaddingCss . ' color:'. $baseTextColor.'">';
+	$output .= '<div class="chunk id-icon-list ' . $chunkClasses . ' ' . $visibility['class'] . ' ' . $pPaddingClass . '" ' . $chunkDataAttr . ' style="' . $backgroundColorCss . ' ' . $visibility['inlineStyle'] . $chunkPaddingCss . ' color:' . $baseTextColor . '">';
 
 	if ($visibility['class'] == 'mobile-only') {
 		$output .= '<!--[if !mso]><!-->';
@@ -390,7 +388,7 @@ function idwiz_get_plain_text_chunk($chunk, $templateOptions, $chunkIndex = null
 		$tableClassHtml = '';
 	}
 
-	$chunkDataAttr = $isEditor ? "data-chunk-index='" . $chunkIndex . "'" : "";
+	$chunkDataAttr = $isEditor ? "data-chunk-index='" . $chunkIndex . "' data-chunk-type='" . $chunk["field_type"] . "'" : "";
 
 	$backgroundColorCss = generate_background_css($chunkSettings);
 	$msoBackgroundColorCss = generate_background_css($chunkSettings, '', true);
@@ -486,9 +484,9 @@ function idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex = null, $is
 	$msoPaddingToMargin = $chunkPadding ? 'margin:' . $chunkPadding . ';' : 'margin: 0;';
 
 	$image_context = $chunkSettings['image_context'] ?? '';
-	$chunkClasses = 'id-image '.$chunkSettings['chunk_classes'] ?? '';
+	$chunkClasses = 'id-image ' . $chunkSettings['chunk_classes'] ?? '';
 
-	$chunkDataAttr = $isEditor ? "data-chunk-index='" . $chunkIndex . "'" : "";
+	$chunkDataAttr = $isEditor ? "data-chunk-index='" . $chunkIndex . "' data-chunk-type='" . $chunk["field_type"] . "'" : "";
 
 	$templateWidth = $templateOptions['template_styles']['body-and-background']['template_width'] ?? '648';
 
@@ -512,7 +510,7 @@ function idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex = null, $is
 	}
 
 	// Determine the aspect ratio of the image
-	$imageAspectRatioResult = get_image_aspect_ratio($imageSrc);// we pass the remote URL here, not the cached data
+	$imageAspectRatioResult = get_image_aspect_ratio($imageSrc); // we pass the remote URL here, not the cached data
 	$status = $imageAspectRatioResult['status'];
 	$imageAspectRatio = $imageAspectRatioResult['data'];
 
@@ -549,7 +547,7 @@ function idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex = null, $is
 	// If no link, add pointer-events: none to prevent click interaction
 	$pointerEventsCss = !$imageLink ? 'pointer-events: none;' : '';
 
-	$output .= '<img class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" width="' . $msoWidth . '" height="' . $msoHeight . '" ' . $altAttribute . ' style="' . $pointerEventsCss . 'width:100%; max-width:' . $msoWidth . 'px; height:'. $msoHeight.'; max-height:' . $msoHeight . 'px;' . $visibility['inlineStyle'] . ';" />';
+	$output .= '<img class="id-image ' . $visibility['class'] . '" src="' . $imageSrc . '" width="' . $msoWidth . '" height="' . $msoHeight . '" ' . $altAttribute . ' style="' . $pointerEventsCss . 'width:100%; max-width:' . $msoWidth . 'px; height:' . $msoHeight . '; max-height:' . $msoHeight . 'px;' . $visibility['inlineStyle'] . ';" />';
 	if ($imageLink) {
 		$output .= '</a>';
 	}
@@ -582,13 +580,17 @@ function idwiz_get_standard_header($templateOptions)
 {
 	$templateStyles = $templateOptions['template_styles'];
 	$headerFooterSettings = $templateStyles['header-and-footer'];
+	$showIdHeader = filter_var($headerFooterSettings['show_id_header'] ?? false, FILTER_VALIDATE_BOOLEAN);
+	if (!$showIdHeader) {
+		return '';
+	}
 	$headerLogo = $headerFooterSettings['template_header_logo'] ?? '';
 	if ($headerLogo == 'manual') {
 		$headerLogo = $headerFooterSettings['template_header_logo_manual'] ?? '';
 	}
 	$headerPadding = $headerFooterSettings['header_padding'] ?? '0 0 20px 0';
 	$output = '';
-	$output .= '<table role="presentation" style="width:100%;border:0;border-spacing:0;table-layout:fixed;font-size: 0;">';
+	$output .= '<table role="presentation" style="width:100%;border:0;border-spacing:0;table-layout:fixed;font-size: 0;" id="standard-header">';
 	$output .= '<tr>';
 	$output .= '<td style="font-size: 0;line-height:0;margin:0;padding:' . $headerPadding . ';">';
 	$output .= '<a href="https://www.idtech.com" style="margin:0; padding: 0;" aria-label="iD Tech Camps" title="iD Tech Camps">';
@@ -602,8 +604,12 @@ function idwiz_get_standard_header($templateOptions)
 }
 function idwiz_get_standard_footer($templateStyles)
 {
-
 	$headerAndFooter = $templateStyles['header-and-footer'];
+	$showIdFooter = filter_var($headerAndFooter['show_id_footer'] ?? false, FILTER_VALIDATE_BOOLEAN);
+	if (!$showIdFooter) {
+		return '';
+	}
+
 	$bodyAndBackground = $templateStyles['body-and-background'];
 	$linkStyles = $templateStyles['link-styles'];
 
@@ -679,15 +685,16 @@ function idwiz_get_fine_print_disclaimer($templateOptions)
 	$gmailBlendMobileClass = $gmailBlendMobile ? 'mobile' : '';
 
 	$output = '';
-	$output .= '<div class="chunk id-fine-print" style="' . $footerBackgroundCss . ' width: 100%; max-width: ' . $templateWidth . '; padding-bottom: 20px; font-size: 12px;">';
+	if ($finePrintDisclaimer) {
+		$output .= '<div class="chunk id-fine-print" style="' . $footerBackgroundCss . ' width: 100%; max-width: ' . $templateWidth . '; padding-bottom: 20px; font-size: 12px;">';
 
-	$output .= '<!--[if mso]>
+		$output .= '<!--[if mso]>
 	<table role="presentation" align="center" style="width:' . $templateWidth . ';table-layout:fixed;">
 	<tr>
 	<td style="' . $footerBackgroundCss . ' padding-bottom: 20px; font-size: 12px; text-align: center;">
 	<![endif]-->';
 
-	if ($finePrintDisclaimer) {
+
 		if ($gmailBlendDesktop || $gmailBlendMobile) {
 			$output .= '<div class="gmail-blend-screen ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
 			$output .= '<div class="gmail-blend-difference ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
@@ -697,15 +704,16 @@ function idwiz_get_fine_print_disclaimer($templateOptions)
 			$output .= '</div>';
 			$output .= '</div>';
 		}
-	}
 
-	$output .= '<!--[if mso]>
+
+		$output .= '<!--[if mso]>
 	</td>
 	</tr>
 	</table>
 	<![endif]-->';
 
-	$output .= '</div>';
+		$output .= '</div>';
+	}
 
 	return $output;
 }
@@ -759,6 +767,7 @@ function idwiz_get_email_top($templateSettings, $templateStyles, $rows)
 
 	ob_start();
 ?>
+	<!--email_top_start-->
 	<!DOCTYPE html>
 	<html lang="en" xmlns="https://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office" title="iD Tech Camps">
 
@@ -840,7 +849,7 @@ function idwiz_get_email_top($templateSettings, $templateStyles, $rows)
 			// Remove anything that's not plain text and re-convert back to non-html-entities
 			$subjectLine = strip_tags($subjectLine);
 			$subjectLine = html_entity_decode($subjectLine, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-			
+
 			echo $subjectLine;
 			?>
 		</title>
@@ -869,6 +878,7 @@ function idwiz_get_email_top($templateSettings, $templateStyles, $rows)
 		</noscript>
 		<![endif]-->
 	</head>
+	<!--email_top_end-->
 <?php
 	return ob_get_clean();
 }
@@ -883,7 +893,7 @@ function idwiz_get_email_body_top($templateStyles)
 
 	$previewTextHack = get_preview_text_hack();
 
-	$return = '<body class="body" id="body" style="margin: 0; padding: 0; word-spacing: normal; '. $bodyBackgroundCss.'">
+	$return = '<body class="body" id="body" style="margin: 0; padding: 0; word-spacing: normal; ' . $bodyBackgroundCss . '">
 	<div style="display: none; max-height: 0px; overflow: hidden;">
 	' . $previewTextHack . '
 	</div>

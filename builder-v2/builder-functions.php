@@ -222,7 +222,7 @@ function generate_builder_row($rowId, $rowData = [])
     $rowDesktopIconClass = $rowDesktopVisibility === 'false' ? 'disabled' : '';
     $rowMobileIconClass = $rowMobileVisibility === 'false' ? 'disabled' : '';
 
-    $colsetFramesMode = isset($rowData['frames_mode']) && $rowData['frames_mode'] === 'false' ? 'false' : 'true';
+    $colsetFramesMode = isset($rowData['frames_mode']) && $rowData['frames_mode'] === 'true' ? 'true' : 'false';
     $colsetFramesModeClass = $colsetFramesMode === 'true' ? 'active' : '';
 
 
@@ -437,7 +437,7 @@ function generate_builder_columnset($colSetIndex, $columnSet, $rowId, $framesMod
 
     $colSetIndex = 0;
     foreach ($columns as $columnIndex => $column) {
-        $colSetIndex ++;
+        $colSetIndex++;
         $html .= generate_builder_column($rowId, $colSetIndex, $column, $columnIndex);
     }
 
@@ -1052,7 +1052,7 @@ function get_chunk_preview($chunkData = [], $chunkType = null)
     if (!$chunkType) {
         return;
     }
-    $chunkPreview = ucwords(str_replace('-',' ',$chunkType));
+    $chunkPreview = ucwords(str_replace('-', ' ', $chunkType));
 
     if ($chunkType == 'text' && isset($chunkData['fields'])) {
         $chunkPreview = $chunkData['fields']['plain_text_content'] ? mb_substr(strip_tags(stripslashes($chunkData['fields']['plain_text_content'])), 0, 32) . '...' : '';
@@ -1114,7 +1114,7 @@ function handle_get_chunk_preview()
     wp_send_json_success(['html' => $previewHtml]);
 }
 
-function generateBackgroundSettingsModule($backgroundSettings, $uniqueId = '', $typeLabel = true)
+function generateBackgroundSettingsModule($backgroundSettings, $uniqueId = '', $typeLabel = true, $previewPart = false)
 {
     // If no unique ID is passed, generate one for use in ID/label attributes for repeated field names (like background settings)
     $uniqueTempId = $uniqueId != '' ? $uniqueId : '_' . uniqid();
@@ -1147,8 +1147,10 @@ function generateBackgroundSettingsModule($backgroundSettings, $uniqueId = '', $
                         // Check if this option is selected
                         $isChecked = isset($chunkBackgroundType) && $chunkBackgroundType === $opt['value'] ? 'checked' : '';
                         $fieldID = $opt['id'];
+                        $previewPartDataAttr = $previewPart ? 'data-preview-part="' . $previewPart . '"' : '';
+
                         ?>
-                        <input type='radio' id='<?php echo $fieldID; ?>' name='<?php echo $uniqueId . 'background-type'; ?>'
+                        <input type='radio' id='<?php echo $fieldID; ?>' name='<?php echo $uniqueId . 'background-type'; ?>' <?php echo $previewPartDataAttr; ?>
                             value='<?php echo $opt['value']; ?>' hidden <?php echo $isChecked; ?>
                             class="background-type-select">
                         <label class="button-label" for='<?php echo $fieldID; ?>'>
@@ -1172,14 +1174,14 @@ function generateBackgroundSettingsModule($backgroundSettings, $uniqueId = '', $
             <div class='background-color'>
                 <div class="builder-field-wrapper background-color"><label
                         for="<?php echo $uniqueId . 'background-color'; ?>"></label>
-                    <input class="builder-colorpicker" type="color" name="<?php echo $uniqueId . 'background-color'; ?>"
+                    <input class="builder-colorpicker" type="color" name="<?php echo $uniqueId . 'background-color'; ?>" <?php echo $previewPartDataAttr; ?>
                         id="<?php echo $uniqueId . 'background-color'; ?>"
                         data-color-value="<?php echo $chunkBackgroundColor; ?>">
                 </div>
                 <div class="builder-field-wrapper">
 
                     <div class="wiz-checkbox-toggle">
-                        <input type="checkbox" class="wiz-check-toggle" id="<?php echo $uniqueId . 'force-background'; ?>"
+                        <input type="checkbox" class="wiz-check-toggle" id="<?php echo $uniqueId . 'force-background'; ?>" <?php echo $previewPartDataAttr; ?>
                             name="<?php echo $uniqueId . 'force-background'; ?>" hidden <?php echo $forceBackground ? 'checked' : ''; ?>>
                         <label for="<?php echo $uniqueId . 'force-background'; ?>"
                             class="wiz-check-toggle-display <?php echo $forceBackground ? 'active' : ''; ?>"><i
@@ -1208,21 +1210,21 @@ function generateBackgroundSettingsModule($backgroundSettings, $uniqueId = '', $
 
                 <div class="builder-field-wrapper chunk-background-image-url">
                     <label for="<?php echo $uniqueId . 'background-image-url'; ?>">Image URL</label>
-                    <input type="text" name="<?php echo $uniqueId . 'background-image-url'; ?>"
+                    <input type="text" name="<?php echo $uniqueId . 'background-image-url'; ?>" <?php echo $previewPartDataAttr; ?>
                         id="<?php echo $uniqueId . 'background-image-url'; ?>" class="builder-text-input"
                         value="<?php echo $backgroundSettings[$uniqueId . 'background-image-url'] ?? ''; ?>"
                         placeholder="https://...">
                 </div>
                 <div class="builder-field-wrapper chunk-background-image-position">
                     <label for="<?php echo $uniqueId . 'background-image-position'; ?>">Position</label>
-                    <input type="text" name="<?php echo $uniqueId . 'background-image-position'; ?>"
+                    <input type="text" name="<?php echo $uniqueId . 'background-image-position'; ?>" <?php echo $previewPartDataAttr; ?>
                         id="<?php echo $uniqueId . 'background-image-position'; ?>" class="builder-text-input"
                         value="<?php echo $backgroundSettings[$uniqueId . 'background-image-position'] ?? ''; ?>"
                         placeholder="eg center center">
                 </div>
                 <div class="builder-field-wrapper chunk-background-image-size">
                     <label for="<?php echo $uniqueId . 'background-image-size'; ?>">Size</label>
-                    <input type="text" name="<?php echo $uniqueId . 'background-image-size'; ?>"
+                    <input type="text" name="<?php echo $uniqueId . 'background-image-size'; ?>" <?php echo $previewPartDataAttr; ?>
                         id="<?php echo $uniqueId . 'background-image-size'; ?>" class="builder-text-input"
                         value="<?php echo $backgroundSettings[$uniqueId . 'background-image-size'] ?? ''; ?>"
                         placeholder="eg 100% 100%">
@@ -1245,7 +1247,7 @@ function generateBackgroundSettingsModule($backgroundSettings, $uniqueId = '', $
                             $isChecked = isset($backgroundSettings[$fieldID]) && $backgroundSettings[$fieldID] ? 'checked' : '';
 
                             ?>
-                            <input type='checkbox' id='<?php echo $uniqueTempId . $fieldID; ?>' name='<?php echo $fieldID; ?>'
+                            <input type='checkbox' id='<?php echo $uniqueTempId . $fieldID; ?>' name='<?php echo $fieldID; ?>' <?php echo $previewPartDataAttr; ?>
                                 value='<?php echo $opt['value']; ?>' <?php echo $isChecked; ?>>
                             <label for='<?php echo $uniqueTempId . $fieldID; ?>' class='button-label'>
                                 <?php echo $opt['label']; ?>
@@ -1269,7 +1271,7 @@ function generateBackgroundSettingsModule($backgroundSettings, $uniqueId = '', $
             <label for="<?php echo $uniqueId . 'custom-background-css'; ?>">Custom Background CSS</label>
             <div class="field-description"><strong style="font-style:normal;">Key:value;</strong> pairs, e.g., background-color:red;</div>
             <div class="chunk-settings-section-fields">
-                <textarea name="<?php echo $uniqueId . 'custom-background-css'; ?>" class="custom-background-css-input" id="<?php echo $uniqueId . 'custom-background-css'; ?>"><?php echo isset($backgroundSettings[$uniqueId . 'custom-background-css']) ? trim($backgroundSettings[$uniqueId . 'custom-background-css']) : ''; ?></textarea>
+                <textarea name="<?php echo $uniqueId . 'custom-background-css'; ?>" class="custom-background-css-input" id="<?php echo $uniqueId . 'custom-background-css'; ?>" <?php echo $previewPartDataAttr; ?>><?php echo isset($backgroundSettings[$uniqueId . 'custom-background-css']) ? trim($backgroundSettings[$uniqueId . 'custom-background-css']) : ''; ?></textarea>
             </div>
         </div>
     </div>

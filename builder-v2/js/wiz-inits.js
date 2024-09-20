@@ -62,14 +62,7 @@ function init_spectrum_pickers($optionalElement = null) {
             preferredFormat: 'hex'
         }).change(function (color) {
             save_template_to_session();
-
-            var $previewElement = find_matching_preview_element($element);
-
-            if ($previewElement && $previewElement.length) {
-                update_template_preview_part($element, $previewElement);
-            } else {
-                update_template_preview();
-            }
+            handle_colorpicker_changes(jQuery(this));
         });
 
         // Retrieve the existing value from the input's value attribute
@@ -149,10 +142,20 @@ function initialize_chunk_sortables(containerId = null) {
         placeholderClass: 'chunk-placeholder',
         additionalOptions: {
             connectWith: '.builder-column-chunks-body',
-            receive: function(event, ui) {
+            stop: function(event, ui) {
                 reindexDataAttributes('chunk-id');
+                //save_template_to_session();
+
+                var $movedTo = jQuery(ui.item).closest('.builder-column');
+                var $movedFrom = jQuery(ui.sender).closest('.builder-column');
+
+                // Update both source and destination columns
+                update_template_preview_part($movedTo);
+                 if ($movedFrom.length && !$movedFrom.is($movedTo)) {
+                    update_template_preview_part($movedFrom);
+                }
+                
             },
-            
             over: function(event, ui) {
                 if (jQuery(this).children('.builder-chunk').length === 0) {
                     jQuery(this).addClass('highlight-empty');
@@ -165,7 +168,6 @@ function initialize_chunk_sortables(containerId = null) {
     };
     initialize_wiz_sortables(containerSelector, sortableConfig.itemsSelector, sortableConfig.handleSelector, sortableConfig.placeholderClass, sortableConfig.additionalOptions);
 }
-
 
 function initialize_wiz_sortables(containerSelector, itemsSelector, handleSelector, placeholderClass, additionalOptions) {
     var $containers = jQuery(containerSelector);
@@ -199,7 +201,7 @@ function initialize_wiz_sortable($container, itemsSelector, handleSelector, plac
             var headerHeight = ui.item.find('.builder-header').outerHeight();
             jQuery('.' + placeholderClass, $container).css({
                 'min-height': headerHeight,
-                'width': '100%'
+                'max-width': '100%'
             });
         },
         stop: function(event, ui) {
@@ -521,8 +523,8 @@ function init_codemirror_in_app(textarea, editor) {
         editor.save();
 
         save_template_to_session();
-
-        update_template_preview_part(jQuery(textarea));
+        handle_codemirror_changes(jQuery(textarea));
+        //update_template_preview_part(jQuery(textarea));
 
     }, 500); 
         

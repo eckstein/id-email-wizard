@@ -97,7 +97,8 @@ function copy_code_to_clipboard($element) {
 
 
 
-function toggle_wizard_button_group($clicked) {
+function toggle_wiz_check_toggle($clicked) {
+
     var $checkbox = $clicked.siblings('.wiz-check-toggle').first();
     // Toggle the checkbox's checked property directly
     $checkbox.prop('checked', !$checkbox.prop('checked')).change();
@@ -111,7 +112,8 @@ function toggle_wizard_button_group($clicked) {
     } else {
         $icon.removeClass('fa-solid').addClass('fa-regular');
         $clicked.removeClass('active');
-    }		
+    }
+
 };
 
 
@@ -134,8 +136,8 @@ function update_chunk_image_preview_flyover_position(e) {
 function beautify_html(html) {
     // Beautify the received HTML using HTML-Crush
     const beautifiedHtml = htmlCrush.crush(html, {
-        removeHTMLComments: 1, // set to 1 to remove all comment except Outlook,
-        removeCSSComments: true,
+        removeHTMLComments: false, // set to 1 to remove all comment except Outlook,
+        removeCSSComments: false,
         removeIndentations: false,
         removeLineBreaks: false,
         breakToTheLeftOf: [
