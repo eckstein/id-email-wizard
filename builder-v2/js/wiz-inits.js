@@ -437,9 +437,26 @@ function init_codemirror_for_custom_styles() {
             getAnnotations: function(text, options, codeMirror) {
                 var preprocessedText = text.replace(/<style\b[^>]*>|<\/style>/ig, '');
                 var foundAnnotations = CodeMirror.lint.css(preprocessedText, options, codeMirror);
-                return foundAnnotations;
+                
+                // Custom validation to allow .& selector
+                var customValidator = function(text) {
+                    var errors = [];
+                    var lines = text.split('\n');
+                    lines.forEach(function(line, i) {
+                        if (line.includes('.&') && !line.match(/^\s*\.&/)) {
+                            errors.push({
+                                message: "Invalid use of .& selector",
+                                severity: "warning",
+                                from: CodeMirror.Pos(i, line.indexOf('.&')),
+                                to: CodeMirror.Pos(i, line.indexOf('.&') + 2)
+                            });
+                        }
+                    });
+                    return errors;
+                };
+                
+                return foundAnnotations.concat(customValidator(preprocessedText));
             }
-           
         },
         extraKeys: {
             'Ctrl-Space': 'autocomplete'

@@ -172,7 +172,7 @@ function setupPreviewFrameEventHandlers() {
         preview.find('.active').removeClass('active');
         clickedElement.addClass('active');
 
-        if (clickedElement.hasClass('id-footer')) {
+        if (clickedElement.hasClass('id-footer') || clickedElement.hasClass('id-header')) {
             switch_wizard_tab(jQuery('[data-tab="#builder-tab-styles"]'));
         } else if (clickedElement.hasClass('id-fine-print')) {
             switch_wizard_tab(jQuery('[data-tab="#builder-tab-message-settings"]'));

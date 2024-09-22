@@ -218,7 +218,8 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 
 								<div class="builder-field-group flex">
 									<div class="builder-field-wrapper centered">
-										<?php $showFooter = $templateSettings['template_styles']['header-and-footer']['show_id_footer'] ?? true; ?>
+										<?php $footerVis = $templateStyles['header-and-footer']['show_id_footer'];
+										$showFooter = $footerVis == 'true' ? true : false; ?>
 										<label class="checkbox-toggle-label">Show Footer</label>
 										<div class="wiz-checkbox-toggle">
 											<input type="checkbox" class="wiz-check-toggle" data-preview-part="standard_footer"
@@ -231,10 +232,11 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 
 									</div>
 									<div class="builder-field-wrapper centered">
-										<?php $showUnsub = $templateSettings['template_styles']['header-and-footer']['show_unsub'] ?? true; ?>
+										<?php $unsubVis = $templateStyles['header-and-footer']['show_unsub'];
+										$showUnsub = $unsubVis == 'true' ? true : false; ?>
 										<label class="checkbox-toggle-label">Show Unsub</label>
 										<div class="wiz-checkbox-toggle">
-											<input type="checkbox" class="wiz-check-toggle"
+											<input type="checkbox" class="wiz-check-toggle" data-preview-part="standard_footer"
 												id="template_settings_show_unsub" name="show_unsub" hidden <?php echo $showUnsub ? 'checked' : ''; ?>>
 											<label for="template_settings_show_unsub"
 												class="wiz-check-toggle-display <?php echo $showUnsub ? 'active' : ''; ?>"><i
@@ -335,7 +337,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 									<div class="builder-field-wrapper template_width">
 
 										<h5>Template Width</h5>
-										<span class="input-post-text-wrap"><input type="number"
+										<span class="input-post-text-wrap"><input type="number" data-preview-part="fullTemplate"
 												id="template_styles_template_width" name="template_width"
 												class="builder-field" value="<?php echo $templateWidth; ?>"><span
 												class="input-post-text">px</span></span>
@@ -346,7 +348,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 										<div class="builder-field-wrapper body-background">
 											<h5>Body Background</h5>
 											<?php
-											echo generateBackgroundSettingsModule($bodyBackground, 'body_background_', false);
+											echo generateBackgroundSettingsModule($bodyBackground, 'body_background_', false, 'body_start');
 											?>
 										</div>
 									</div>
@@ -356,7 +358,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 										<div class="builder-field-wrapper body-background">
 											<h5>Page Background</h5>
 											<?php
-											echo generateBackgroundSettingsModule($pageBackground, 'page_background_', false);
+											echo generateBackgroundSettingsModule($pageBackground, 'page_background_', false, 'body_start');
 											?>
 										</div>
 									</div>
@@ -375,7 +377,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 												$templateFontSize = $templateFontStyles['template_font_size'] ?? '16px';
 												?>
 												<label for="template_styles_font_size">Font Size</label>
-												<input type="text" id="template_styles_font_size"
+												<input type="text" id="template_styles_font_size" data-preview-part="fullTemplate"
 													name="template_font_size" class="builder-field"
 													value="<?php echo $templateFontSize; ?>">
 											</div>
@@ -412,7 +414,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 													// Directly check the presence and truthiness of the value for each style option
 													$isChecked = ! empty($linkStyles[$opt['value']]) && $linkStyles[$opt['value']] === true ? 'checked' : '';
 													?>
-													<input type='checkbox' id='<?php echo $opt['id']; ?>'
+													<input type='checkbox' id='<?php echo $opt['id']; ?>' data-preview-part="fullTemplate"
 														name='<?php echo $opt['value']; ?>' value='true' <?php echo $isChecked; ?>>
 													<label for='<?php echo $opt['id']; ?>' class='button-label'>
 														<?php echo $opt['label']; ?>
@@ -426,7 +428,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 											$templateLinkColor = $linkStyles['template_link_style_color'] ?? '#0073dd';
 											?>
 											<label for="template_style_link_color">Links</label>
-											<input class="builder-colorpicker" type="color"
+											<input class="builder-colorpicker" type="color" data-preview-part="fullTemplate"
 												name="template_link_style_color" id="template_style_link_color"
 												data-color-value="<?php echo $templateLinkColor; ?>">
 										</div>
@@ -435,7 +437,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 											$templateLinkHoverColor = $linkStyles['template_link_style_hover_color'] ?? $templateLinkColor;
 											?>
 											<label for="template_link_style_hover_color">Hover</label>
-											<input class="builder-colorpicker" type="color"
+											<input class="builder-colorpicker" type="color" data-preview-part="fullTemplate"
 												name="template_link_style_hover_color"
 												id="template_link_style_hover_color"
 												data-color-value="<?php echo $templateLinkHoverColor; ?>">
@@ -456,7 +458,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 								<div class="builder-field-wrapper">
 									<label class="checkbox-toggle-label">Include Dark Mode Support Meta Tag</label>
 									<div class="wiz-checkbox-toggle">
-										<input type="checkbox" class="wiz-check-toggle"
+										<input type="checkbox" class="wiz-check-toggle" data-preview-part="email_head"
 											id="template_styles_dark_mode_support" name="dark-mode-support" hidden
 											<?php echo $includeDarkModeSupport ? 'checked' : ''; ?>>
 										<label for="template_styles_dark_mode_support"
@@ -471,7 +473,8 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 								?>
 								<div class="builder-field-wrapper block">
 									<label for="template_styles_additional_css">Additional CSS</label>
-									<textarea id="template_styles_additional_css" name="additional_template_css"
+									<div class="field-description"><?php echo htmlspecialchars('<style></style>'); ?> tags must be used. Multiple are allowed.</div>
+									<textarea id="template_styles_additional_css" name="additional_template_css" data-preview-part="email_head"
 										class="builder-field"><?php echo $customStyles['additional_template_css'] ?? ''; ?></textarea>
 								</div>
 

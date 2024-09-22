@@ -589,7 +589,7 @@ function idwiz_get_standard_header($templateOptions)
 		$headerLogo = $headerFooterSettings['template_header_logo_manual'] ?? '';
 	}
 	$headerPadding = $headerFooterSettings['header_padding'] ?? '0 0 20px 0';
-	$output = '';
+	$output = '<div class="chunk id-header">';
 	$output .= '<table role="presentation" style="width:100%;border:0;border-spacing:0;table-layout:fixed;font-size: 0;" id="standard-header">';
 	$output .= '<tr>';
 	$output .= '<td style="font-size: 0;line-height:0;margin:0;padding:' . $headerPadding . ';">';
@@ -599,6 +599,7 @@ function idwiz_get_standard_header($templateOptions)
 	$output .= '</td>';
 	$output .= '</tr>';
 	$output .= '</table>';
+	$output .= '</div>';
 
 	return $output;
 }
@@ -762,15 +763,11 @@ function idwiz_get_unsubscribe_links($footerLinkColor)
 	return $output;
 }
 
-function idwiz_get_email_top($templateSettings, $templateStyles, $rows)
+function idwiz_get_email_head($templateSettings, $templateStyles, $rows)
 {
 
 	ob_start();
 ?>
-	<!--email_top_start-->
-	<!DOCTYPE html>
-	<html lang="en" xmlns="https://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office" title="iD Tech Camps">
-
 	<head><!-- Yahoo App Android will strip this --></head>
 
 	<head>
@@ -878,7 +875,6 @@ function idwiz_get_email_top($templateSettings, $templateStyles, $rows)
 		</noscript>
 		<![endif]-->
 	</head>
-	<!--email_top_end-->
 <?php
 	return ob_get_clean();
 }

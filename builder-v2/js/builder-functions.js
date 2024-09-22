@@ -1398,7 +1398,7 @@ function processPreviewUpdateQueue() {
     previewElement = previewElement ? previewElement : find_matching_preview_element($changedElement);
 
 
-    if (previewElement.length === 0) {
+    if (!previewElement || previewElement.length === 0) {
         update_template_preview();
         templateUpdateProcessing = false;
         processPreviewUpdateQueue();
@@ -1454,7 +1454,9 @@ function processPreviewUpdateQueue() {
         const decodedHTML = decodeHTMLEntities(data.html);
         const iframe = jQuery('#previewFrame')[0].contentWindow.document;
         // Special handling for a new row
-        if (previewElement == 'newRow') {            
+        if (previewElement == 'fullTemplate') {
+            update_template_preview();
+        } else if (previewElement == 'newRow') {            
             
             const previousRow = iframe.querySelector('.row[data-row-index="' + (parseInt(params.rowIndex) - 1) + '"]');
             if (previousRow) {
@@ -1462,22 +1464,30 @@ function processPreviewUpdateQueue() {
             } else {
                 iframe.querySelector('.builder-rows-wrapper').insertAdjacentHTML('beforeend', decodedHTML);
             }
-            // if the changed element has the data-preview-part attribute, we replace the content between the placeholders
+        // if the changed element has the data-preview-part attribute, we replace the content between the placeholders
         } else if ($changedElement.is("[data-preview-part]")) {
-            var previewPart = $changedElement.data('preview-part');
+            var previewPart = $changedElement.attr('data-preview-part');
             // Replace everything between the placeholders
             const rangeStart = iframe.querySelector('wizPlaceholder[data-preview-part="'+previewPart+'_start"]');
             const rangeEnd = iframe.querySelector('wizPlaceholder[data-preview-part="'+previewPart+'_end"]');
-            if (rangeStart && rangeEnd) {
-                
-            const range = new Range();
-            range.setStartAfter(rangeStart);
-            range.setEndBefore(rangeEnd);
-            range.deleteContents();
-            range.insertNode(document.createRange().createContextualFragment(decodedHTML));
-
-            }
-            // Regular updates of chunks, columns, rows, etc.
+        if (rangeStart && rangeEnd) {
+            // Get the parent element containing both placeholders
+            const parent = rangeStart.parentElement;
+    
+            // Get the HTML content of the parent
+            let parentHTML = parent.outerHTML;
+    
+            // Find the positions of the start and end placeholders
+            const startPos = parentHTML.indexOf(rangeStart.outerHTML) + rangeStart.outerHTML.length;
+            const endPos = parentHTML.indexOf(rangeEnd.outerHTML);
+    
+            // Replace the content between the placeholders with the new HTML
+            const newHTML = parentHTML.substring(0, startPos) + decodedHTML + parentHTML.substring(endPos);
+    
+            // Replace the parent's HTML with the new HTML
+            parent.outerHTML = newHTML;
+        }
+        // Regular updates of chunks, columns, rows, etc.
         } else {
             previewElement.replaceWith(decodedHTML);
         }
@@ -1748,13 +1758,20 @@ function handle_codemirror_changes($textArea) {
 }
 
 function handle_style_field_changes($inputField) {
-        var previewPart = $inputField.attr('data-preview-part');
-        if (previewPart) {
-            update_template_preview_part($inputField, previewPart);
+    var previewPart = $inputField.attr('data-preview-part');
+    console.log('previewPart:', previewPart);
+    if (previewPart) {
+        update_template_preview_part($inputField, previewPart);
+    } else {
+        var previewElement = find_matching_preview_element($inputField);
+        if (previewElement) {
+            update_template_preview_part($inputField, previewElement);
         } else {
-            update_template_preview_part($inputField);
+            update_template_preview();
+            console.log('No preview element found or specified for field.');
         }
     }
+}
 
 function handle_layout_field_changes($clicked) {
     update_chunk_data_attr_data();

@@ -10,13 +10,13 @@ function generate_template_structure($templateData, $isEditor = false)
     $templateSettings = $templateOptions['message_settings'] ?? [];
     $templateStyles = $templateOptions['template_styles'] ?? [];
 
-    $showIdHeader = filter_var($templateStyles['header-and-footer']['show_id_header'] ?? false, FILTER_VALIDATE_BOOLEAN);
-    $showIdFooter = filter_var($templateStyles['header-and-footer']['show_id_footer'] ?? false, FILTER_VALIDATE_BOOLEAN);
-
     $structure = ['top' => [], 'rows' => [], 'bottom' => []];
 
-    $structure['top']['head'] = idwiz_get_email_top($templateSettings, $templateStyles, $rows);
-    $structure['top']['body_start'] = idwiz_get_email_body_top($templateStyles);
+    $structure['top']['doc_start'] = '<!DOCTYPE html>
+    <html lang="en" xmlns="https://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office" title="iD Tech Camps">';
+    
+    $structure['top']['head'] = $isEditor ? wrap_with_placeholder('email_head', idwiz_get_email_head($templateSettings, $templateStyles, $rows)) : idwiz_get_email_head($templateSettings, $templateStyles, $rows);
+    $structure['top']['body_start'] = $isEditor ? wrap_with_placeholder('body_start', idwiz_get_email_body_top($templateStyles)) : idwiz_get_email_body_top($templateStyles);
 
     $structure['top']['header'] = $isEditor ? wrap_with_placeholder('standard_header', idwiz_get_standard_header($templateOptions)) : idwiz_get_standard_header($templateOptions);
 
@@ -487,8 +487,8 @@ function get_wiztemplate_part_html()
         case 'fullTemplate':
             $html = generate_template_html($templateData, $isEditor);
             break;
-        case 'emailTop':
-            $html = idwiz_get_email_top($templateSettings, $templateStyles, $rows);
+        case 'email_head':
+            $html = idwiz_get_email_head($templateSettings, $templateStyles, $rows);
             break;
         case 'standard_header':
             $html = idwiz_get_standard_header($templateOptions);
@@ -496,10 +496,7 @@ function get_wiztemplate_part_html()
         case 'emailBottom':
             $html = idwiz_get_email_bottom();
             break;
-        case 'bodyWrap':
-            $html = idwiz_get_email_body_top($templateStyles) . idwiz_get_email_body_bottom();
-            break;
-        case 'bodyTop':
+        case 'body_start':
             $html = idwiz_get_email_body_top($templateStyles);
             break;
         case 'bodyBottom':
