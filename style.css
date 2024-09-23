@@ -102,6 +102,11 @@ a.wiz-button:hover {
 .wiz-checkbox-toggle {
 	text-align: center;
 }
+.wiz-checkbox-toggle.flex {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+}
 /* Basic structure and hiding the checkbox */
 .wizToggle-container {
 	display: flex;
@@ -919,7 +924,7 @@ body.single-idemailwiz_template {
 .builder-column-footer {
 	margin-top: 5px;
 }
-.builder-column-footer button {
+.add-chunk-wrapper button {
 	font-size: 12px;
 	padding: 5px 10px;
 }

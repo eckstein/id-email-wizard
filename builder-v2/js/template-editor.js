@@ -45,7 +45,7 @@ jQuery(document).ready(function($) {
 	
 
 		// Handle global actions on any builder update
-		$("#builder").on('change', 'input, select, textarea, .wiz-check-toggle, .button-group input', function (e) {
+		$("#builder").on('change', 'input, select, textarea', function (e) {
 		// Delay these operations slightly to allow UI updates to complete
 			setTimeout(() => {
 				save_template_to_session();
@@ -53,25 +53,13 @@ jQuery(document).ready(function($) {
 			}, 200);
 
 		})
-	
-		// Handle field changes in the layout tab
-		$("#builder-tab-chunks").on('change', 'input, select, textarea', function() {
-			handle_layout_field_changes($(this));
-		});
 
 
-		// Handle field changes in the styles and options tabs
-		$("#builder-tab-styles, #builder-tab-message-settings").on('change', 'input, select, textarea, .wiz-check-toggle, .button-group input', function() {
+		// Handle field changes in the builder tabs
+		$("#builder-tab-chunks, #builder-tab-styles, #builder-tab-message-settings").on('change', 'input, select, textarea', function() {
 			handle_style_field_changes($(this));
 		});
 
-	
-		
-
-		
-		
-
-		
 
 		
 

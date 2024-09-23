@@ -110,7 +110,7 @@ function handle_create_new_column()
     $columnIndex = isset($_POST['column_index']) ? intval($_POST['column_index']) : 0;
 
     // Generate a new column HTML. We'll return a blank column structure.
-    $html = generate_builder_column($rowId, $colSetId, [], $columnIndex);
+    $html = generate_builder_column($rowId, $columnIndex);
 
     wp_send_json_success(['html' => $html]);
 }
@@ -152,64 +152,6 @@ function generate_builder_row($rowId, $rowData = [])
 
     // Attempt to set columnSets from rowData, default to an empty array if not set or not an array
     $columnSets = isset($rowData['columnSets']) && is_array($rowData['columnSets']) ? $rowData['columnSets'] : [];
-
-    // Check if columnSets is empty, indicating an older version of the template
-    // if ( empty( $columnSets ) ) {
-    // 	// Check if 'columns' key exists in rowData
-    // 	if ( isset( $rowData['columns'] ) && is_array( $rowData['columns'] ) ) {
-    // 		// Move 'stacked' and 'magic_wrap' keys from row level to columnSet level
-    // 		$stacked = isset( $rowData['stacked'] ) ? $rowData['stacked'] : false;
-    // 		$magic_wrap = isset( $rowData['magic_wrap'] ) ? $rowData['magic_wrap'] : "off";
-
-    // 		// Determine the layout based on the number of columns
-    // 		$columnCount = count( $rowData['columns'] );
-    // 		$layout = '';
-    // 		switch ( $columnCount ) {
-    // 			case 1:
-    // 				$layout = 'one-column';
-    // 				break;
-    // 			case 2:
-    // 				$layout = 'two-column';
-    // 				break;
-    // 			case 3:
-    // 				$layout = 'three-column';
-    // 				break;
-    // 			default:
-    // 				$layout = 'one-column';
-    // 		}
-
-    // 		// Create a new columnSet with the columns from the older version
-    // 		$columnSets = [ 
-    // 			[ 
-    // 				'columns' => $rowData['columns'],
-    // 				'layout' => $layout,
-    // 				'stacked' => $stacked,
-    // 				'magic_wrap' => $magic_wrap,
-    // 				'activation' => 'active',
-    // 			]
-    // 		];
-
-    // 		// Remove the 'columns' key from $rowData to avoid extra columns
-    // 		unset( $rowData['columns'] );
-    // 	} else {
-    // 		// If 'columns' key doesn't exist, initialize with a default empty column set
-    // 		$columnSets = [ 
-    // 			[ 
-    // 				'columns' => [ 
-    // 					[ 
-    // 						'title' => 'Column',
-    // 						'activation' => 'active',
-    // 						'chunk' => [],
-    // 					]
-    // 				],
-    // 				'layout' => 'one-column',
-    // 				'stacked' => false,
-    // 				'magic_wrap' => "off",
-    // 				'activation' => 'active',
-    // 			]
-    // 		];
-    // 	}
-    // }
 
     $html = '';
 
@@ -438,7 +380,7 @@ function generate_builder_columnset($colSetIndex, $columnSet, $rowId, $framesMod
     $colSetIndex = 0;
     foreach ($columns as $columnIndex => $column) {
         $colSetIndex++;
-        $html .= generate_builder_column($rowId, $colSetIndex, $column, $columnIndex);
+        $html .= generate_builder_column($rowId, $columnIndex, $column);
     }
 
     $html .= '</div>'; // builder-columnset-content
@@ -450,7 +392,7 @@ function generate_builder_columnset($colSetIndex, $columnSet, $rowId, $framesMod
     return $html;
 }
 
-function generate_builder_column($rowId, $colSetIndex, $columnData, $columnIndex)
+function generate_builder_column($rowId, $columnIndex, $columnData = [])
 {
     $uniqueId = uniqid('wiz-column-');
 

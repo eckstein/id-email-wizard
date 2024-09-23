@@ -48,17 +48,26 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 				<div class="wizard-tab builder-tab --active" data-tab="#builder-tab-chunks" id="builder-tab-chunks-tab" title="Content chunks">
 					<i class="fa-solid fa-puzzle-piece"></i>&nbsp;&nbsp;Layout
 				</div>
-				<div class="wizard-tab builder-tab" data-tab="#builder-tab-styles" id="builder-tab-styles-tab" title="Template Styles"><i
-						class="fa-solid fa-brush"></i>&nbsp;&nbsp;Styles</div>
-				<div class="wizard-tab builder-tab" data-tab="#builder-tab-message-settings" id="builder-tab-message-settings-tab"
-					title="Message settings"><i class="fa-solid fa-envelope"></i>&nbsp;&nbsp;Options</div>
 
-				<div class="wizard-tab builder-tab" data-tab="#builder-tab-mocks" id="builder-tab-mocks-tab" title="Mockups"><i
-						class="fa-regular fa-file-image"></i>&nbsp;&nbsp;Mocks</div>
-				<div class="wizard-tab builder-tab" data-tab="#builder-tab-code" id="builder-tab-code-tab"><i class="fa-solid fa-code"
-						title="Code & JSON"></i></div>
-				<div class="wizard-tab builder-tab" data-tab="#builder-tab-settings" id="builder-tab-settings-tab" title="Template Settings"><i
-						class="fa-solid fa-gear"></i></div>
+				<div class="wizard-tab builder-tab" data-tab="#builder-tab-styles" id="builder-tab-styles-tab" title="Template Styles">
+					<i class="fa-solid fa-brush"></i>&nbsp;&nbsp;Styles
+				</div>
+				<div class="wizard-tab builder-tab" data-tab="#builder-tab-message-settings" id="builder-tab-message-settings-tab"
+					title="Message settings">
+					<i class="fa-solid fa-envelope"></i>&nbsp;&nbsp;Options
+				</div>
+				<div class="wizard-tab builder-tab" data-tab="#builder-tab-mocks" id="builder-tab-mocks-tab" title="Mockups">
+					<i
+						class="fa-regular fa-file-image"></i>&nbsp;&nbsp;Mocks
+				</div>
+				<div class="wizard-tab builder-tab" data-tab="#builder-tab-code" id="builder-tab-code-tab">
+					<i class="fa-solid fa-code"
+						title="Code & JSON"></i>
+				</div>
+				<div class="wizard-tab builder-tab" data-tab="#builder-tab-settings" id="builder-tab-settings-tab" title="Template Settings">
+					<i
+						class="fa-solid fa-gear"></i>
+				</div>
 
 
 			</div>
@@ -86,6 +95,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 					</div>
 				</div>
 				<div class="builder-form-wrapper">
+
 					<div class="builder-rows-wrapper">
 						<?php
 
@@ -109,9 +119,10 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 			<?php
 			$templateOptions = $wizTemplate['template_options'] ?? [];
 			$templateSettings = $templateOptions['message_settings'] ?? [];
-			//print_r( $templateOptions );
 			$templateStyles = $templateOptions['template_styles'] ?? [];
+
 			?>
+
 
 			<div class="builder-tab-content wizard-tab-content" id="builder-tab-styles">
 				<div class="builder-vertical-tabs">
