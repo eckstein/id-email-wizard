@@ -3884,6 +3884,10 @@ table.compact th {
 	margin: 0 auto;
 }
 
+.init-select-dropdown {
+	z-index: 99999!important;
+}
+
 /* Initiative Archive */
 #idemailwiz_initiatives_table_wrapper {
 	margin-bottom: 40px;

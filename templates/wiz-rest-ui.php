@@ -9,7 +9,7 @@ global $wpdb;
         <div class="wizHeaderInnerWrap">
             <div class="wizHeader-left">
                 <h1 class="wizEntry-title" itemprop="name">
-                    Playground
+                    REST Endpoints
                 </h1>
             </div>
             <div class="wizHeader-right">

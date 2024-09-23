@@ -54,6 +54,7 @@ function idemailwiz_template_chooser($template)
         '/journeys' => 'archive-journeys.php',
         '/metrics/journey' => 'single-journey.php',
         '/snippets' => 'archive-snippet.php',
+        '/endpoints' => 'wiz-rest-ui.php'
     ];
 
     foreach ($uri_templates as $uri => $file) {

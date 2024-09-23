@@ -90,6 +90,7 @@ jQuery(document).ready(function ($) {
 					minimumInputLength: 0,
 					placeholder: "Search initiatives...",
 					allowClear: true,
+					dropdownCssClass: 'init-select-dropdown',
 					ajax: {
 						delay: 250,
 						transport: function (params, success, failure) {
