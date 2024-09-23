@@ -53,8 +53,40 @@ jQuery(document).ready(function ($) {
             }
         );
     });
+      // Add a new snippet using a swal 2 input for the title and redirecting to single snippet page
+      $('.new-snippet').on('click', function () {
+          let createdPostId;
 
-    
+          Swal.fire({
+              title: 'Add a new snippet',
+              input: 'text',
+              inputPlaceholder: 'Enter snippet title',
+              showCancelButton: true,
+              confirmButtonText: 'Create',
+              cancelButtonText: 'Cancel',
+              showLoaderOnConfirm: true,
+              preConfirm: (title) => {
+                  return idemailwiz_do_ajax('idemailwiz_create_new_snippet', idAjax_wizSnippets.nonce, { title: title },
+                      function (response) {
+                          console.log('Snippet created successfully:', response);
+                          do_wiz_notif({ message: "Snippet created!", duration: 3000 });
+                          createdPostId = response.data.post_id;
+                      },
+                      function (xhr, status, error) {
+                          console.error('Error creating snippet:', error);
+                          do_wiz_notif({ message: "Error creating snippet", duration: 3000 });
+                      }
+                  );
+              },
+              allowOutsideClick: false
+          }).then((result) => {
+              if (result.isConfirmed && createdPostId) {
+                  window.location.href = idAjax.site_url + "?p=" + createdPostId;
+              }
+          });
+      });
+
+
     // Delete an snippet from the single snippet page
     $(".delete-snippet").on("click", function () {
         const snippetId = $(this).data("snippetid"); 

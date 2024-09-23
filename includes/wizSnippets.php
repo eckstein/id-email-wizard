@@ -68,13 +68,13 @@ function get_snippet_css( $rows ) {
 
 function idemailwiz_create_new_snippet() {
 	// Check for nonce and security
-	if ( ! check_ajax_referer( 'template-editor', 'security', false ) ) {
+	if ( ! check_ajax_referer( 'wizSnippets', 'security', false ) ) {
 		wp_send_json_error( array( 'message' => 'Invalid nonce' ) );
 		return;
 	}
 
 	// Fetch title from POST
-	$title = $_POST['postTitle'];
+	$title = $_POST['title'];
 
 	// Validate that the title is not empty
 	if ( empty( $title ) ) {
@@ -82,7 +82,7 @@ function idemailwiz_create_new_snippet() {
 		return;
 	}
 
-	// Create new initiative post
+	// Create new snippet post
 	$post_id = wp_insert_post(
 		array(
 			'post_title' => $title,
