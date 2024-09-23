@@ -69,6 +69,15 @@ $activeTab = $_GET['view'] ?? 'Active';
                     <?php
                     while (have_posts()) {
                         the_post();
+                        // Split archived vs unarchived
+                        $isArchived = get_post_meta(get_the_ID(), 'is_archived', true);
+                        if ($activeTab == 'Active' && $isArchived == 'true') {
+                            continue;
+                        } 
+                        if ($activeTab == 'Archive' && (!$isArchived || $isArchived !== 'true')) {
+                            continue;
+                        }
+
                         $associated_campaign_ids = idemailwiz_get_campaign_ids_for_initiative(get_the_ID()) ?? array('0');
                         // If IDs exist, fetch campaigns
                         if (!empty($associated_campaign_ids)) {
