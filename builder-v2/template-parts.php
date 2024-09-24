@@ -69,7 +69,7 @@ function generate_template_structure($templateData, $isEditor = false)
         }
     }
 
-    $structure['bottom']['footer'] = $isEditor ? wrap_with_placeholder('standard_footer', idwiz_get_standard_footer($templateStyles)) : idwiz_get_standard_footer($templateStyles);
+    $structure['bottom']['footer'] = $isEditor ? wrap_with_placeholder('standard_footer', idwiz_get_standard_footer($templateStyles, $isEditor)) : idwiz_get_standard_footer($templateStyles, $isEditor);
 
     $structure['bottom']['fine_print'] = $isEditor ? wrap_with_placeholder('fine_print', idwiz_get_fine_print_disclaimer($templateOptions)) : idwiz_get_fine_print_disclaimer($templateOptions);
 
@@ -503,7 +503,7 @@ function get_wiztemplate_part_html()
             $html = idwiz_get_email_body_bottom();
             break;
         case 'standard_footer':
-            $html = idwiz_get_standard_footer($templateStyles);
+            $html = idwiz_get_standard_footer($templateStyles, $isEditor);
             break;
         case 'fine_print':
             $html = idwiz_get_fine_print_disclaimer($templateOptions);

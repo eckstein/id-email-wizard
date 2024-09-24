@@ -604,7 +604,7 @@ function idwiz_get_standard_header($templateOptions)
 
 	return $output;
 }
-function idwiz_get_standard_footer($templateStyles)
+function idwiz_get_standard_footer($templateStyles, $isEditor = false)
 {
 	$headerAndFooter = $templateStyles['header-and-footer'];
 	$showIdFooter = filter_var($headerAndFooter['show_id_footer'] ?? false, FILTER_VALIDATE_BOOLEAN);
@@ -638,7 +638,7 @@ function idwiz_get_standard_footer($templateStyles)
 	<![endif]-->';
 
 	// Social media icons
-	$output .= idwiz_get_social_media_icons();
+	$output .= idwiz_get_social_media_icons($isEditor);
 
 	if ($gmailBlendDesktop || $gmailBlendMobile) {
 		$output .= '<div class="gmail-blend-screen ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
@@ -722,12 +722,25 @@ function idwiz_get_fine_print_disclaimer($templateOptions)
 
 // Helper functions
 
-function idwiz_get_social_media_icons()
+function idwiz_get_social_media_icons($isEditor = false)
 {
+
 	$icons = [
-		['url' => 'https://www.facebook.com/computercamps', 'title' => 'iD Tech on Facebook', 'src' => get_cached_image_data('https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/e1322b55-a0f4-4246-b530-3a0790a4c361.png')['data_uri']],
-		['url' => 'https://twitter.com/idtechcamps', 'title' => 'iD Tech on Twitter', 'src' => get_cached_image_data('https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/94d22bf5-cc89-43f6-a4d8-8567c4e81d9d.png')['data_uri']],
-		['url' => 'https://www.instagram.com/idtech/', 'title' => 'iD Tech on Instagram', 'src' => get_cached_image_data('https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/6b969394-7c4c-45c1-9079-7e98dddcbbb2.png')['data_uri']]
+		[
+			'url' => 'https://www.facebook.com/computercamps',
+			'title' => 'iD Tech on Facebook',
+			'src' => $isEditor ? get_cached_image_data('https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/e1322b55-a0f4-4246-b530-3a0790a4c361.png')['data_uri'] : 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/e1322b55-a0f4-4246-b530-3a0790a4c361.png'
+		],
+		[
+			'url' => 'https://twitter.com/idtechcamps',
+			'title' => 'iD Tech on Twitter',
+			'src' => $isEditor ? get_cached_image_data('https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/94d22bf5-cc89-43f6-a4d8-8567c4e81d9d.png')['data_uri'] : 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/94d22bf5-cc89-43f6-a4d8-8567c4e81d9d.png'
+		],
+		[
+			'url' => 'https://www.instagram.com/idtech/',
+			'title' => 'iD Tech on Instagram',
+			'src' => $isEditor ? get_cached_image_data('https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/6b969394-7c4c-45c1-9079-7e98dddcbbb2.png')['data_uri'] : 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/6b969394-7c4c-45c1-9079-7e98dddcbbb2.png'
+		]
 	];
 
 	$output = '';
