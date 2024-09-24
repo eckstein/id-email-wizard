@@ -576,7 +576,7 @@ function idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex = null, $is
 
 
 
-function idwiz_get_standard_header($templateOptions)
+function idwiz_get_standard_header($templateOptions, $isEditor = false)
 {
 	$templateStyles = $templateOptions['template_styles'];
 	$headerFooterSettings = $templateStyles['header-and-footer'];
@@ -588,14 +588,14 @@ function idwiz_get_standard_header($templateOptions)
 	if ($headerLogo == 'manual') {
 		$headerLogo = $headerFooterSettings['template_header_logo_manual'] ?? '';
 	}
-	$headerLogoCached = get_cached_image_data($headerLogo)['data_uri'];
+	$headerLogoUrl = $isEditor ? get_cached_image_data($headerLogo)['data_uri'] : $headerLogo;
 	$headerPadding = $headerFooterSettings['header_padding'] ?? '0 0 20px 0';
 	$output = '<div class="chunk id-header">';
 	$output .= '<table role="presentation" style="width:100%;border:0;border-spacing:0;table-layout:fixed;font-size: 0;" id="standard-header">';
 	$output .= '<tr>';
 	$output .= '<td style="font-size: 0;line-height:0;margin:0;padding:' . $headerPadding . ';">';
 	$output .= '<a href="https://www.idtech.com" style="margin:0; padding: 0;" aria-label="iD Tech Camps" title="iD Tech Camps">';
-	$output .= '<img src="' . $headerLogoCached . '" width="' . $templateStyles['body-and-background']['template_width'] . '" alt="" style="width:' . $templateStyles['body-and-background']['template_width'] . '; max-width:100%;height:auto;display: block;" />';
+	$output .= '<img src="' . $headerLogoUrl . '" width="' . $templateStyles['body-and-background']['template_width'] . '" alt="" style="width:' . $templateStyles['body-and-background']['template_width'] . '; max-width:100%;height:auto;display: block;" />';
 	$output .= '</a>';
 	$output .= '</td>';
 	$output .= '</tr>';

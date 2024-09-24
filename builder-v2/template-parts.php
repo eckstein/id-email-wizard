@@ -18,7 +18,7 @@ function generate_template_structure($templateData, $isEditor = false)
     $structure['top']['head'] = $isEditor ? wrap_with_placeholder('email_head', idwiz_get_email_head($templateSettings, $templateStyles, $rows)) : idwiz_get_email_head($templateSettings, $templateStyles, $rows);
     $structure['top']['body_start'] = $isEditor ? wrap_with_placeholder('body_start', idwiz_get_email_body_top($templateStyles)) : idwiz_get_email_body_top($templateStyles);
 
-    $structure['top']['header'] = $isEditor ? wrap_with_placeholder('standard_header', idwiz_get_standard_header($templateOptions)) : idwiz_get_standard_header($templateOptions);
+    $structure['top']['header'] = $isEditor ? wrap_with_placeholder('standard_header', idwiz_get_standard_header($templateOptions, $isEditor)) : idwiz_get_standard_header($templateOptions, $isEditor);
 
     $structure['rows'] = [];
 
@@ -491,7 +491,7 @@ function get_wiztemplate_part_html()
             $html = idwiz_get_email_head($templateSettings, $templateStyles, $rows);
             break;
         case 'standard_header':
-            $html = idwiz_get_standard_header($templateOptions);
+            $html = idwiz_get_standard_header($templateOptions, $isEditor);
             break;
         case 'emailBottom':
             $html = idwiz_get_email_bottom();
