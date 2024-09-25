@@ -342,6 +342,11 @@ jQuery(document).ready(function($) {
 
 		$("#builder").on('change', '.builder-chunk[data-chunk-type="snippet"] select[name="select_snippet"]', function() {
 			updateBuilderChunkPreview('snippet', this);
+			setTimeout(function() {
+				update_template_preview_part($("#builder"), 'email_head');
+			}, 100);
+			
+			
 		});
 
 	/*

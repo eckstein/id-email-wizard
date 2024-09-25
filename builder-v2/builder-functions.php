@@ -961,7 +961,7 @@ function render_chunk_fields($chunkType, $chunkData, $uniqueId)
 
             echo "<div class='builder-field-group flex'>";
             echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-snippet-id'>Select Snippet</label>";
-            echo "<select id='{$uniqueId}-snippet-id' name='select_snippet'>";
+            echo "<select id='{$uniqueId}-snippet-id' name='select_snippet' data-also-update-head='true'>";
             $snippetsForSelect = get_snippets_for_select();
             $noSelectionSelected = $selectedSnippet ? '' : 'selected';
             echo "<option value='' {$noSelectionSelected} disabled>Select a Snippet</option>";

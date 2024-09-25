@@ -1059,6 +1059,7 @@ function add_chunk_by_type(chunkType, addChunkTrigger, duplicate = false) {
                 var columnSet = newChunk.closest('.builder-columnset');
 
                 update_template_preview_part(columnSet);
+
             }
         },
         function(xhr, status, error) {
@@ -1444,7 +1445,7 @@ function processPreviewUpdateQueue() {
         params.partType = previewElement;
     }
 
-    get_template_part_do_callback(params, function(error, data) {
+get_template_part_do_callback(params, function(error, data) {
         if (error) {
             console.error('Error:', error.message);
             templateUpdateProcessing = false;
@@ -1453,11 +1454,11 @@ function processPreviewUpdateQueue() {
         }
         const decodedHTML = decodeHTMLEntities(data.html);
         const iframe = jQuery('#previewFrame')[0].contentWindow.document;
+
         // Special handling for a new row
         if (previewElement == 'fullTemplate') {
             update_template_preview();
-        } else if (previewElement == 'newRow') {            
-            
+        } else if (previewElement == 'newRow') {                        
             const previousRow = iframe.querySelector('.row[data-row-index="' + (parseInt(params.rowIndex) - 1) + '"]');
             if (previousRow) {
                 previousRow.insertAdjacentHTML('afterend', decodedHTML);
@@ -1467,9 +1468,40 @@ function processPreviewUpdateQueue() {
         // if the changed element has the data-preview-part attribute, we replace the content between the placeholders
         } else if ($changedElement.is("[data-preview-part]")) {
             var previewPart = $changedElement.attr('data-preview-part');
-            // Replace everything between the placeholders
-            const rangeStart = iframe.querySelector('wizPlaceholder[data-preview-part="'+previewPart+'_start"]');
-            const rangeEnd = iframe.querySelector('wizPlaceholder[data-preview-part="'+previewPart+'_end"]');
+            replace_preview_part(previewPart, iframe, decodedHTML);
+        } else if (previewElement instanceof jQuery && previewElement.length > 0) {
+            previewElement.replaceWith(decodedHTML);
+        } else {
+            console.warn('Unable to replace content: previewElement is not a valid jQuery object');
+        }
+
+        // If the changed element has data-also-update-head attribute, update the email_head section
+        if ($changedElement.is("[data-also-update-head]")) {
+            get_template_part_do_callback({...params, partType: 'email_head'}, function(headError, headData) {
+                if (!headError) {
+                    const decodedHeadHTML = decodeHTMLEntities(headData.html);
+                    replace_preview_part('email_head', iframe, decodedHeadHTML);
+                } else {
+                    console.error('Error updating email_head:', headError.message);
+                }
+                
+                finishUpdate();
+            });
+        } else {
+            finishUpdate();
+        }
+
+        function finishUpdate() {
+            reindexPreviewElements();
+            templateUpdateProcessing = false;
+            processPreviewUpdateQueue();
+        }
+    });
+
+    function replace_preview_part(previewPart, $iframe, decodedHTML) {
+        // Replace everything between the placeholders
+        const rangeStart = $iframe.querySelector('wizPlaceholder[data-preview-part="'+previewPart+'_start"]');
+        const rangeEnd = $iframe.querySelector('wizPlaceholder[data-preview-part="'+previewPart+'_end"]');
         if (rangeStart && rangeEnd) {
             // Get the parent element containing both placeholders
             const parent = rangeStart.parentElement;
@@ -1487,15 +1519,7 @@ function processPreviewUpdateQueue() {
             // Replace the parent's HTML with the new HTML
             parent.outerHTML = newHTML;
         }
-        // Regular updates of chunks, columns, rows, etc.
-        } else {
-            previewElement.replaceWith(decodedHTML);
-        }
-        reindexPreviewElements();
-
-        templateUpdateProcessing = false;
-        processPreviewUpdateQueue();
-    });
+    }
 }
 
 function load_json_into_template_data(profileId) {
