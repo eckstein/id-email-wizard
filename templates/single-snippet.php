@@ -23,7 +23,7 @@ $endDate = $_GET['endDate'] ?? date( 'Y-m-d' );
 				<button title="Save Snippet" class="wiz-button green" id="save-wizSnippet"
 					data-post-id="<?php echo get_the_ID(); ?>"><i class="fa-solid fa-floppy-disk"></i>&nbsp;&nbsp;Save
 					Snippet</button>
-                    <button title="New Snippet" class="wiz-button green">
+                    <button title="New Snippet" class="new-snippet wiz-button green">
                         <i class="fa-solid fa-circle-plus"></i>&nbsp;&nbsp;New Snippet</button>
 				<button title="Delete Snippet" class="delete-snippet wiz-button red"
 					data-snippetid="<?php echo get_the_ID(); ?>"><i class="fa-solid fa-trash-can"></i></button>
