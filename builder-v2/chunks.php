@@ -255,7 +255,7 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 	$output = '';
 
 
-	$output .= '<div class="chunk id-raw-html ' . $chunkClasses . ' ' . $visibility['class'] . '" ' . $chunkDataAttr . ' style="' . $visibility['inlineStyle'] . ' ' . $backgroundColorCss . ' color: ' . $baseTextColor . '; padding: ' . $chunkPadding . '; font-size: ' . $templateFontSize . ';">';
+	$output .= $isEditor || $chunkWrap ? '<div class="chunk id-raw-html ' . $chunkClasses . ' ' . $visibility['class'] . '" ' . $chunkDataAttr . ' style="' . $visibility['inlineStyle'] . ' ' . $backgroundColorCss . ' color: ' . $baseTextColor . '; padding: ' . $chunkPadding . '; font-size: ' . $templateFontSize . ';">' : '';
 	if ($chunkWrap) {
 		if ($visibility['class'] == 'mobile-only') {
 			$output .= '<!--[if !mso]><!-->';
@@ -295,7 +295,7 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 			$output .= '<!--<![endif]-->';
 		}
 	}
-	$output .= '</div>'; // Close the main wrapper div
+	$output .= $isEditor || $chunkWrap ? '</div>' : ''; // Close the main wrapper div if open
 
 	return $output;
 }
@@ -358,6 +358,7 @@ function idwiz_get_icon_list_chunk($chunk, $templateOptions, $chunkIndex = null,
 		' . wpautop(stripslashes($textContent)) . '
 	  </div>
 	</div>
+	<div style="clear: both; width: 100%;"></div>
 	<!--[if mso]>
 	</td>
 	</tr>
