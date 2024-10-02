@@ -44,25 +44,25 @@
     </style>
 
     <style type="text/css">
-        @media only screen and (min-width: 768px) {
-            u + .body .gmail-blend-screen.desktop {
+        @media screen and (min-width: 481px) {
+            u ~ .body .gmail-blend-screen.desktop {
                 background: #000;
                 mix-blend-mode: screen;
             }
 
-            u + .body .gmail-blend-difference.desktop {
+            u ~ .body .gmail-blend-difference.desktop {
                 background-color: #000;
                 mix-blend-mode: difference;
             }
         }
 
-        @media only screen and (max-width: 767px) {
-            u + .body .gmail-blend-screen.mobile {
+        @media screen and (max-width: 480px) {
+            u ~ .body .gmail-blend-screen.mobile {
                 background: #000;
                 mix-blend-mode: screen;
             }
 
-            u + .body .gmail-blend-difference.mobile {
+            u ~ .body .gmail-blend-difference.mobile {
                 background-color: #000;
                 mix-blend-mode: difference;
             }
@@ -91,8 +91,9 @@
         }
     </style>
 
-    <!-- Global styles for all clients that can read them-->
+    
     <style type="text/css">
+        /* Global styles for all clients that can read them */
         html * {
             font-family: 'Poppins', Helvetica, Arial, sans-serif;
         }
@@ -332,6 +333,7 @@
             width: 100%!important;
             max-width: 100%!important;
             min-width: 100%!important;
+            display: table-cell !important;            
         }
     </style>
 			

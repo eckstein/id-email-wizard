@@ -281,13 +281,13 @@ function generate_columnset_start($rowIndex, $columnSetIndex, $templateData = nu
 
     $return .= "<div class='columnSet $layoutClass  $mobileWrapClass' $colSetDataAttr $magicRtl style='$colSetBackgroundCss text-align: center; font-size: 0; width: 100%; " . $displayTable . "'>";
     $return .= "<!--[if mso]><table role='presentation' class='columnSet' role='presentation' width='100%' style='width: 100%; border: 0; border-spacing: 0;margin: 0 auto;text-align: center;'><tr><td style='$colSetBackgroundCssMso'><![endif]-->";
-    $return .= "<table role='presentation' width='100%' style='width: 100%; border: 0; border-spacing: 0;margin: 0 auto;'><tr>";
+    $return .= "<!--[if mso]><table role='presentation' width='100%' style='width: 100%; border: 0; border-spacing: 0;margin: 0 auto;'><tr><![endif]-->";
     return $return;
 }
 
 function generate_columnset_end()
 {
-    $return = "</tr></table>";
+    $return = "<!--[if mso]></tr></table><![endif]-->";
     $return .= "<!--[if mso]></td></tr></table><![endif]-->";
     $return .= "</div>"; // Close the colset layout div
 
@@ -386,7 +386,7 @@ function generate_column_start($rowIndex, $columnSetIndex, $columnIndex, $templa
     $columnStyle = "width: {$columnWidthPct}%; max-width: {$columnWidthPx}px; font-size: {$templateStyles['font-styles']['template_font_size']}; vertical-align: {$colValign}; text-align: left; display: inline-block;";
 
     $columnDataAttr = $isEditor ? 'data-column-index=' . $columnIndex : '';
-    $return = "<div class='column $mobileWrapClass' $columnDataAttr style='$columnStyle $colBackgroundCSS' dir='ltr'>";
+    $return = "<!--[if !mso]><!--><div class='column $mobileWrapClass' $columnDataAttr style='$columnStyle $colBackgroundCSS' dir='ltr'><!--<![endif]-->";
     $return .= "<!--[if mso]><td style='width:{$columnWidthPx}px; $msoColBackgroundCSS' width='{$columnWidthPx}' valign='{$colValign}'><![endif]-->";
 
     return  $return;
@@ -395,7 +395,7 @@ function generate_column_start($rowIndex, $columnSetIndex, $columnIndex, $templa
 function generate_column_end()
 {
     $return = "<!--[if mso]></td><![endif]-->";
-    $return .= "</div>"; // Close .column div
+    $return .= "<!--[if !mso]><!--></div><!--<![endif]-->"; // Close .column div
 
     return $return;
 }
