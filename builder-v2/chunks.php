@@ -501,7 +501,7 @@ function idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex = null, $is
 	$msoWidth = $templateWidth; // Default full width
 
 	if ($image_context == 'two-col') {
-		$msoWidth = $templateWidth > 0 ? round($templateWidth / 2, 0) : $templateWidth;
+		$msoWidth = $templateWidth > 0 ? round($templateWidth / 2, 0) : $templateWidth; 
 	} elseif ($image_context == 'three-col') {
 		$msoWidth = $templateWidth > 0 ? round($templateWidth / 3, 0) : $templateWidth;
 	} elseif ($image_context == 'sidebar-main') {
