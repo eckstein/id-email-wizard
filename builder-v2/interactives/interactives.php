@@ -338,7 +338,7 @@ function generateRecEngineHtml($args)
                     }, $validCombinations);
 
                     $html .= "    <div class='result " . implode(' ', $concatenatedClasses) . "'>\n";
-                    $html .= "      <h3>" . esc_html($result['title']) . "</h3>\n";
+                    //$html .= "      <h3>" . esc_html($result['title']) . "</h3>\n";
                     $html .= "      <p>" . wp_kses_post(stripslashes($result['content'])) . "</p>\n";
                     $html .= "    </div>\n";
                 }
@@ -390,14 +390,14 @@ function generateRecEngineCss($args)
 
     $css .= "<style type='text/css'>\n";
     // Special yahoo block for showing fields and submit button
-    $css .= "
-    .& .submit-row, .& .selection-option .selection-input {display:inline-block!important;}\n
-    .& .progress-message, .& .feedback-results {display:none;}\n";
+    // $css .= "
+    // .& .submit-row, .& .selection-option .selection-input {display:inline-block!important;}\n
+    // .& .progress-message, .& .feedback-results {display:none;}\n";
 
-    // Special AOL block for showing fields and submit button
-    $css .= " 
-    .submit-row, .selection-option .selection-input {display:inline-block!yahoo;}\n
-    .progress-message, .feedback-results {display:none!yahoo;}\n";
+    // // Special AOL block for showing fields and submit button
+    // $css .= " 
+    // .submit-row, .selection-option .selection-input {display:inline-block!yahoo;}\n
+    // .progress-message, .feedback-results {display:none!yahoo;}\n";
 
 
     $css .= "</style>\n";
