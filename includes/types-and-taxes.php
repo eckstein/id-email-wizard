@@ -233,6 +233,19 @@ function idwiz_register_custom_post_types()
         'show_in_rest' => true,
         'show_in_menu' => 'edit.php?post_type=idemailwiz_template',
     ]);
+
+    register_post_type('wysiwyg_interactive', [
+        'labels' => ['name' => __('Interactives'), 'singular_name' => __('Interactive')],
+        'public' => true,
+        'has_archive' => 'interactives',
+        'rewrite' => ['slug' => 'interactive'],
+        'supports' => ['title', 'editor', 'custom-fields'],
+        'delete_with_user' => false,
+        'capability_type' => 'post',
+        'show_in_rest' => true,
+        'show_in_menu' => 'edit.php?post_type=idemailwiz_template',
+        'has_archive' => 'interactives',
+    ]);
 }
 
 add_post_type_support('idwiz_initiative', 'thumbnail');

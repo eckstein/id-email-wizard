@@ -6,7 +6,6 @@ $wizTemplateObject = get_wiztemplate_object($postId);
 
 $current_user = wp_get_current_user();
 $userId = $current_user->ID;
-// $itTemplateId = get_post_meta( $postId, 'itTemplateId', true ) ?? '';
 $itTemplateId = $wizTemplate['template_settings']['iterable-sync']['iterable_template_id'] ?? '';
 $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 
@@ -36,54 +35,13 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 	</div>
 </div>
 <div id="templateUI" class="entry-content two-col-wrap" data-postid="<?php echo $postId; ?>"
-	data-iterableid="<?php echo $itTemplateId; ?>" data-campaignsent="<?php //echo $campaignSent;     
-																		?>"
-	itemprop="mainContentOfPage">
+	data-iterableid="<?php echo $itTemplateId; ?>" itemprop="mainContentOfPage">
 
 
 
 	<div class="left panel-left" id="builder">
-		<div class="builder-pane-header">
-			<div id="main-builder-tabs" class="wizard-tabs" data-scroll-body="builder-pane">
-				<div class="wizard-tab builder-tab --active" data-tab="#builder-tab-chunks" id="builder-tab-chunks-tab" title="Content chunks">
-					<i class="fa-solid fa-puzzle-piece"></i>&nbsp;&nbsp;Layout
-				</div>
+		<?php echo get_builder_pane_header($postId); ?>
 
-				<div class="wizard-tab builder-tab" data-tab="#builder-tab-styles" id="builder-tab-styles-tab" title="Template Styles">
-					<i class="fa-solid fa-brush"></i>&nbsp;&nbsp;Styles
-				</div>
-				<div class="wizard-tab builder-tab" data-tab="#builder-tab-message-settings" id="builder-tab-message-settings-tab"
-					title="Message settings">
-					<i class="fa-solid fa-envelope"></i>&nbsp;&nbsp;Options
-				</div>
-				<div class="wizard-tab builder-tab" data-tab="#builder-tab-mocks" id="builder-tab-mocks-tab" title="Mockups">
-					<i
-						class="fa-regular fa-file-image"></i>&nbsp;&nbsp;Mocks
-				</div>
-				<div class="wizard-tab builder-tab" data-tab="#builder-tab-code" id="builder-tab-code-tab">
-					<i class="fa-solid fa-code"
-						title="Code & JSON"></i>
-				</div>
-				<div class="wizard-tab builder-tab" data-tab="#builder-tab-settings" id="builder-tab-settings-tab" title="Template Settings">
-					<i
-						class="fa-solid fa-gear"></i>
-				</div>
-
-
-			</div>
-			<div class="main-builder-actions">
-				<button title="Sync to Iterable" class="wiz-button" id="sendToIterable"
-					data-postid="<?php echo $postId; ?>"><img style="width: 20px; height: 20px;"
-						src="https://idemailwiz.com/wp-content/uploads/2023/10/Iterable_square_logo-e1677898367554.png" />&nbsp;&nbsp;
-					Sync</button>
-
-				<button for="wiz-template-form" class="wiz-button green" id="save-template"><i
-						class="fa-regular fa-floppy-disk"></i>&nbsp;&nbsp;Save</button>
-
-
-
-			</div>
-		</div>
 		<div id="builder-pane">
 
 			<div class="builder-tab-content wizard-tab-content --active" id="builder-tab-chunks">
@@ -229,8 +187,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 
 								<div class="builder-field-group flex">
 									<div class="builder-field-wrapper centered">
-										<?php $footerVis = $templateStyles['header-and-footer']['show_id_footer'];
-										$showFooter = $footerVis == 'true' ? true : false; ?>
+										<?php $showFooter = $templateHeaderFooterStyles['show_id_footer'] ?? true; ?>
 										<label class="checkbox-toggle-label">Show Footer</label>
 										<div class="wiz-checkbox-toggle">
 											<input type="checkbox" class="wiz-check-toggle" data-preview-part="standard_footer"
@@ -243,8 +200,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 
 									</div>
 									<div class="builder-field-wrapper centered">
-										<?php $unsubVis = $templateStyles['header-and-footer']['show_unsub'];
-										$showUnsub = $unsubVis == 'true' ? true : false; ?>
+										<?php $showUnsub = $templateHeaderFooterStyles['show_unsub'] ?? true; ?>
 										<label class="checkbox-toggle-label">Show Unsub</label>
 										<div class="wiz-checkbox-toggle">
 											<input type="checkbox" class="wiz-check-toggle" data-preview-part="standard_footer"
@@ -331,7 +287,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 										?>
 										<label for="template_styles_footer_color">Footer BG</label>
 										<fieldset name="footer-background" id="template-footer-background">
-											<?php echo generateBackgroundSettingsModule($templateHeaderFooterStyles['footer-background'] ?? [], '', false, 'standard_footer'); ?>
+											<?php echo generate_background_settings_module($templateHeaderFooterStyles['footer-background'] ?? [], '', false, 'standard_footer'); ?>
 										</fieldset>
 									</div>
 								</div>
@@ -359,7 +315,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 										<div class="builder-field-wrapper body-background">
 											<h5>Body Background</h5>
 											<?php
-											echo generateBackgroundSettingsModule($bodyBackground, 'body_background_', false, 'body_start');
+											echo generate_background_settings_module($bodyBackground, 'body_background_', false, 'body_start');
 											?>
 										</div>
 									</div>
@@ -369,7 +325,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 										<div class="builder-field-wrapper body-background">
 											<h5>Page Background</h5>
 											<?php
-											echo generateBackgroundSettingsModule($pageBackground, 'page_background_', false, 'body_start');
+											echo generate_background_settings_module($pageBackground, 'page_background_', false, 'body_start');
 											?>
 										</div>
 									</div>
@@ -784,73 +740,13 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 
 	<div class="right panel-right" id="preview" type="text/html">
 
+		<?php
+		echo get_template_actions_bar($postId);
 
-		<div id="templateActions">
-
-			<div class="innerWrap">
-				<div id="templatePreviewIcons">
-					<i title="Desktop Preview" class="fas fa-desktop showDesktopPreview active"
-						data-frame="#previewFrame"></i>
-					<i title="Mobile Preview" class="fas fa-mobile-alt showMobilePreview"
-						data-frame="#previewFrame"></i>
-					<div class="preview_width_dragger" data-frame="#previewFrame"></div>
-
-					<span class="templateActions-divider"></span>
-
-					<i title="White Background" class="fa-solid fa-sun editor-bg-mode light-mode-interface active"
-						data-mode="light" data-frame="#previewFrame"></i>
-					<i title="Dark Background" class="fa-solid fa-moon editor-bg-mode dark-mode-interface"
-						data-mode="dark" data-frame="#previewFrame"></i>
-					<div title="Transparent Background" class="editor-bg-mode transparent-mode-interface"
-						data-mode="trans" data-frame="#previewFrame">
-					</div>
-					<span class="templateActions-divider"></span>
-
-					<div title="Fill Merge Tags" class="fill-merge-tags" data-postid="<?php echo $postId; ?>">
-						&nbsp;<span style="font-size:.8em;">{{X}}</span>&nbsp;</div>
-					<i title="Template Data" class="fa-solid fa-database manage-template-data"></i>
-					<span class="templateActions-divider"></span>
-					<i title="Start link checker" class="fa-solid fa-link start-link-checker"></i>
-				</div>
+		echo get_template_data_modal();
+		?>
 
 
-				<button title="Refresh Preview" class="wiz-button green" id="refreshPreview"><i
-						class="fa-solid fa-rotate"></i>&nbsp;&nbsp;Refresh</button>
-				<button title="Show Preview Pane" class="wiz-button green show-preview" id="showFullPreview"
-					data-preview-mode="preview" data-postid="<?php echo $postId; ?>"><i
-						class="fa-solid fa-eye"></i>&nbsp;&nbsp;Full Preview</button>
-			</div>
-		</div>
-		<div id="template-data-modal">
-			<div class="inner-flex">
-				<div id="template-data-modal-header">
-					<h4>Template Data</h4><i class="fa-solid fa-xmark close-modal"></i>
-				</div>
-
-				<form id="templateDataForm">
-					<div class="template-data-form-wrap">
-						<div class="template-data-form-fieldset presetSelect">
-							<label for="dataPresetSelect">Select preset profile</label>
-							<select id="dataPresetSelect" name="dataPreset">
-								<option value="" disabled selected>Select a profile</option>
-								<?php
-								$presetProfiles = get_template_data_profiles();
-								foreach ($presetProfiles as $profile) {
-									echo '<option value="' . $profile['WizProfileId'] . '">' . $profile['WizProfileName'] . '</option>';
-								}
-								?>
-
-							</select>
-						</div>
-						<div class="template-data-form-fieldset jsonData">
-							<label for="templateData">JSON data</label>
-							<textarea id="templateData" name="template_data" class="templateData" placeholder="{}" rows="5"></textarea>
-						</div>
-					</div>
-				</form>
-
-			</div>
-		</div>
 		<div id="templatePreview">
 			<div id="templatePreview-status">
 			</div>
@@ -859,6 +755,8 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 
 	</div>
 </div>
+
+
 
 <?php
 get_footer();

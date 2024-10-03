@@ -652,7 +652,25 @@ jQuery(document).ready(function($) {
 			$(snippetEditLink).replaceWith(newLink);
 		});
 
+	/*
+	****************
+	* Builder UI Interactions
+	*** Wiz Modal
+	****************
+	*/
+	$(document).on('click', '.wiz-modal-close', function () {
+		wizCloseModal();
+	});
 
+	$('#showModal').on('click', function (e) {
+		e.preventDefault();
+		wizFetchModal( {
+			modal_type: 'edit_interactive',
+			title: 'Edit Interactive Element',
+			post_id: idAjax.currentPostId,
+			interactive_type: 'quiz'
+		});
+	});
 
 	/*
 	****************
@@ -665,22 +683,26 @@ jQuery(document).ready(function($) {
 			copy_code_to_clipboard($(this));
 		});
 
-		// Custom checkbox/radio button group toggle functionality
+		
 		$("#builder").on('click', '.wiz-check-toggle-display', function(e) {
-			// Prevent the default label behavior to ensure our custom logic runs smoothly
-			e.preventDefault();
-
-			var $changedElement = $(this);
-			toggle_wiz_check_toggle($changedElement);
-
 			save_template_to_session();
-
-			
 		});
 
-	}
+
+	} // end check for builder
 
 });
+
+// Custom checkbox/radio button group toggle functionality
+jQuery(document).on('click', '.wiz-check-toggle-display', function(e) {
+	// Prevent the default label behavior to ensure our custom logic runs smoothly
+	e.preventDefault();
+
+	var $changedElement = jQuery(this);
+	toggle_wiz_check_toggle($changedElement);
+			
+});
+
 
 
 

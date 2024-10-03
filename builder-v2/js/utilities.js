@@ -139,13 +139,13 @@ function beautify_html(html) {
         removeHTMLComments: false, // set to 1 to remove all comment except Outlook,
         removeCSSComments: false,
         removeIndentations: false,
-        removeLineBreaks: false,
+        removeLineBreaks: true,
         breakToTheLeftOf: [
             "<p",
             "</p",
             "<div",
             "</div",
-            "<tr",
+            //"<tr",
             "</tr",
             "<td",
             "</td",
@@ -155,8 +155,8 @@ function beautify_html(html) {
             "</head",
             "<meta",
             "<link",
-            "<table",
-            "</table",
+            //"<table",
+            //"</table",
             "<script",
             "</script",
             "<!DOCTYPE",
@@ -166,6 +166,8 @@ function beautify_html(html) {
             "<body",
             "@media",
             "<!",
+            "/*",
+            
             
           ],
     }).result;

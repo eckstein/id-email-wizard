@@ -154,52 +154,60 @@ function idwiz_get_snippet_chunk($chunk, $templateOptions, $chunkIndex = null, $
 	$chunkFields = $chunk['fields'];
 
 	$backgroundColorCss = generate_background_css($chunkSettings);
-	$msoBackgroundColorCss = generate_background_css($chunkSettings);
-
-	$fontCss = 'font-size: 1em; line-height: 1.5;';
-	$brandedFont = $chunkSettings['branded_font'] ?? 0;
-	if ($brandedFont) {
-		$fontCss = "font-family: Poppins, Helvetica, Arial, sans-serif;";
-	}
 
 	$visibility = get_visibility_class_and_style($chunkSettings);
-	if ($visibility['class'] != '') {
-		$tableClassHtml = 'class="' . esc_attr($visibility['class']) . '"';
-	} else {
-		$tableClassHtml = '';
-	}
 
-	$msoTableWrap = $chunkSettings['mso_table_wrap'] ?? false;
 
 	// Retrieve the post id
 	$snippetPostId = $chunkFields['select_snippet'];
 
-	// $shortcode = '[wiz_snippet id="' . $snippetPostId . '"]';
-	// $snippetContent = do_shortcode($shortcode);
-
 	$snippetContent = get_post_meta($snippetPostId, 'snippet_content', true);
 
 	$output = '';
-	$output .= '<div class="chunk id-snippet ' . $chunkClasses . '" ' . $chunkDataAttr . ' style="' . esc_attr($fontCss . $backgroundColorCss . $visibility['inlineStyle']) . '">';
+	$output .= '<div class="chunk id-snippet ' . $chunkClasses . '" ' . $chunkDataAttr . ' style="' . esc_attr($backgroundColorCss . $visibility['inlineStyle']) . '">';
 
 	if ($visibility['class'] == 'mobile-only') {
 		$output .= '<!--[if !mso]><!-->';
 	}
 
-	if ($msoTableWrap) {
-		$output .= '<!--[if mso]>';
-		$output .= '<table ' . $tableClassHtml . ' role="presentation" width="100%" style="table-layout:fixed; ' . esc_attr($fontCss . $msoBackgroundColorCss . $visibility['inlineStyle']) . '">';
-		$output .= '<tr><td style="display: block;width:100%;text-align:center; ' . esc_attr($msoBackgroundColorCss) . '" valign="middle">';
-		$output .= '<![endif]-->';
+	$output .= $snippetContent;
+
+	if ($visibility['class'] == 'mobile-only') {
+		$output .= '<!--<![endif]-->';
+	}
+
+	$output .= '</div>';
+
+	return $output;
+}
+
+function idwiz_get_interactive_chunk($chunk, $templateOptions, $chunkIndex = null, $isEditor = false)
+{
+	$chunkSettings = $chunk['settings'];
+	$chunkClasses = $chunkSettings['chunk_classes'] ?? '';
+
+	$chunkDataAttr = $isEditor ? "data-chunk-index='" . $chunkIndex . "' data-chunk-type='" . $chunk["field_type"] . "'" : "";
+
+	$chunkFields = $chunk['fields'];
+
+	$backgroundColorCss = generate_background_css($chunkSettings);
+
+	$visibility = get_visibility_class_and_style($chunkSettings);
+
+
+	// Retrieve the post id
+	$intPostId = $chunkFields['select_interactive'];
+
+	$snippetContent = get_post_meta($intPostId, '_recommendation_engine_html', true);
+
+	$output = '';
+	$output .= '<div class="chunk id-interactive ' . $chunkClasses . '" ' . $chunkDataAttr . ' style="' . esc_attr($backgroundColorCss . $visibility['inlineStyle']) . '">';
+
+	if ($visibility['class'] == 'mobile-only') {
+		$output .= '<!--[if !mso]><!-->';
 	}
 
 	$output .= $snippetContent;
-
-	if ($msoTableWrap) {
-		$output .= '<!--[if mso]>';
-		$output .= '</td></tr></table>';
-		$output .= '<![endif]-->';
-	}
 
 	if ($visibility['class'] == 'mobile-only') {
 		$output .= '<!--<![endif]-->';
@@ -501,7 +509,7 @@ function idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex = null, $is
 	$msoWidth = $templateWidth; // Default full width
 
 	if ($image_context == 'two-col') {
-		$msoWidth = $templateWidth > 0 ? round($templateWidth / 2, 0) : $templateWidth; 
+		$msoWidth = $templateWidth > 0 ? round($templateWidth / 2, 0) : $templateWidth;
 	} elseif ($image_context == 'three-col') {
 		$msoWidth = $templateWidth > 0 ? round($templateWidth / 3, 0) : $templateWidth;
 	} elseif ($image_context == 'sidebar-main') {
@@ -518,8 +526,6 @@ function idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex = null, $is
 	$imageRatioSuccess = ($status === 'success');
 	if (!$imageRatioSuccess && $isEditor) {
 		$chunkClasses .= ' image-ratio-error';
-		// Use the remote image src if the cached one results in error
-		$cachedImageSrc = $imageSrc;
 	}
 
 	// Calculate the height based on the aspect ratio and msoWidth
@@ -879,7 +885,7 @@ function idwiz_get_email_head($templateSettings, $templateStyles, $rows)
 		} ?>
 		<?php
 		// Additional CSS block from snippets
-		echo get_snippet_css($rows);
+		echo get_chunk_css_for_head($rows);
 		?>
 
 		<!--[if mso]>

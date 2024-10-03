@@ -308,6 +308,11 @@ function gather_chunk_data($chunk) {
         chunk.fields.snippet_name = snippetName;
     }
 
+    if (chunk.field_type === 'interactive') {
+        var intName = $chunk.find('select[name="select_interactive"] option:selected').text();
+        chunk.fields.interactive_name = intName;
+    }
+
     // Directly modify chunk.fields and chunk.settings without reassignment
     collect_element_field_values($chunkFields, chunk.fields);
     collect_element_field_values($chunkSettings, chunk.settings);

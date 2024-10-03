@@ -1,4 +1,6 @@
-<?php get_header(); ?>
+<?php get_header();
+updateCourseFiscalYears();
+?>
 
 
 <header class="wizHeader">
@@ -13,7 +15,7 @@
                     <label for="division-select">Division(s) to map from:</label>
                     <select id="division-select" name="division-select[]" multiple onchange="this.form.submit()">
                         <?php
-                        $divisions = ['idtc', 'idta', 'vtc', 'ota', 'opl'];
+                        //$divisions = ['idtc', 'idta', 'vtc', 'ota', 'opl'];
                         $divisions = [
                             'iDTC' => 25,
                             'iDTA' => 22,

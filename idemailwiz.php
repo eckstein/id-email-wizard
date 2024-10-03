@@ -86,10 +86,14 @@ $files = [
     'includes/charts.php',
     'includes/reporting.php',
     'includes/promo-codes.php',
+    'includes/course-mapping.php',
+    'builder-v2/interactives/interactives.php',
     'builder-v2/wiz-folder-init.php',
     'builder-v2/template-request-handler.php',
     'builder-v2/template-get-and-save.php',
     'builder-v2/builder-functions.php',
+    'builder-v2/builder-parts.php',
+    'builder-v2/wiz-modals.php',
     'builder-v2/template-parts.php',
     'builder-v2/template-data.php',
     'builder-v2/image-handling.php',
@@ -242,6 +246,8 @@ function idemailwiz_enqueue_assets()
         'preview-pane' => array('/builder-v2/js/preview-pane.js', array('builder-functions')),
 
         'wizSnippets' => array('/js/wizSnippets.js', array('jquery', 'id-general', 'codemirror')),
+        'interactives' => array('/builder-v2/interactives/interactives.js', array('jquery', 'id-general', 'codemirror')),
+            'interactive-rec-engine' => array('/builder-v2/interactives/rec-engine/rec-engine.js', array('jquery', 'id-general', 'codemirror', 'interactives')),
         'folder-actions' => array('/js/folder-actions.js', array('jquery', 'id-general')),
         'user-favorites' => array('/js/user-favorites.js', array('jquery', 'id-general')),
         'bulk-actions' => array('/js/bulk-actions.js', array('jquery', 'id-general', 'folder-actions', 'template-actions')),
@@ -256,6 +262,7 @@ function idemailwiz_enqueue_assets()
         'google-sheets-api' => array('/js/google-sheets-api.js', array('jquery', 'id-general')),
         'wiz-endpoints' => array('/js/endpoints.js', array('jquery', 'id-general')),
         'promo-codes' => array('/js/promo-codes.js', array('jquery', 'id-general')),
+        'course-mapping' => array('/js/course-mapping.js', array('jquery', 'id-general')),
 
         'reporting' => array('/js/reporting.js', array('jquery', 'id-general', 'wiz-charts', 'data-tables')),
 

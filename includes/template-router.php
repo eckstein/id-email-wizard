@@ -31,12 +31,15 @@ function idemailwiz_template_chooser($template)
     }
 
     // Custom post type and taxonomy templates
+    if (is_singular('idemailwiz_template')) {
+        return $plugin_dir . 'builder-v2/single-idemailwiz_template-v2.php';
+    }
     $post_type_templates = [
-        'idemailwiz_template' => 'single-idemailwiz_template-v2.php',
         'idwiz_initiative' => 'single-initiative.php',
         'wiz_promo_code' => 'single-promo-code.php',
         'idwiz_comparison' => 'single-comparison.php',
         'wysiwyg_snippet' => 'single-snippet.php',
+        'wysiwyg_interactive' => 'single-interactive.php',
     ];
 
     $post_type = get_post_type();
@@ -48,12 +51,14 @@ function idemailwiz_template_chooser($template)
         return $template_dir . 'taxonomy-idemailwiz_folder.php';
     }
 
+
     // Custom URI-based templates
     $uri_templates = [
         '/metrics/campaign' => 'single-campaign.php',
         '/journeys' => 'archive-journeys.php',
         '/metrics/journey' => 'single-journey.php',
         '/snippets' => 'archive-snippet.php',
+        '/interactives' => 'archive-interactive.php',
         '/endpoints' => 'wiz-rest-ui.php'
     ];
 
@@ -69,7 +74,7 @@ function idemailwiz_template_chooser($template)
         'settings' => 'wiz-settings.php',
         'sync-station' => 'sync-station.php',
         'campaign-monitor' => 'campaign-monitor.php',
-        'course-mapping' => 'course-mapping.php',
+        'course-mapping' => 'page-course-mapping.php',
     ];
 
     foreach ($endpoint_templates as $endpoint => $file) {

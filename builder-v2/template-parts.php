@@ -431,6 +431,9 @@ function idwiz_get_chunk_template($templateId, $rowIndex, $columnSetIndex, $colu
         case 'snippet':
             $return = idwiz_get_snippet_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
             break;
+        case 'interactive':
+            $return = idwiz_get_interactive_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
+            break;
         case 'html':
             $return = idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex, $isEditor);
             break;

@@ -358,3 +358,79 @@ function backfill_blast_engagment_data($campaignIds = [])
     }
     maybe_add_to_sync_queue($campaignIds, ['send'], '2021-11-01', null, 100);
 }
+
+function updateCourseFiscalYears()
+{
+    global $wpdb;
+
+    // Get all courses
+    $courses = $wpdb->get_results("SELECT id FROM wp_idemailwiz_courses");
+
+    // Define the fiscal years we're interested in
+    $firstFiscalYearStart = new DateTime('2021-10-15');
+    $currentDate = new DateTime();
+    $fiscalYears = [];
+    $fiscalYearStart = clone $firstFiscalYearStart;
+
+    while ($fiscalYearStart <= $currentDate) {
+        $fiscalYearEnd = clone $fiscalYearStart;
+        $fiscalYearEnd->modify('+1 year -1 day');
+        $fiscalYears[] = [
+            'start' => $fiscalYearStart->format('Y-m-d'),
+            'end' => $fiscalYearEnd->format('Y-m-d'),
+            'label' => $fiscalYearStart->format('Y') . '/' . $fiscalYearEnd->format('Y')
+        ];
+        $fiscalYearStart->modify('+1 year');
+    }
+
+    // Prepare the SQL query
+    $sql = "SELECT shoppingCartItems_id as course_id, 
+            GROUP_CONCAT(DISTINCT fiscal_year ORDER BY fiscal_year) as fiscal_years
+            FROM (
+                SELECT p.shoppingCartItems_id, 
+                CASE ";
+
+    foreach ($fiscalYears as $index => $fy) {
+        $sql .= "WHEN p.purchaseDate BETWEEN '{$fy['start']}' AND '{$fy['end']}' THEN '{$fy['label']}' ";
+    }
+
+    $sql .= "END as fiscal_year
+            FROM wp_idemailwiz_purchases p
+            WHERE p.shoppingCartItems_id IN (" . implode(',', array_column($courses, 'id')) . ")
+            ) AS subquery
+            WHERE fiscal_year IS NOT NULL
+            GROUP BY shoppingCartItems_id";
+
+    $results = $wpdb->get_results($sql, ARRAY_A);
+
+    // Prepare bulk update
+    $update_queries = [];
+    foreach ($results as $result) {
+        $fiscal_years_array = explode(',', $result['fiscal_years']);
+        $serialized_fiscal_years = serialize($fiscal_years_array);
+        $update_queries[] = $wpdb->prepare(
+            "UPDATE wp_idemailwiz_courses SET fiscal_years = %s WHERE id = %d",
+            $serialized_fiscal_years,
+            $result['course_id']
+        );
+    }
+
+    // Add updates for courses with no purchases (N/A)
+    $courses_with_purchases = array_column($results, 'course_id');
+    foreach ($courses as $course) {
+        if (!in_array($course->id, $courses_with_purchases)) {
+            $update_queries[] = $wpdb->prepare(
+                "UPDATE wp_idemailwiz_courses SET fiscal_years = %s WHERE id = %d",
+                serialize(['N/A']),
+                $course->id
+            );
+        }
+    }
+
+    // Execute bulk update
+    if (!empty($update_queries)) {
+        foreach ($update_queries as $query) {
+            $wpdb->query($query);
+        }
+    }
+}

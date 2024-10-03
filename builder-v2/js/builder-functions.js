@@ -527,6 +527,7 @@ function toggle_chunk_type_choices($clicked) {
             '<div class="wiz-tiny-dropdown-options" data-layout="spacer"><i class="fas fa-arrows-alt-v"></i> Spacer</div>' +
             '<div class="wiz-tiny-dropdown-options" data-layout="html"><i class="fa-solid fa-code"></i> Raw HTML</div>' +
             '<div class="wiz-tiny-dropdown-options" data-layout="snippet"><i class="fa-solid fa-file-code"></i> Snippet</div>' +
+            '<div class="wiz-tiny-dropdown-options" data-layout="interactive"><i class="fa-regular fa-hand-pointer"></i> Interactive</div>' +
             '</div>';
         addChunkWrapper.append(layoutChoicesHtml);
         chunkLayoutChoices = addChunkWrapper.find('.wiz-tiny-dropdown'); // Ensure the element is selected after creation
@@ -1145,7 +1146,6 @@ function upload_wiz_mock(uploadInput) {
     formData.append('action', 'upload_mockup');
 
     jQuery.ajax({
-        //url: idAjax_template_editor.ajaxurl,
         url: idAjax.wizAjaxUrl,
         type: 'POST',
         data: formData,
@@ -1804,4 +1804,47 @@ function handle_layout_field_changes($clicked) {
         update_template_preview_part($clicked);
     });
 		
+}
+
+function wizFetchModal(data = {}) {
+    if (!data.modal_type) {
+        console.error('Modal type not specified');
+        return;
+    }
+
+    jQuery.ajax({
+        url: idAjax.wizAjaxUrl,
+        type: 'POST',
+        data: {
+            action: 'wiz_get_modal_content',
+            security: idAjax_template_editor.nonce,
+            data: data
+        },
+        success: function(response) {
+            if (response.success) {
+                // Remove any existing modal
+                jQuery('.wiz-modal-container').remove();
+                
+                // Append the new modal HTML to the body
+                jQuery('body').append(response.data.html);
+                
+                // Show the modal
+                jQuery('.wiz-modal-container').fadeIn(300);
+                
+                
+                // You can add more initialization code here if needed
+            } else {
+                console.error('Error fetching modal content:', response.data.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('AJAX error:', status, error);
+        }
+    });
+}
+
+function wizCloseModal() {
+    jQuery('.wiz-modal-container').fadeOut(300, function () {
+        jQuery(this).remove();
+    });
 }
