@@ -269,7 +269,7 @@ function generateRecEngineHtml($args)
             foreach ($selection['options'] as $option) {
                 $value = esc_attr($option['value']);
                 $id = "option-{$key}-{$value}";
-                $html .= "  <input type='radio' id='$id' name='$key' class='selection-input external-input {$key}-input' value='$value'>\n";
+                $html .= "  <input type='radio' id='$id' name='$key' class='selection-input {$key}-input' value='$value'>\n";
             }
         }
     }
@@ -299,19 +299,45 @@ function generateRecEngineHtml($args)
 
         foreach ($args['results'] as $result) {
             if (isset($result['classes']) && is_array($result['classes'])) {
-                // Check if the result has a class for each selection
-                $hasAllSelections = true;
-                foreach ($selectionKeys as $key) {
-                    if (!preg_grep("/^{$key}-/", $result['classes'])) {
-                        $hasAllSelections = false;
-                        break;
+                $classesByKey = [];
+                foreach ($result['classes'] as $class) {
+                    $parts = explode('-', $class, 2);
+                    if (count($parts) == 2) {
+                        $classesByKey[$parts[0]][] = $class;
                     }
                 }
 
-                // Render the result if it has a class for each selection or if incomplete combos are allowed
-                if ($hasAllSelections || $allowIncompleteCombos) {
-                    $concatenatedClass = implode('-', array_map('esc_attr', $result['classes']));
-                    $html .= "    <div class='result $concatenatedClass'>\n";
+                $classCombinations = [[]];
+                foreach ($classesByKey as $classes) {
+                    $newCombinations = [];
+                    foreach ($classCombinations as $combination) {
+                        foreach ($classes as $class) {
+                            $newCombinations[] = array_merge($combination, [$class]);
+                        }
+                    }
+                    $classCombinations = $newCombinations;
+                }
+
+                $validCombinations = [];
+                foreach ($classCombinations as $combination) {
+                    $hasAllSelections = true;
+                    foreach ($selectionKeys as $key) {
+                        if (!preg_grep("/^{$key}-/", $combination)) {
+                            $hasAllSelections = false;
+                            break;
+                        }
+                    }
+                    if ($hasAllSelections || $allowIncompleteCombos) {
+                        $validCombinations[] = $combination;
+                    }
+                }
+
+                if (!empty($validCombinations)) {
+                    $concatenatedClasses = array_map(function ($combo) {
+                        return implode('-', array_map('esc_attr', $combo));
+                    }, $validCombinations);
+
+                    $html .= "    <div class='result " . implode(' ', $concatenatedClasses) . "'>\n";
                     $html .= "      <h3>" . esc_html($result['title']) . "</h3>\n";
                     $html .= "      <p>" . wp_kses_post(stripslashes($result['content'])) . "</p>\n";
                     $html .= "    </div>\n";
@@ -405,7 +431,14 @@ function generateRecEngineCss($args)
     $css .= "</style>\n";
 
 
-    $css .= "<style type='text/css'>";
+    $css .= "\n<style type='text/css'>\n";
+
+    // Set all results to display: none by default
+    $resultsCss = "  #$wrapperId .result { display: none!important; }\n";
+    if ($allowIncompleteCombos) {
+        $resultsCss = "  #$wrapperId .result { display: none; }\n";
+    }
+    $css .= $resultsCss;
 
     // Generate CSS to show specific results based on selections
     if (isset($args['results'])) {
@@ -413,30 +446,52 @@ function generateRecEngineCss($args)
 
         foreach ($args['results'] as $result) {
             if (isset($result['classes']) && is_array($result['classes'])) {
-                $selectors = [];
+                $classesByKey = [];
                 foreach ($result['classes'] as $class) {
                     list($key, $value) = explode('-', $class, 2);
-                    $selectors[] = "input#option-{$key}-{$value}:checked";
+                    $classesByKey[$key][] = $class;
                 }
 
-                if (!empty($selectors)) {
+                $classCombinations = [[]];
+                foreach ($classesByKey as $classes) {
+                    $newCombinations = [];
+                    foreach ($classCombinations as $combination) {
+                        foreach ($classes as $class) {
+                            $newCombinations[] = array_merge($combination, [$class]);
+                        }
+                    }
+                    $classCombinations = $newCombinations;
+                }
+
+                foreach ($classCombinations as $combination) {
+                    $selectors = array_map(function ($class) {
+                        return "input#option-{$class}:checked";
+                    }, $combination);
+
                     $selectorString = implode(' ~ ', $selectors);
-                    $concatenatedClass = implode('-', array_map('esc_attr', $result['classes']));
+                    $concatenatedClass = implode('-', array_map('esc_attr', $combination));
 
                     $css .= "  #$wrapperId > form > $selectorString ~ .feedback-results .$concatenatedClass {
                         display: block !important;
                         animation: fadeIn 0.5s ease;
                     }\n";
+                }
 
-                    if (!$allowIncompleteCombos) {
-                        // Create a selector for all selection groups being filled
-                        $allGroupsFilledSelector = implode(' ~ ', array_map(function ($key) {
-                            return "input.{$key}-input:checked";
-                        }, $selectionKeys));
+                if (!$allowIncompleteCombos) {
+                    
+                    // Create a selector for all selection groups being filled
+                    $allGroupsFilledSelector = implode(' ~ ', array_map(function ($key) {
+                        return "input.{$key}-input:checked";
+                    }, $selectionKeys));
 
-                        $css .= "  #$wrapperId > form > $allGroupsFilledSelector ~ .feedback-results .$concatenatedClass {
-                            display: none;
-                        }\n";
+                    // Show only exact matches when all groups are filled
+                    foreach ($classCombinations as $combination) {
+                        $selectors = array_map(function ($class) {
+                            return "input#option-{$class}:checked";
+                        }, $combination);
+
+                        $selectorString = implode(' ~ ', $selectors);
+                        $concatenatedClass = implode('-', array_map('esc_attr', $combination));
 
                         $css .= "  #$wrapperId > form > $allGroupsFilledSelector ~ $selectorString ~ .feedback-results .$concatenatedClass {
                             display: block !important;
@@ -447,7 +502,6 @@ function generateRecEngineCss($args)
             }
         }
     }
-
     // Hide progress message when any selection is made
     $anySelectionSelector = implode(', ', array_map(function ($selection) {
         return "input.{$selection['key']}-input:checked";
@@ -485,7 +539,7 @@ function generateRecEngineFormHtml($args)
             $id = "option-{$key}-{$value}";
             $label = esc_html($option['label']);
             $html .= "        <label for='$id' class='selection-option'>\n";
-            $html .= "          <input class='inline-input' type='radio' id='$id' name='$key' value='$value' required>\n";
+            $html .= "          <input type='radio' id='$id' name='$key' value='$value' required>\n";
             $html .= "          $label\n";
             $html .= "        </label>\n";
         }
