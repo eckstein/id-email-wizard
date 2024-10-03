@@ -518,6 +518,8 @@ function idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex = null, $is
 	$imageRatioSuccess = ($status === 'success');
 	if (!$imageRatioSuccess && $isEditor) {
 		$chunkClasses .= ' image-ratio-error';
+		// Use the remote image src if the cached one results in error
+		$cachedImageSrc = $imageSrc;
 	}
 
 	// Calculate the height based on the aspect ratio and msoWidth
