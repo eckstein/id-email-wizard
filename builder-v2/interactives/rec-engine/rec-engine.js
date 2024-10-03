@@ -124,6 +124,7 @@
             success: function(response) {
                 if (response.success) {
                     $optionsContainer.append(response.data.html);
+                    updateOptionIndexes($optionsContainer);
                 } else {
                     console.error('Error generating new selection option: ' + response.data);
                 }
@@ -137,6 +138,7 @@
     // Remove an option
     $('#selections-container').on('click', '.remove-option-btn', function() {
         $(this).closest('.option-group').remove();
+        updateOptionIndexes($(this));
     });
 
     // Update selection indexes when a selection is removed
