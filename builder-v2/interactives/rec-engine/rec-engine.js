@@ -207,27 +207,25 @@
 
 
     function updateOptionIndexes($selection) {
-        
         $selection.find('.option-group').each(function (optionIndex) {
-            //reindex inputs
+            // Reindex inputs
             $(this).find('input').each(function () {
                 const name = $(this).attr('name');
                 if (name) {
                     $(this).attr('name', name.replace(/\[options\]\[\d+\]/, `[options][${optionIndex}]`));
                 }
             });
-            //reindex labels
+
+            // Reindex labels
             $(this).find('label').each(function () {
-                const name = $(this).attr('for');
-                if (name) {
-                    $(this).attr('for', name.replace(/\[options\]\[\d+\]/, `[options][${optionIndex}]`));
+                const forAttr = $(this).attr('for');
+                if (forAttr) {
+                    $(this).attr('for', forAttr.replace(/\[options\]\[\d+\]/, `[options][${optionIndex}]`));
                 }
-                //replace the number in .option-index-display
+                // Replace the number in .option-index-display
                 $(this).find('.option-index-display').text(optionIndex + 1);
             });
         });
-        
-
     }
 
     // Update result indexes when a result is removed
