@@ -109,22 +109,24 @@
 
     // Add a new option to a selection
     $('#selections-container').on('click', '.add-option-btn', function() {
-        const $optionsContainer = $(this).closest('.selection-group').find('.options-container');
+        const $selectionGroup = $(this).closest('.selection-group');
+        const $optionsContainer = $selectionGroup.find('.options-container');
+        const selectionIndex = $selectionGroup.index();
         const optionIndex = $optionsContainer.children('.option-group').length;
-        const index = $(this).closest('.selection-group').find('.option-group').length;
+
         $.ajax({
             url: idAjax.wizAjaxUrl,
             type: 'POST',
             data: {
                 action: 'generate_rec_builder_selection_option',
                 security: idAjax_template_editor.nonce,
-                optionIndex: optionIndex,
-                index: index
+                selectionIndex: selectionIndex,
+                optionIndex: optionIndex
             },
             success: function(response) {
                 if (response.success) {
                     $optionsContainer.append(response.data.html);
-                    updateOptionIndexes($optionsContainer);
+                    updateOptionIndexes($selectionGroup);
                 } else {
                     console.error('Error generating new selection option: ' + response.data);
                 }
@@ -208,13 +210,14 @@
     });
 
 
-    function updateOptionIndexes($selection) {
-        $selection.find('.option-group').each(function (optionIndex) {
+    function updateOptionIndexes($selectionGroup) {
+        const selectionIndex = $selectionGroup.index();
+        $selectionGroup.find('.options-container .option-group').each(function (optionIndex) {
             // Reindex inputs
             $(this).find('input').each(function () {
                 const name = $(this).attr('name');
                 if (name) {
-                    $(this).attr('name', name.replace(/\[options\]\[\d+\]/, `[options][${optionIndex}]`));
+                    $(this).attr('name', name.replace(/selections\[\d+\]\[options\]\[\d+\]/, `selections[${selectionIndex}][options][${optionIndex}]`));
                 }
             });
 
@@ -222,7 +225,7 @@
             $(this).find('label').each(function () {
                 const forAttr = $(this).attr('for');
                 if (forAttr) {
-                    $(this).attr('for', forAttr.replace(/\[options\]\[\d+\]/, `[options][${optionIndex}]`));
+                    $(this).attr('for', forAttr.replace(/selections\[\d+\]\[options\]\[\d+\]/, `selections[${selectionIndex}][options][${optionIndex}]`));
                 }
                 // Replace the number in .option-index-display
                 $(this).find('.option-index-display').text(optionIndex + 1);

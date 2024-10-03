@@ -119,11 +119,11 @@ function generate_rec_builder_selection_group($index, $selection = [])
                 </div>
             </h4>
             <div class=" toggle-hotspot"><span class="toggle-message">Click to toggle</span>
-                </div>
-                <div class="selection-group-actions">
-                    <button type="button" class="wiz-button small green add-option-btn"><i class="fa-solid fa-plus"></i>&nbsp;&nbsp;Add Option</button>
-                    <button type="button" class="wiz-button small red remove-selection-btn" title="Remove Selection Group"><i class="fa-solid fa-trash"></i></button>
-                </div>
+            </div>
+            <div class="selection-group-actions">
+                <button type="button" class="wiz-button small green add-option-btn"><i class="fa-solid fa-plus"></i>&nbsp;&nbsp;Add Option</button>
+                <button type="button" class="wiz-button small red remove-selection-btn" title="Remove Selection Group"><i class="fa-solid fa-trash"></i></button>
+            </div>
         </div>
         <div class="selection-group-content">
             <div class="options-container builder-field-group flex noWrap">
@@ -150,24 +150,24 @@ function generate_rec_builder_selection_option_ajax()
     if (!wp_verify_nonce($nonce, 'template-editor')) {
         wp_send_json_error('Invalid security token.');
     }
-    $index = isset($_POST['index']) ? intval($_POST['index']) : 0;
+    $selectionIndex = isset($_POST['selectionIndex']) ? intval($_POST['selectionIndex']) : 0;
     $optionIndex = isset($_POST['optionIndex']) ? intval($_POST['optionIndex']) : 0;
     $option = isset($_POST['option']) ? $_POST['option'] : array();
-    $html = generate_rec_builder_selection_option($index, $optionIndex, $option);
+    $html = generate_rec_builder_selection_option($selectionIndex, $optionIndex, $option);
     wp_send_json_success(array('html' => $html));
 }
-function generate_rec_builder_selection_option($index, $optionIndex, $option = [])
+function generate_rec_builder_selection_option($selectionIndex, $optionIndex, $option = [])
 {
     ob_start();
 ?>
     <div class="option-group builder-field-wrapper flex column">
         <div class="builder-field-wrapper">
-            <label for="selections[<?php echo $index; ?>][options][<?php echo $optionIndex; ?>][value]">Option <span class="option-index-display"><?php echo $optionIndex + 1; ?></span> Class</label>
-            <input type="text" name="selections[<?php echo $index; ?>][options][<?php echo $optionIndex; ?>][value]" placeholder="Option Value" required value="<?php echo esc_attr($option['value'] ?? ''); ?>">
+            <label for="selections[<?php echo $selectionIndex; ?>][options][<?php echo $optionIndex; ?>][value]">Option <span class="option-index-display"><?php echo $optionIndex + 1; ?></span> Class</label>
+            <input type="text" name="selections[<?php echo $selectionIndex; ?>][options][<?php echo $optionIndex; ?>][value]" placeholder="Option Value" required value="<?php echo esc_attr($option['value'] ?? ''); ?>">
         </div>
         <div class="builder-field-wrapper">
-            <label for="selections[<?php echo $index; ?>][options][<?php echo $optionIndex; ?>][label]">Option <span class="option-index-display"><?php echo $optionIndex + 1; ?></span> Label</label>
-            <input type="text" name="selections[<?php echo $index; ?>][options][<?php echo $optionIndex; ?>][label]" placeholder="Option Label" required value="<?php echo esc_attr($option['label'] ?? ''); ?>">
+            <label for="selections[<?php echo $selectionIndex; ?>][options][<?php echo $optionIndex; ?>][label]">Option <span class="option-index-display"><?php echo $optionIndex + 1; ?></span> Label</label>
+            <input type="text" name="selections[<?php echo $selectionIndex; ?>][options][<?php echo $optionIndex; ?>][label]" placeholder="Option Label" required value="<?php echo esc_attr($option['label'] ?? ''); ?>">
             <button type="button" class="wiz-button small red remove-option-btn">Remove Option</button>
         </div>
     </div>
@@ -256,11 +256,11 @@ function generateRecEngineHtml($args)
     $allowIncompleteCombosOption = $args['settings']['allow_incomplete_combos'] ?? 'off';
     $allowIncompleteCombos = $allowIncompleteCombosOption == 'on' ? true : false;
     $formAction = esc_url($args['settings']['form_action'] ?? 'https://example.com/page');
-    
+
     $html = "";
     $html .= "<div class='$wrapperClasses' id='$wrapperId'>\n";
     $html .= "  <form action='$formAction' method='get' target='_blank'>\n";
-    
+
 
     // Place all inputs at the beginning
     foreach ($args['selections'] as $selection) {
@@ -289,7 +289,7 @@ function generateRecEngineHtml($args)
         }
         $html .= "  </div>\n";
     }
-    
+
     $html .= "  <div class='feedback-results'>\n";
     $progressMessage = esc_html($args['settings']['progress_message'] ?? "Make your selections above to see your personalized recommendations!");
     $html .= "    <div class='progress-message'>$progressMessage</div>\n";
@@ -321,7 +321,7 @@ function generateRecEngineHtml($args)
     }
 
     $html .= "  </div>\n";
-    
+
 
     // Submit button
     $html .= "    <div class='submit-row'>\n";
@@ -350,7 +350,7 @@ function generateRecEngineCss($args)
     }\n";
 
     $css .= "</style>\n";
-    
+
     $allowIncompleteCombosOption = $args['settings']['allow_incomplete_combos'] ?? 'off';
     $allowIncompleteCombos = $allowIncompleteCombosOption == 'on' ? true : false;
 
@@ -372,8 +372,8 @@ function generateRecEngineCss($args)
     $css .= " 
     .submit-row, .selection-option .selection-input {display:inline-block!yahoo;}\n
     .progress-message, .feedback-results {display:none!yahoo;}\n";
-    
-    
+
+
     $css .= "</style>\n";
 
     // Insert user-submitted CSS
@@ -382,11 +382,11 @@ function generateRecEngineCss($args)
         $css .= $args['module_css'];
         $css .= "\n</style>\n";
     }
-   
+
 
     $wrapperId = $args['settings']['wrapper_id'] ?? 'rec_engine_wrapper';
 
-    
+
     $css .= "<style type='text/css'>";
     // Generate CSS for active state of buttons
     foreach ($args['selections'] as $selection) {
@@ -405,7 +405,7 @@ function generateRecEngineCss($args)
     $css .= "</style>\n";
 
 
-$css .= "<style type='text/css'>";
+    $css .= "<style type='text/css'>";
 
     // Generate CSS to show specific results based on selections
     if (isset($args['results'])) {
