@@ -371,7 +371,7 @@ function generateRecEngineCss($args)
     $css .= "<style type='text/css'>\n";
 
     // Hide selection inputs and results
-    $css .= ".selection-input, .results, .result, .submit-row {
+    $css .= ".selection-option input, .results, .result, .submit-row {
       display: none;
     }\n";
 
@@ -391,12 +391,12 @@ function generateRecEngineCss($args)
     $css .= "<style type='text/css'>\n";
     // Special yahoo block for showing fields and submit button
     $css .= "
-    .& .submit-row, .& .selection-option .selection-input {display:inline-block!important;}\n
+    .& .submit-row, .& .selection-option input {display:inline-block!important;}\n
     .& .progress-message, .& .feedback-results {display:none;}\n";
 
     // Special AOL block for showing fields and submit button
     $css .= " 
-    .submit-row, .selection-option .selection-input {display:inline-block!yahoo;}\n
+    .submit-row, .selection-option input {display:inline-block!yahoo;}\n
     .progress-message, .feedback-results {display:none!yahoo;}\n";
 
 
