@@ -401,6 +401,11 @@ function generateRecEngineCss($args)
     .submit-row, .selection-option input {display:inline-block!yahoo;}\n
     .progress-message, .feedback-results {display:none!yahoo;}\n";
 
+    // Special outlook targeting for Outlook ios and Outlook Android 
+    $css .=
+    "@media screen and (max-width: 440px) {\n.submit-row\0, .selection-option input\0 {display:inline-block!important;}\n}\n
+    .progress-message\0, .feedback-results\0 {display:none!important;}\n";
+
 
     $css .= "</style>\n";
 
