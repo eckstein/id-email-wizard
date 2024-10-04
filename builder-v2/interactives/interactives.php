@@ -261,7 +261,17 @@ function generateRecEngineHtml($args)
     $html .= "<div class='$wrapperClasses' id='$wrapperId'>\n";
     $html .= "  <form action='$formAction' method='get' target='_blank'>\n";
 
-
+    // Place all inputs at the beginning
+    foreach ($args['selections'] as $selection) {
+        $key = esc_attr($selection['key'] ?? '');
+        if ($key) {
+            foreach ($selection['options'] as $option) {
+                $value = esc_attr($option['value']);
+                $id = "option-{$key}-{$value}";
+                $html .= "  <input type='radio' id='$id' name='$key' class='selection-input {$key}-input' value='$value'>\n";
+            }
+        }
+    }
     
 
     // Add the selection rows with labels
@@ -345,17 +355,7 @@ function generateRecEngineHtml($args)
     $html .= "      <button type='submit' class='submit-button'>$submitButtonText</button>\n";
     $html .= "    </div>\n";
 
-    // Place all inputs at the beginning
-    foreach ($args['selections'] as $selection) {
-        $key = esc_attr($selection['key'] ?? '');
-        if ($key) {
-            foreach ($selection['options'] as $option) {
-                $value = esc_attr($option['value']);
-                $id = "option-{$key}-{$value}";
-                $html .= "  <input type='radio' id='$id' name='$key' class='selection-input {$key}-input' value='$value'>\n";
-            }
-        }
-    }
+    
 
     $html .= "  </form>\n";
 
