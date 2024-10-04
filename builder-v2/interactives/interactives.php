@@ -398,8 +398,8 @@ function generateRecEngineCss($args)
 
     // Special outlook targeting for Outlook ios and Outlook Android 
     $css .=
-    "@media screen and (max-width: 440px) {\n.submit-row\\0, .selection-option input\\0 {display:inline-block!important;}\n}\n
-    .progress-message\\0, .feedback-results\\0 {display:none!important;}\n";
+    "@media screen and (max-width: 440px) {\n.submit-row" . '\0' . ", .selection-option input" . '\0' . " {display:inline-block!important;}\n}\n
+    .progress-message" . '\0' . ", .feedback-results" . '\0' . " {display:none!important;}\n";
 
 
     $css .= "</style>\n";
