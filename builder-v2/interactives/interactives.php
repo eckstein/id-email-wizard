@@ -290,8 +290,28 @@ function generateRecEngineHtml($args)
     if (isset($args['results'])) {
         foreach ($args['results'] as $result) {
             if (isset($result['classes']) && is_array($result['classes'])) {
-                $concatenatedClasses = implode('-', array_map('esc_attr', $result['classes']));
-                $html .= "    <div class='result $concatenatedClasses'>\n";
+                $classesByKey = [];
+                foreach ($result['classes'] as $class) {
+                    list($key, $value) = explode('-', $class, 2);
+                    $classesByKey[$key][] = $class;
+                }
+
+                $classCombinations = [[]];
+                foreach ($classesByKey as $classes) {
+                    $newCombinations = [];
+                    foreach ($classCombinations as $combination) {
+                        foreach ($classes as $class) {
+                            $newCombinations[] = array_merge($combination, [$class]);
+                        }
+                    }
+                    $classCombinations = $newCombinations;
+                }
+
+                $concatenatedClasses = array_map(function ($combo) {
+                    return implode('-', array_map('esc_attr', $combo));
+                }, $classCombinations);
+
+                $html .= "    <div class='result " . implode(' ', $concatenatedClasses) . "'>\n";
                 $html .= "      <p>" . wp_kses_post(stripslashes($result['content'])) . "</p>\n";
                 $html .= "    </div>\n";
             }
@@ -361,17 +381,36 @@ function generateRecEngineCss($args)
     if (isset($args['results'])) {
         foreach ($args['results'] as $result) {
             if (isset($result['classes']) && is_array($result['classes'])) {
-                $selectors = array_map(function ($class) {
-                    return "input#option-{$class}:checked";
-                }, $result['classes']);
+                $classesByKey = [];
+                foreach ($result['classes'] as $class) {
+                    list($key, $value) = explode('-', $class, 2);
+                    $classesByKey[$key][] = $class;
+                }
 
-                $selectorString = implode(' ~ ', $selectors);
-                $concatenatedClass = implode('-', array_map('esc_attr', $result['classes']));
+                $classCombinations = [[]];
+                foreach ($classesByKey as $classes) {
+                    $newCombinations = [];
+                    foreach ($classCombinations as $combination) {
+                        foreach ($classes as $class) {
+                            $newCombinations[] = array_merge($combination, [$class]);
+                        }
+                    }
+                    $classCombinations = $newCombinations;
+                }
 
-                $css .= "#$wrapperId > form > $selectorString ~ .feedback-results .$concatenatedClass {
-                    display: block;
-                    animation: fadeIn 0.5s ease;
-                }\n";
+                foreach ($classCombinations as $combination) {
+                    $selectors = array_map(function ($class) {
+                        return "input#option-{$class}:checked";
+                    }, $combination);
+
+                    $selectorString = implode(' ~ ', $selectors);
+                    $concatenatedClass = implode('-', array_map('esc_attr', $combination));
+
+                    $css .= "#$wrapperId > form > $selectorString ~ .feedback-results .$concatenatedClass {
+                        display: block;
+                        animation: fadeIn 0.5s ease;
+                    }\n";
+                }
             }
         }
     }
