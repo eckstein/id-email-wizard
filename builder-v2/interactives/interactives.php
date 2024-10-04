@@ -364,19 +364,31 @@ function generateRecEngineHtml($args)
 
 function generateRecEngineCss($args)
 {
+    $wrapperId = $args['settings']['wrapper_id'] ?? 'rec_engine_wrapper';
+
+    $allowIncompleteCombosOption = $args['settings']['allow_incomplete_combos'] ?? 'off';
+    $allowIncompleteCombos = $allowIncompleteCombosOption == 'on' ? true : false;
+
     $css = "";
 
     $css .= "<style type='text/css'>\n";
 
-    // Hide selection inputs and results
-    $css .= ".selection-input, .results, .result, .submit-row {
+    // Hide selection inputs and results wrapper
+    $css .= ".selection-input, .results, .submit-row {
       display: none;
     }\n";
 
+    // Set all .result elements to display: none by default
+    $resultsCss = ".result { display: none!important; }\n";
+    if ($allowIncompleteCombos) {
+        // if in progressive mode, omit the !important
+        $resultsCss = ".result { display: none; }\n";
+    }
+    $css .= $resultsCss;
+
     $css .= "</style>\n";
 
-    $allowIncompleteCombosOption = $args['settings']['allow_incomplete_combos'] ?? 'off';
-    $allowIncompleteCombos = $allowIncompleteCombosOption == 'on' ? true : false;
+   
 
 
     // Insert user-submitted CSS
@@ -387,7 +399,7 @@ function generateRecEngineCss($args)
     }
 
 
-    $wrapperId = $args['settings']['wrapper_id'] ?? 'rec_engine_wrapper';
+    
 
 
     $css .= "<style type='text/css'>";
@@ -410,12 +422,7 @@ function generateRecEngineCss($args)
 
     $css .= "\n<style type='text/css'>\n";
 
-    // Set all results to display: none by default
-    $resultsCss = "  #$wrapperId .result { display: none!important; }\n";
-    if ($allowIncompleteCombos) {
-        $resultsCss = "  #$wrapperId .result { display: none; }\n";
-    }
-    $css .= $resultsCss;
+    
 
     // Generate CSS to show specific results based on selections
     if (isset($args['results'])) {
@@ -479,20 +486,27 @@ function generateRecEngineCss($args)
             }
         }
     }
-    // Hide progress message when selections are made
-    $selectionKeys = array_column($args['selections'], 'key');
 
-    // Hide progress message when all groups have a selection
-    $allGroupsFilledSelector = implode(' ~ ', array_map(function ($key) {
-        return "input.{$key}-input:checked";
-    }, $selectionKeys));
+    if (!$allowIncompleteCombos) {
+        // Hide progress message when all groups have a selection
+        $selectionKeys = array_column($args['selections'], 'key');
+        $allGroupsFilledSelector = implode(' ~ ', array_map(function ($key) {
+            return "input.{$key}-input:checked";
+        }, $selectionKeys));
 
-    $css .= "  #$wrapperId > form > .feedback-results .progress-message {
-        display: block;
-    }\n";
-    $css .= "  #$wrapperId > form > $allGroupsFilledSelector ~ .feedback-results .progress-message {
-        display: none;
-    }\n";
+        $css .= "  #$wrapperId > form > .feedback-results .progress-message {
+            display: block;
+        }\n";
+        $css .= "  #$wrapperId > form > $allGroupsFilledSelector ~ .feedback-results .progress-message {
+            display: none;
+        }\n";
+    } else {
+        // Hide progress message when at least one group has a selection
+        $css .= "  #$wrapperId > form > .selection-input:checked ~ .feedback-results .progress-message {
+            display: none;
+        }\n";
+    }
+    
 
 
     $css .= "</style>\n";

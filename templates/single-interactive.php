@@ -133,7 +133,7 @@ function get_nested_value($array, $keys, $default = '')
 							</div>
 							
 							<h4>Form submit options</h4>
-							<div class="field-description">Used for live interactive form version in Gmail/Yahoo!/AOL</div>
+							<div stye="font-size: 10px; margin-bottom: 10px;"><em>Used for live interactive form version in Gmail/Yahoo!/AOL</em></div>
 							<div class="builder-field-group flex">
 
 								<div class="builder-field-wrapper">
