@@ -483,17 +483,34 @@ function generateRecEngineCss($args)
             }
         }
     }
-    // Hide progress message when any selection is made
-    $anySelectionSelector = implode(', ', array_map(function ($selection) {
-        return "input.{$selection['key']}-input:checked";
-    }, $args['selections']));
+    // Hide progress message when selections are made
+    $selectionKeys = array_column($args['selections'], 'key');
 
-    $css .= "  #$wrapperId > form > .feedback-results .progress-message {
-        display: none;
-    }\n";
-    $css .= "  #$wrapperId > form > :not($anySelectionSelector) ~ .feedback-results .progress-message {
-        display: block;
-    }\n";
+    if ($allowIncompleteCombos) {
+        // For incomplete combos, hide progress message when any selection is made
+        $anySelectionSelector = implode(', ', array_map(function ($key) {
+            return "input.{$key}-input:checked";
+        }, $selectionKeys));
+
+        $css .= "  #$wrapperId > form > .feedback-results .progress-message {
+            display: block;
+        }\n";
+        $css .= "  #$wrapperId > form > $anySelectionSelector ~ .feedback-results .progress-message {
+            display: none;
+        }\n";
+    } else {
+        // For complete combos only, hide progress message when all groups have a selection
+        $allGroupsFilledSelector = implode(' ~ ', array_map(function ($key) {
+            return "input.{$key}-input:checked";
+        }, $selectionKeys));
+
+        $css .= "  #$wrapperId > form > .feedback-results .progress-message {
+            display: block;
+        }\n";
+        $css .= "  #$wrapperId > form > $allGroupsFilledSelector ~ .feedback-results .progress-message {
+            display: none;
+        }\n";
+    }
 
     $css .= "</style>\n";
 
