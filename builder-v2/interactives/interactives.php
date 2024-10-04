@@ -372,10 +372,6 @@ function generateRecEngineCss($args)
     $css .= "</style>\n";
 
     $css .= "\n<style type='text/css'>\n";
-    // Hide progress message when any selection is made
-    $css .= "#$wrapperId > form > .selection-input:checked ~ .feedback-results .progress-message {
-        display: none;
-    }\n";
 
     // Generate CSS to show specific results based on selections
     if (isset($args['results'])) {
@@ -420,78 +416,4 @@ function generateRecEngineCss($args)
 }
 
 
-function generateRecEngineFormHtml($args)
-{
-    $wrapperId = $args['settings']['wrapper_id'] ?? 'rec_engine_wrapper';
-    $wrapperClasses = $args['settings']['wrapper_classes'] ?? 'rec_engine_wrapper';
-    $formAction = esc_url($args['settings']['form_action'] ?? 'https://example.com/page');
 
-    $html = "<div class='$wrapperClasses' id='$wrapperId'>\n";
-    $html .= "  <form action='$formAction' method='get' target='_blank'>\n";
-
-    // Layout for selections with radio buttons inside labels
-    foreach ($args['selections'] as $selection) {
-        $key = esc_attr($selection['key']);
-        $html .= "    <div class='selection-row'>\n";
-        $html .= "      <div class='selection-row-title'>$key</div>\n";
-        foreach ($selection['options'] as $option) {
-            $value = esc_attr($option['value']);
-            $id = "option-{$key}-{$value}";
-            $label = esc_html($option['label']);
-            $html .= "        <label for='$id' class='selection-option'>\n";
-            $html .= "          <input type='radio' id='$id' name='$key' value='$value' required>\n";
-            $html .= "          $label\n";
-            $html .= "        </label>\n";
-        }
-        $html .= "    </div>\n";
-    }
-
-    // Submit button
-    $html .= "    <div class='submit-row'>\n";
-    $submitButtonText = esc_html($args['settings']['submit_button_text'] ?? 'Submit');
-    $html .= "      <button type='submit' class='submit-button'>$submitButtonText</button>\n";
-    $html .= "    </div>\n";
-
-    $html .= "  </form>\n";
-    $html .= "</div>\n";
-
-    return $html;
-}
-
-
-function generateRecEngineFormCss($args)
-{
-    // The form version doesn't need any special CSS for functionality
-    $css = "<style type='text/css'>\n";
-
-    // Insert user-submitted CSS
-    if (isset($args['module_css'])) {
-        $css .= $args['module_css'];
-    }
-
-    $css .= "</style>\n";
-
-    return $css;
-}
-
-function get_interactives_for_select()
-{
-    $intArgs = [
-        'post_type' => 'wysiwyg_interactive',
-        'posts_per_page' => -1,
-        'orderby' => 'post_title',
-        'order' => 'ASC'
-    ];
-    $interactives = get_posts($intArgs);
-
-    $intsData = [];
-    foreach ($interactives as $int) {
-        $intsData[$int->ID] = $int->post_title;
-    }
-
-    if ($interactives) {
-        return $intsData;
-    } else {
-        return 'No interactives found';
-    }
-}
