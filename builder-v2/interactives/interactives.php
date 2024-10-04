@@ -274,7 +274,7 @@ function generateRecEngineHtml($args)
             $value = esc_attr($option['value']);
             $id = "option-{$key}-{$value}";
             $label = esc_html($option['label']);
-            $html .= "<label for='$id' class='selection-option interactive'>";
+            $html .= "<label for='$id' class='selection-option $key-option interactive'>";
             $html .= "$label</label>\n";
             $html .= "<label class='selection-option live-form'>";
             $html .= "<input type='radio' name='$key' class='selection-input {$key}-input' value='$value'>";
