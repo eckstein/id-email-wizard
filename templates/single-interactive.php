@@ -131,25 +131,9 @@ function get_nested_value($array, $keys, $default = '')
 
 								</div>
 							</div>
-							<div class="builder-field-group">
-								<div class="builder-field-wrapper">
-									<label>Use non-interactive form</label>
-									<div class="wiz-checkbox-toggle flex">
-										<?php
-										$asForm = $saved_data['settings']['asForm'] ?? 'off';
-										$asFormChecked = $asForm == 'on' ? true : false;
-										$asFormCheckActiveClass = $asFormChecked ? 'fa-solid ' : 'fa-regular ';
-										$asFormLabelActiveClass = $asFormChecked ? 'active' : '';
-										?>
-
-										<input type="checkbox" class="wiz-check-toggle" id="asForm_input" name="settings[asForm]" hidden="" <?php echo $asFormChecked ? 'checked' : ''; ?>>
-										<label for="asForm_input" class="wiz-check-toggle-display <?php echo $asFormLabelActiveClass; ?>"><i class="<?php echo $asFormCheckActiveClass; ?> fa-2x fa-square-check"></i></label>
-										<div class="field-description">Removes interactive results and create a form the user submits to a page</div>
-									</div>
-
-								</div>
-							</div>
+							
 							<h4>Form submit options</h4>
+							<div class="field-description">Used for live interactive form version in Gmail/Yahoo!/AOL</div>
 							<div class="builder-field-group flex">
 
 								<div class="builder-field-wrapper">

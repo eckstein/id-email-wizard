@@ -234,14 +234,8 @@ function generate_rec_builder_result_group($index, $result = [])
 
 function generate_rec_engine_template($args)
 {
-    $asForm = $args['settings']['asForm'] ?? false;
-    if ($asForm) {
-        $html = generateRecEngineFormHtml($args);
-        $css = generateRecEngineFormCss($args);
-    } else {
-        $html = generateRecEngineHtml($args);
-        $css = generateRecEngineCss($args);
-    }
+    $html = generateRecEngineHtml($args);
+    $css = generateRecEngineCss($args);
 
     return [
         'html' => $html,
