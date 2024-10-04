@@ -371,7 +371,7 @@ function generateRecEngineCss($args)
 
     $css = "";
 
-    $css .= "<style type='text/css'>\n";
+    $css .= "\n<style type='text/css'>\n";
 
     // Hide selection inputs and results wrapper
     $css .= ".selection-input, .results, .submit-row {
@@ -402,7 +402,7 @@ function generateRecEngineCss($args)
     
 
 
-    $css .= "<style type='text/css'>";
+    $css .= "\n<style type='text/css'>\n";
     // Generate CSS for active state of buttons
     foreach ($args['selections'] as $selection) {
         $key = esc_attr($selection['key']);
@@ -419,10 +419,30 @@ function generateRecEngineCss($args)
     }
     $css .= "</style>\n";
 
+    
+
 
     $css .= "\n<style type='text/css'>\n";
 
-    
+    if (!$allowIncompleteCombos) {
+        // Hide progress message when all groups have a selection
+        $selectionKeys = array_column($args['selections'], 'key');
+        $allGroupsFilledSelector = implode(' ~ ', array_map(function ($key) {
+            return "input.{$key}-input:checked";
+        }, $selectionKeys));
+
+        $css .= "  #$wrapperId > form > .feedback-results .progress-message {
+            display: block;
+        }\n";
+        $css .= "  #$wrapperId > form > $allGroupsFilledSelector ~ .feedback-results .progress-message {
+            display: none;
+        }\n";
+    } else {
+        // Hide progress message when at least one group has a selection
+        $css .= "  #$wrapperId > form > .selection-input:checked ~ .feedback-results .progress-message {
+            display: none;
+        }\n";
+    }
 
     // Generate CSS to show specific results based on selections
     if (isset($args['results'])) {
@@ -463,12 +483,12 @@ function generateRecEngineCss($args)
 
                 if (!$allowIncompleteCombos) {
                     
-                    // Create a selector for all selection groups being filled
+                    // Create additional selectors for all selection groups being filled instead of just one big selector for each combo
                     $allGroupsFilledSelector = implode(' ~ ', array_map(function ($key) {
                         return "input.{$key}-input:checked";
                     }, $selectionKeys));
 
-                    // Show only exact matches when all groups are filled
+                    // Show exact matches as selections are filled
                     foreach ($classCombinations as $combination) {
                         $selectors = array_map(function ($class) {
                             return "input#option-{$class}:checked";
@@ -487,25 +507,7 @@ function generateRecEngineCss($args)
         }
     }
 
-    if (!$allowIncompleteCombos) {
-        // Hide progress message when all groups have a selection
-        $selectionKeys = array_column($args['selections'], 'key');
-        $allGroupsFilledSelector = implode(' ~ ', array_map(function ($key) {
-            return "input.{$key}-input:checked";
-        }, $selectionKeys));
-
-        $css .= "  #$wrapperId > form > .feedback-results .progress-message {
-            display: block;
-        }\n";
-        $css .= "  #$wrapperId > form > $allGroupsFilledSelector ~ .feedback-results .progress-message {
-            display: none;
-        }\n";
-    } else {
-        // Hide progress message when at least one group has a selection
-        $css .= "  #$wrapperId > form > .selection-input:checked ~ .feedback-results .progress-message {
-            display: none;
-        }\n";
-    }
+    
     
 
 
