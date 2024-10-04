@@ -383,27 +383,6 @@ function generateRecEngineCss($args)
     $allowIncompleteCombos = $allowIncompleteCombosOption == 'on' ? true : false;
 
 
-    // Special gmail block for showing fields and submit button
-    $css .= "<style type='text/css'>\n";
-    $css .= "u + .body .submit-row { display: inline-block;} \n
-    u + .body .selection-option input {display:inline-block!important;}\n
-    u + .body .progress-message, u + .body .feedback-results {display: none;}\n";
-    $css .= "</style>\n";
-
-    $css .= "<style type='text/css'>\n";
-    // Special yahoo and aol block for showing fields and submit button
-    $css .= "
-    .& .submit-row, .& .selection-option input {display:inline-block!important;}\n
-    .& .progress-message, .& .feedback-results {display:none;}\n";
-
-    // Special outlook targeting for Outlook ios and Outlook Android 
-    $css .=
-    "@media screen and (max-width: 440px) {\n.submit-row" . '\\0' . ", .selection-option input" . '\\0' . " {display:inline-block!important;}\n}\n
-    .progress-message" . '\\0' . ", .feedback-results" . '\\0' . " {display:none!important;}\n";
-
-
-    $css .= "</style>\n";
-
     // Insert user-submitted CSS
     if (isset($args['module_css'])) {
         $css .= "<style type='text/css'>\n";
