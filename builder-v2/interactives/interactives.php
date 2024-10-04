@@ -366,12 +366,14 @@ function generateRecEngineHtml($args)
 
 function generateRecEngineCss($args)
 {
+    $wrapperId = $args['settings']['wrapper_id'] ?? 'rec_engine_wrapper';
+
     $css = "";
 
     $css .= "<style type='text/css'>\n";
 
     // Hide selection inputs and results
-    $css .= ".selection-option input, .results, .result, .submit-row {
+    $css .= ".selection-option input, #$wrapperId form > input, .results, .result, .submit-row {
       display: none;
     }\n";
 
@@ -410,7 +412,7 @@ function generateRecEngineCss($args)
     }
 
 
-    $wrapperId = $args['settings']['wrapper_id'] ?? 'rec_engine_wrapper';
+    
 
 
     $css .= "<style type='text/css'>";
