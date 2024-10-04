@@ -390,14 +390,14 @@ function generateRecEngineCss($args)
 
     $css .= "<style type='text/css'>\n";
     // Special yahoo block for showing fields and submit button
-    // $css .= "
-    // .& .submit-row, .& .selection-option .selection-input {display:inline-block!important;}\n
-    // .& .progress-message, .& .feedback-results {display:none;}\n";
+    $css .= "
+    .& .submit-row, .& .selection-option .selection-input {display:inline-block!important;}\n
+    .& .progress-message, .& .feedback-results {display:none;}\n";
 
-    // // Special AOL block for showing fields and submit button
-    // $css .= " 
-    // .submit-row, .selection-option .selection-input {display:inline-block!yahoo;}\n
-    // .progress-message, .feedback-results {display:none!yahoo;}\n";
+    // Special AOL block for showing fields and submit button
+    $css .= " 
+    .submit-row, .selection-option .selection-input {display:inline-block!yahoo;}\n
+    .progress-message, .feedback-results {display:none!yahoo;}\n";
 
 
     $css .= "</style>\n";
