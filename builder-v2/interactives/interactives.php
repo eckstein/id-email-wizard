@@ -290,7 +290,7 @@ function generateRecEngineHtml($args)
     if (isset($args['results'])) {
         foreach ($args['results'] as $result) {
             if (isset($result['classes']) && is_array($result['classes'])) {
-                $concatenatedClasses = implode(' ', array_map('esc_attr', $result['classes']));
+                $concatenatedClasses = implode('-', array_map('esc_attr', $result['classes']));
                 $html .= "    <div class='result $concatenatedClasses'>\n";
                 $html .= "      <p>" . wp_kses_post(stripslashes($result['content'])) . "</p>\n";
                 $html .= "    </div>\n";
@@ -316,17 +316,26 @@ function generateRecEngineCss($args)
 {
     $wrapperId = $args['settings']['wrapper_id'] ?? 'rec_engine_wrapper';
 
-    $css = "<style type='text/css'>\n";
+    $css = "";
 
+    $css .= "\n<style type='text/css'>\n";
     // Hide selection inputs and results wrapper
-    $css .= ".selection-input, .results, .submit-row { display: none; }\n";
+    $css .= ".selection-input, .results, .submit-row {
+      display: none;
+    }\n";
 
     // Set all .result elements to display: none by default
     $css .= ".result { display: none; }\n";
+    $css .= "</style>\n";
 
-    // Hide progress message when any selection is made
-    $css .= "#$wrapperId > form > .selection-input:checked ~ .feedback-results .progress-message { display: none; }\n";
+    // Insert user-submitted CSS
+    if (isset($args['module_css'])) {
+        $css .= "<style type='text/css'>\n";
+        $css .= $args['module_css'];
+        $css .= "\n</style>\n";
+    }
 
+    $css .= "\n<style type='text/css'>\n";
     // Generate CSS for active state of buttons
     foreach ($args['selections'] as $selection) {
         $key = esc_attr($selection['key']);
@@ -334,12 +343,19 @@ function generateRecEngineCss($args)
             $value = esc_attr($option['value']);
             $id = "option-{$key}-{$value}";
             $css .= "#$wrapperId > form > input#{$id}:checked ~ .selection-row .selection-option[for='{$id}'] {
-                background-color: #4CAF50;
-                color: white;
-                border-color: #45a049;
-            }\n";
+        background-color: #4CAF50;
+        color: white;
+        border-color: #45a049;
+      }\n";
         }
     }
+    $css .= "</style>\n";
+
+    $css .= "\n<style type='text/css'>\n";
+    // Hide progress message when any selection is made
+    $css .= "#$wrapperId > form > .selection-input:checked ~ .feedback-results .progress-message {
+        display: none;
+    }\n";
 
     // Generate CSS to show specific results based on selections
     if (isset($args['results'])) {
@@ -350,7 +366,7 @@ function generateRecEngineCss($args)
                 }, $result['classes']);
 
                 $selectorString = implode(' ~ ', $selectors);
-                $concatenatedClass = implode(' ', array_map('esc_attr', $result['classes']));
+                $concatenatedClass = implode('-', array_map('esc_attr', $result['classes']));
 
                 $css .= "#$wrapperId > form > $selectorString ~ .feedback-results .$concatenatedClass {
                     display: block;
@@ -359,15 +375,7 @@ function generateRecEngineCss($args)
             }
         }
     }
-
     $css .= "</style>\n";
-
-    // Insert user-submitted CSS
-    if (isset($args['module_css'])) {
-        $css .= "<style type='text/css'>\n";
-        $css .= $args['module_css'];
-        $css .= "</style>\n";
-    }
 
     return $css;
 }
