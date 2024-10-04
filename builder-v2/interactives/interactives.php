@@ -391,20 +391,15 @@ function generateRecEngineCss($args)
     $css .= "</style>\n";
 
     $css .= "<style type='text/css'>\n";
-    // Special yahoo block for showing fields and submit button
+    // Special yahoo and aol block for showing fields and submit button
     $css .= "
     .& .submit-row, .& .selection-option input {display:inline-block!important;}\n
     .& .progress-message, .& .feedback-results {display:none;}\n";
 
-    // Special AOL block for showing fields and submit button
-    $css .= " 
-    .submit-row, .selection-option input {display:inline-block!yahoo;}\n
-    .progress-message, .feedback-results {display:none!yahoo;}\n";
-
     // Special outlook targeting for Outlook ios and Outlook Android 
     $css .=
-    "@media screen and (max-width: 440px) {\n.submit-row\0, .selection-option input\0 {display:inline-block!important;}\n}\n
-    .progress-message\0, .feedback-results\0 {display:none!important;}\n";
+    "@media screen and (max-width: 440px) {\n.submit-row\\0, .selection-option input\\0 {display:inline-block!important;}\n}\n
+    .progress-message\\0, .feedback-results\\0 {display:none!important;}\n";
 
 
     $css .= "</style>\n";
