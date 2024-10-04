@@ -247,8 +247,6 @@ function generateRecEngineHtml($args)
 {
     $wrapperId = $args['settings']['wrapper_id'] ?? 'rec_engine_wrapper';
     $wrapperClasses = $args['settings']['wrapper_classes'] ?? 'rec_engine_wrapper';
-    $allowIncompleteCombosOption = $args['settings']['allow_incomplete_combos'] ?? 'off';
-    $allowIncompleteCombos = $allowIncompleteCombosOption == 'on' ? true : false;
     $formAction = esc_url($args['settings']['form_action'] ?? 'https://example.com/page');
 
     $html = "";
@@ -266,7 +264,6 @@ function generateRecEngineHtml($args)
             }
         }
     }
-    
 
     // Add the selection rows with labels
     foreach ($args['selections'] as $selection) {
@@ -291,59 +288,17 @@ function generateRecEngineHtml($args)
     $html .= "    <div class='progress-message'>$progressMessage</div>\n";
 
     if (isset($args['results'])) {
-        $selectionKeys = array_column($args['selections'], 'key');
-
         foreach ($args['results'] as $result) {
             if (isset($result['classes']) && is_array($result['classes'])) {
-                $classesByKey = [];
-                foreach ($result['classes'] as $class) {
-                    $parts = explode('-', $class, 2);
-                    if (count($parts) == 2) {
-                        $classesByKey[$parts[0]][] = $class;
-                    }
-                }
-
-                $classCombinations = [[]];
-                foreach ($classesByKey as $classes) {
-                    $newCombinations = [];
-                    foreach ($classCombinations as $combination) {
-                        foreach ($classes as $class) {
-                            $newCombinations[] = array_merge($combination, [$class]);
-                        }
-                    }
-                    $classCombinations = $newCombinations;
-                }
-
-                $validCombinations = [];
-                foreach ($classCombinations as $combination) {
-                    $hasAllSelections = true;
-                    foreach ($selectionKeys as $key) {
-                        if (!preg_grep("/^{$key}-/", $combination)) {
-                            $hasAllSelections = false;
-                            break;
-                        }
-                    }
-                    if ($hasAllSelections || $allowIncompleteCombos) {
-                        $validCombinations[] = $combination;
-                    }
-                }
-
-                if (!empty($validCombinations)) {
-                    $concatenatedClasses = array_map(function ($combo) {
-                        return implode('-', array_map('esc_attr', $combo));
-                    }, $validCombinations);
-
-                    $html .= "    <div class='result " . implode(' ', $concatenatedClasses) . "'>\n";
-                    //$html .= "      <h3>" . esc_html($result['title']) . "</h3>\n";
-                    $html .= "      <p>" . wp_kses_post(stripslashes($result['content'])) . "</p>\n";
-                    $html .= "    </div>\n";
-                }
+                $concatenatedClasses = implode(' ', array_map('esc_attr', $result['classes']));
+                $html .= "    <div class='result $concatenatedClasses'>\n";
+                $html .= "      <p>" . wp_kses_post(stripslashes($result['content'])) . "</p>\n";
+                $html .= "    </div>\n";
             }
         }
     }
 
     $html .= "  </div>\n";
-
 
     // Submit button
     $html .= "    <div class='submit-row'>\n";
@@ -351,167 +306,68 @@ function generateRecEngineHtml($args)
     $html .= "      <button type='submit' class='submit-button'>$submitButtonText</button>\n";
     $html .= "    </div>\n";
 
-    
-
     $html .= "  </form>\n";
-
     $html .= "</div>\n";
 
     return $html;
 }
 
-
-
 function generateRecEngineCss($args)
 {
     $wrapperId = $args['settings']['wrapper_id'] ?? 'rec_engine_wrapper';
 
-    $allowIncompleteCombosOption = $args['settings']['allow_incomplete_combos'] ?? 'off';
-    $allowIncompleteCombos = $allowIncompleteCombosOption == 'on' ? true : false;
-
-    $css = "";
-
-    $css .= "\n<style type='text/css'>\n";
+    $css = "<style type='text/css'>\n";
 
     // Hide selection inputs and results wrapper
-    $css .= ".selection-input, .results, .submit-row {
-      display: none;
-    }\n";
+    $css .= ".selection-input, .results, .submit-row { display: none; }\n";
 
     // Set all .result elements to display: none by default
-    $resultsCss = ".result { display: none!important; }\n";
-    if ($allowIncompleteCombos) {
-        // if in progressive mode, omit the !important
-        $resultsCss = ".result { display: none; }\n";
-    }
-    $css .= $resultsCss;
+    $css .= ".result { display: none; }\n";
 
-    $css .= "</style>\n";
+    // Hide progress message when any selection is made
+    $css .= "#$wrapperId > form > .selection-input:checked ~ .feedback-results .progress-message { display: none; }\n";
 
-   
-
-
-    // Insert user-submitted CSS
-    if (isset($args['module_css'])) {
-        $css .= "<style type='text/css'>\n";
-        $css .= $args['module_css'];
-        $css .= "\n</style>\n";
-    }
-
-
-    
-
-
-    $css .= "\n<style type='text/css'>\n";
     // Generate CSS for active state of buttons
     foreach ($args['selections'] as $selection) {
         $key = esc_attr($selection['key']);
         foreach ($selection['options'] as $option) {
             $value = esc_attr($option['value']);
             $id = "option-{$key}-{$value}";
-
             $css .= "#$wrapperId > form > input#{$id}:checked ~ .selection-row .selection-option[for='{$id}'] {
-        background-color: #4CAF50;
-        color: white;
-        border-color: #45a049;
-      }\n";
+                background-color: #4CAF50;
+                color: white;
+                border-color: #45a049;
+            }\n";
         }
-    }
-    $css .= "</style>\n";
-
-    
-
-
-    $css .= "\n<style type='text/css'>\n";
-
-    if (!$allowIncompleteCombos) {
-        // Hide progress message when all groups have a selection
-        $selectionKeys = array_column($args['selections'], 'key');
-        $allGroupsFilledSelector = implode(' ~ ', array_map(function ($key) {
-            return "input.{$key}-input:checked";
-        }, $selectionKeys));
-
-        $css .= "  #$wrapperId > form > .feedback-results .progress-message {
-            display: block;
-        }\n";
-        $css .= "  #$wrapperId > form > $allGroupsFilledSelector ~ .feedback-results .progress-message {
-            display: none;
-        }\n";
-    } else {
-        // Hide progress message when at least one group has a selection
-        $css .= "  #$wrapperId > form > .selection-input:checked ~ .feedback-results .progress-message {
-            display: none;
-        }\n";
     }
 
     // Generate CSS to show specific results based on selections
     if (isset($args['results'])) {
-        $selectionKeys = array_column($args['selections'], 'key');
-
         foreach ($args['results'] as $result) {
             if (isset($result['classes']) && is_array($result['classes'])) {
-                $classesByKey = [];
-                foreach ($result['classes'] as $class) {
-                    list($key, $value) = explode('-', $class, 2);
-                    $classesByKey[$key][] = $class;
-                }
+                $selectors = array_map(function ($class) {
+                    return "input#option-{$class}:checked";
+                }, $result['classes']);
 
-                $classCombinations = [[]];
-                foreach ($classesByKey as $classes) {
-                    $newCombinations = [];
-                    foreach ($classCombinations as $combination) {
-                        foreach ($classes as $class) {
-                            $newCombinations[] = array_merge($combination, [$class]);
-                        }
-                    }
-                    $classCombinations = $newCombinations;
-                }
+                $selectorString = implode(' ~ ', $selectors);
+                $concatenatedClass = implode(' ', array_map('esc_attr', $result['classes']));
 
-                foreach ($classCombinations as $combination) {
-                    $selectors = array_map(function ($class) {
-                        return "input#option-{$class}:checked";
-                    }, $combination);
-
-                    $selectorString = implode(' ~ ', $selectors);
-                    $concatenatedClass = implode('-', array_map('esc_attr', $combination));
-
-                    $css .= "  #$wrapperId > form > $selectorString ~ .feedback-results .$concatenatedClass {
-                        display: block !important;
-                        animation: fadeIn 0.5s ease;
-                    }\n";
-                }
-
-                if (!$allowIncompleteCombos) {
-                    
-                    // Create additional selectors for all selection groups being filled instead of just one big selector for each combo
-                    $allGroupsFilledSelector = implode(' ~ ', array_map(function ($key) {
-                        return "input.{$key}-input:checked";
-                    }, $selectionKeys));
-
-                    // Show exact matches as selections are filled
-                    foreach ($classCombinations as $combination) {
-                        $selectors = array_map(function ($class) {
-                            return "input#option-{$class}:checked";
-                        }, $combination);
-
-                        $selectorString = implode(' ~ ', $selectors);
-                        $concatenatedClass = implode('-', array_map('esc_attr', $combination));
-
-                        $css .= "  #$wrapperId > form > $allGroupsFilledSelector ~ $selectorString ~ .feedback-results .$concatenatedClass {
-                            display: block !important;
-                            animation: fadeIn 0.5s ease;
-                        }\n";
-                    }
-                }
+                $css .= "#$wrapperId > form > $selectorString ~ .feedback-results .$concatenatedClass {
+                    display: block;
+                    animation: fadeIn 0.5s ease;
+                }\n";
             }
         }
     }
 
-    
-    
-
-
     $css .= "</style>\n";
+
+    // Insert user-submitted CSS
+    if (isset($args['module_css'])) {
+        $css .= "<style type='text/css'>\n";
+        $css .= $args['module_css'];
+        $css .= "</style>\n";
+    }
 
     return $css;
 }

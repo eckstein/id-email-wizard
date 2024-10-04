@@ -113,24 +113,7 @@ function get_nested_value($array, $keys, $default = '')
 									</div>
 								</div>
 							</div>
-							<div class="builder-field-group">
-								<div class="builder-field-wrapper">
-									<label>Progressive Results</label>
-									<div class="wiz-checkbox-toggle flex">
-										<?php
-										$allowIncCombos = $saved_data['settings']['allow_incomplete_combos'] ?? 'off';
-										$checked = $allowIncCombos == 'on' ? true : false;
-										$checkActiveClass = $checked ? 'fa-solid ' : 'fa-regular ';
-										$labelActiveClass = $checked ? 'active' : '';
-										?>
-
-										<input type="checkbox" class="wiz-check-toggle" id="allow_incomplete_combos_input" name="settings[allow_incomplete_combos]" hidden="" <?php echo $checked ? 'checked' : ''; ?>>
-										<label for="allow_incomplete_combos_input" class="wiz-check-toggle-display <?php echo $labelActiveClass; ?>"><i class="<?php echo $checkActiveClass; ?> fa-2x fa-square-check"></i></label>
-										<div class="field-description">Allows results to show before at least one selection is made from each option group.</div>
-									</div>
-
-								</div>
-							</div>
+							
 							
 							<h4>Form submit options</h4>
 							<div stye="font-size: 10px; margin-bottom: 10px;"><em>Used for live interactive form version in Gmail/Yahoo!/AOL</em></div>
