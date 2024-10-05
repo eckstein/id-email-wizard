@@ -253,19 +253,21 @@ function generateRecEngineHtml($args)
     $html .= "<div class='$wrapperClasses' id='$wrapperId'>\n";
     $html .= "  <form action='$formAction' method='get' target='_blank'>\n";
 
-    // Place all inputs at the beginning
+    // Place all inputs at the beginning as direct children of the form
     foreach ($args['selections'] as $selection) {
         $key = esc_attr($selection['key'] ?? '');
         if ($key) {
             foreach ($selection['options'] as $option) {
                 $value = esc_attr($option['value']);
                 $id = "option-{$key}-{$value}";
+                $label = esc_html($option['label']);
                 $html .= "  <input type='radio' id='$id' name='$key' class='selection-input {$key}-input' value='$value'>\n";
+                $html .= "  <label for='$id' class='selection-label'>$label</label>\n";
             }
         }
     }
 
-    // Add the selection rows with labels
+    // Add the selection rows (for display purposes and Gmail fallback)
     foreach ($args['selections'] as $selection) {
         $key = esc_attr($selection['key']);
         $html .= "  <div class='selection-row'>\n";
@@ -274,11 +276,7 @@ function generateRecEngineHtml($args)
             $value = esc_attr($option['value']);
             $id = "option-{$key}-{$value}";
             $label = esc_html($option['label']);
-            $html .= "<label for='$id' class='selection-option $key-option interactive'>";
-            $html .= "$label</label>\n";
-            $html .= "<label class='selection-option live-form'>";
-            $html .= "<input type='radio' name='$key' class='selection-input {$key}-input' value='$value'>";
-            $html .= "$label</label>\n";
+            $html .= "  <label for='$id' class='selection-option $key-option gmail-fallback'>$label</label>\n";
         }
         $html .= "  </div>\n";
     }
@@ -336,44 +334,131 @@ function generateRecEngineCss($args)
 {
     $wrapperId = $args['settings']['wrapper_id'] ?? 'rec_engine_wrapper';
 
-    $css = "";
+    $css = "\n<style type='text/css'>\n";
 
-    $css .= "\n<style type='text/css'>\n";
-    // Hide selection inputs and results wrapper
-    $css .= ".selection-input, .results, .submit-row {
-      display: none;
-    }\n";
-
-    // Set all .result elements to display: none by default
-    $css .= ".result { display: none; }\n";
-    $css .= "</style>\n";
-
-    // Insert user-submitted CSS
-    if (isset($args['module_css'])) {
-        $css .= "<style type='text/css'>\n";
-        $css .= $args['module_css'];
-        $css .= "\n</style>\n";
+    // Default styles
+    $css .= "
+    #$wrapperId {
+        display: none !important;
     }
-
-    $css .= "\n<style type='text/css'>\n";
-    // Generate CSS for active state of buttons
-    foreach ($args['selections'] as $selection) {
-        $key = esc_attr($selection['key']);
-        foreach ($selection['options'] as $option) {
-            $value = esc_attr($option['value']);
-            $id = "option-{$key}-{$value}";
-            $css .= "#$wrapperId > form > input#{$id}:checked ~ .selection-row .selection-option[for='{$id}'] {
+    #non-interactive-wrapper {
+        display: block !important;
+    }
+    .selection-input {
+        appearance: none;
+        -webkit-appearance: none;
+        background-color: #f0f0f0;
+        border: 1px solid #ccc;
+        padding: 5px 10px;
+        margin: 5px;
+        cursor: pointer;
+    }
+    .selection-input:checked {
         background-color: #4CAF50;
         color: white;
         border-color: #45a049;
-      }\n";
+    }
+    .selection-label {
+        display: none;
+    }
+    .selection-option.live-form {
+        display: none;
+    }
+    .submit-row, .progress-message, .feedback-results {
+        display: none !important;
+    }
+    ";
+
+    // Gmail-specific styles
+    $css .= "
+    u + .body #$wrapperId {
+        display: block !important;
+    }
+    u + .body #non-interactive-wrapper,
+    u + .body .selection-input,
+    u + .body .selection-label {
+        display: none !important;
+    }
+    u + .body .selection-option.live-form,
+    u + .body .selection-option.live-form input,
+    u + .body .submit-row {
+        display: inline-block !important;
+    }
+    u + .body .progress-message,
+    u + .body .feedback-results {
+        display: none !important;
+    }
+    ";
+
+    // Apple Mail styles
+    $css .= "
+    .Singleton #$wrapperId,
+    [class^='apple-mail'] #$wrapperId,
+    _:-webkit-full-screen, _::-webkit-full-page-media, _:future, :root #$wrapperId {
+        display: block !important;
+    }
+    .Singleton #non-interactive-wrapper,
+    [class^='apple-mail'] #non-interactive-wrapper,
+    _:-webkit-full-screen, _::-webkit-full-page-media, _:future, :root #non-interactive-wrapper,
+    .Singleton .selection-option.live-form,
+    [class^='apple-mail'] .selection-option.live-form,
+    _:-webkit-full-screen, _::-webkit-full-page-media, _:future, :root .selection-option.live-form {
+        display: none !important;
+    }
+    .Singleton .selection-input,
+    [class^='apple-mail'] .selection-input,
+    _:-webkit-full-screen, _::-webkit-full-page-media, _:future, :root .selection-input {
+        display: inline-block !important;
+    }
+    .Singleton .submit-row,
+    [class^='apple-mail'] .submit-row,
+    _:-webkit-full-screen, _::-webkit-full-page-media, _:future, :root .submit-row {
+        display: none !important;
+    }
+    ";
+
+    // Yahoo and AOL styles
+    $css .= "
+    @media screen and (max-width: 440px) {
+        .& #$wrapperId {
+            display: block !important;
+        }
+        .& #non-interactive-wrapper,
+        .& .progress-message,
+        .& .feedback-results {
+            display: none !important;
+        }
+        .& .selection-input,
+        .& .selection-option.live-form,
+        .& .selection-option.live-form input,
+        .& .submit-row {
+            display: inline-block !important;
         }
     }
-    $css .= "</style>\n";
+    @media screen and (min-width: 441px) {
+        .& #$wrapperId {
+            display: none !important;
+        }
+        .& #non-interactive-wrapper {
+            display: inline-block !important;
+        }
+    }
+    ";
 
-    $css .= "\n<style type='text/css'>\n";
+    // Desktop, iOS, and Android MSO client styles
+    $css .= "
+    #${wrapperId}\\0 {
+        display: none !important;
+    }
+    #non-interactive-wrapper\\0 {
+        display: block !important;
+    }
+    ";
 
-    // Generate CSS to show specific results based on selections
+    // Result display logic
+    $css .= ".result { display: none; }\n";
+
+    // Generate CSS for showing specific results based on selections
     if (isset($args['results'])) {
         foreach ($args['results'] as $result) {
             if (isset($result['classes']) && is_array($result['classes'])) {
@@ -383,18 +468,18 @@ function generateRecEngineCss($args)
                     $classesByKey[$key][] = $class;
                 }
 
-                $classCombinations = [[]];
+                $combinations = [[]];
                 foreach ($classesByKey as $classes) {
                     $newCombinations = [];
-                    foreach ($classCombinations as $combination) {
+                    foreach ($combinations as $combination) {
                         foreach ($classes as $class) {
                             $newCombinations[] = array_merge($combination, [$class]);
                         }
                     }
-                    $classCombinations = $newCombinations;
+                    $combinations = $newCombinations;
                 }
 
-                foreach ($classCombinations as $combination) {
+                foreach ($combinations as $combination) {
                     $selectors = array_map(function ($class) {
                         return "input#option-{$class}:checked";
                     }, $combination);
@@ -410,6 +495,7 @@ function generateRecEngineCss($args)
             }
         }
     }
+
     $css .= "</style>\n";
 
     return $css;
