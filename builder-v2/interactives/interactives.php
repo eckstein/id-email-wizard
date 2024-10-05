@@ -253,34 +253,22 @@ function generateRecEngineHtml($args)
     $html .= "<div class='$wrapperClasses' id='$wrapperId'>\n";
     $html .= "  <form action='$formAction' method='get' target='_blank'>\n";
 
-    // Place all inputs at the beginning
+    // Generate inputs and labels for all selections
     foreach ($args['selections'] as $selection) {
         $key = esc_attr($selection['key'] ?? '');
         if ($key) {
+            $html .= "  <div class='selection-row'>\n";
+            $html .= "    <div class='selection-row-title'>$key</div>\n";
             foreach ($selection['options'] as $option) {
                 $value = esc_attr($option['value']);
                 $id = "option-{$key}-{$value}";
-                $html .= "  <input type='radio' id='$id' name='$key' class='selection-input {$key}-input' value='$value'>\n";
-            }
-        }
-    }
+                $label = esc_html($option['label']);
 
-    // Add the selection rows with labels
-    foreach ($args['selections'] as $selection) {
-        $key = esc_attr($selection['key']);
-        $html .= "  <div class='selection-row'>\n";
-        $html .= "  <div class='selection-row-title'>$key</div>\n";
-        foreach ($selection['options'] as $option) {
-            $value = esc_attr($option['value']);
-            $id = "option-{$key}-{$value}";
-            $label = esc_html($option['label']);
-            $html .= "<label for='$id' class='selection-option $key-option interactive'>";
-            $html .= "$label</label>\n";
-            $html .= "<label class='selection-option live-form'>";
-            $html .= "<input type='radio' name='$key' class='selection-input {$key}-input' value='$value'>";
-            $html .= "$label</label>\n";
+                $html .= "    <input type='radio' id='$id' name='$key' class='selection-input {$key}-input' value='$value'>\n";
+                $html .= "    <label for='$id' class='selection-option $key-option'>$label</label>\n";
+            }
+            $html .= "  </div>\n";
         }
-        $html .= "  </div>\n";
     }
 
     $html .= "  <div class='feedback-results'>\n";
@@ -321,10 +309,10 @@ function generateRecEngineHtml($args)
     $html .= "  </div>\n";
 
     // Submit button
-    $html .= "    <div class='submit-row'>\n";
+    $html .= "  <div class='submit-row'>\n";
     $submitButtonText = esc_html($args['settings']['submit_button_text'] ?? 'Submit');
-    $html .= "      <button type='submit' class='submit-button'>$submitButtonText</button>\n";
-    $html .= "    </div>\n";
+    $html .= "    <button type='submit' class='submit-button'>$submitButtonText</button>\n";
+    $html .= "  </div>\n";
 
     $html .= "  </form>\n";
     $html .= "</div>\n";
@@ -362,11 +350,11 @@ function generateRecEngineCss($args)
         foreach ($selection['options'] as $option) {
             $value = esc_attr($option['value']);
             $id = "option-{$key}-{$value}";
-            $css .= "#$wrapperId > form > input#{$id}:checked ~ .selection-row .selection-option[for='{$id}'] {
-        background-color: #4CAF50;
-        color: white;
-        border-color: #45a049;
-      }\n";
+            $css .= "#$wrapperId input#{$id}:checked + label {
+                background-color: #4CAF50;
+                color: white;
+                border-color: #45a049;
+            }\n";
         }
     }
     $css .= "</style>\n";
