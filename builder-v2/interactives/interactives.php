@@ -384,5 +384,26 @@ function generateRecEngineCss($args)
     return $css;
 }
 
+function get_interactives_for_select()
+{
+    $intArgs = [
+        'post_type' => 'wysiwyg_interactive',
+        'posts_per_page' => -1,
+        'orderby' => 'post_title',
+        'order' => 'ASC'
+    ];
+    $interactives = get_posts($intArgs);
+
+    $intsData = [];
+    foreach ($interactives as $interactive) {
+        $intsData[$interactive->ID] = $interactive->post_title;
+    }
+
+    if ($interactives) {
+        return $intsData;
+    } else {
+        return 'No snippets found';
+    }
+}
 
 
