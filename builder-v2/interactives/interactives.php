@@ -253,19 +253,7 @@ function generateRecEngineHtml($args)
     $html .= "<div class='$wrapperClasses' id='$wrapperId'>\n";
     $html .= "  <form action='$formAction' method='get' target='_blank'>\n";
 
-    // Generate all inputs as direct children of the form
-    foreach ($args['selections'] as $selection) {
-        $key = esc_attr($selection['key'] ?? '');
-        if ($key) {
-            foreach ($selection['options'] as $option) {
-                $value = esc_attr($option['value']);
-                $id = "option-{$key}-{$value}";
-                $html .= "    <input type='radio' id='$id' name='$key' class='selection-input {$key}-input' value='$value'>\n";
-            }
-        }
-    }
-
-    // Generate labels and other elements
+    // Generate inputs and labels
     foreach ($args['selections'] as $selection) {
         $key = esc_attr($selection['key'] ?? '');
         if ($key) {
@@ -274,7 +262,8 @@ function generateRecEngineHtml($args)
                 $value = esc_attr($option['value']);
                 $id = "option-{$key}-{$value}";
                 $label = esc_html($option['label']);
-                $html .= "    <label for='$id' class='selection-option $key-option'>$label</label>\n";
+                $html .= "    <input type='radio' id='$id' name='$key' class='selection-input {$key}-input' value='$value'>";
+                $html .= "<label for='$id' class='selection-option $key-option'>$label</label>\n";
             }
         }
     }
@@ -347,7 +336,7 @@ function generateRecEngineCss($args)
         foreach ($selection['options'] as $option) {
             $value = esc_attr($option['value']);
             $id = "option-{$key}-{$value}";
-            $css .= "#$wrapperId input#{$id}:checked ~ label[for='{$id}'] {
+            $css .= "#$wrapperId input#{$id}:checked + label {
                 background-color: #4CAF50;
                 color: white;
                 border-color: #45a049;
