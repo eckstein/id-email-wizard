@@ -324,11 +324,8 @@ function generateRecEngineCss($args)
 
     $css = "\n<style type='text/css'>\n";
 
-    // Hide selection inputs and results wrapper
-    $css .= ".selection-input, .results, .submit-row { display: none; }\n";
-
-    // Set all .result elements to display: none by default
-    $css .= ".result { display: none; }\n";
+    // Hide results
+    $css .= ".results, .result { display: none; }\n";
 
     // Generate CSS for active state of labels
     foreach ($args['selections'] as $selection) {
