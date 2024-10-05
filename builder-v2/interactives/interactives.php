@@ -253,28 +253,37 @@ function generateRecEngineHtml($args)
     $html .= "<div class='$wrapperClasses' id='$wrapperId'>\n";
     $html .= "  <form action='$formAction' method='get' target='_blank'>\n";
 
-    // Generate inputs and labels for all selections
+    // Generate all inputs as direct children of the form
     foreach ($args['selections'] as $selection) {
         $key = esc_attr($selection['key'] ?? '');
         if ($key) {
-            $html .= "  <div class='selection-row'>\n";
-            $html .= "    <div class='selection-row-title'>$key</div>\n";
+            foreach ($selection['options'] as $option) {
+                $value = esc_attr($option['value']);
+                $id = "option-{$key}-{$value}";
+                $html .= "    <input type='radio' id='$id' name='$key' class='selection-input {$key}-input' value='$value'>\n";
+            }
+        }
+    }
+
+    // Generate labels and other elements
+    foreach ($args['selections'] as $selection) {
+        $key = esc_attr($selection['key'] ?? '');
+        if ($key) {
+            $html .= "    <div class='selection-title'>$key</div>\n";
             foreach ($selection['options'] as $option) {
                 $value = esc_attr($option['value']);
                 $id = "option-{$key}-{$value}";
                 $label = esc_html($option['label']);
-
-                $html .= "    <input type='radio' id='$id' name='$key' class='selection-input {$key}-input' value='$value'>\n";
                 $html .= "    <label for='$id' class='selection-option $key-option'>$label</label>\n";
             }
-            $html .= "  </div>\n";
         }
     }
 
-    $html .= "  <div class='feedback-results'>\n";
+    $html .= "    <div class='feedback-results'>\n";
     $progressMessage = esc_html($args['settings']['progress_message'] ?? "Make your selections above to see your personalized recommendations!");
-    $html .= "    <div class='progress-message'>$progressMessage</div>\n";
+    $html .= "      <div class='progress-message'>$progressMessage</div>\n";
 
+    // Results section
     if (isset($args['results'])) {
         foreach ($args['results'] as $result) {
             if (isset($result['classes']) && is_array($result['classes'])) {
@@ -299,20 +308,20 @@ function generateRecEngineHtml($args)
                     return implode('-', array_map('esc_attr', $combo));
                 }, $classCombinations);
 
-                $html .= "    <div class='result " . implode(' ', $concatenatedClasses) . "'>\n";
-                $html .=  wp_kses_post(stripslashes($result['content'])) . "\n";
-                $html .= "    </div>\n";
+                $html .= "      <div class='result " . implode(' ', $concatenatedClasses) . "'>\n";
+                $html .= wp_kses_post(stripslashes($result['content'])) . "\n";
+                $html .= "      </div>\n";
             }
         }
     }
 
-    $html .= "  </div>\n";
+    $html .= "    </div>\n";
 
     // Submit button
-    $html .= "  <div class='submit-row'>\n";
+    $html .= "    <div class='submit-row'>\n";
     $submitButtonText = esc_html($args['settings']['submit_button_text'] ?? 'Submit');
-    $html .= "    <button type='submit' class='submit-button'>$submitButtonText</button>\n";
-    $html .= "  </div>\n";
+    $html .= "      <button type='submit' class='submit-button'>$submitButtonText</button>\n";
+    $html .= "    </div>\n";
 
     $html .= "  </form>\n";
     $html .= "</div>\n";
@@ -324,42 +333,27 @@ function generateRecEngineCss($args)
 {
     $wrapperId = $args['settings']['wrapper_id'] ?? 'rec_engine_wrapper';
 
-    $css = "";
+    $css = "\n<style type='text/css'>\n";
 
-    $css .= "\n<style type='text/css'>\n";
     // Hide selection inputs and results wrapper
-    $css .= ".selection-input, .results, .submit-row {
-      display: none;
-    }\n";
+    $css .= ".selection-input, .results, .submit-row { display: none; }\n";
 
     // Set all .result elements to display: none by default
     $css .= ".result { display: none; }\n";
-    $css .= "</style>\n";
 
-    // Insert user-submitted CSS
-    if (isset($args['module_css'])) {
-        $css .= "<style type='text/css'>\n";
-        $css .= $args['module_css'];
-        $css .= "\n</style>\n";
-    }
-
-    $css .= "\n<style type='text/css'>\n";
-    // Generate CSS for active state of buttons
+    // Generate CSS for active state of labels
     foreach ($args['selections'] as $selection) {
         $key = esc_attr($selection['key']);
         foreach ($selection['options'] as $option) {
             $value = esc_attr($option['value']);
             $id = "option-{$key}-{$value}";
-            $css .= "#$wrapperId input#{$id}:checked + label {
+            $css .= "#$wrapperId input#{$id}:checked ~ label[for='{$id}'] {
                 background-color: #4CAF50;
                 color: white;
                 border-color: #45a049;
             }\n";
         }
     }
-    $css .= "</style>\n";
-
-    $css .= "\n<style type='text/css'>\n";
 
     // Generate CSS to show specific results based on selections
     if (isset($args['results'])) {
@@ -398,6 +392,7 @@ function generateRecEngineCss($args)
             }
         }
     }
+
     $css .= "</style>\n";
 
     return $css;
