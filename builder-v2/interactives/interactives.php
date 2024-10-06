@@ -360,7 +360,7 @@ function generateRecEngineCss($args)
                     $concatenatedClass = implode('-', array_map('esc_attr', $combination));
 
                     $css .= "#$wrapperId > form > $selectorString ~ .feedback-results .$concatenatedClass {
-                        display: block!important;
+                        display: table!important;
                         animation: fadeIn 0.5s ease;
                         opacity: 1;
                     }\n";
