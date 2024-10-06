@@ -307,7 +307,7 @@ function generateRecEngineHtml($args)
     $html .= "    </div>\n";
 
     // Submit button
-    $html .= "    <div class='submit-row' style='display:none;'>\n";
+    $html .= "    <div class='submit-row' style='display:none;'>\n"; 
     $submitButtonText = esc_html($args['settings']['submit_button_text'] ?? 'Submit');
     $html .= "      <button type='submit' class='submit-button'>$submitButtonText</button>\n";
     $html .= "    </div>\n";
