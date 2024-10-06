@@ -599,7 +599,7 @@ function idwiz_get_standard_header($templateOptions, $isEditor = false)
 	}
 	$headerLogoUrl = $isEditor ? get_cached_image_data($headerLogo)['data_uri'] : $headerLogo;
 	$headerPadding = $headerFooterSettings['header_padding'] ?? '0 0 20px 0';
-	$output = '<div class="chunk id-header">';
+	$output = '<div class="chunk id-header" role="header" aria-label="iD Tech Camps">';
 	$output .= '<table role="presentation" style="width:100%;border:0;border-spacing:0;table-layout:fixed;font-size: 0;" id="standard-header">';
 	$output .= '<tr>';
 	$output .= '<td style="font-size: 0;line-height:0;margin:0;padding:' . $headerPadding . ';">';
@@ -638,7 +638,7 @@ function idwiz_get_standard_footer($templateStyles, $isEditor = false)
 	$gmailBlendMobileClass = $gmailBlendMobile ? 'mobile' : '';
 
 	$output = '';
-	$output .= '<div class="chunk id-footer" style="' . $footerBackgroundCss . ' max-width: ' . $templateWidth . '; padding: 20px 0 10px 0; font-size: 12px; font-family: Poppins, Arial, sans-serif; text-align: center;">';
+	$output .= '<div class="chunk id-footer" role="footer" aria-label="iD Tech Camps" style="' . $footerBackgroundCss . ' max-width: ' . $templateWidth . '; padding: 20px 0 10px 0; font-size: 12px; font-family: Poppins, Arial, sans-serif; text-align: center;">';
 
 	$output .= '<!--[if mso]>
 	<table role="presentation" align="center" style="width:' . $templateWidth . ';table-layout:fixed;font-family:Poppins, Arial, sans-serif;">
@@ -791,6 +791,7 @@ function idwiz_get_email_head($templateSettings, $templateStyles, $rows)
 
 	ob_start();
 ?>
+
 	<head><!-- Yahoo App Android will strip this --></head>
 
 	<head>
@@ -903,7 +904,7 @@ function idwiz_get_email_head($templateSettings, $templateStyles, $rows)
 }
 
 
-function idwiz_get_email_body_top($templateStyles)
+function idwiz_get_email_body_top($templateSettings, $templateStyles)
 {
 	$templateWidth = $templateStyles['body-and-background']['template_width'];
 	$templateWidth = (int) $templateWidth > 0 ? (int) $templateWidth : 648;
@@ -912,20 +913,31 @@ function idwiz_get_email_body_top($templateStyles)
 
 	$previewTextHack = get_preview_text_hack();
 
-	$return = '<body class="body" id="body" style="margin: 0; padding: 0; word-spacing: normal; ' . $bodyBackgroundCss . '">
-	<div style="display: none; max-height: 0px; overflow: hidden;">
+	$subjectLine = $templateSettings['subject_line'] ?? '';
+
+	// Remove anything that's not plain text and re-convert back to non-html-entities
+	$subjectLine = strip_tags($subjectLine);
+	$subjectLine = html_entity_decode($subjectLine, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+	$return = '<body class="body" id="body" style="margin: 0; padding: 0; word-spacing: normal; ' . $bodyBackgroundCss . '">';
+	// This div serves to replace the <html> or <body> tags for accessability and bg color in inboxes that remove one or both
+	$return .= '<div lang="en" dir="ltr" style="font-size: medium; font-size:max(16px, 1rem); ' . $bodyBackgroundCss . '">'; 
+	$return .= '<div style="display: none; max-height: 0px; overflow: hidden;">
 	' . $previewTextHack . '
 	</div>
-	<div role="article" aria-roledescription="email" lang="en" style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; word-spacing:normal;text-align: center;">
-	<table role="presentation" style="width: 100%; border: 0; border-spacing: 0;margin: 0 auto; ' . $bodyBackgroundCss . '" class="email-wrapper">
-	<tr>
-	<td align="center">
-	<!--[if mso]> 
-	<table role="presentation" align="center" style="width:' . $templateWidth . 'px; border: 0; border-spacing: 0;margin: 0 auto;"> 
-	<tr> 
-	<td style="padding:20px 0; ' . $pageBackgroundCss . '"> 
-	<![endif]-->
-	<div class="outer" style="width: 100%; max-width: ' . $templateWidth . 'px; margin: 20px auto; ' . $pageBackgroundCss . '">';
+	<div role="article" aria-label="iD Tech Camps" aria-roledescription="email" class="email-wrapper" style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; word-spacing:normal;text-align: center;">
+		
+		<!--[if mso]> 
+		<table role="presentation" style="width: 100%; border: 0; border-spacing: 0;margin: 0 auto; ' . $bodyBackgroundCss . '" class="email-wrapper">
+			<tr>
+			<td align="center">
+				<table role="presentation" align="center" style="width:' . $templateWidth . 'px; border: 0; border-spacing: 0;margin: 0 auto;"> 
+					<tr> 
+					<td style="padding:20px 0; ' . $pageBackgroundCss . '"> 
+					<![endif]-->
+						<div class="outer" style="width: 100%; max-width: ' . $templateWidth . 'px; margin: 20px auto; ' . $pageBackgroundCss . '">
+						<h1 style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;">' . $subjectLine . '</h1>';
+						
 
 	return $return;
 }
@@ -935,16 +947,17 @@ function idwiz_get_email_body_bottom()
 {
 	$emailBottom = '
 						</div>
-						<!--[if mso]> 
-						</td> 
-						</tr> 
-						</table> 
-						<![endif]-->
-					</td>
-				</tr>
-			</table>
-		</div>
-	</body>';
+					<!--[if mso]> 
+					</td> 
+					</tr> 
+				</table> 
+			</td>
+			</tr>
+		</table>
+		<![endif]-->
+	</div>
+</div>
+</body>';
 	return $emailBottom;
 }
 

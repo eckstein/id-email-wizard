@@ -93,7 +93,7 @@ add_action('wp_ajax_check_link_ajax', 'check_link_ajax');
 function get_preview_text_hack()
 {
     $return = '';
-    for ($i = 0; $i <= 10; $i++) {
+    for ($i = 0; $i <= 40; $i++) {
         $return .= '&#847; &zwnj; &nbsp; &#8199; ';
     }
     return $return;
