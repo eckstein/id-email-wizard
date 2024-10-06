@@ -297,7 +297,7 @@ function generateRecEngineHtml($args)
                     return implode('-', array_map('esc_attr', $combo));
                 }, $classCombinations);
 
-                $html .= "      <div class='result " . implode(' ', $concatenatedClasses) . "'>\n";
+                $html .= "      <div class='result " . implode(' ', $concatenatedClasses) . " style='display:none;'>\n";
                 $html .= wp_kses_post(stripslashes($result['content'])) . "\n";
                 $html .= "      </div>\n";
             }
@@ -307,7 +307,7 @@ function generateRecEngineHtml($args)
     $html .= "    </div>\n";
 
     // Submit button
-    $html .= "    <div class='submit-row'>\n";
+    $html .= "    <div class='submit-row' style='display:none;'>\n";
     $submitButtonText = esc_html($args['settings']['submit_button_text'] ?? 'Submit');
     $html .= "      <button type='submit' class='submit-button'>$submitButtonText</button>\n";
     $html .= "    </div>\n";
@@ -371,7 +371,7 @@ function generateRecEngineCss($args)
                     $concatenatedClass = implode('-', array_map('esc_attr', $combination));
 
                     $css .= "#$wrapperId > form > $selectorString ~ .feedback-results .$concatenatedClass {
-                        display: block;
+                        display: block!important;
                         animation: fadeIn 0.5s ease;
                         opacity: 1;
                     }\n";
