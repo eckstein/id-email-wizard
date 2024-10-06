@@ -432,6 +432,8 @@ function init_codemirror_for_custom_styles() {
         indentUnit: 4,
         smartIndent: true,
         indentWithTabs: true,
+        lineWrapping: true,
+        viewportMargin: Infinity,
         gutters: ["CodeMirror-linenumbers", "CodeMirror-lint-markers"],
         lint: {
             getAnnotations: function(text, options, codeMirror) {
