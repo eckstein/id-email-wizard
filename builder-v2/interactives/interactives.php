@@ -250,7 +250,7 @@ function generateRecEngineHtml($args)
     $formAction = esc_url($args['settings']['form_action'] ?? 'https://example.com/page');
 
     $html = "";
-    $html .= "<div class='$wrapperClasses' id='$wrapperId'>\n";
+    $html .= "<div class='$wrapperClasses' id='$wrapperId' style='display:none;'>\n";
     $html .= "  <form action='$formAction' method='get' target='_blank'>\n";
 
     // Generate inputs and labels

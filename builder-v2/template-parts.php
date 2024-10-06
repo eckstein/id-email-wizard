@@ -13,7 +13,7 @@ function generate_template_structure($templateData, $isEditor = false)
     $structure = ['top' => [], 'rows' => [], 'bottom' => []];
 
     $structure['top']['doc_start'] = '<!DOCTYPE html>
-    <html lang="en" dir="ltr" xmlns="https://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office" title="iD Tech Camps" id="id-camps-html">';
+    <html lang="en" dir="ltr" xmlns="https://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office" title="iD Tech Camps">';
     
     $structure['top']['head'] = $isEditor ? wrap_with_placeholder('email_head', idwiz_get_email_head($templateSettings, $templateStyles, $rows)) : idwiz_get_email_head($templateSettings, $templateStyles, $rows);
     $structure['top']['body_start'] = $isEditor ? wrap_with_placeholder('body_start', idwiz_get_email_body_top($templateSettings, $templateStyles)) : idwiz_get_email_body_top($templateSettings, $templateStyles);
