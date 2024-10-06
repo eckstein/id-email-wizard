@@ -372,7 +372,7 @@ function generateRecEngineCss($args)
 
                     $css .= "#$wrapperId > form > $selectorString ~ .feedback-results .$concatenatedClass {
                         display: block;
-                        transition: opacity 0.3s ease;
+                        animation: fadeInOut;
                         opacity: 1;
                     }\n";
                 }
