@@ -371,6 +371,9 @@ function generateRecEngineCss($args)
 
     $css .= "</style>\n";
 
+    // Add the module CSS
+    $css .= $args['module_css'] ?? '';
+
     return $css;
 }
 
