@@ -327,6 +327,9 @@ function generateRecEngineCss($args)
     // Hide results
     $css .= ".results, .result { display: none; }\n";
 
+    $css .= "\n</style'>\n";
+    $css .= "\n<style type='text/css'>\n";
+
     // Generate CSS for active state of labels
     foreach ($args['selections'] as $selection) {
         $key = esc_attr($selection['key']);
