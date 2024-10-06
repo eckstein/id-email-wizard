@@ -343,7 +343,8 @@ function generateRecEngineCss($args)
             }\n";
         }
     }
-
+    $css .= "\n</style'>\n";
+    $css .= "\n<style type='text/css'>\n";
     // Generate CSS to show specific results based on selections
     if (isset($args['results'])) {
         foreach ($args['results'] as $result) {
