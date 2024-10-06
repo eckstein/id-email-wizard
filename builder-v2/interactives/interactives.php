@@ -298,7 +298,7 @@ function generateRecEngineHtml($args)
                 }, $classCombinations);
 
                 $html .= "      <div class='result " . implode(' ', $concatenatedClasses) . "'>\n";
-                $html .= wp_kses_post(stripslashes($result['content'])) . "\n";
+                $html .= stripslashes($result['content']) . "\n";
                 $html .= "      </div>\n";
             }
         }
