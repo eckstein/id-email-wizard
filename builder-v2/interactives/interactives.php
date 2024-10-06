@@ -327,23 +327,8 @@ function generateRecEngineCss($args)
     // Hide results
     $css .= ".results, .result { display: none; }\n";
 
-    $css .= "\n</style'>\n";
-    $css .= "\n<style type='text/css'>\n";
-
-    // Generate CSS for active state of labels
-    foreach ($args['selections'] as $selection) {
-        $key = esc_attr($selection['key']);
-        foreach ($selection['options'] as $option) {
-            $value = esc_attr($option['value']);
-            $id = "option-{$key}-{$value}";
-            $css .= "#$wrapperId input#{$id}:checked + label {
-                background-color: #4CAF50;
-                color: white;
-                border-color: #45a049;
-            }\n";
-        }
-    }
-    $css .= "\n</style'>\n";
+    $css .= "\n</style>\n";
+    
     $css .= "\n<style type='text/css'>\n";
     // Generate CSS to show specific results based on selections
     if (isset($args['results'])) {
