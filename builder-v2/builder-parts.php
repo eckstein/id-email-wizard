@@ -205,7 +205,7 @@ function generate_builder_row($rowId, $rowData = [])
     $html .= "<input type='text' name='row_classes' id='{$uniqueId}-row-classes' value='{$rowClasses}'>";
     $html .=  "</div>";
     $html .=  "</div>";
-    $html .= '<fieldset name="row-background_settings">';
+    $html .= '<fieldset name="row_background_settings">';
     $html .= generate_background_settings_module($rowBackgroundSettings, '');
     $html .= '</fieldset>'; // row-settings form
     $html .= '</form>'; // row-settings form
