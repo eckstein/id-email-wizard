@@ -37,6 +37,9 @@ function get_cached_image_data($url, $cache_time = 1 * WEEK_IN_SECONDS, $max_siz
             if ($size <= $max_size) {
                 $headers = wp_remote_retrieve_headers($response);
                 $image_size = getimagesize($url);
+                if (!$image_size) {
+                    return false;
+                }
                 $aspect_ratio = $image_size[0] / $image_size[1];
 
                 // Base64 encode the image data

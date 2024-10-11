@@ -136,6 +136,9 @@
         a {
             -webkit-text-size-adjust: 100%;
             -ms-text-size-adjust: 100%;
+            
+        }
+        a {
             color: {$linkColor};
         }
 
@@ -205,8 +208,7 @@
     .noPad h1,
     .noPad h2,
     .noPad h3,
-    .noPad,
-    h4,
+    .noPad h4,
     .noPad h5,
     .noPad h6 {
         padding: 0 !important;
@@ -339,7 +341,7 @@
 			
 <![endif]-->
 
-<!-- If this is a non-MSO client, we include styles for dynamic mobile/desktop visibility -->
+<!-- If this is a non-MSO windows client, we include styles for dynamic mobile/desktop visibility -->
 <!--[if !mso]><!-->
 
 <style type="text/css">
@@ -357,8 +359,32 @@
         /* Hide by default */
     }
 
+    @media screen and (max-width: 440px) {
 
-    @media screen and (min-width: 601px) {
+        .three-col .column.wrap,
+        .two-col .column.wrap,
+        .sidebar-left .column.wrap,
+        .sidebar-right .column.wrap {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 100% !important;
+            display: block !important;
+            overflow: hidden;
+        }
+
+        .mobile-only {
+            display: block !important;
+        }
+
+        table.mobile-only {
+            display: table !important;
+        }
+
+        .desktop-only {
+            display: none !important;
+        }
+    }
+    @media screen and (min-width: 441px) {
         .three-col .column {
             max-width: 33.333% !important;
             min-width: 33.333% !important;
@@ -389,31 +415,7 @@
         }
     }
 
-    @media screen and (max-width: 648px) {
-
-        .three-col .column.wrap,
-        .two-col .column.wrap,
-        .sidebar-left .column.wrap,
-        .sidebar-right .column.wrap {
-            width: 100% !important;
-            max-width: 100% !important;
-            min-width: 100% !important;
-            display: block !important;
-            overflow: hidden;
-        }
-
-        .mobile-only {
-            display: block !important;
-        }
-
-        table.mobile-only {
-            display: table !important;
-        }
-
-        .desktop-only {
-            display: none !important;
-        }
-    }
+    
 </style>
 <!--<![endif]-->
 

@@ -655,8 +655,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 							<i class="fa-solid fa-file-import"></i>&nbsp;&nbsp;Import JSON</button>
 					</div>
 					<pre
-						id="templateCode"><code><?php echo 'Loading HTML...'; //echo htmlspecialchars(generate_template_html($wizTemplate, false)); 
-												?></code></pre>
+						id="templateCode"><code><?php echo 'Loading HTML...'; ?></code></pre>
 				</div>
 			</div>
 

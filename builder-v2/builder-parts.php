@@ -155,6 +155,7 @@ function generate_builder_row($rowId, $rowData = [])
     $colsetFramesMode = isset($rowData['frames_mode']) && $rowData['frames_mode'] === 'true' ? 'true' : 'false';
     $colsetFramesModeClass = $colsetFramesMode === 'true' ? 'active' : '';
 
+    $rowClasses = $rowData['row_classes'] ?? '';
 
     $rowBackgroundSettings = $rowData['background_settings'] ?? [];
 
@@ -198,7 +199,15 @@ function generate_builder_row($rowId, $rowData = [])
                 </div>
                 <div class="builder-settings-section builder-row-settings-row">
                 <form class="builder-row-settings">';
+    
+    $html .= '<div class="builder-field-group">';
+    $html .= "<div class='builder-field-wrapper row-classes'><label for='{$uniqueId}-row-classes'>Row Classes</label>";
+    $html .= "<input type='text' name='row_classes' id='{$uniqueId}-row-classes' value='{$rowClasses}'>";
+    $html .=  "</div>";
+    $html .=  "</div>";
+    $html .= '<fieldset name="row-background_settings">';
     $html .= generate_background_settings_module($rowBackgroundSettings, '');
+    $html .= '</fieldset>'; // row-settings form
     $html .= '</form>'; // row-settings form
     $html .= '</div>'; // row-settings
 
@@ -276,6 +285,8 @@ function generate_builder_columnset($colSetIndex, $columnSet, $rowId, $framesMod
 
     $colsLayout = $columnSet['layout'] ?? 'one-column';
 
+    $columnSetClasses = $columnSet['columnset_classes'] ?? '';
+
     $colsetBgSettings = $columnSet['background_settings'] ?? [];
 
     $colSetState = $columnSet['state'] ?? 'collapsed';
@@ -335,7 +346,14 @@ function generate_builder_columnset($colSetIndex, $columnSet, $rowId, $framesMod
             </div>
             <div class="builder-settings-section builder-columnset-settings-row">
             <form class="builder-columnset-settings">';
+    $html .= '<div class="builder-field-group">';
+    $html .= "<div class='builder-field-wrapper columnset-classes'><label for='{$uniqueId}-columnset-classes'>ColumnSet Classes</label>";
+    $html .= "<input type='text' name='columnset_classes' id='{$uniqueId}-columnset-classes' value='{$columnSetClasses}'>";
+    $html .=  "</div>";
+    $html .=  "</div>";
+    $html .=  "<fieldset name='background_settings'>";
     $html .= generate_background_settings_module($colsetBgSettings, '');
+    $html .= '</fieldset>'; // end columnset background settings fieldset
     $html .= '</form>'; // end columnset settings form
     $html .= '</div>'; // end columnset settings
 
@@ -371,6 +389,8 @@ function generate_builder_column($rowId, $columnIndex, $columnData = [])
 
     $columnNumberDisplay = $columnIndex + 1;
 
+    $columnClasses = $columnData['settings']['column_classes'] ?? '';
+
     $colValign = $columnData['settings']['valign'] ?? 'top';
 
     $colBgSettings = $columnData['settings'] ?? [];
@@ -388,12 +408,17 @@ function generate_builder_column($rowId, $columnIndex, $columnData = [])
     $html .= '<div class="builder-column-toggle">&nbsp;</div>';
     $html .= '<div class="builder-column-actions">';
     $html .= '<div class="builder-column-actions-button show-column-settings">';
-    $html .= '<i class="fas fa-cog" title="Column settings"></i>';
+    $html .= '<i class="fa-solid fa-fill-drip" title="Column Styles"></i>';
     $html .= '</div>';
     $html .= '</div>'; // close actions
     $html .= '</div>'; // Close header
     $html .= '<div class="builder-column-settings-row">';
     $html .= '<form class="builder-column-settings">';
+    $html .= '<div class="builder-field-group">';
+    $html .= "<div class='builder-field-wrapper column-classes'><label for='{$uniqueId}-column-classes'>Column Classes</label>";
+    $html .= "<input type='text' name='column_classes' id='{$uniqueId}-column-classes' value='{$columnClasses}'>";
+    $html .=  "</div>";
+    $html .=  "</div>";
     $html .= '<div class="builder-field-group">';
     $html .= '<div class="button-group-wrapper">';
     $html .= '<label class="button-group-label">Vertical Align</label>';

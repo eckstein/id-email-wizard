@@ -43,8 +43,6 @@ function idemailwiz_handle_builder_v2_request()
 			include dirname(plugin_dir_path(__FILE__)) . '/builder-v2/preview-pane-styles.html';
 
 			echo '<div class="template-preview-loader">Loading template...</div>';
-			// Directly output the template HTML
-			//echo generate_template_html($templateData, true);
 
 			// Add spacer for proper scrolling in preview pane
 			echo '<div style="height: 100vh; color: #cdcdcd; padding: 20px; font-family: Poppins, sans-serif; text-align: center; border-top: 2px dashed #fff;" class="scrollSpace"><em>The extra space below allows proper scrolling in the builder and will not appear in the template</em></div>';

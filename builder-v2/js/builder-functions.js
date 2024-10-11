@@ -954,8 +954,6 @@ function toggle_magic_wrap($clicked) {
             $colSet.attr('data-column-id', 0);
         }
     }
-
-    
     
     sessionStorage.setItem('unsavedChanges', 'true');
     save_template_to_session();
@@ -1384,6 +1382,7 @@ let templateUpdateProcessing = false;
 
 
 function update_template_preview_part($changedElement, previewElement=null) {
+    previewElement = previewElement ? previewElement : find_matching_preview_element($changedElement);
     templateUpdateQueue.push({$changedElement, previewElement});
     processPreviewUpdateQueue();
 }
@@ -1396,10 +1395,8 @@ function processPreviewUpdateQueue() {
 
     save_template_to_session();
 
-    previewElement = previewElement ? previewElement : find_matching_preview_element($changedElement);
-
-
     if (!previewElement || previewElement.length === 0) {
+        console.warn('No matching preview element found for element: ' + $changedElement.attr('class'));
         update_template_preview();
         templateUpdateProcessing = false;
         processPreviewUpdateQueue();
@@ -1410,42 +1407,15 @@ function processPreviewUpdateQueue() {
         isEditor: true,
     };
 
-    // Catch changes within the builder layout elements
+    // Determine the part type and indices
     if ($changedElement.closest('.builder-rows-wrapper').length) {
-        if ($changedElement.closest('.builder-chunk').length) {
-            const $chunk = $changedElement.closest('.builder-chunk');
-            params.partType = 'chunk';
-            params.rowIndex = $chunk.closest('.builder-row').data('row-id');
-            params.columnSetIndex = $chunk.closest('.builder-columnset').data('columnset-id');
-            params.columnIndex = $chunk.closest('.builder-column').data('column-id');
-            params.chunkIndex = $chunk.data('chunk-id');
-        } else if ($changedElement.closest('.builder-column').length) {
-            const $column = $changedElement.closest('.builder-column');
-            params.partType = 'column';
-            params.rowIndex = $column.closest('.builder-row').data('row-id');
-            params.columnSetIndex = $column.closest('.builder-columnset').data('columnset-id');
-            params.columnIndex = $column.data('column-id');
-        } else if ($changedElement.closest('.builder-columnset').length) {
-            const $columnset = $changedElement.closest('.builder-columnset');
-            params.partType = 'columnset';
-            params.rowIndex = $columnset.closest('.builder-row').data('row-id');
-            params.columnSetIndex = $columnset.data('columnset-id');
-        } else if ($changedElement.closest('.builder-row').length) {
-            const $row = $changedElement.closest('.builder-row');
-            params.partType = 'row';
-            params.rowIndex = $row.data('row-id');
-        } else {
-            update_template_preview();
-            templateUpdateProcessing = false;
-            processPreviewUpdateQueue();
-            return;
-        }
+        params = getBuilderParams($changedElement);
     } else {
         // For fields outside the layout/chunks tab
         params.partType = previewElement;
     }
 
-get_template_part_do_callback(params, function(error, data) {
+    get_template_part_do_callback(params, function(error, data) {
         if (error) {
             console.error('Error:', error.message);
             templateUpdateProcessing = false;
@@ -1455,72 +1425,111 @@ get_template_part_do_callback(params, function(error, data) {
         const decodedHTML = decodeHTMLEntities(data.html);
         const iframe = jQuery('#previewFrame')[0].contentWindow.document;
 
-        // Special handling for a new row
-        if (previewElement == 'fullTemplate') {
+        if (previewElement == 'fullTemplate' || previewElement == 'body_start') {
             update_template_preview();
-        } else if (previewElement == 'newRow') {                        
-            const previousRow = iframe.querySelector('.row[data-row-index="' + (parseInt(params.rowIndex) - 1) + '"]');
-            if (previousRow) {
-                previousRow.insertAdjacentHTML('afterend', decodedHTML);
-            } else {
-                iframe.querySelector('.builder-rows-wrapper').insertAdjacentHTML('beforeend', decodedHTML);
-            }
-        // if the changed element has the data-preview-part attribute, we replace the content between the placeholders
-        } else if ($changedElement.is("[data-preview-part]")) {
-            var previewPart = $changedElement.attr('data-preview-part');
-            replace_preview_part(previewPart, iframe, decodedHTML);
-        } else if (previewElement instanceof jQuery && previewElement.length > 0) {
-            previewElement.replaceWith(decodedHTML);
+        } else if (previewElement == 'newRow') {      
+            handleNewRow(iframe, params, decodedHTML);
         } else {
-            console.warn('Unable to replace content: previewElement is not a valid jQuery object');
+            replacePreviewContent(iframe, params, decodedHTML);
         }
 
         // If the changed element has data-also-update-head attribute, update the email_head section
         if ($changedElement.is("[data-also-update-head]")) {
-            get_template_part_do_callback({...params, partType: 'email_head'}, function(headError, headData) {
-                if (!headError) {
-                    const decodedHeadHTML = decodeHTMLEntities(headData.html);
-                    replace_preview_part('email_head', iframe, decodedHeadHTML);
-                } else {
-                    console.error('Error updating email_head:', headError.message);
-                }
-                
-                finishUpdate();
-            });
+            updateEmailHead(params, iframe);
         } else {
-            finishUpdate();
-        }
-
-        function finishUpdate() {
             reindexPreviewElements();
             templateUpdateProcessing = false;
             processPreviewUpdateQueue();
         }
     });
+}
 
-    function replace_preview_part(previewPart, $iframe, decodedHTML) {
-        // Replace everything between the placeholders
-        const rangeStart = $iframe.querySelector('wizPlaceholder[data-preview-part="'+previewPart+'_start"]');
-        const rangeEnd = $iframe.querySelector('wizPlaceholder[data-preview-part="'+previewPart+'_end"]');
-        if (rangeStart && rangeEnd) {
-            // Get the parent element containing both placeholders
-            const parent = rangeStart.parentElement;
-    
-            // Get the HTML content of the parent
-            let parentHTML = parent.outerHTML;
-    
-            // Find the positions of the start and end placeholders
-            const startPos = parentHTML.indexOf(rangeStart.outerHTML) + rangeStart.outerHTML.length;
-            const endPos = parentHTML.indexOf(rangeEnd.outerHTML);
-    
-            // Replace the content between the placeholders with the new HTML
-            const newHTML = parentHTML.substring(0, startPos) + decodedHTML + parentHTML.substring(endPos);
-    
-            // Replace the parent's HTML with the new HTML
-            parent.outerHTML = newHTML;
-        }
+function getBuilderParams($element) {
+    let params = {};
+    if ($element.closest('.builder-chunk').length) {
+        const $chunk = $element.closest('.builder-chunk');
+        params = {
+            partType: 'chunk',
+            rowIndex: $chunk.closest('.builder-row').data('row-id'),
+            columnSetIndex: $chunk.closest('.builder-columnset').data('columnset-id'),
+            columnIndex: $chunk.closest('.builder-column').data('column-id'),
+            chunkIndex: $chunk.data('chunk-id')
+        };
+    } else if ($element.closest('.builder-column').length) {
+        const $column = $element.closest('.builder-column');
+        params = {
+            partType: 'column',
+            rowIndex: $column.closest('.builder-row').data('row-id'),
+            columnSetIndex: $column.closest('.builder-columnset').data('columnset-id'),
+            columnIndex: $column.data('column-id')
+        };
+    } else if ($element.closest('.builder-columnset').length) {
+        const $columnset = $element.closest('.builder-columnset');
+        params = {
+            partType: 'columnset',
+            rowIndex: $columnset.closest('.builder-row').data('row-id'),
+            columnSetIndex: $columnset.data('columnset-id')
+        };
+    } else if ($element.closest('.builder-row').length) {
+        const $row = $element.closest('.builder-row');
+        params = {
+            partType: 'row',
+            rowIndex: $row.data('row-id')
+        };
+    }
+    return params;
+}
+
+function handleNewRow(iframe, params, decodedHTML) {
+    const previousRow = iframe.querySelector('.row[data-row-index="' + (parseInt(params.rowIndex) - 1) + '"]');
+    if (previousRow) {
+        previousRow.insertAdjacentHTML('afterend', decodedHTML);
+    } else {
+        iframe.querySelector('.builder-rows-wrapper').insertAdjacentHTML('beforeend', decodedHTML);
     }
 }
+
+function replacePreviewContent(iframe, params, decodedHTML) {
+    const previewPart = params.partType + '_start';
+    const selector = `wizPlaceholder[data-preview-part="${previewPart}"]` +
+        (params.rowIndex !== undefined ? `[data-row-index="${params.rowIndex}"]` : '') +
+        (params.columnSetIndex !== undefined ? `[data-columnset-index="${params.columnSetIndex}"]` : '') +
+        (params.columnIndex !== undefined ? `[data-column-index="${params.columnIndex}"]` : '') +
+        (params.chunkIndex !== undefined ? `[data-chunk-index="${params.chunkIndex}"]` : '');
+    
+    const startPlaceholder = iframe.querySelector(selector);
+    if (startPlaceholder) {
+        const endSelector = selector.replace('_start', '_end');
+        const endPlaceholder = iframe.querySelector(endSelector);
+        if (endPlaceholder) {
+            let currentNode = startPlaceholder.nextSibling;
+            while (currentNode && currentNode !== endPlaceholder) {
+                const nextNode = currentNode.nextSibling;
+                currentNode.remove();
+                currentNode = nextNode;
+            }
+            startPlaceholder.insertAdjacentHTML('afterend', decodedHTML);
+        }
+    } else {
+        console.warn('Unable to find placeholder for', params);
+    }
+}
+
+function updateEmailHead(params, iframe) {
+    get_template_part_do_callback({...params, partType: 'email_head'}, function(headError, headData) {
+        if (!headError) {
+            const decodedHeadHTML = decodeHTMLEntities(headData.html);
+            replacePreviewContent(iframe, {partType: 'email_head'}, decodedHeadHTML);
+        } else {
+            console.error('Error updating email_head:', headError.message);
+        }
+        reindexPreviewElements();
+        templateUpdateProcessing = false;
+        processPreviewUpdateQueue();
+    });
+}
+
+
 
 function load_json_into_template_data(profileId) {
     if (!profileId) {

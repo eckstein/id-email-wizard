@@ -34,6 +34,12 @@
 
 jQuery(document).ready(function($) {
 
+    if (jQuery('#interactive-builder-form').length === 0) {
+        return;
+    }
+        
+        
+
     updatePreview();
     
     // Setup main builder tabs

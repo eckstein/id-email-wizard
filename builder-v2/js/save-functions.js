@@ -144,7 +144,7 @@ function gather_rows_data(index = null) {
 
         // Collect row settings
         $rowSettings = $row.find('.builder-row-settings');
-        collect_element_field_values($rowSettings, row.background_settings);
+        collect_element_field_values($rowSettings, row);
 
 
         // Determine desktop/mobile visibility
@@ -186,16 +186,32 @@ function gather_columnsets_data($row, $columnSetIndex = null) {
             mobile_visibility: colsetMobileVisibility === 'true' ? 'true' : 'false',
             magic_wrap: columnSet.attr('data-magic-wrap') == 'on' ? 'on' : 'off',
             mobile_wrap: columnSet.attr('data-mobile-wrap') == 'on' ? 'on' : 'off',
+            columnset_classes: '',
             background_settings: {},
+            settings: {},
             columns: [],
         };
 
-        // Collect colset settings
-        $colsetSettings = columnSet.find('.builder-columnset-settings');
-        collect_element_field_values($colsetSettings, columnSetData.background_settings);
+        // Collect colset bg and class settings
+        $colsetStyleSettings = columnSet.find('.builder-columnset-settings');
+        collect_element_field_values($colsetStyleSettings, columnSetData);
+
+        // Collect colset classes
+        // $colsetClasses = columnSet.find('.columnset-classes');
+        // columnSetData.columnset_classes = $colsetClasses.val();
 
 
         let builderColumns = columnSet.find('.builder-column');
+        
+        // Remove columns with .inactive class
+        builderColumns = builderColumns.not('.inactive');
+
+        //if magic wrap
+        if (columnSet.attr('data-magic-wrap') == 'on') {
+            // Reverse the order of the columns
+            //builderColumns = builderColumns.get().reverse();
+        }
+        
 
         var columnLayout = columnSet.attr('data-layout') ? columnSet.attr('data-layout') : ''
 
