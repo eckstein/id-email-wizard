@@ -24,8 +24,11 @@ function generate_template_structure($templateData, $isEditor = false)
     $structure['top']['doc_start'] = '<!DOCTYPE html>
     <html lang="en" dir="ltr" xmlns="https://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office" title="iD Tech Camps">';
     
-    $structure['top']['head'] = $isEditor ? wrap_with_placeholder('email_head', idwiz_get_email_head($templateSettings, $templateStyles, $rows)) : idwiz_get_email_head($templateSettings, $templateStyles, $rows);
-    $structure['top']['body_start'] = $isEditor ? wrap_with_placeholder('body_start', idwiz_get_email_body_top($templateSettings, $templateStyles)) : idwiz_get_email_body_top($templateSettings, $templateStyles);
+    // $structure['top']['head'] = $isEditor ? wrap_with_placeholder('email_head', idwiz_get_email_head($templateSettings, $templateStyles, $rows)) : idwiz_get_email_head($templateSettings, $templateStyles, $rows);
+    // $structure['top']['body_start'] = $isEditor ? wrap_with_placeholder('body_start', idwiz_get_email_body_top($templateSettings, $templateStyles)) : idwiz_get_email_body_top($templateSettings, $templateStyles);
+    
+    $structure['top']['head'] = idwiz_get_email_head($templateSettings, $templateStyles, $rows);
+    $structure['top']['body_start'] = idwiz_get_email_body_top($templateSettings, $templateStyles);
 
     $structure['top']['standard_header'] = $isEditor ? wrap_with_placeholder('standard_header', idwiz_get_standard_header($templateOptions, $isEditor)) : idwiz_get_standard_header($templateOptions, $isEditor);
 
@@ -234,7 +237,7 @@ function generate_columnset_start($rowIndex, $columnSetIndex, $templateData = nu
 
     $return = '';
     $return .= "<div class='columnSet $columnSetClasses $layoutClass $mobileWrapClass' $colSetDataAttr $magicRtl style='$colSetBackgroundCss text-align: center; font-size: 0; width: 100%; $displayTable'>";
-    $return .= "<!--[if mso]><td style='$colSetBackgroundCssMso border: 0; margin: 0 auto;text-align: center;' $magicRtl><![endif]-->";
+    $return .= "<!--[if mso]><td class='columnSet' style='$colSetBackgroundCssMso border: 0; margin: 0 auto;text-align: center;' $magicRtl><![endif]-->";
 
     return $return;
 }
@@ -319,7 +322,7 @@ function generate_column_start($rowIndex, $columnSetIndex, $columnIndex, $templa
     $columnDataAttr = $isEditor ? 'data-column-index=' . $columnIndex : '';
     $return = '';
     $return .= "<div class='column $columnClasses $mobileWrapClass' $columnDataAttr style='$columnStyle $colBackgroundCSS' dir='ltr'>";
-    $return .= "<!--[if mso]><table role='presentation' style='border: 0; border-spacing: 0'><tr><td style='width:{$columnWidthPx}px; $msoColBackgroundCSS' width='{$columnWidthPx}' valign='{$colValign}' dir='ltr'><![endif]-->";
+    $return .= "<!--[if mso]><table role='presentation' style='border: 0; border-spacing: 0'><tr><td class='column' style='width:{$columnWidthPx}px; $msoColBackgroundCSS' width='{$columnWidthPx}' valign='{$colValign}' dir='ltr'><![endif]-->";
 
     return $return;
 }

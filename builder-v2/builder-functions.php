@@ -125,22 +125,22 @@ function add_or_duplicate_chunk()
         return;
     }
 
-    $rowId = intval($_POST['row_id']);
     $chunkBeforeId = isset($_POST['chunk_before_id']) ? intval($_POST['chunk_before_id']) : null;
     $chunkType = sanitize_text_field($_POST['chunk_type']);
 
     // Generate a new chunk ID
     $newChunkId = $chunkBeforeId !== null ? $chunkBeforeId + 1 : 0;
 
-    $columnId = isset($_POST['column_id']) ? intval($_POST['column_id']) : 0;
-
     if (isset($_POST['duplicate']) && $_POST['chunk_data'] !== null) {
         $chunkData = $_POST['chunk_data'];
+        error_log(print_r($chunkData, true));
     } else {
         $chunkData = [];
     }
 
-    $html = generate_builder_chunk($newChunkId, $chunkType, $rowId, $columnId, $chunkData);
+    $html = generate_builder_chunk($newChunkId, $chunkType, $chunkData);
+
+    error_log($html);
 
     wp_send_json_success(['html' => $html, 'chunk_id' => $newChunkId]);
 }
@@ -241,6 +241,22 @@ function get_utm_term_fieldset_ajax()
 
     $fieldsetHtml = get_utm_term_fieldset($index, $key, $value);
     wp_send_json_success(['fieldsetHtml' => $fieldsetHtml]);
+}
+
+function get_utm_term_fieldset($index, $key, $value)
+{
+    return '
+    <div class="builder-field-wrapper flex utm_fields_wrapper">
+        <input type="text" name="key_' . $index . '"
+            class="builder-field" placeholder="utm_something"
+            value="' . esc_attr($key) . '">
+        <span>=</span>
+        <input type="text" name="value_' . $index . '"
+            class="builder-field" placeholder="value"
+            value="' . esc_attr($value) . '">
+        <i class="fa-solid fa-trash-can remove_utm_parameter"></i>
+    </div>
+    ';
 }
 
 

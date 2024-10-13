@@ -11,7 +11,6 @@ function initialize_template() {
 
     init_element_title_tinymce();
 
-    initialize_chunk_tabs();
     init_spectrum_pickers();
     initialize_bg_type_selection();
     initialize_device_width_slider();
@@ -96,7 +95,12 @@ function initialize_row_sortables(containerId = null) {
         handleSelector: '.builder-row-header',
         placeholderClass: 'row-placeholder',
         dropOnEmpty: true,
-        additionalOptions: {}
+        additionalOptions: {
+            stop: function (event, ui) {
+                reindexDataAttributes('row-id');
+                save_template_to_session();
+            }
+        }
     };
     initialize_wiz_sortables(containerSelector, sortableConfig.itemsSelector, sortableConfig.handleSelector, sortableConfig.placeholderClass, sortableConfig.additionalOptions);
 }
@@ -128,7 +132,8 @@ function initialize_column_sortables(containerId = null) {
         additionalOptions: {           
             receive: function(event, ui) {
                 reindexDataAttributes('column-id');
-            },
+                reindexDataAttributes('columnset-id');
+            }
         }
     };
     initialize_wiz_sortables(containerSelector, sortableConfig.itemsSelector, sortableConfig.handleSelector, sortableConfig.placeholderClass, sortableConfig.additionalOptions);
@@ -343,26 +348,7 @@ function reinitialize_wiz_sortables_for_cloned($originalElement, $clonedElement)
 }
 
 
-//Initialize chunk tabs 
-function initialize_chunk_tabs($context) {
-    $context = $context || jQuery("#builder");
 
-    $context.on('click', '.chunk-tab', function() {
-        var $thisTab = jQuery(this);
-        var targetSelector = $thisTab.data('target');
-        var $targetContent = jQuery(targetSelector);
-
-        // Hide all tab contents in the current chunk
-        $thisTab.closest('.builder-chunk').find('.tab-content').hide();
-
-        // Show the target content
-        $targetContent.show();
-
-        // Update active state for tabs
-        $thisTab.siblings().removeClass('active');
-        $thisTab.addClass('active');
-    });
-}
 
 // Function to handle common initialization tasks
 function init_ui_for_new_chunk($element) {
@@ -372,7 +358,6 @@ function init_ui_for_new_chunk($element) {
 
     init_spectrum_pickers($element);
     reinitTinyMCE($element);
-    initialize_chunk_tabs($element);
 
 }
 

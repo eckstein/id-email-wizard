@@ -935,8 +935,12 @@ function idwiz_get_email_body_top($templateSettings, $templateStyles)
 					<tr> 
 					<td style="padding:20px 0; ' . $pageBackgroundCss . '"> 
 					<![endif]-->
-						<div class="outer" style="width: 100%; max-width: ' . $templateWidth . 'px; margin: 20px auto; ' . $pageBackgroundCss . '">
-						<h1 style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;">' . $subjectLine . '</h1>';
+						<div class="outer" style="width: 100%; max-width: ' . $templateWidth . 'px; margin: 0 auto; ' . $pageBackgroundCss .
+	'">
+						<h1 style="max-height:0;max-width:0;display:inline-block;mso-font-width:0%;mso-style-textfill-type: none; white-space: nowrap;font-size:1px;color:rgba(0,0,0,0);text-indent:9px;">'
+							. $subjectLine . 
+						'</h1>';
+						
 						
 
 	return $return;

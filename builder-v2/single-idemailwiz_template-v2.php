@@ -749,7 +749,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 		<div id="templatePreview">
 			<div id="templatePreview-status">
 			</div>
-			<iframe id="previewFrame" src="<?php echo home_url('build-template-v2/' . $postId); ?>"></iframe>
+			<iframe id="previewFrame" src="<?php echo home_url('template-frame/' . $postId); ?>"></iframe>
 		</div>
 
 	</div>

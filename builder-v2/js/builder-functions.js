@@ -1,6 +1,7 @@
 function expandBuilderElementVis($element, toggledClass) {
     $element.children(toggledClass).slideDown(250, function() {
         $element.addClass('--expanded').removeClass('--collapsed');
+        $element.find('.builder-element-summary').hide();
     });
     
 }
@@ -10,6 +11,7 @@ function collapseBuilderElementVis($element, toggledClass) {
         $element.addClass('--collapsed').removeClass('--expanded');
     });
     $element.find('.builder-settings-section').slideUp();
+    $element.find('.builder-element-summary').show();
 }
 
 function toggleBuilderElementVis($header, action = false) {
@@ -990,24 +992,7 @@ function toggle_mobile_wrap($clicked) {
     update_template_preview_part($clicked);
 };
 
-// Toggle the Frames mode setting
-function toggle_frames_mode($clicked) {
 
-    $row = $clicked.closest('.builder-row');
-
-     if ($clicked.hasClass('active')) {
-        $row.attr('data-frames-mode', 'false');
-        $row.find('.toggle-frames-mode').removeClass('active');
-        $row.find('.toggle-frames-mode').attr('data-frames-mode', 'false');
-    } else {
-        $row.attr('data-frames-mode', 'true');
-        $row.find('.toggle-frames-mode').addClass('active');
-        $row.find('.toggle-frames-mode').attr('data-frames-mode', 'true');
-    }   
-    
-    sessionStorage.setItem('unsavedChanges', 'true');
-    update_template_preview_part($clicked);
-}
 
 // Add a new chunk by type
 function add_chunk_by_type(chunkType, addChunkTrigger, duplicate = false) {
@@ -1034,6 +1019,7 @@ function add_chunk_by_type(chunkType, addChunkTrigger, duplicate = false) {
     idemailwiz_do_ajax('add_new_chunk', idAjax_template_editor.nonce, data,
         function(response) {
                 if (response.data.html) {
+                console.log('Response: ' + JSON.stringify(response));
                 var newChunk;
                 if (chunkId !== undefined && chunkId !== '') {
                     // Insert after the specified chunk

@@ -296,6 +296,8 @@ jQuery(document).ready(function($) {
 				if ($previewFrame.contents().find('.chunk.active-temp-off').length) {
 					$previewFrame.contents().find('.chunk.active-temp-off').removeClass('active-temp-off').addClass('active');
 				}
+				// Remove styling on .outer
+				$($previewFrame.contents()).find('.outer').removeClass('fullPreview')
 			} else {
 				$("#iDoverlay").show();	
 				$right.addClass('popout');
@@ -305,6 +307,8 @@ jQuery(document).ready(function($) {
 				if ($previewFrame.contents().find('.chunk.active').length) {
 					$previewFrame.contents().find('.chunk.active').removeClass('active').addClass('active-temp-off');
 				}
+				// Remove styling on .outer
+				$($previewFrame.contents()).find('.outer').addClass('fullPreview')
 			}
 		});
 
@@ -456,11 +460,7 @@ jQuery(document).ready(function($) {
 		$("#builder").on('click', '.add-row, .duplicate-row', function() {
 			create_or_dupe_builder_row($(this));		
 		});
-		
-		// Frames mode toggle
-		$("#builder").on('click', '.toggle-frames-mode', function() {
-			toggle_frames_mode($(this));
-		});
+	
 	
 
 
@@ -636,6 +636,22 @@ jQuery(document).ready(function($) {
 					toggle_device_visibility($(this), 'show-on-mobile');
 				}
 			}
+		});
+
+		$("#builder").on('click', '.chunk-tab', function() {
+			var $thisTab = $(this);
+			var targetSelector = $thisTab.data('target');
+			var $targetContent = $(targetSelector);
+
+			 // Update active state for tabs
+			$thisTab.siblings().removeClass('active');
+			$thisTab.addClass('active');
+
+			// Show the target content
+			$targetContent.siblings().removeClass('active');
+			$targetContent.addClass('active');
+
+       
 		});
 
 		// Refresh the chunk HTML when the HTML tab is clicked

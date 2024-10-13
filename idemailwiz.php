@@ -141,6 +141,9 @@ function idemailwiz_enqueue_assets()
     wp_enqueue_script('jquery-ui-resizable', null, array('jquery', 'jquery-ui'));
 
 
+    wp_enqueue_script('sortable-js', 'https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js', array(), null, true);
+
+
     wp_enqueue_script('sweetalert2', 'https://cdn.jsdelivr.net/npm/sweetalert2@11', array(), '11.0', true);
     wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array(), '4.1.0', true);
 
@@ -235,6 +238,7 @@ function idemailwiz_enqueue_assets()
         'mergeTags' => array('/js/mergeTags.js', array()),
 
         'wiz-inits' => array('/builder-v2/js/wiz-inits.js', array('jquery', 'id-general', 'jquery-ui-resizable', 'editable', 'spectrum', 'tinymce', 'crush', 'mergeTags')),
+        
         'utilities' => array('/builder-v2/js/utilities.js', array('wiz-inits')),
         'builder-functions' => array('/builder-v2/js/builder-functions.js', array('wiz-inits', 'utilities')),
         'template-editor' => array('/builder-v2/js/template-editor.js?v=08232024831pm', array('builder-functions')),

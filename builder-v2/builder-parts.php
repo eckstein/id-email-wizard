@@ -2,8 +2,8 @@
 
 function get_builder_pane_header($postId)
 {
-    ob_start();
-?>
+    return <<<HTML
+    
     <div class="builder-pane-header">
         <div id="main-builder-tabs" class="wizard-tabs" data-scroll-body="builder-pane">
             <div class="wizard-tab builder-tab --active" data-tab="#builder-tab-chunks" id="builder-tab-chunks-tab" title="Content chunks">
@@ -45,14 +45,14 @@ function get_builder_pane_header($postId)
 
         </div>
     </div>
-<?php
-    return ob_get_clean();
+
+HTML;
 }
 
 function get_template_actions_bar($postId)
 {
-    ob_start();
-?>
+    return <<<HTML
+
     <div id="templateActions">
 
         <div class="innerWrap">
@@ -91,47 +91,10 @@ function get_template_actions_bar($postId)
                     class="fa-solid fa-eye"></i>&nbsp;&nbsp;Full Preview</button>
         </div>
     </div>
-<?php
-    return ob_get_clean();
+
+HTML;
 }
 
-function get_template_data_modal()
-{
-    ob_start();
-?>
-    <div id="template-data-modal">
-        <div class="inner-flex">
-            <div id="template-data-modal-header">
-                <h4>Template Data</h4><i class="fa-solid fa-xmark close-modal"></i>
-            </div>
-
-            <form id="templateDataForm">
-                <div class="template-data-form-wrap">
-                    <div class="template-data-form-fieldset presetSelect">
-                        <label for="dataPresetSelect">Select preset profile</label>
-                        <select id="dataPresetSelect" name="dataPreset">
-                            <option value="" disabled selected>Select a profile</option>
-                            <?php
-                            $presetProfiles = get_template_data_profiles();
-                            foreach ($presetProfiles as $profile) {
-                                echo '<option value="' . $profile['WizProfileId'] . '">' . $profile['WizProfileName'] . '</option>';
-                            }
-                            ?>
-
-                        </select>
-                    </div>
-                    <div class="template-data-form-fieldset jsonData">
-                        <label for="templateData">JSON data</label>
-                        <textarea id="templateData" name="template_data" class="templateData" placeholder="{}" rows="5"></textarea>
-                    </div>
-                </div>
-            </form>
-
-        </div>
-    </div>
-<?php
-    return ob_get_clean();
-}
 
 
 function generate_builder_row($rowId, $rowData = [])
@@ -141,7 +104,7 @@ function generate_builder_row($rowId, $rowData = [])
     // Attempt to set columnSets from rowData, default to an empty array if not set or not an array
     $columnSets = isset($rowData['columnSets']) && is_array($rowData['columnSets']) ? $rowData['columnSets'] : [];
 
-    $html = '';
+    $columnSetCount = count($columnSets);
 
     $rowCollapseState = $rowData['state'] ?? 'collapsed';
 
@@ -152,86 +115,83 @@ function generate_builder_row($rowId, $rowData = [])
     $rowDesktopIconClass = $rowDesktopVisibility === 'false' ? 'disabled' : '';
     $rowMobileIconClass = $rowMobileVisibility === 'false' ? 'disabled' : '';
 
-    $colsetFramesMode = isset($rowData['frames_mode']) && $rowData['frames_mode'] === 'true' ? 'true' : 'false';
-    $colsetFramesModeClass = $colsetFramesMode === 'true' ? 'active' : '';
-
     $rowClasses = $rowData['row_classes'] ?? '';
 
     $rowBackgroundSettings = $rowData['background_settings'] ?? [];
 
+    $summaryVisClass = $rowCollapseState === 'collapsed' ? 'visible' : '';
 
     $rowTitle = $rowData['title'] ?? 'Section';
     $rowNumber = $rowId + 1;
-
-    $html .= '<div class="builder-row --' . $rowCollapseState . '" id="' . $uniqueId . '" data-row-id="' . $rowId . '" data-frames-mode="' . $colsetFramesMode . '">
-                <div class="builder-header builder-row-header">
-                    <div class="builder-row-title exclude-from-toggle"><div class="builder-row-title-number" data-row-id-display="' . $rowNumber . '">' . $rowNumber . '</div>
-                    <div class="builder-row-title-text edit-row-title exclude-from-toggle" data-row-id="' . $rowId . '">' . $rowTitle . '</div>
-                    </div>
-                    <div class="builder-row-toggle builder-toggle">&nbsp;</div>
-                    <div class="builder-row-actions">
-                        <div class="builder-row-actions-button exclude-from-toggle show-on-desktop ' . $rowDesktopIconClass . '" data-show-on-desktop="' . $rowDesktopVisibility . '" title="Show on desktop">
-                        <i class="fas fa-desktop"></i>
-                        </div>
-                        <div class="builder-row-actions-button exclude-from-toggle show-on-mobile ' . $rowMobileIconClass . '" data-show-on-mobile="' . $rowMobileVisibility . '" title="Show on mobile">
-                        <i class="fas fa-mobile-alt" ></i>
-                        </div>
-                        <div class="builder-row-actions-button exclude-from-toggle toggle-frames-mode ' . $colsetFramesModeClass . '" data-frames-mode="' . $colsetFramesMode . '" title="Toggle Frames mode">
-                            <i class="fa-solid fa-film"></i>
-                        </div>
-                        <span>&nbsp;|&nbsp;</span>
-                        <div class="builder-row-actions-button exclude-from-toggle row-bg-settings-toggle" title="Background color">
-                            <i class="fa-solid fa-fill-drip"></i>
-                        </div>
-
-                        <div class="builder-row-actions-button exclude-from-toggle json-actions" data-json-element="row" title="Export/Import JSON data">
-                            <i class="fa-solid fa-share-nodes"></i>
-                        </div>
-
-                        <div class="builder-row-actions-button exclude-from-toggle duplicate-row" title="Duplicate row">
-                        <i class="fa-regular fa-copy"></i>
-                        </div>
-                        <div class="builder-row-actions-button remove-element remove-row exclude-from-toggle" title="Delete row">
-                        <i class="fas fa-times"></i>
-                        </div>
-                    </div>
-					
+    $html = <<<HTML
+    <div class="builder-row --{$rowCollapseState}" id="{$uniqueId}" data-row-id="{$rowId}">
+        <div class="builder-header builder-row-header">
+            <div class="builder-row-title exclude-from-toggle">
+                <div class="builder-row-title-number" data-row-id-display="{$rowNumber}">{$rowNumber}</div>
+                <div class="builder-row-title-text edit-row-title exclude-from-toggle" data-row-id="{$rowId}">{$rowTitle}</div>
+            </div>
+            <div class="builder-row-toggle builder-toggle"><div class="builder-element-summary {$summaryVisClass} builder-row-summary">Show {$columnSetCount} column sets</div></div>
+            <div class="builder-row-actions">
+                <div class="builder-row-actions-button exclude-from-toggle show-on-desktop {$rowDesktopIconClass}" data-show-on-desktop="{$rowDesktopVisibility}" title="Show on desktop">
+                    <i class="fas fa-desktop"></i>
                 </div>
-                <div class="builder-settings-section builder-row-settings-row">
-                <form class="builder-row-settings">';
-    
-    $html .= '<div class="builder-field-group">';
-    $html .= "<div class='builder-field-wrapper row-classes'><label for='{$uniqueId}-row-classes'>Row Classes</label>";
-    $html .= "<input type='text' name='row_classes' id='{$uniqueId}-row-classes' value='{$rowClasses}'>";
-    $html .=  "</div>";
-    $html .=  "</div>";
-    $html .= '<fieldset name="row_background_settings">';
+                <div class="builder-row-actions-button exclude-from-toggle show-on-mobile {$rowMobileIconClass}" data-show-on-mobile="{$rowMobileVisibility}" title="Show on mobile">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
+                
+                <span>&nbsp;|&nbsp;</span>
+                <div class="builder-row-actions-button exclude-from-toggle row-bg-settings-toggle" title="Background color">
+                    <i class="fa-solid fa-fill-drip"></i>
+                </div>
+                <div class="builder-row-actions-button exclude-from-toggle json-actions" data-json-element="row" title="Export/Import JSON data">
+                    <i class="fa-solid fa-share-nodes"></i>
+                </div>
+                <div class="builder-row-actions-button exclude-from-toggle duplicate-row" title="Duplicate row">
+                    <i class="fa-regular fa-copy"></i>
+                </div>
+                <div class="builder-row-actions-button remove-element remove-row exclude-from-toggle" title="Delete row">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+        </div>
+        <div class="builder-settings-section builder-row-settings-row">
+            <form class="builder-row-settings">
+                <div class="builder-field-group">
+                    <div class='builder-field-wrapper row-classes'>
+                        <label for='{$uniqueId}-row-classes'>Row Classes</label>
+                        <input type='text' name='row_classes' id='{$uniqueId}-row-classes' value='{$rowClasses}'>
+                    </div>
+                </div>
+                <fieldset name="row_background_settings">
+    HTML;
+
     $html .= generate_background_settings_module($rowBackgroundSettings, '');
-    $html .= '</fieldset>'; // row-settings form
-    $html .= '</form>'; // row-settings form
-    $html .= '</div>'; // row-settings
 
-    $html .= '
-                <div class="builder-row-content">
-                <div class="builder-columnsets">
-                ';
+    $html .= <<<HTML
+                </fieldset>
+            </form>
+        </div>
+        <div class="builder-row-content">
+            <div class="builder-columnsets">
+    HTML;
+
     foreach ($columnSets as $colSetIndex => $columnSet) {
-
-        $html .= generate_builder_columnset($colSetIndex, $columnSet, $rowId, $colsetFramesMode);
+        $html .= generate_builder_columnset($colSetIndex, $columnSet, $rowId);
     }
 
-
-    $html .= '</div>'; // columnsets
-    $html .= '<div class="builder-row-footer">';
-    $html .= '<button class="wiz-button outline add-columnset">Add Column Set</button>';
-    $html .= '</div>'; // row-footer
-    $html .= '</div>'; // Builder-row-content
-    $html .= '</div>'; // Builder-row divs
+    $html .= <<<HTML
+            </div>
+            <div class="builder-row-footer">
+                <button class="wiz-button outline add-columnset">Add Column Set</button>
+            </div>
+        </div>
+    </div>
+    HTML;
 
     return $html;
 }
 
-function generate_builder_columnset($colSetIndex, $columnSet, $rowId, $framesMode = 'false')
+function generate_builder_columnset($colSetIndex, $columnSet, $rowId)
 {
     $uniqueId = uniqid('wiz-columnset-');
 
@@ -293,82 +253,77 @@ function generate_builder_columnset($colSetIndex, $columnSet, $rowId, $framesMod
 
     $columnSetDisplayCnt = $colSetIndex + 1;
 
-    $html = '';
-
-    $html .= '<div class="builder-columnset --' . $colSetState . '" id="' . $uniqueId . '" data-columnset-id="' . $colSetIndex . '" data-layout="' . $colsLayout . '" data-magic-wrap="' . $magicWrap . '" data-mobile-wrap="' . $mobileWrap . '" data-show-on-desktop="' . $colsetDesktopVisibility . '" data-show-on-mobile="' . $colsetMobileVisibility . '">
-            <div class="builder-header builder-columnset-header">
-            <div class="builder-columnset-title exclude-from-toggle"><div class="builder-columnset-title-number" data-columnset-id-display="' . $columnSetDisplayCnt . '">' . $columnSetDisplayCnt . '</div>
-            <div class="builder-columnset-title-text edit-columnset-title exclude-from-toggle" data-columnset-id="' . $colSetIndex . '">' . $columnsetTitle . '</div>
+    $html = <<<HTML
+    <div class="builder-columnset --{$colSetState}" id="{$uniqueId}" data-columnset-id="{$colSetIndex}" data-layout="{$colsLayout}" data-magic-wrap="{$magicWrap}" data-mobile-wrap="{$mobileWrap}" data-show-on-desktop="{$colsetDesktopVisibility}" data-show-on-mobile="{$colsetMobileVisibility}">
+        <div class="builder-header builder-columnset-header">
+            <div class="builder-columnset-title exclude-from-toggle">
+                <div class="builder-columnset-title-number" data-columnset-id-display="{$columnSetDisplayCnt}">{$columnSetDisplayCnt}</div>
+                <div class="builder-columnset-title-text edit-columnset-title exclude-from-toggle" data-columnset-id="{$colSetIndex}">{$columnsetTitle}</div>
             </div>
             <div class="builder-toggle builder-columnset-toggle">&nbsp;</div>
             <div class="builder-columnset-actions">
-                <div class="builder-columnset-actions-button exclude-from-toggle show-on-desktop ' . $colsetDesktopIconClass . '" data-show-on-desktop="' . $colsetDesktopVisibility . '" title="Show on desktop">
-                <i class="fas fa-desktop"></i>
+                <div class="builder-columnset-actions-button exclude-from-toggle show-on-desktop {$colsetDesktopIconClass}" data-show-on-desktop="{$colsetDesktopVisibility}" title="Show on desktop">
+                    <i class="fas fa-desktop"></i>
                 </div>
-                <div class="builder-columnset-actions-button exclude-from-toggle show-on-mobile ' . $colsetMobileIconClass . '" data-show-on-mobile="' . $colsetMobileVisibility . '" title="Show on mobile">
-                <i class="fas fa-mobile-alt" ></i>
+                <div class="builder-columnset-actions-button exclude-from-toggle show-on-mobile {$colsetMobileIconClass}" data-show-on-mobile="{$colsetMobileVisibility}" title="Show on mobile">
+                    <i class="fas fa-mobile-alt"></i>
                 </div>
-				
                 <span>&nbsp;|&nbsp;</span>
                 <div class="builder-columnset-actions-button exclude-from-toggle colset-bg-settings-toggle" title="Background color">
                     <i class="fa-solid fa-fill-drip"></i>
                 </div>
-				
-                <div class="builder-columnset-actions-button columnset-column-settings exclude-from-toggle" data-columns="' . $countColumns . '" title="Change columns layout">
-                <i class="fas fa-columns"></i>
+                <div class="builder-columnset-actions-button columnset-column-settings exclude-from-toggle" data-columns="{$countColumns}" title="Change columns layout">
+                    <i class="fas fa-columns"></i>
                 </div>
-
-                <div class="builder-columnset-actions-button mobile-wrap-toggle columnset-columns-mobile-wrap exclude-from-toggle ' . $mobileWrapToggleClass . '" title="Toggle mobile column wrap">
-                    <i class="fa-solid fa-mobile-alt"></i> <i class="fa-solid fa-arrows-turn-right fa-rotate-180"></i></i></i>
+                <div class="builder-columnset-actions-button mobile-wrap-toggle columnset-columns-mobile-wrap exclude-from-toggle {$mobileWrapToggleClass}" title="Toggle mobile column wrap">
+                    <i class="fa-solid fa-mobile-alt"></i> <i class="fa-solid fa-arrows-turn-right fa-rotate-180"></i>
                 </div>
-
-                <div class="builder-columnset-actions-button magic-wrap-toggle columnset-columns-magic-wrap exclude-from-toggle ' . $magicWrapToggleClass . '" title="Magic Wrap">
+                <div class="builder-columnset-actions-button magic-wrap-toggle columnset-columns-magic-wrap exclude-from-toggle {$magicWrapToggleClass}" title="Magic Wrap">
                     <i class="fa-solid fa-wand-magic-sparkles"></i> <i class="fa-solid fa-arrow-right-arrow-left"></i>
                 </div>
-
                 <span>&nbsp;|&nbsp;</span>
-                <div class="builder-columnset-actions-button exclude-from-toggle ' . $stackedClass . '" title="Stack/Unstack columns">
-                <i class="fa-solid fa-bars rotate-columns" ></i>
+                <div class="builder-columnset-actions-button exclude-from-toggle {$stackedClass}" title="Stack/Unstack columns">
+                    <i class="fa-solid fa-bars rotate-columns"></i>
                 </div>
-
                 <div class="builder-columnset-actions-button exclude-from-toggle json-actions" data-json-element="columnset" title="Export/Import JSON data">
                     <i class="fa-solid fa-share-nodes"></i>
                 </div>
-				
                 <div class="builder-columnset-actions-button exclude-from-toggle duplicate-columnset" title="Duplicate columnset">
-                <i class="fa-regular fa-copy"></i>
+                    <i class="fa-regular fa-copy"></i>
                 </div>
-				
                 <div class="builder-columnset-actions-button remove-element remove-columnset exclude-from-toggle" title="Delete columnset">
-                <i class="fas fa-times"></i>
+                    <i class="fas fa-times"></i>
                 </div>
             </div>
-            </div>
-            <div class="builder-settings-section builder-columnset-settings-row">
-            <form class="builder-columnset-settings">';
-    $html .= '<div class="builder-field-group">';
-    $html .= "<div class='builder-field-wrapper columnset-classes'><label for='{$uniqueId}-columnset-classes'>ColumnSet Classes</label>";
-    $html .= "<input type='text' name='columnset_classes' id='{$uniqueId}-columnset-classes' value='{$columnSetClasses}'>";
-    $html .=  "</div>";
-    $html .=  "</div>";
-    $html .=  "<fieldset name='background_settings'>";
-    $html .= generate_background_settings_module($colsetBgSettings, '');
-    $html .= '</fieldset>'; // end columnset background settings fieldset
-    $html .= '</form>'; // end columnset settings form
-    $html .= '</div>'; // end columnset settings
+        </div>
+        <div class="builder-settings-section builder-columnset-settings-row">
+            <form class="builder-columnset-settings">
+                <div class="builder-field-group">
+                    <div class='builder-field-wrapper columnset-classes'>
+                        <label for='{$uniqueId}-columnset-classes'>ColumnSet Classes</label>
+                        <input type='text' name='columnset_classes' id='{$uniqueId}-columnset-classes' value='{$columnSetClasses}'>
+                    </div>
+                </div>
+                <fieldset name='background_settings'>
+    HTML;
 
-    $html .= '<div class="builder-columnset-content">';
+    $html .= generate_background_settings_module($colsetBgSettings, '');
+
+    $html .= <<<HTML
+                </fieldset>
+            </form>
+        </div>
+        <div class="builder-columnset-content">
+    HTML;
+
     if ($magicWrap == 'on') {
         $html .= '<div class="magic-wrap-indicator"><i class="fa-solid fa-wand-magic-sparkles"></i>&nbsp;&nbsp;Magic wrap is on! Columns will be reversed when wrapped for mobile.</div>';
     }
-    if ($framesMode === 'true') {
-        $html .= '<div class="builder-columnset-frame-settings">';
-        $html .= '<div class="builder-columnset-frame-settings-title">Frame Settings</div>';
-        $html .= '<div class="builder-columnset-frame-settings-content">';
-        $html .= '</div>';
-        $html .= '</div>';
-    }
-    $html .= '<div class="builder-columnset-columns" data-active-columns="' . $countColumns . '">';
+
+
+    $html .= <<<HTML
+        <div class="builder-columnset-columns" data-active-columns="{$countColumns}">
+    HTML;
 
     $colSetIndex = 0;
     foreach ($columns as $columnIndex => $column) {
@@ -376,9 +331,11 @@ function generate_builder_columnset($colSetIndex, $columnSet, $rowId, $framesMod
         $html .= generate_builder_column($rowId, $columnIndex, $column);
     }
 
-    $html .= '</div>'; // builder-columnset-content
-    $html .= '</div>'; // builder-columnset-columns
-    $html .= '</div>'; // end columnset
+    $html .= <<<HTML
+            </div>
+        </div>
+    </div>
+    HTML;
 
     return $html;
 }
@@ -389,78 +346,86 @@ function generate_builder_column($rowId, $columnIndex, $columnData = [])
 
     $columnNumberDisplay = $columnIndex + 1;
 
+    $colTitle = $columnData['title'] ?? 'Column';
+
     $columnClasses = $columnData['settings']['column_classes'] ?? '';
 
     $colValign = $columnData['settings']['valign'] ?? 'top';
+    $valignTopChecked = $colValign === 'top' ? 'checked' : '';
+    $valignMiddleChecked = $colValign === 'middle' ? 'checked' : '';
+    $valignBottomChecked = $colValign === 'bottom' ? 'checked' : '';
 
     $colBgSettings = $columnData['settings'] ?? [];
 
     $colActiveClass = isset($columnData['activation']) && $columnData['activation'] === 'inactive' ? 'inactive' : 'active';
 
-    $html = '<div class="builder-column ' . $colActiveClass . '" id="' . $uniqueId . '" data-column-id="' . $columnIndex . '">';
-    $html .= '<div class="builder-header builder-column-header">';
-
-    $colTitle = $columnData['title'] ?? 'Column';
-
-    $html .= '<div class="builder-column-title exclude-from-toggle"><div class="builder-column-title-number">' . $columnNumberDisplay . '</div>';
-    $html .= '<div class="builder-column-title-text edit-column-title exclude-from-toggle" data-column-id="' . $columnIndex . '">' . $colTitle . '</div>';
-    $html .= '</div>';
-    $html .= '<div class="builder-column-toggle">&nbsp;</div>';
-    $html .= '<div class="builder-column-actions">';
-    $html .= '<div class="builder-column-actions-button show-column-settings">';
-    $html .= '<i class="fa-solid fa-fill-drip" title="Column Styles"></i>';
-    $html .= '</div>';
-    $html .= '</div>'; // close actions
-    $html .= '</div>'; // Close header
-    $html .= '<div class="builder-column-settings-row">';
-    $html .= '<form class="builder-column-settings">';
-    $html .= '<div class="builder-field-group">';
-    $html .= "<div class='builder-field-wrapper column-classes'><label for='{$uniqueId}-column-classes'>Column Classes</label>";
-    $html .= "<input type='text' name='column_classes' id='{$uniqueId}-column-classes' value='{$columnClasses}'>";
-    $html .=  "</div>";
-    $html .=  "</div>";
-    $html .= '<div class="builder-field-group">';
-    $html .= '<div class="button-group-wrapper">';
-    $html .= '<label class="button-group-label">Vertical Align</label>';
-    $html .= '<div class="button-group radio">';
-    $valignTopChecked = $colValign === 'top' ? 'checked' : '';
-    $html .= '<input type="radio" id="' . $uniqueId . '_valign_top" name="valign" value="top" class="valign-type-select" ' . $valignTopChecked . '>';
-    $html .= '<label class="button-label" for="' . $uniqueId . '_valign_top">Top</label>';
-    $valignMiddleChecked = $colValign === 'middle' ? 'checked' : '';
-    $html .= '<input type="radio" id="' . $uniqueId . '_valign_middle" name="valign" value="middle" class="valign-type-select" ' . $valignMiddleChecked . '>';
-    $html .= '<label class="button-label" for="' . $uniqueId . '_valign_middle">Middle</label>';
-    $valignBottomChecked = $colValign === 'bottom' ? 'checked' : '';
-    $html .= '<input type="radio" id="' . $uniqueId . '_valign_bottom" name="valign" value="bottom" class="valign-type-select" ' . $valignBottomChecked . '>';
-    $html .= '<label class="button-label" for="' . $uniqueId . '_valign_bottom">Bottom</label>';
-    $html .= '</div>';
-    $html .= '</div>';
-    $html .= '</div>';
+    $html = <<<HTML
+    <div class="builder-column {$colActiveClass}" id="{$uniqueId}" data-column-id="{$columnIndex}">
+        <div class="builder-header builder-column-header">
+            <div class="builder-column-title exclude-from-toggle">
+                <div class="builder-column-title-number">{$columnNumberDisplay}</div>
+                <div class="builder-column-title-text edit-column-title exclude-from-toggle" data-column-id="{$columnIndex}">{$colTitle}</div>
+            </div>
+            <div class="builder-column-toggle">&nbsp;</div>
+            <div class="builder-column-actions">
+                <div class="builder-column-actions-button show-column-settings">
+                    <i class="fa-solid fa-fill-drip" title="Column Styles"></i>
+                </div>
+            </div>
+        </div>
+        <div class="builder-column-settings-row">
+            <form class="builder-column-settings">
+                <div class="builder-field-group">
+                    <div class='builder-field-wrapper column-classes'>
+                        <label for='{$uniqueId}-column-classes'>Column Classes</label>
+                        <input type='text' name='column_classes' id='{$uniqueId}-column-classes' value='{$columnClasses}'>
+                    </div>
+                </div>
+                <div class="builder-field-group">
+                    <div class="button-group-wrapper">
+                        <label class="button-group-label">Vertical Align</label>
+                        <div class="button-group radio">
+                            <input type="radio" id="{$uniqueId}_valign_top" name="valign" value="top" class="valign-type-select" {$valignTopChecked}>
+                            <label class="button-label" for="{$uniqueId}_valign_top">Top</label>
+                            <input type="radio" id="{$uniqueId}_valign_middle" name="valign" value="middle" class="valign-type-select" {$valignMiddleChecked}>
+                            <label class="button-label" for="{$uniqueId}_valign_middle">Middle</label>
+                            <input type="radio" id="{$uniqueId}_valign_bottom" name="valign" value="bottom" class="valign-type-select" {$valignBottomChecked}>
+                            <label class="button-label" for="{$uniqueId}_valign_bottom">Bottom</label>
+                        </div>
+                    </div>
+                </div>
+    HTML;
 
     $html .= generate_background_settings_module($colBgSettings, '');
-    $html .= '</form>';
-    $html .= '</div>'; // Close settings row
 
-    $html .= '<div class="builder-column-chunks">';
-    $html .= '<div class="builder-column-chunks-body">'; // we need this extra wrapper to avoid slideup/slidedown from messing with our flex layout
+    $html .= <<<HTML
+            </form>
+        </div>
+        <div class="builder-column-chunks">
+            <div class="builder-column-chunks-body">
+    HTML;
 
-    if (! empty($columnData['chunks'])) {
+    if (!empty($columnData['chunks'])) {
         foreach ($columnData['chunks'] as $chunkIndex => $chunk) {
             $chunkType = $chunk['field_type'] ?? 'text';
-            $html .= generate_builder_chunk($chunkIndex, $chunkType, $rowId, $columnIndex, $chunk);
+            $html .= generate_builder_chunk($chunkIndex, $chunkType, $chunk);
         }
     }
-    $html .= '</div>';
-    $html .= '<div class="builder-column-footer add-chunk-wrapper"><button class="wiz-button centered add-chunk">Add Chunk</button></div>';
 
-    $html .= '</div>';
-
-    $html .= '</div>';
+    $html .= <<<HTML
+            </div>
+            <div class="builder-column-footer add-chunk-wrapper">
+                <button class="wiz-button centered add-chunk">Add Chunk</button>
+            </div>
+        </div>
+    </div>
+    HTML;
 
     return $html;
 }
 
 
-function generate_builder_chunk($chunkId, $chunkType, $rowId, $columnId, $chunkData = [])
+function generate_builder_chunk($chunkId, $chunkType, $chunkData = [])
 {
     $uniqueId = $chunkData['id'] ?? uniqid('wiz-chunk-');
     $uniqueId = uniqid('wiz-chunk-');
@@ -476,193 +441,133 @@ function generate_builder_chunk($chunkId, $chunkType, $rowId, $columnId, $chunkD
 
     $chunkPreview = get_chunk_preview($chunkData, $chunkType);
 
+    $encodedChunkData = htmlspecialchars(json_encode($chunkData), ENT_QUOTES, 'UTF-8');
 
-    $html = '<div class="builder-chunk --' . $chunkState . '" data-chunk-id="' . $chunkId . '" data-chunk-type="' . $chunkType . '" id="' . $uniqueId . '" data-chunk-data="' . htmlspecialchars(json_encode($chunkData), ENT_QUOTES, 'UTF-8') . '">
-                <div class="builder-header builder-chunk-header">
-                    <div class="builder-chunk-title">' . $chunkPreview . '</div>
-                    <div class="builder-toggle builder-chunk-toggle">&nbsp;</div>
-                    <div class="builder-chunk-actions">
-                        <div class="builder-chunk-actions-button exclude-from-toggle show-on-desktop ' . $desktopIconClass . '" data-show-on-desktop="' . $desktopVisibility . '" title="Show on desktop">
-                        <i class="fas fa-desktop" ></i>
-                        </div>
-                        <div class="builder-chunk-actions-button exclude-from-toggle show-on-mobile ' . $mobileIconClass . '" data-show-on-mobile="' . $mobileVisibility . '" title="Show on mobile">
-                        <i class="fas fa-mobile-alt" ></i>
-                        </div>
-                        <span>&nbsp;|&nbsp;</span>
-                        <div class="builder-chunk-actions-button add-chunk-wrapper builder-add-new-chunk-above exclude-from-toggle" title="Add chunk below">
-                        <span class="add-chunk" data-chunk-id="' . $chunkId . '"><i class="fas fa-plus"></i></span>
-                        </div>
-                        <div class="builder-chunk-actions-button exclude-from-toggle duplicate-chunk" title="Duplicate chunk">
-                        <i class="fa-regular fa-copy"></i>
-                        </div>
-                        <div class="builder-chunk-actions-button remove-element remove-chunk exclude-from-toggle" title="Remove chunk">
-                        <i class="fas fa-times"></i>
-                        </div>
-                    </div>
+    $html = <<<HTML
+    <div class="builder-chunk --{$chunkState}" data-chunk-id="{$chunkId}" data-chunk-type="{$chunkType}" id="{$uniqueId}" data-chunk-data="{$encodedChunkData}">
+        <div class="builder-header builder-chunk-header">
+            <div class="builder-chunk-title">{$chunkPreview}</div>
+            <div class="builder-toggle builder-chunk-toggle">&nbsp;</div>
+            <div class="builder-chunk-actions">
+                <div class="builder-chunk-actions-button exclude-from-toggle show-on-desktop {$desktopIconClass}" data-show-on-desktop="{$desktopVisibility}" title="Show on desktop">
+                    <i class="fas fa-desktop"></i>
                 </div>
-                <div class="builder-chunk-body">
-                    ' . generate_chunk_form_interface($chunkType, $rowId, $columnId, $chunkId, $chunkData, $uniqueId) . '
+                <div class="builder-chunk-actions-button exclude-from-toggle show-on-mobile {$mobileIconClass}" data-show-on-mobile="{$mobileVisibility}" title="Show on mobile">
+                    <i class="fas fa-mobile-alt"></i>
                 </div>
-            </div>';
+                <span>&nbsp;|&nbsp;</span>
+                <div class="builder-chunk-actions-button add-chunk-wrapper builder-add-new-chunk-above exclude-from-toggle" title="Add chunk below">
+                    <span class="add-chunk" data-chunk-id="{$chunkId}"><i class="fas fa-plus"></i></span>
+                </div>
+                <div class="builder-chunk-actions-button exclude-from-toggle duplicate-chunk" title="Duplicate chunk">
+                    <i class="fa-regular fa-copy"></i>
+                </div>
+                <div class="builder-chunk-actions-button remove-element remove-chunk exclude-from-toggle" title="Remove chunk">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+        </div>
+        <div class="builder-chunk-body">
+    HTML;
+
+    $html .= generate_chunk_form_interface($chunkType, $chunkData, $uniqueId);
+
+    $html .= <<<HTML
+        </div>
+    </div>
+    HTML;
+
     return $html;
 }
 
 
-function generate_chunk_form_interface($chunkType, $rowId, $columnId, $chunkId, $chunkData, $uniqueId)
+function generate_chunk_form_interface($chunkType, $chunkData, $uniqueId)
 {
-    // Start output buffering to capture HTML
     ob_start();
 
     $activeTab = $chunkData['activeTab'] ?? 'content';
 
-    // Define tabs and their labels
+    // Define tabs, their labels, and content generators
     $tabs = array(
-        'content' => 'Content',
-        'settings' => 'Settings',
-        'code' => 'HTML Code'
+        'content' => array(
+            'label' => 'Content',
+            'contentGenerator' => function ($chunkType, $chunkData, $uniqueId) {
+                echo "<form id='{$uniqueId}-chunk-fields' class='chunk-fields-form'>";
+                render_chunk_fields($chunkType, $chunkData, $uniqueId);
+                echo "</form>";
+            }
+        ),
+        'settings' => array(
+            'label' => 'Settings',
+            'contentGenerator' => function ($chunkType, $chunkData, $uniqueId) {
+                echo "<form id='{$uniqueId}-chunk-settings' class='chunk-settings-form'>";
+                echo render_chunk_settings($chunkType, $chunkData, $uniqueId);
+                echo "</form>";
+            }
+        ),
+        'code' => array(
+            'label' => 'HTML Code',
+            'addtLabelClasses' => 'refresh-chunk-code',
+            'contentGenerator' => function ($uniqueId) {
+                echo "<div class='chunk-tab-content-actions'>";
+                echo "<button class='wiz-button green copy-chunk-code' title='Copy HTML Code' data-code-in='#{$uniqueId}-chunk-code'><i class='fa-regular fa-copy'></i>&nbsp;&nbsp;Copy Code</button>";
+                echo "</div>";
+                echo "<form id='{$uniqueId}-chunk-code' class='chunk-code-form'>";
+                echo "<div class='chunk-html-code'>";
+                echo "<pre><code>Loading HTML code...</code></pre>";
+                echo "</div>";
+                echo "</form>";
+            }
+        )
     );
 
+    // Generate tabs
     echo '<div class="chunk-tabs">';
-    foreach ($tabs as $tab => $label) {
+    foreach ($tabs as $tab => $tabInfo) {
         $isActive = $tab === $activeTab ? 'active' : '';
-        $additionalClasses = '';
-        if ($tab == 'code') {
-            $additionalClasses .= 'refresh-chunk-code';
-        }
-        echo "<div class=\"chunk-tab $isActive $additionalClasses\" data-target=\"#{$uniqueId}-chunk-{$tab}-container\">{$label}</div>";
+        $additionalClasses = $tabInfo['addtLabelClasses'] ?? '';
+        echo "<div class='chunk-tab $isActive $additionalClasses' data-target='#{$uniqueId}-chunk-{$tab}-container'>{$tabInfo['label']}</div>";
     }
-
     echo '</div>';
 
-    // Content tab content
-    echo "<div class='tab-content chunk-content' id='{$uniqueId}-chunk-content-container' " . ($activeTab !== 'content' ? "style='display:none;'" : "") . ">";
-    echo "<form id='{$uniqueId}-chunk-fields' class='chunk-fields-form'>";
+    // Generate tab content
+    foreach ($tabs as $tab => $tabInfo) {
+        $isActive = $tab === $activeTab ? ' active' : '';
+        echo "<div class='chunk-tab-content chunk-{$tab}{$isActive}' id='{$uniqueId}-chunk-{$tab}-container'>";
+        $tabInfo['contentGenerator']($chunkType, $chunkData, $uniqueId);
+        echo "</div>";
+    }
 
-    render_chunk_fields($chunkType, $chunkData, $uniqueId);
-    echo "</form>";
-    echo "</div>"; // Close chunk-content container
-
-    // Settings tab content
-    echo "<div class='tab-content chunk-settings' id='{$uniqueId}-chunk-settings-container' " . ($activeTab !== 'settings' ? "style='display:none;'" : "") . ">";
-    echo "<form id='{$uniqueId}-chunk-settings' class='chunk-settings-form'>";
-
-    echo render_chunk_settings($chunkType, $chunkData, $uniqueId);
-    echo "</form>";
-    echo "</div>"; // Close chunk-settings div
-
-    // HTML Code tab content
-    echo "<div class='tab-content chunk-code' id='{$uniqueId}-chunk-code-container' " . ($activeTab !== 'code' ? "style='display:none;'" : "") . ">";
-    echo "<div class='tab-content-actions'>";
-    echo "<button class='wiz-button green copy-chunk-code' title='Copy HTML Code' data-code-in='#{$uniqueId}-chunk-code'><i class='fa-regular fa-copy'></i>&nbsp;&nbsp;Copy Code</button>";
-    echo "</div>"; // Close chunk-code-actions div
-    echo "<form id='{$uniqueId}-chunk-code' class='chunk-code-form'>";
-    echo "<div class='chunk-html-code'>";
-    echo "<pre><code>";
-    //echo render_chunk_code( $chunkData );
-    echo 'Loading HTML code...';
-    echo "</code></pre>";
-    echo "</div>"; // Close chunk-html-code div
-    echo "</form>";
-    echo "</div>"; // Close chunk-settings div
-
-    // Return the captured HTML
     return ob_get_clean();
 }
-
 function render_chunk_settings($chunkType, $chunkData, $uniqueId)
 {
-    $showChunkWrap = false;
-    switch ($chunkType) {
-        case 'text':
-            $settings = array(
-                'chunk_classes',
-                'chunk_padding',
-                'p_padding',
-                'div',
-                'base_text_color',
-                'force_white_text_devices',
-                'div',
-                'background_settings'
-            );
+    $settings = array(
+        'text' => ['chunk_classes', 'chunk_padding', 'p_padding', 'div', 'base_text_color', 'force_white_text_devices', 'div', 'background_settings'],
+        'html' => ['chunk_wrap', 'chunk_classes', 'chunk_padding', 'div', 'base_text_color', 'force_white_text_devices', 'div', 'background_settings', 'chunk_wrap_hide_end'],
+        'icon-list' => ['chunk_classes', 'chunk_padding', 'p_padding', 'div', 'base_text_color', 'force_white_text_devices', 'div', 'list_width', 'icon_width', 'div', 'background_settings'],
+        'image' => ['chunk_classes', 'chunk_padding', 'div', 'background_settings'],
+        'button' => ['chunk_classes', 'chunk_padding', 'div', 'background_settings'],
+        'spacer' => ['chunk_classes', 'div', 'background_settings'],
+        'snippet' => ['chunk_classes', 'div', 'background_settings'],
+        'interactive' => ['chunk_classes', 'div', 'background_settings']
+    );
 
-            break;
-        case 'html':
-            $settings = array(
-                'chunk_classes',
-                'chunk_padding',
-                'div',
-                'base_text_color',
-                'force_white_text_devices',
-                'div',
-                'background_settings',
-                'chunk_wrap_hide_end'
-            );
-            $showChunkWrap = true;
-            break;
-        case 'icon-list':
-            $settings = array(
-                'chunk_classes',
-                'chunk_padding',
-                'p_padding',
-                'div',
-                'base_text_color',
-                'force_white_text_devices',
-                'div',
-                'list_width',
-                'icon_width',
-                'div',
-                'background_settings'
-            );
-            break;
-        case 'image':
-            $settings = array(
-                'chunk_classes',
-                'chunk_padding',
-                'div',
-                'background_settings'
-            );
+    $chunkSettings = $settings[$chunkType] ?? [];
 
-            break;
-        case 'button':
-            $settings = array(
-                'chunk_classes',
-                'chunk_padding',
-                'div',
-                'background_settings'
-            );
-            break;
-        case 'spacer':
-            $settings = array(
-                'chunk_classes',
-                'div',
-                'background_settings'
-            );
-            break;
-        case 'snippet':
-        case 'interactive':
-            $settings = array(
-                'chunk_classes',
-                'div',
-                'background_settings'
-            );
-            break;
-    }
     echo "<div class='chunk-inner-content'>";
-    show_specific_chunk_settings($chunkData, $uniqueId, $settings, $chunkType, $showChunkWrap);
-    echo "</div>"; // Close chunk-inner-content div
-
+    show_specific_chunk_settings($chunkData, $uniqueId, $chunkSettings, $chunkType);
+    echo "</div>";
 }
-
-function show_specific_chunk_settings($chunkData, $uniqueId, $settings, $chunkType, $showChunkWrap = false)
+function show_specific_chunk_settings($chunkData, $uniqueId, $settings, $chunkType)
 {
+    $showChunkWrap = in_array('chunk_wrap', $settings);
 
     $settingsActive = true; // default to showing the chunk settings
 
     $chunkSettings = $chunkData['settings'] ?? [];
 
     if ($showChunkWrap) {
-
-
         echo "<div class='builder-field-group flex'>"; // Start the chunk wrap setting
 
         $chunkWrap = $chunkSettings['chunk_wrap'] ?? false;
@@ -710,7 +615,7 @@ function show_specific_chunk_settings($chunkData, $uniqueId, $settings, $chunkTy
                     echo "</div>";
                     break;
                 case 'p_padding':
-                    $pPadding = $chunkSettings['p_padding'] ?? false;
+                    $pPadding = $chunkSettings['p_padding'] === 'true' ?  true : false;
                     $uniqueIdPpadding = $uniqueId . 'p_padding';
                     $pPaddingChecked = $pPadding ? 'checked' : '';
                     $pPaddingActive = $pPadding ? 'active' : '';
@@ -743,7 +648,7 @@ function show_specific_chunk_settings($chunkData, $uniqueId, $settings, $chunkTy
                     echo "<div class='button-group checkbox'>";
                     foreach ($forceWhiteTextDevices as $opt) {
                         $fieldID = $opt['id'];
-                        $isChecked = $chunkSettings[$opt['name']] ?? false;
+                        $isChecked = $chunkSettings[$opt['name']] === 'true' ? true :  false;
                         $checkVal = $isChecked ? 'true' : 'false';
                         $checkedAtt = $isChecked ? 'checked' : '';
 
@@ -796,11 +701,10 @@ function render_chunk_fields($chunkType, $chunkData, $uniqueId)
     echo "<form id='{$uniqueId}-chunk-fields-form'>";
     switch ($chunkType) {
         case 'text':
-            $existingContent = isset($chunkData['fields']['plain_text_content']) ? $chunkData['fields']['plain_text_content'] : 'Enter your content here...';
+            $existingContent = isset($chunkData['fields']['plain_text_content']) ? stripslashes($chunkData['fields']['plain_text_content']) : 'Enter your content here...';
             $editorMode = $chunkData['editor_mode'] ?? 'light';
 
             echo '<textarea class="wiz-wysiwyg" name="plain_text_content" id="' . $uniqueId . '-wiz-wysiwyg" data-editor-mode="' . $editorMode . '">' . $existingContent . '</textarea>';
-
 
             break;
         case 'html':
@@ -1147,18 +1051,44 @@ function generate_background_settings_module($backgroundSettings, $uniqueId = ''
     return ob_get_clean();
 }
 
-function get_utm_term_fieldset($index, $key, $value)
+
+
+
+
+function get_template_data_modal()
 {
-    return '
-    <div class="builder-field-wrapper flex utm_fields_wrapper">
-        <input type="text" name="key_' . $index . '"
-            class="builder-field" placeholder="utm_something"
-            value="' . esc_attr($key) . '">
-        <span>=</span>
-        <input type="text" name="value_' . $index . '"
-            class="builder-field" placeholder="value"
-            value="' . esc_attr($value) . '">
-        <i class="fa-solid fa-trash-can remove_utm_parameter"></i>
+    ob_start();
+?>
+    <div id="template-data-modal">
+        <div class="inner-flex">
+            <div id="template-data-modal-header">
+                <h4>Template Data</h4><i class="fa-solid fa-xmark close-modal"></i>
+            </div>
+
+            <form id="templateDataForm">
+                <div class="template-data-form-wrap">
+                    <div class="template-data-form-fieldset presetSelect">
+                        <label for="dataPresetSelect">Select preset profile</label>
+                        <select id="dataPresetSelect" name="dataPreset">
+                            <option value="" disabled selected>Select a profile</option>
+                            <?php
+                            $presetProfiles = get_template_data_profiles();
+                            foreach ($presetProfiles as $profile) {
+                                echo '<option value="' . $profile['WizProfileId'] . '">' . $profile['WizProfileName'] . '</option>';
+                            }
+                            ?>
+
+                        </select>
+                    </div>
+                    <div class="template-data-form-fieldset jsonData">
+                        <label for="templateData">JSON data</label>
+                        <textarea id="templateData" name="template_data" class="templateData" placeholder="{}" rows="5"></textarea>
+                    </div>
+                </div>
+            </form>
+
+        </div>
     </div>
-    ';
+<?php
+    return ob_get_clean();
 }

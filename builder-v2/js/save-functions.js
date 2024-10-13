@@ -153,9 +153,6 @@ function gather_rows_data(index = null) {
 
         row.desktop_visibility = rowDesktopVisibility === 'true' ? 'true' : 'false';
         row.mobile_visibility = rowMobileVisibility === 'true' ? 'true' : 'false';
-
-        var framesMode = $row.find('.toggle-frames-mode').attr('data-frames-mode');
-        row.frames_mode = framesMode === 'true' ? 'true' : 'false';
 			
 
         // Collect columnset data
@@ -375,9 +372,9 @@ function collect_element_field_values($container, target) {
         }
 
         // Handle plain text input
-        if ($container.is('#plain-text-content')) {
-            let sanitizedText = sanitizeTextArea($field.val());
-            nestedTarget[key] = sanitizedText;
+        if ($container.attr('name') == 'plain-text-content') {
+            //let sanitizedText = sanitizeTextArea($field.val());
+            nestedTarget[key] = $field.val();
         }
     });
 

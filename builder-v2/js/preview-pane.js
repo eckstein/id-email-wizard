@@ -42,12 +42,6 @@ function update_template_preview(fromDatabase = false) {
           
         }
 
-        // Update the iframe which will pull the new transient data
-        //   var url = idAjax.site_url + '/build-template-v2/' +templateId;
-        //   url += "?cache_bust=" + new Date().getTime();
-        //   iframe.src = url;
-
-        
         var iframe = jQuery("#previewFrame")[0];
         var preview = jQuery(iframe.contentWindow.document || iframe.contentDocument);
 
@@ -108,7 +102,7 @@ function update_template_preview(fromDatabase = false) {
         thisPreviewChunk.addClass('active');
 
         // Re-setup event handlers
-        setupPreviewFrameEventHandlers()
+        setupPreviewFrameEventHandlers(iframe)
     }
 
 }
@@ -117,9 +111,9 @@ function update_template_preview(fromDatabase = false) {
 
 
 
-function setupPreviewFrameEventHandlers() {
+function setupPreviewFrameEventHandlers(iframe) {
 
-  var iframe = jQuery("#previewFrame")[0];
+//   var iframe = jQuery("#previewFrame")[0];
   var preview = jQuery(iframe.contentWindow.document || iframe.contentDocument);
 
   // Handle clicks on builder chunks
@@ -205,7 +199,7 @@ function setupPreviewFrameEventHandlers() {
 // Call setupPreviewFrameEventHandlers when the iframe loads
 jQuery("#previewFrame").on("load", function() {
     
-    setupPreviewFrameEventHandlers();
+    setupPreviewFrameEventHandlers(iframe);
 });
 
 

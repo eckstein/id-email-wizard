@@ -480,6 +480,16 @@ body.single-idemailwiz_template {
 		flex: 1;
 		cursor: pointer;
 	}
+	.builder-element-summary {
+		display: none;
+		font-size: 12px;
+		font-style: italic;
+		color: #666;
+		text-align: center;
+	}
+	.builder-element-summary.visible {
+		display: block;
+	}
 	.builder-row-actions,
 	.builder-columnset-actions,
 	.builder-chunk-actions {
@@ -747,12 +757,6 @@ body.single-idemailwiz_template {
 	display: inline-block;
 }
 
-.toggle-frames-mode.active {
-	background-color: rgb(255, 218, 116)!important;
-}
-.toggle-frames-mode.active i {
-	color: #343434!important;
-}
 
 .builder-chunk-body {
 	border: 1px solid #eee;
@@ -1299,19 +1303,24 @@ body.single-idemailwiz_template {
 		cursor: pointer;
 	}
 
-	
-.tab-content.chunk-content {
+.chunk-tab-content {
+	display: none;
+}
+.chunk-tab-content.active {
+	display: block;
+}
+.chunk-tab-content.chunk-content {
 	padding: 10px;
 }
-.tab-content.chunk-settings {
+.chunk-tab-content.chunk-settings {
 	padding: 10px;
 }
 
 
-.tab-content.chunk-code {
+.chunk-tab-content.chunk-code {
 	padding: 10px;
 }
-.tab-content.chunk-code .chunk-html-code pre {
+.chunk-tab-content.chunk-code .chunk-html-code pre {
 	max-height: 300px;
 	white-space: pre-wrap;
 	overflow-y:auto;
@@ -1319,10 +1328,10 @@ body.single-idemailwiz_template {
 }
 
 
-.tab-content.chunk-code .tab-content-actions {
+.chunk-tab-content.chunk-code .tab-content-actions {
 	padding-right: 20px;
 }
-.tab-content .tab-content-actions {
+.chunk-tab-content .tab-content-actions {
 	display: flex;
 	gap: 15px;
 	align-items: flex-end;

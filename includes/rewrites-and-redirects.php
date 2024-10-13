@@ -38,7 +38,7 @@ function idemailwiz_custom_rewrite_rule()
     add_rewrite_endpoint('metrics/campaign', EP_ROOT);
     add_rewrite_endpoint('metrics/journey', EP_ROOT);
     //add_rewrite_endpoint('build-template', EP_ROOT);
-    add_rewrite_endpoint('build-template-v2', EP_ROOT);
+    add_rewrite_endpoint('template-frame', EP_ROOT);
     add_rewrite_endpoint('user-profile', EP_ROOT);
     add_rewrite_endpoint('settings', EP_ROOT);
     add_rewrite_endpoint('sync-station', EP_ROOT);
