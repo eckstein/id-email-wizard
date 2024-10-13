@@ -34,7 +34,7 @@ function get_builder_pane_header($postId)
         </div>
         <div class="main-builder-actions">
             <button title="Sync to Iterable" class="wiz-button" id="sendToIterable"
-                data-postid="<?php echo $postId; ?>"><img style="width: 20px; height: 20px;"
+                data-postid="{$postId}"><img style="width: 20px; height: 20px;"
                     src="https://idemailwiz.com/wp-content/uploads/2023/10/Iterable_square_logo-e1677898367554.png" />&nbsp;&nbsp;
                 Sync</button>
 
