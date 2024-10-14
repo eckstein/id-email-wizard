@@ -546,9 +546,9 @@ function generate_chunk_form_interface($chunkType, $chunkData, $uniqueId)
 function render_chunk_settings($chunkType, $chunkData, $uniqueId)
 {
     $settings = array(
-        'text' => ['chunk_classes', 'chunk_padding', 'p_padding', 'div', 'base_text_color', 'force_white_text_devices', 'div', 'background_settings'],
-        'html' => ['chunk_wrap', 'chunk_classes', 'chunk_padding', 'div', 'base_text_color', 'force_white_text_devices', 'div', 'background_settings', 'chunk_wrap_hide_end'],
-        'icon-list' => ['chunk_classes', 'chunk_padding', 'p_padding', 'div', 'base_text_color', 'force_white_text_devices', 'div', 'list_width', 'icon_width', 'div', 'background_settings'],
+        'text' => ['chunk_classes', 'chunk_padding', 'p_padding', 'div', 'force_white_text_devices', 'div', 'background_settings'],
+        'html' => ['chunk_wrap', 'chunk_classes', 'chunk_padding', 'div', 'force_white_text_devices', 'div', 'background_settings', 'chunk_wrap_hide_end'],
+        'icon-list' => ['chunk_classes', 'chunk_padding', 'p_padding', 'div', 'force_white_text_devices', 'div', 'list_width', 'icon_width', 'div', 'background_settings'],
         'image' => ['chunk_classes', 'chunk_padding', 'div', 'background_settings'],
         'button' => ['chunk_classes', 'chunk_padding', 'div', 'background_settings'],
         'spacer' => ['chunk_classes', 'div', 'background_settings'],
@@ -633,12 +633,8 @@ function show_specific_chunk_settings($chunkData, $uniqueId, $settings, $chunkTy
                     echo "</div>";
                     echo "</div>";
                     break;
-                case 'base_text_color':
-                    $baseTextColor = $chunkSettings['text_base_color'] ?? '#000000';
-                    echo "<div class='builder-field-wrapper base-text-color centered'><label for='{$uniqueId}-text-base-color'>Base Text Color</label>";
-                    echo "<input class='builder-colorpicker' type='color' name='text_base_color' id='{$uniqueId}-text-base-color' data-color-value='{$baseTextColor}'>";
-                    echo "</div>";
-                    break;
+                
+
 
                 case 'force_white_text_devices':
                     $forceWhiteTextDevices = [

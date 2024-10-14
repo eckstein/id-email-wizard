@@ -303,25 +303,7 @@ function builder_init_tinymce($optionalElement) {
                 // Set isInitialTinyMCELoad to false after the initial content update
                 setTimeout(function() {
                     isInitialTinyMCELoad = false;
-                }, 0);
-
-                var editorContainer = jQuery(editor.getContainer());
-                var $baseColorInput = editorContainer.closest('.builder-chunk').find('input[name="text_base_color"]');
-                var baseColor = $baseColorInput.attr('data-color-value');
-                editor.getBody().style.color = baseColor;
-
-                editorContainer.closest('.builder-chunk').on('change', 'input[name="text_base_color"]', function(e, tinycolor) {
-                    var baseColor = tinycolor.toHexString();
-                    var editorContainer = jQuery(editor.getContainer());
-                    var $parent = jQuery(this).closest('.builder-chunk');
-                    if ($parent.has(editorContainer).length) {
-                        editor.getBody().style.color = baseColor;
-                    }
-                });
-
-                
-
-               
+                }, 0);               
             });
 
             editor.on('input', function() {

@@ -29,6 +29,11 @@
     $underlineStyle = $underlineLinks ? "text-decoration: underline" : "text-decoration: none";
 
     $darkModeSupport = $templateStyles['custom-styles']['dark-mode-support'] === true ? true : false;
+
+    $textStyles = $templateStyles['text-styles'] ?? [];
+    $baseTextColor = $textStyles['text_styles_text_color'];
+    $baseDarkModeTextColor = $textStyles['text_styles_dark_mode_text_color'];
+
     $darkModeCss = '';
     if ($darkModeSupport) {
         $darkModeCss = <<<HTML
@@ -43,7 +48,26 @@
             .dark-image {
                 display:inline!important
             }
+            p,h1,h2,h3,h4,h5,h6 {
+            color: {$baseDarkModeTextColor};
+            }
         }
+        
+        [data-ogsc] .light-image,
+        [data-ogsb] .light-image {
+                display:none!important
+            }
+        [data-ogsc] .dark-image,
+        [data-ogsb] .dark-image {
+                display:inline!important
+            }
+        [data-ogsc] p,[data-ogsc] h1,[data-ogsc] h2,[data-ogsc] h3,[data-ogsc] h4,[data-ogsc] h5,[data-ogsc] h6 {
+            color: #fff;
+            }
+        [data-ogsb] p,[data-ogsb] h1,[data-ogsb] h2,[data-ogsb] h3,[data-ogsb] h4,[data-ogsb] h5,[data-ogsb] h6 {
+            color: #fff;
+            }
+            
         </style>
         HTML;
     }
@@ -63,7 +87,7 @@
         }
     </style>
 
-    {$darkModeCss}
+    
 
     <style type="text/css">
         @media screen and (min-width: 481px) {
@@ -116,6 +140,9 @@
     
     <style type="text/css">
         /* Global styles for all clients that can read them */
+        html, body, article {
+            color: {$baseTextColor};
+        }
         html * {
             font-family: 'Poppins', Helvetica, Arial, sans-serif;
         }
@@ -194,37 +221,43 @@
     h1 {
         margin: 0 !important;
         padding: 0 0 .67em 0;
-        font-size: 2em !important
+        font-size: 2em !important;
+        color: inherit;
     }
 
     h2 {
         margin: 0 !important;
         padding: 0 0 .83em 0;
-        font-size: 1.5em !important
+        font-size: 1.5em !important;
+        color: inherit;
     }
 
     h3 {
         margin: 0 !important;
         padding: 0 0 1em 0;
-        font-size: 1.17em !important
+        font-size: 1.17em !important;
+        color: inherit;
     }
 
     h4 {
         margin: 0 !important;
         padding: 0 0 1.33em 0;
-        font-size: 1em !important
+        font-size: 1em !important;
+        color: inherit;
     }
 
     h5 {
         margin: 0 !important;
         padding: 0 0 1.67em 0;
         font-size: .83em !important;
+        color: inherit;
     }
 
     h6 {
         margin: 0 !important;
         padding: 0 0 1.33em 0;
         font-size: .67em !important;
+        color: inherit;
     }
 
     .noPad h1,
@@ -322,6 +355,8 @@
         }
     }
 </style>
+
+{$darkModeCss}
 
 <!-- MSO only styles-->
 <!--[if mso]>

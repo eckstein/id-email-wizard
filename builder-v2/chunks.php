@@ -242,8 +242,6 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 
 	$templateFontSize = $templateStyles['font-size']['template_font_size'] ?? '16px';
 
-	$baseTextColor = $chunkSettings['text_base_color'] ?? '#000000';
-
 	$gmailBlendDesktop = false;
 	if (isset($chunkSettings['force_white_text_on_desktop'])) {
 		$gmailBlendDesktop = json_decode($chunkSettings['force_white_text_on_desktop']);
@@ -263,7 +261,7 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 	$output = '';
 
 
-	$output .= $isEditor || $chunkWrap ? '<div class="chunk id-raw-html ' . $chunkClasses . ' ' . $visibility['class'] . '" ' . $chunkDataAttr . ' style="' . $visibility['inlineStyle'] . ' ' . $backgroundColorCss . ' color: ' . $baseTextColor . '; padding: ' . $chunkPadding . '; font-size: ' . $templateFontSize . ';">' : '';
+	$output .= $isEditor || $chunkWrap ? '<div class="chunk id-raw-html ' . $chunkClasses . ' ' . $visibility['class'] . '" ' . $chunkDataAttr . ' style="' . $visibility['inlineStyle'] . ' ' . $backgroundColorCss . ' padding: ' . $chunkPadding . '; font-size: ' . $templateFontSize . ';">' : '';
 	if ($chunkWrap) {
 		if ($visibility['class'] == 'mobile-only') {
 			$output .= '<!--[if !mso]><!-->';
@@ -274,7 +272,7 @@ function idwiz_get_raw_html_chunk($chunk, $templateOptions, $chunkIndex = null, 
 		<table ' . $tableClassHtml . ' role="presentation"
 			style="width:100%;border:0;border-spacing:0; ' . $visibility['inlineStyle'] . ' ' . $msoBackgroundColorCss . '">
 			<tr>
-				<td class="id-raw-html" style="' . $msoBackgroundColorCss . ' padding: ' . $chunkPadding . '; color: ' . $baseTextColor . '; font-family: Poppins, Arial, sans-serif!important; font-size: ' . $templateFontSize . ';">
+				<td class="id-raw-html" style="' . $msoBackgroundColorCss . ' padding: ' . $chunkPadding . '; font-family: Poppins, Arial, sans-serif!important; font-size: ' . $templateFontSize . ';">
 		<![endif]-->
 		';
 
@@ -341,10 +339,9 @@ function idwiz_get_icon_list_chunk($chunk, $templateOptions, $chunkIndex = null,
 	$textContent = add_aria_label_to_links($textContent);
 
 	$templateFontSize = $templateOptions['template_styles']['font-size']['template_font_size'] ?? '16px';
-	$baseTextColor = $chunkSettings['text_base_color'] ?? '#000000';
 
 	$output = '';
-	$output .= '<div class="chunk id-icon-list ' . $chunkClasses . ' ' . $visibility['class'] . ' ' . $pPaddingClass . '" ' . $chunkDataAttr . ' style="' . $backgroundColorCss . ' ' . $visibility['inlineStyle'] . $chunkPaddingCss . ' color:' . $baseTextColor . '">';
+	$output .= '<div class="chunk id-icon-list ' . $chunkClasses . ' ' . $visibility['class'] . ' ' . $pPaddingClass . '" ' . $chunkDataAttr . ' style="' . $backgroundColorCss . ' ' . $visibility['inlineStyle'] . $chunkPaddingCss . '">';
 
 	if ($visibility['class'] == 'mobile-only') {
 		$output .= '<!--[if !mso]><!-->';
@@ -404,8 +401,6 @@ function idwiz_get_plain_text_chunk($chunk, $templateOptions, $chunkIndex = null
 
 	$templateFontSize = $templateStyles['font-size']['template_font_size'] ?? '16px';
 
-	$baseTextColor = $chunkSettings['text_base_color'] ?? '#000000';
-
 	$gmailBlendDesktop = false;
 	if (isset($chunkSettings['force_white_text_on_desktop'])) {
 		$gmailBlendDesktop = json_decode($chunkSettings['force_white_text_on_desktop']);
@@ -432,7 +427,7 @@ function idwiz_get_plain_text_chunk($chunk, $templateOptions, $chunkIndex = null
 	$textContent = add_aria_label_to_links($textContent);
 
 	$output = '';
-	$output .= '<div class="chunk id-plain-text ' . $chunkClasses . ' ' . $pPaddingClass . ' ' . $visibility['class'] . '" ' . $chunkDataAttr . ' style="' . $visibility['inlineStyle'] . ' ' . $backgroundColorCss . ' color: ' . $baseTextColor . '; padding: ' . $chunkPadding . '; font-size: ' . $templateFontSize . ';">';
+	$output .= '<div class="chunk id-plain-text ' . $chunkClasses . ' ' . $pPaddingClass . ' ' . $visibility['class'] . '" ' . $chunkDataAttr . ' style="' . $visibility['inlineStyle'] . ' ' . $backgroundColorCss . ' padding: ' . $chunkPadding . '; font-size: ' . $templateFontSize . ';">';
 
 	if ($visibility['class'] == 'mobile-only') {
 		$output .= '<!--[if !mso]><!-->';
@@ -440,7 +435,7 @@ function idwiz_get_plain_text_chunk($chunk, $templateOptions, $chunkIndex = null
 
 	$output .= '<!--[if mso]><table ' . $tableClassHtml . ' role="presentation" style="width:100%;border:0;border-spacing:0; ' . $visibility['inlineStyle'] . ' ' . $msoBackgroundColorCss . '">
 		<tr>
-			<td class="id-plain-text" style="' . $msoBackgroundColorCss . ' padding: ' . $chunkPadding . '; color: ' . $baseTextColor . '; font-family: Poppins, Arial, sans-serif!important; font-size: ' . $templateFontSize . ';">
+			<td class="id-plain-text" style="' . $msoBackgroundColorCss . ' padding: ' . $chunkPadding . '; font-family: Poppins, Arial, sans-serif!important; font-size: ' . $templateFontSize . ';">
 			<![endif]-->';
 
 

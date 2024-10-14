@@ -141,10 +141,10 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 											<div class="wiz-checkbox-toggle">
 												<input type="checkbox" class="wiz-check-toggle" data-preview-part="standard_header"
 													id="template_settings_show_dark_mode_header" name="show_dark_mode_header" hidden
-													<?php echo $showHeader ? 'checked' : ''; ?>>
+													<?php echo $useDarkModeHeader ? 'checked' : ''; ?>>
 												<label for="template_settings_show_dark_mode_header"
-													class="wiz-check-toggle-display <?php echo $showHeader ? 'active' : ''; ?>"><i
-														class="<?php echo $showHeader ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
+													class="wiz-check-toggle-display <?php echo $useDarkModeHeader ? 'active' : ''; ?>"><i
+														class="<?php echo $useDarkModeHeader ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
 											</div>
 
 										</div>
@@ -344,7 +344,27 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 										</div>
 									</div>
 								</fieldset>
-
+								<fieldset name="text-styles">
+									<?php
+									$textStyles = $templateStyles['text-styles'] ?? [];
+									$templateTextColor = $textStyles['text_styles_text_color'] ?? '#000000';
+									$templateDarkModeTextColor = $textStyles['text_styles_dark_mode_text_color'] ?? '#FFFFFF';
+									?>
+									<div class="builder-field-group flex">
+										<div class="builder-field-wrapper">
+											<label for="text_styles_text_color">Text Color</label>
+											<input class="builder-colorpicker" type="color" data-preview-part="fullTemplate"
+												name="text_styles_text_color" id="text_styles_text_color"
+												data-color-value="<?php echo $templateTextColor; ?>">
+										</div>
+										<div class="builder-field-wrapper">
+											<label for="text_styles_dark_mode_text_color">Dark Mode Text Color</label>
+											<input class="builder-colorpicker" type="color" data-preview-part="fullTemplate"
+												name="text_styles_dark_mode_text_color" id="text_styles_dark_mode_text_color"
+												data-color-value="<?php echo $templateDarkModeTextColor; ?>">
+										</div>
+									</div>
+								</fieldset>
 								<fieldset name="link-styles">
 									<?php
 
@@ -395,9 +415,6 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 										</div>
 
 									</div>
-								</fieldset>
-								<fieldset name="external-utms">
-
 								</fieldset>
 							</div>
 
