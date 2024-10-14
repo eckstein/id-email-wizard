@@ -328,15 +328,25 @@ function generate_column_start($rowIndex, $columnSetIndex, $columnIndex, $templa
         $columnWidthPct = 100;
     }
 
-    $columnStyle = "width: {$columnWidthPct}%; max-width: {$columnWidthPx}px; font-size: {$templateStyles['font-styles']['template_font_size']}; vertical-align: {$colValign}; text-align: left; display: inline-block;";
+    // Convert valign value to align-self values
+    $flexAlignSelfValue = 'flex-start';
+    if ($colValign === 'top') {
+        $flexAlignSelfValue = 'flex-start';
+    } elseif ($colValign === 'middle') {
+        $flexAlignSelfValue = 'center';
+    } elseif ($colValign === 'bottom') {
+        $flexAlignSelfValue = 'flex-end';
+    }
+
+    $columnStyle = "width: {$columnWidthPct}%; max-width: {$columnWidthPx}px; font-size: {$templateStyles['font-styles']['template_font_size']}; align-self: {$flexAlignSelfValue}; text-align: left;'";
 
     $columnDataAttr = $isEditor ? 'data-column-index=' . $columnIndex : '';
     $return = '';
     if ($isEditor) {
         $return = '<wizPlaceholder data-preview-part="column_start" data-row-index="' . $rowIndex . '" data-columnset-index="' . $columnSetIndex . '" data-column-index="' . $columnIndex . '"></wizPlaceholder>';
     }
-    $return .= "<!--[if mso]><td style='$msoColBackgroundCSS' width='$columnWidthPx' valign='$colValign'><![endif]-->";
-    $return .= "<div class='column $columnClasses $mobileWrapClass' $columnDataAttr style='$columnStyle $colBackgroundCSS' dir='ltr'>";
+    $return .= "<!--[if mso]><td style='$msoColBackgroundCSS vertical-align:$colValign;' width='$columnWidthPx' valign='$colValign'><![endif]-->";
+    $return .= "<div class='column $columnClasses $mobileWrapClass' $columnDataAttr style='$columnStyle $colBackgroundCSS' valign='$colValign' dir='ltr'>";
 
     return $return;
 }

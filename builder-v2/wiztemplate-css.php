@@ -73,8 +73,7 @@
     }
 
     $css = <<<HTML
-    <!-- The first style block will be removed by Yahoo! on android, so nothing here for that platform-->
-
+    <!-- The first style block will be removed by Yahoo! on android, so nothing here for that platform (we'll use it for gmail) -->
     <!--dedicated block for gmail-->
     <style type="text/css">
         u + .body a {
@@ -86,8 +85,6 @@
             line-height: inherit;
         }
     </style>
-
-    
 
     <style type="text/css">
         @media screen and (min-width: 481px) {
@@ -313,12 +310,14 @@
 
     .columnSet {
        white-space: nowrap;
+       display: flex;
+       flex-wrap: wrap;
     }
     .column {
         white-space: normal;
     }
 
-    @media screen and (max-width: 460px) {
+    @media screen and (max-width: 480px) {
         .columnSet.noWrap {
             white-space: nowrap;
         }
@@ -356,9 +355,89 @@
     }
 </style>
 
+<!-- If this is a non-MSO windows client, we include styles for dynamic mobile/desktop visibility and columns -->
+<!--[if !mso]><!-->
+
+<style type="text/css">
+    
+    .desktop-only {
+        display: block;
+        /* Show by default */
+    }
+
+    table.desktop-only {
+        display: table;
+    }
+
+    .mobile-only {
+        display: none;
+        /* Hide by default */
+    }
+
+    @media screen and (max-width: 480px) {
+
+        .three-col .column.wrap,
+        .two-col .column.wrap,
+        .sidebar-left .column.wrap,
+        .sidebar-right .column.wrap {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 100% !important;
+            display: block !important;
+            overflow: hidden;
+        }
+
+        .mobile-only {
+            display: block !important;
+        }
+
+        table.mobile-only {
+            display: table !important;
+        }
+
+        .desktop-only {
+            display: none !important;
+        }
+    }
+    @media screen and (min-width: 481px) {
+        .three-col .column {
+            max-width: 33.333% !important;
+            min-width: 33.333% !important;
+            display: inline-block;
+            text-align: left;
+            overflow: hidden;
+        }
+
+        .two-col .column {
+            max-width: 50% !important;
+            min-width: 50% !important;
+            display: inline-block;
+            text-align: left;
+            overflow: hidden;
+        }
+
+
+        .desktop-only {
+            display: block !important;
+        }
+
+        table.desktop-only {
+            display: table !important;
+        }
+
+        .mobile-only {
+            display: none !important;
+        }
+    }
+
+    
+</style>
+<!--<![endif]-->
+
+<!-- Include dark mode CSS -->
 {$darkModeCss}
 
-<!-- MSO only styles-->
+<!-- MSO app only styles-->
 <!--[if mso]>
     <style type="text/css">
         table {
@@ -397,85 +476,6 @@
     </style>
 			
 <![endif]-->
-
-<!-- If this is a non-MSO windows client, we include styles for dynamic mobile/desktop visibility -->
-<!--[if !mso]><!-->
-
-<style type="text/css">
-    
-    .desktop-only {
-        display: block;
-        /* Show by default */
-    }
-
-    table.desktop-only {
-        display: table;
-    }
-
-    .mobile-only {
-        display: none;
-        /* Hide by default */
-    }
-
-    @media screen and (max-width: 440px) {
-
-        .three-col .column.wrap,
-        .two-col .column.wrap,
-        .sidebar-left .column.wrap,
-        .sidebar-right .column.wrap {
-            width: 100% !important;
-            max-width: 100% !important;
-            min-width: 100% !important;
-            display: block !important;
-            overflow: hidden;
-        }
-
-        .mobile-only {
-            display: block !important;
-        }
-
-        table.mobile-only {
-            display: table !important;
-        }
-
-        .desktop-only {
-            display: none !important;
-        }
-    }
-    @media screen and (min-width: 441px) {
-        .three-col .column {
-            max-width: 33.333% !important;
-            min-width: 33.333% !important;
-            display: inline-block;
-            text-align: left;
-            overflow: hidden;
-        }
-
-        .two-col .column {
-            max-width: 50% !important;
-            min-width: 50% !important;
-            display: inline-block;
-            text-align: left;
-            overflow: hidden;
-        }
-
-
-        .desktop-only {
-            display: block !important;
-        }
-
-        table.desktop-only {
-            display: table !important;
-        }
-
-        .mobile-only {
-            display: none !important;
-        }
-    }
-
-    
-</style>
-<!--<![endif]-->
 
 HTML;
 
