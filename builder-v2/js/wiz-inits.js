@@ -352,9 +352,9 @@ function reinitialize_wiz_sortables_for_cloned($originalElement, $clonedElement)
 
 // Function to handle common initialization tasks
 function init_ui_for_new_chunk($element) {
-    initialize_editable('.builder-row-title-text', 'row-id');
-    initialize_editable('.builder-column-title-text', 'column-id');
-    initialize_editable('.builder-columnset-title-text', 'columnset-id');
+    // initialize_editable('.builder-row-title-text', 'row-id');
+    // initialize_editable('.builder-column-title-text', 'column-id');
+    // initialize_editable('.builder-columnset-title-text', 'columnset-id');
 
     init_spectrum_pickers($element);
     reinitTinyMCE($element);

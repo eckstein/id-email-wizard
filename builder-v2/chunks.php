@@ -116,9 +116,9 @@ function idwiz_get_button_chunk($chunk, $templateOptions, $chunkIndex = null, $i
 
 	// MSO version
 	$output .= '<!--[if mso]>
-	<table ' . $tableClassHtml . ' role="presentation" width="100%" style="table-layout:fixed; ' . esc_attr($msoBackgroundColorCss . $visibility['inlineStyle']) . '">
+	<table ' . $tableClassHtml . ' role="presentation" width="100%" style="table-layout:fixed; ' . $msoBackgroundColorCss . $visibility['inlineStyle'] . '">
 	<tr><td style="width:100%;text-align:' . $textAlign . '; ' . esc_attr($msoBackgroundColorCss) . ' ' . $chunkPaddingCss . '" valign="middle">
-	<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="' . $ctaUrl . '" style="height:50px;v-text-anchor:middle;width:' . $buttonWidth . 'px;" arcsize="' . $msoBorderPerc . '%" strokecolor="' . $textColor . '" strokeweight="2px" fillcolor="none">
+	<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="' . $ctaUrl . '" style="height:50px;v-text-anchor:middle;width:' . $buttonWidth . 'px;" arcsize="' . $msoBorderPerc . '%" strokecolor="' . $borderColor . '" strokeweight="2px" fillcolor="none">
 	<w:anchorlock/>
 	<center style="color:' . $btnBgColor . ';font-family:Poppins,Arial,sans-serif;font-size:' . ($chunk['fields']['button_font_size'] ?? '1.2em') . ';font-weight:bold;">' . $ctaText . '</center>
 	</v:roundrect>
@@ -326,7 +326,7 @@ function idwiz_get_icon_list_chunk($chunk, $templateOptions, $chunkIndex = null,
 	$chunkPaddingCss = $chunkPadding ? 'padding:' . $chunkPadding . ';' : '';
 	$msoPaddingToMargin = $chunkPadding ? 'margin:' . $chunkPadding . ';' : 'margin: 0;';
 
-	$pPadding = $chunkSettings['p_padding'] ?? true;
+	$pPadding = $chunkSettings['p_padding'] ?? false;
 	$pPaddingClass = $pPadding ? '' : 'noPpad';
 
 	$listWidth = $chunkSettings['list_width'] ?? '600px';
@@ -422,7 +422,7 @@ function idwiz_get_plain_text_chunk($chunk, $templateOptions, $chunkIndex = null
 
 	$chunkPadding = $chunkSettings['chunk_padding'] ?? '0px';
 
-	$pPadding = $chunkSettings['p_padding'] ?? true;
+	$pPadding = $chunkSettings['p_padding'] ?? false;
 	$pPaddingClass = $pPadding ? '' : 'noPpad';
 
 	// Note that padding for <p> elements is only set in <style> blocks, so inboxes with no <style> support will not have padding applied in either case.
@@ -587,28 +587,56 @@ function idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex = null, $is
 
 function idwiz_get_standard_header($templateOptions, $isEditor = false)
 {
+	error_log('Standard header call: ' .$isEditor);
 	$templateStyles = $templateOptions['template_styles'];
 	$headerFooterSettings = $templateStyles['header-and-footer'];
+	$templateWidth = $templateStyles['body-and-background']['template_width'];
 	$showIdHeader = filter_var($headerFooterSettings['show_id_header'] ?? false, FILTER_VALIDATE_BOOLEAN);
 	if (!$showIdHeader) {
 		return '';
 	}
 	$headerLogo = $headerFooterSettings['template_header_logo'] ?? '';
-	if ($headerLogo == 'manual') {
-		$headerLogo = $headerFooterSettings['template_header_logo_manual'] ?? '';
+
+	$useDarkMode = $headerFooterSettings['show_dark_mode_header'] ?? false;
+	$darkModeLogo = $headerFooterSettings['template_header_logo_dark_mode'] ?? '';
+
+	// Determine the aspect ratio of the image
+	$imageAspectRatioResult = get_image_aspect_ratio($headerLogo); // we pass the remote URL here, not the cached data
+	$status = $imageAspectRatioResult['status'];
+	$imageAspectRatio = $imageAspectRatioResult['data'];
+
+	$chunkClasses = '';
+	$imageRatioSuccess = ($status === 'success');
+	if (!$imageRatioSuccess && $isEditor) {
+		$chunkClasses = ' image-ratio-error';
 	}
-	$headerLogoUrl = $isEditor ? get_cached_image_data($headerLogo)['data_uri'] : $headerLogo;
+
+	// Calculate the height based on the aspect ratio and msoWidth
+	$msoHeight = round($templateWidth / $imageAspectRatio, 0);
+
+	$headerLogoUrl = get_wizbuilder_image_src($headerLogo ?? '', $isEditor);
+	$darkModeLogoUrl = get_wizbuilder_image_src($darkModeLogo ?? '', $isEditor);
+
 	$headerPadding = $headerFooterSettings['header_padding'] ?? '0 0 20px 0';
-	$output = '<div class="chunk id-header" role="header" aria-label="iD Tech Camps">';
-	$output .= '<table role="presentation" style="width:100%;border:0;border-spacing:0;table-layout:fixed;font-size: 0;" id="standard-header">';
+	$output = '<div class="chunk id-header ' . $chunkClasses . '" role="header" aria-label="iD Tech Camps" style="padding:' . $headerPadding . ';">';
+	$output .= '<!--[if mso]>';
+	$output .= '<table role="presentation" style="width:100%;border:0;border-spacing:0;table-layout:fixed;font-size: 0;" class="id-header">';
 	$output .= '<tr>';
 	$output .= '<td style="font-size: 0;line-height:0;margin:0;padding:' . $headerPadding . ';">';
+	$output .= '<![endif]-->';
 	$output .= '<a href="https://www.idtech.com" style="margin:0; padding: 0;" aria-label="iD Tech Camps" title="iD Tech Camps">';
-	$output .= '<img src="' . $headerLogoUrl . '" width="' . $templateStyles['body-and-background']['template_width'] . '" alt="" style="width:' . $templateStyles['body-and-background']['template_width'] . '; max-width:100%;height:auto;display: block;" />';
+	$output .= '<img class="light-image" src="' . $headerLogoUrl . '" width="' . $templateWidth . '" height="' . $msoHeight .'" alt="" style="max-width:100%; display:block;" />';
+	if ($useDarkMode) {
+	$output .= '<!--[if !mso]><!-->';
+	$output .= '<img class="dark-image" src="' . $darkModeLogoUrl . '" width="' . $templateWidth . '" height="' . $msoHeight . '"alt="" style="max-width:100%; display:none;" />';
+		$output .= '<!--<![endif]-->';
+	}
 	$output .= '</a>';
+	$output .= '<!--[if mso]>';
 	$output .= '</td>';
 	$output .= '</tr>';
 	$output .= '</table>';
+	$output .= '<![endif]-->';
 	$output .= '</div>';
 
 	return $output;
@@ -738,17 +766,17 @@ function idwiz_get_social_media_icons($isEditor = false)
 		[
 			'url' => 'https://www.facebook.com/computercamps',
 			'title' => 'iD Tech on Facebook',
-			'src' => $isEditor ? get_cached_image_data('https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/e1322b55-a0f4-4246-b530-3a0790a4c361.png')['data_uri'] : 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/e1322b55-a0f4-4246-b530-3a0790a4c361.png'
+			'src' => get_wizbuilder_image_src('https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/e1322b55-a0f4-4246-b530-3a0790a4c361.png', $isEditor)
 		],
 		[
 			'url' => 'https://twitter.com/idtechcamps',
 			'title' => 'iD Tech on Twitter',
-			'src' => $isEditor ? get_cached_image_data('https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/94d22bf5-cc89-43f6-a4d8-8567c4e81d9d.png')['data_uri'] : 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/94d22bf5-cc89-43f6-a4d8-8567c4e81d9d.png'
+			'src' => get_wizbuilder_image_src('https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/94d22bf5-cc89-43f6-a4d8-8567c4e81d9d.png', $isEditor)
 		],
 		[
 			'url' => 'https://www.instagram.com/idtech/',
 			'title' => 'iD Tech on Instagram',
-			'src' => $isEditor ? get_cached_image_data('https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/6b969394-7c4c-45c1-9079-7e98dddcbbb2.png')['data_uri'] : 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/6b969394-7c4c-45c1-9079-7e98dddcbbb2.png'
+			'src' => get_wizbuilder_image_src('https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/6b969394-7c4c-45c1-9079-7e98dddcbbb2.png', $isEditor)
 		]
 	];
 
@@ -756,7 +784,7 @@ function idwiz_get_social_media_icons($isEditor = false)
 	foreach ($icons as $icon) {
 		$output .= '<span style="margin:0;font-family:Poppins,sans-serif;font-size:12px;line-height:16px;">';
 		$output .= '<a href="' . $icon['url'] . '" title="' . $icon['title'] . '" aria-label="' . $icon['title'] . '">';
-		$output .= '<img width="35" alt="' . $icon['title'] . '" style="width: 35px;height: auto;" src="' . $icon['src'] . '" />';
+		$output .= '<img width="35" height="27" alt="' . $icon['title'] . '" style="width: 35px; height: auto;" src="' . $icon['src'] . '" />';
 		$output .= '</a></span> ';
 	}
 	$output .= '<br />';
@@ -855,8 +883,8 @@ function idwiz_get_email_head($templateSettings, $templateStyles, $rows)
 
 
 		<?php
-		$darkModeSupport = json_decode($templateStyles['custom-styles']['dark-mode-support'], true) ?? false;
-		if ($darkModeSupport === true) { ?>
+		$darkModeSupport = $templateStyles['custom-styles']['dark-mode-support'] === true ? true : false;
+		if ($darkModeSupport) { ?>
 			<meta name="color-scheme" content="light dark">
 			<meta name="supported-color-schemes" content="light dark">
 		<?php } ?>
@@ -935,9 +963,8 @@ function idwiz_get_email_body_top($templateSettings, $templateStyles)
 					<tr> 
 					<td style="padding:20px 0; ' . $pageBackgroundCss . '"> 
 					<![endif]-->
-						<div class="outer" style="width: 100%; max-width: ' . $templateWidth . 'px; margin: 0 auto; ' . $pageBackgroundCss .
-	'">
-						<h1 style="max-height:0;max-width:0;display:inline-block;mso-font-width:0%;mso-style-textfill-type: none; white-space: nowrap;font-size:1px;color:rgba(0,0,0,0);text-indent:9px;">'
+						<div class="outer" style="width: 100%; max-width: ' . $templateWidth . 'px; margin: 0 auto; ' . $pageBackgroundCss .'">
+						<h1 style="max-height:0;max-width:0;mso-font-width:0%;mso-style-textfill-type: none; white-space: nowrap;font-size:1px;color:rgba(0,0,0,0);text-indent:9px;">'
 							. $subjectLine . 
 						'</h1>';
 						

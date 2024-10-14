@@ -185,9 +185,9 @@ function setupPreviewFrameEventHandlers(iframe) {
             var builderChunk = builderColumn.find('.builder-chunk[data-chunk-id="' + chunkIndex + '"]');
 
             // Expand the corresponding elements
-            toggleBuilderElementVis(builderRow.find('> .builder-row-header'), 'expand');
-            toggleBuilderElementVis(builderColumnset.find('> .builder-columnset-header'), 'expand');
-            toggleBuilderElementVis(builderChunk.find('> .builder-chunk-header'), 'expand');
+            toggleBuilderElementVis(builderRow.find('> .builder-row-header'), 'expand', true);
+            toggleBuilderElementVis(builderColumnset.find('> .builder-columnset-header'), 'expand', true);
+            toggleBuilderElementVis(builderChunk.find('> .builder-chunk-header'), 'expand', true);
 
             // Sync the builder element with the preview
             syncPreviewElement(builderChunk, true);
@@ -198,7 +198,7 @@ function setupPreviewFrameEventHandlers(iframe) {
 
 // Call setupPreviewFrameEventHandlers when the iframe loads
 jQuery("#previewFrame").on("load", function() {
-    
+    var iframe = jQuery("#previewFrame")[0];
     setupPreviewFrameEventHandlers(iframe);
 });
 

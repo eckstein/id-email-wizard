@@ -239,7 +239,10 @@ function generate_builder_columnset($colSetIndex, $columnSet, $rowId)
     }
 
     $columnsStacked = $columnSet['stacked'] ?? false;
+
     $stackedClass = $columnsStacked ? 'fa-rotate-90' : '';
+
+    $stackedActiveClass = $columnsStacked ? 'active' : '';
 
     $columnsetTitle = $columnSet['title'] ?? 'Column Set';
 
@@ -282,8 +285,8 @@ function generate_builder_columnset($colSetIndex, $columnSet, $rowId)
                     <i class="fa-solid fa-wand-magic-sparkles"></i> <i class="fa-solid fa-arrow-right-arrow-left"></i>
                 </div>
                 <span>&nbsp;|&nbsp;</span>
-                <div class="builder-columnset-actions-button exclude-from-toggle {$stackedClass}" title="Stack/Unstack columns">
-                    <i class="fa-solid fa-bars rotate-columns"></i>
+                <div class="builder-columnset-actions-button exclude-from-toggle rotate-columns {$stackedActiveClass}" title="Stack/Unstack columns">
+                    <i class="fa-solid fa-bars {$stackedClass}"></i>
                 </div>
                 <div class="builder-columnset-actions-button exclude-from-toggle json-actions" data-json-element="columnset" title="Export/Import JSON data">
                     <i class="fa-solid fa-share-nodes"></i>
@@ -322,7 +325,7 @@ function generate_builder_columnset($colSetIndex, $columnSet, $rowId)
 
 
     $html .= <<<HTML
-        <div class="builder-columnset-columns" data-active-columns="{$countColumns}">
+        <div class="builder-columnset-columns" data-active-columns="{$countColumns}" data-column-stacked="{$columnsStacked}">
     HTML;
 
     $colSetIndex = 0;
@@ -615,7 +618,7 @@ function show_specific_chunk_settings($chunkData, $uniqueId, $settings, $chunkTy
                     echo "</div>";
                     break;
                 case 'p_padding':
-                    $pPadding = $chunkSettings['p_padding'] === 'true' ?  true : false;
+                    $pPadding = $chunkSettings['p_padding'] ?? false;
                     $uniqueIdPpadding = $uniqueId . 'p_padding';
                     $pPaddingChecked = $pPadding ? 'checked' : '';
                     $pPaddingActive = $pPadding ? 'active' : '';

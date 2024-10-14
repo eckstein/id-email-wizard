@@ -36,12 +36,9 @@ function generate_template_structure($templateData, $isEditor = false)
 
     foreach ($templateData['rows'] as $rowIndex => $row) {
         $rowStart = generate_row_start($rowIndex, $templateData, $isEditor);
-        $rowEnd = generate_row_end($row);
+        $rowEnd = generate_row_end($rowIndex, $isEditor);
 
-        if ($isEditor) {
-            $rowStart = '<wizPlaceholder data-preview-part="row_start" data-row-index="' . $rowIndex . '"></wizPlaceholder>' . $rowStart;
-            $rowEnd .= '<wizPlaceholder data-preview-part="row_end" data-row-index="' . $rowIndex . '"></wizPlaceholder>';
-        }
+       
 
         $structure['rows'][$rowIndex] = [
             'start' => $rowStart,
@@ -51,12 +48,9 @@ function generate_template_structure($templateData, $isEditor = false)
 
         foreach ($row['columnSets'] as $colSetIndex => $columnSet) {
             $colSetStart = generate_columnset_start($rowIndex, $colSetIndex, $templateData, $isEditor);
-            $colSetEnd = generate_columnset_end($columnSet);
+            $colSetEnd = generate_columnset_end($rowIndex, $colSetIndex, $isEditor);
 
-            if ($isEditor) {
-                $colSetStart = '<wizPlaceholder data-preview-part="columnset_start" data-row-index="' . $rowIndex . '" data-columnset-index="' . $colSetIndex . '"></wizPlaceholder>' . $colSetStart;
-                $colSetEnd .= '<wizPlaceholder data-preview-part="columnset_end" data-row-index="' . $rowIndex . '" data-columnset-index="' . $colSetIndex . '"></wizPlaceholder>';
-            }
+            
 
             $structure['rows'][$rowIndex]['columnSets'][$colSetIndex] = [
                 'start' => $colSetStart,
@@ -73,12 +67,9 @@ function generate_template_structure($templateData, $isEditor = false)
                 }
 
                 $colStart = generate_column_start($rowIndex, $colSetIndex, $columnIndex, $templateData, $isEditor);
-                $colEnd = generate_column_end();
+                $colEnd = generate_column_end($rowIndex, $colSetIndex, $columnIndex, $isEditor);
 
-                if ($isEditor) {
-                    $colStart = '<wizPlaceholder data-preview-part="column_start" data-row-index="' . $rowIndex . '" data-columnset-index="' . $colSetIndex . '" data-column-index="' . $columnIndex . '"></wizPlaceholder>' . $colStart;
-                    $colEnd .= '<wizPlaceholder data-preview-part="column_end" data-row-index="' . $rowIndex . '" data-columnset-index="' . $colSetIndex . '" data-column-index="' . $columnIndex . '"></wizPlaceholder>';
-                }
+               
 
                 $structure['rows'][$rowIndex]['columnSets'][$colSetIndex]['columns'][$columnIndex] = [
                     'start' => $colStart,
@@ -163,9 +154,15 @@ function generate_row_start($rowIndex, $templateData = null, $isEditor = false)
     if (!$templateData) {
         return;
     }
+
+    $return = '';
+    if ($isEditor) {
+        $return = '<wizPlaceholder data-preview-part="row_start" data-row-index="' . $rowIndex . '"></wizPlaceholder>';
+    }
+
     $row = $templateData['rows'][$rowIndex] ?? null;
     if (!$row) return '';
-    $return = '';
+    
 
     $rowBackgroundCss = generate_background_css($row['background_settings']);
     $rowBackgroundCssMso = generate_background_css($row['background_settings'], '', true);
@@ -177,12 +174,18 @@ function generate_row_start($rowIndex, $templateData = null, $isEditor = false)
 
     $return .= "<div class='row $rowClasses' $rowDataAttr style='font-size:0; width: 100%; margin: 0; padding: 0; " . $rowBackgroundCss . "'>";
     $return .= "<!--[if mso]><table class='row' role='presentation' width='100%' style='$rowBackgroundCssMso white-space:nowrap;width: 100%; border: 0; border-spacing: 0;margin: 0 auto;text-align:center; '><tr><td><![endif]-->";
+
+   
     return $return;
 }
-function generate_row_end()
+function generate_row_end($rowIndex, $isEditor = false)
 {
     $return = "<!--[if mso]></td></tr></table><![endif]-->";
-    $return .= "</div>"; // Close the row layout div
+    $return .= "</div>"; // Close the row layout div 
+    
+    if ($isEditor) {
+        $return .= '<wizPlaceholder data-preview-part="row_end" data-row-index="' . $rowIndex . '"></wizPlaceholder>';
+    }
     return $return;
 }
 
@@ -199,8 +202,6 @@ function generate_columnset_start($rowIndex, $columnSetIndex, $templateData = nu
         error_log('No columnSet found');
         return '';
     }
-
-    $return = '';
 
     $magicRtl = '';
     $magicWrap = $columnSet['magic_wrap'] ?? 'off';
@@ -224,7 +225,7 @@ function generate_columnset_start($rowIndex, $columnSetIndex, $templateData = nu
         }
     }
 
-    $numActiveColumns = count($columns);
+    
     $colSetBGSettings = $columnSet['background_settings'] ?? [];
     $colSetBackgroundCss = generate_background_css($colSetBGSettings, '', false);
     $colSetBackgroundCssMso = generate_background_css($colSetBGSettings, '', true);
@@ -233,21 +234,31 @@ function generate_columnset_start($rowIndex, $columnSetIndex, $templateData = nu
 
     $colSetDataAttr = $isEditor ? 'data-columnset-index=' . $columnSetIndex : '';
 
-    $displayTable = $numActiveColumns > 1 ? 'display: table;' : '';
+    // $numActiveColumns = count($columns);
+    // $displayTable = $numActiveColumns > 1 ? 'display: table;' : '';
 
     $return = '';
-    $return .= "<div class='columnSet $columnSetClasses $layoutClass $mobileWrapClass' $colSetDataAttr $magicRtl style='$colSetBackgroundCss text-align: center; font-size: 0; width: 100%; $displayTable'>";
-    $return .= "<!--[if mso]><td class='columnSet' style='$colSetBackgroundCssMso border: 0; margin: 0 auto;text-align: center;' $magicRtl><![endif]-->";
+
+    if ($isEditor) {
+        $return = '<wizPlaceholder data-preview-part="columnset_start" data-row-index="' . $rowIndex . '" data-columnset-index="' . $columnSetIndex . '"></wizPlaceholder>';
+        
+    }
+    $return .= "<div class='columnSet $columnSetClasses $layoutClass $mobileWrapClass' $colSetDataAttr $magicRtl style='$colSetBackgroundCss text-align: center; font-size: 0; width: 100%;'>";
+    $return .= "<!--[if mso]><table role='presentation' class='columnset' width='100%' style='$colSetBackgroundCssMso margin:0; padding:0;'><tr><![endif]-->";
 
     return $return;
 }
 
-function generate_columnset_end()
+function generate_columnset_end($rowIndex, $colSetIndex, $isEditor = false)
 {
     $return = '';
-    
-    $return .= "<!--[if mso]></td><![endif]-->";
+
+    $return .= "<!--[if mso]></tr></table><![endif]-->";
     $return .= "</div>"; // Close the colset layout div
+
+    if ($isEditor) {
+        $return .= '<wizPlaceholder data-preview-part="columnset_end" data-row-index="' . $rowIndex . '" data-columnset-index="' . $colSetIndex . '"></wizPlaceholder>';
+    }
 
     return $return;
 }
@@ -321,18 +332,25 @@ function generate_column_start($rowIndex, $columnSetIndex, $columnIndex, $templa
 
     $columnDataAttr = $isEditor ? 'data-column-index=' . $columnIndex : '';
     $return = '';
+    if ($isEditor) {
+        $return = '<wizPlaceholder data-preview-part="column_start" data-row-index="' . $rowIndex . '" data-columnset-index="' . $columnSetIndex . '" data-column-index="' . $columnIndex . '"></wizPlaceholder>';
+    }
+    $return .= "<!--[if mso]><td style='$msoColBackgroundCSS' width='$columnWidthPx' valign='$colValign'><![endif]-->";
     $return .= "<div class='column $columnClasses $mobileWrapClass' $columnDataAttr style='$columnStyle $colBackgroundCSS' dir='ltr'>";
-    $return .= "<!--[if mso]><table role='presentation' style='border: 0; border-spacing: 0'><tr><td class='column' style='width:{$columnWidthPx}px; $msoColBackgroundCSS' width='{$columnWidthPx}' valign='{$colValign}' dir='ltr'><![endif]-->";
 
     return $return;
 }
 
-function generate_column_end()
+function generate_column_end($rowIndex, $colSetIndex, $columnIndex, $isEditor = false)
 {
     $return = '';
-    
-    $return .= "<!--[if mso]></table></tr></td><![endif]-->";
+
     $return .= "</div>"; // Close .column div
+    $return .= "<!--[if mso]></td><![endif]-->";
+
+    if ($isEditor) {
+        $return .= '<wizPlaceholder data-preview-part="column_end" data-row-index="' . $rowIndex . '" data-columnset-index="' . $colSetIndex . '" data-column-index="' . $columnIndex . '"></wizPlaceholder>';
+    }
 
     return $return;
 }
@@ -399,7 +417,8 @@ function get_wiztemplate_part_html()
 
     // Get the template data
     $templateData = json_decode(stripslashes($_POST['templateData']), true);
-    $isEditor = isset($_POST['isEditor']) ? ($_POST['isEditor'] === 'false' ? false : true) : false;
+    $isEditor = $_POST['isEditor'] ?? false;
+    error_log('Is editor: ' . $isEditor);
     $partType = isset($_POST['partType']) ? sanitize_text_field($_POST['partType']) : null;
 
     $rowIndex = isset($_POST['rowIndex']) ? intval($_POST['rowIndex']) : null;
@@ -414,10 +433,10 @@ function get_wiztemplate_part_html()
     $html = '';
     switch ($partType) {
         case 'fullTemplate':
-            $html = render_template_from_structure($structure);
-            break;
         case 'email_head':
         case 'body_start':
+            $html = render_template_from_structure($structure);
+            break;
         case 'standard_header':
             $html = $structure['top'][$partType];
             break;

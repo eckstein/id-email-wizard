@@ -28,6 +28,26 @@
 
     $underlineStyle = $underlineLinks ? "text-decoration: underline" : "text-decoration: none";
 
+    $darkModeSupport = $templateStyles['custom-styles']['dark-mode-support'] === true ? true : false;
+    $darkModeCss = '';
+    if ($darkModeSupport) {
+        $darkModeCss = <<<HTML
+        <style type="text/css">
+            .dark-image, .dark-image img {
+                display: none;
+            }
+        @media (prefers-color-scheme: dark ) {
+            .light-image {
+                display:none!important
+            }
+            .dark-image {
+                display:inline!important
+            }
+        }
+        </style>
+        HTML;
+    }
+
     $css = <<<HTML
     <!-- The first style block will be removed by Yahoo! on android, so nothing here for that platform-->
 
@@ -42,6 +62,8 @@
             line-height: inherit;
         }
     </style>
+
+    {$darkModeCss}
 
     <style type="text/css">
         @media screen and (min-width: 481px) {
@@ -345,6 +367,7 @@
 <!--[if !mso]><!-->
 
 <style type="text/css">
+    
     .desktop-only {
         display: block;
         /* Show by default */

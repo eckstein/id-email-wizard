@@ -62,24 +62,35 @@ function handle_create_new_columnset()
     $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
     $rowId = intval($_POST['row_id']);
     $colSetIndex = isset($_POST['colset_index']) ? intval($_POST['colset_index']) : 0;
+    $colSetToDupe = isset($_POST['colset_to_dupe']) ? intval($_POST['colset_to_dupe']) : null;
+    $sessionData = isset($_POST['session_data']) && $_POST['session_data'] ? json_decode(stripslashes($_POST['session_data']), true) : null;
 
+    $columnSetData = create_new_columnset($post_id, $rowId, $colSetToDupe, $sessionData);
+
+    // Generate the HTML for the new columnSet
+    $html = generate_builder_columnset($colSetIndex, $columnSetData, $rowId);
+
+    wp_send_json_success(['html' => $html]);
+}
+
+function create_new_columnset($post_id, $rowId, $colSetToDupe = null, $sessionData = null, $replace = false, $replaceData =  null)
+{
     // Initialize $columnSetData to an empty array
     $columnSetData = [
         'columns' => []
     ];
 
-    // Check if we're duplication
-    if (isset($_POST['colset_to_dupe'])) {
-        // Get existing data (for duplicating) if passed
-        $sessionTemplateData = isset($_POST['session_data']) && $_POST['session_data'] ? json_decode(stripslashes($_POST['session_data']), true) : [];
+    // Check if we're duplicating
+    if ($colSetToDupe !== null) {
         // Check for passed session data and use that, if present, otherwise get the data from the database
-        $templateData = $sessionTemplateData ?: get_wiztemplate($post_id);
+        $templateData = $sessionData ?: get_wiztemplate($post_id);
 
         // Retrieve the specific columnSet data to duplicate using the original columnSet index
-        $originalColSetIndex = intval($_POST['colset_to_dupe']);
-        if (isset($templateData['rows'][$rowId]['columnSets'][$originalColSetIndex])) {
-            $columnSetData = $templateData['rows'][$rowId]['columnSets'][$originalColSetIndex];
+        if (isset($templateData['rows'][$rowId]['columnSets'][$colSetToDupe])) {
+            $columnSetData = $templateData['rows'][$rowId]['columnSets'][$colSetToDupe];
         }
+    } else if ($replace) {
+        $columnSetData = $replaceData;
     } else {
         // Generate a blank column for the new columnSet
         $columnData = [
@@ -90,12 +101,8 @@ function handle_create_new_columnset()
         $columnSetData['columns'][] = $columnData;
     }
 
-    // Generate the HTML for the new columnSet
-    $html = generate_builder_columnset($colSetIndex, $columnSetData, $rowId);
-
-    wp_send_json_success(['html' => $html]);
+    return $columnSetData;
 }
-
 add_action('wp_ajax_create_new_column', 'handle_create_new_column');
 function handle_create_new_column()
 {
@@ -133,15 +140,11 @@ function add_or_duplicate_chunk()
 
     if (isset($_POST['duplicate']) && $_POST['chunk_data'] !== null) {
         $chunkData = $_POST['chunk_data'];
-        error_log(print_r($chunkData, true));
     } else {
         $chunkData = [];
     }
 
     $html = generate_builder_chunk($newChunkId, $chunkType, $chunkData);
-
-    error_log($html);
-
     wp_send_json_success(['html' => $html, 'chunk_id' => $newChunkId]);
 }
 
@@ -216,6 +219,50 @@ function handle_get_chunk_preview()
 
     wp_send_json_success(['html' => $previewHtml]);
 }
+
+add_action('wp_ajax_get_mso_html', 'get_mso_html');
+
+function get_mso_html()
+{
+    // Verify the nonce for security
+    $nonce = isset($_POST['security']) ? sanitize_text_field($_POST['security']) : '';
+    if (! wp_verify_nonce($nonce, 'template-editor')) {
+        wp_send_json_error(['message' => 'Nonce verification failed']);
+        return;
+    }
+
+    $postId = isset($_POST['postId']) ? sanitize_text_field($_POST['postId']) : '';
+    if (! $postId) {
+        wp_send_json_error(['message' => 'Post ID is required']);
+        return;
+    }
+
+    $templateData = get_wiztemplate($postId);
+    $structure = generate_template_structure($templateData, false);
+    $html = render_template_from_structure($structure);
+    // Escape the HTML and wrap it in a <pre> tag for formatting
+    $msoHtml = '<pre><code>' . htmlspecialchars(extractMsoContent($html)) . '</code></pre>';
+   
+
+    wp_send_json_success(['msoHtml' => $msoHtml]);
+}
+
+
+function extractMsoContent($html)
+{
+    $pattern = '/<!--\[if mso\]>(.*?)<!\[endif\]-->/s';
+    $output = '';
+
+    if (preg_match_all($pattern, $html, $matches)) {
+        foreach ($matches[1] as $match) {
+            $output .= trim($match) . "\n\n";
+        }
+    }
+
+    return rtrim($output);
+}
+
+
 
 
 

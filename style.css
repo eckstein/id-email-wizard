@@ -590,7 +590,7 @@ body.single-idemailwiz_template {
 		border-bottom-right-radius: 4px;
 	}
 
-	.builder-row[data-column-stacked="stacked"] .builder-columnset-columns {
+	.builder-columnset-columns[data-column-stacked="stacked"] {
 		flex-direction: column;
 	}
 	
@@ -1391,13 +1391,15 @@ textarea.custom-background-css-input {
 
 /* Template JSON modal */
 /* Widen the modal */
-.template-json-modal {
+.template-json-modal,
+.mso-html-modal {
 	width: auto;
-	max-width: 600px; /* Feel free to adjust this width as necessary */
+	max-width: 600px; 
 }
 
 /* Style for the <pre> element to ensure it doesn't exceed 400px in height and scrolls */
-.template-json-modal pre {
+.template-json-modal pre,
+.mso-html-modal pre {
 	max-height: 500px;
 	white-space: pre-wrap;
 	text-align: left;

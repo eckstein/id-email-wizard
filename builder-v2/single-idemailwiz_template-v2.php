@@ -124,54 +124,38 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 										</div>
 
 									</div>
+
 									<div class="builder-field-wrapper template-header-logo">
 										<?php
-										$templateHeaderLogo = $templateHeaderFooterStyles['template_header_logo'] ?? '';
+										$templateHeaderLogo = $templateHeaderFooterStyles['template_header_logo'] ?? 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/cd7e1e87-607c-4e56-ad9c-0b0d34671949.png';
 										?>
-										<label for="template_header_logo">Header Logo Image</label>
-										<select name="template_header_logo" id="template_header_logo" data-preview-part="standard_header">
-											<option
-												value="https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/cd7e1e87-607c-4e56-ad9c-0b0d34671949.png"
-												<?php if ($templateHeaderLogo == "https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/cd7e1e87-607c-4e56-ad9c-0b0d34671949.png") {
-													echo 'selected="selected"';
-												} ?>>
-												Black transparent
-											</option>
-											<option
-												value="https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/1-Logo.png"
-												<?php if ($templateHeaderLogo == "https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/1-Logo.png") {
-													echo 'selected="selected"';
-												} ?>>
-												White transparent
-											</option>
-											<option
-												value="https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/d09a7ff1-d8de-498b-9c4f-0a45374c7ab4.jpg"
-												<?php if ($templateHeaderLogo == "https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/d09a7ff1-d8de-498b-9c4f-0a45374c7ab4.jpg") {
-													echo 'selected="selected"';
-												} ?>>
-												Black on white
-											</option>
-											<option value="manual" <?php if ($templateHeaderLogo == "manual") {
-																		echo 'selected="selected"';
-																	} ?>>
-												Manual link
-											</option>
-										</select>
+										<label for="template_header_logo">Header Image</label>
+										<input type="text" value="<?php echo $templateHeaderLogo; ?>" id="template_header_logo" name="template_header_logo">
 									</div>
-
-									<?php $showManualHeaderUrlField = $templateHeaderLogo != 'manual' ? 'hide' : ''; ?>
-									<div
-										class="builder-field-wrapper template-header-logo-manual <?php echo $showManualHeaderUrlField; ?>">
+									<div class="builder-field-group flex">
 										<?php
-										$manualLogoLink = $templateHeaderFooterStyles['template_header_logo_manual'];
-										if ($manualLogoLink == '') {
-											$manualLogoLink = 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/cd7e1e87-607c-4e56-ad9c-0b0d34671949.png';
-										}
+										$useDarkModeHeader = $templateHeaderFooterStyles['show_dark_mode_header'] ?? false;
 										?>
-										<label for=" template_header_logo_manual">Header Logo Image</label>
-										<input type="text" name="template_header_logo_manual"
-											id="template_header_logo_manual"
-											value="<?php echo $manualLogoLink; ?>">
+										<div class="builder-field-wrapper">
+											<label class="checkbox-toggle-label">Dark Mode</label>
+											<div class="wiz-checkbox-toggle">
+												<input type="checkbox" class="wiz-check-toggle" data-preview-part="standard_header"
+													id="template_settings_show_dark_mode_header" name="show_dark_mode_header" hidden
+													<?php echo $showHeader ? 'checked' : ''; ?>>
+												<label for="template_settings_show_dark_mode_header"
+													class="wiz-check-toggle-display <?php echo $showHeader ? 'active' : ''; ?>"><i
+														class="<?php echo $showHeader ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
+											</div>
+
+										</div>
+
+										<div class="builder-field-wrapper template-header-logo-dark-mode">
+											<?php
+											$templateHeaderDarkLogo = $templateHeaderFooterStyles['template_header_logo_dark_mode'] ?? 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/1-Logo.png';
+											?>
+											<label for="template_header_logo_dark_mode">Dark Mode Header Image</label>
+											<input type="text" value="<?php echo $templateHeaderDarkLogo; ?>" id="template_header_logo_dark_mode" name="template_header_logo_dark_mode">
+										</div>
 									</div>
 
 									<?php $headerPadding = $templateHeaderFooterStyles['header_padding'] ?? '20px 0'; ?>
@@ -420,6 +404,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 							<fieldset name="custom-styles" class="template-settings-tab-content"
 								id="template-styles-tab-custom-styles">
 								<?php
+								$customStyles = $templateStyles['custom-styles'] ?? [];
 								$includeDarkModeSupport = $customStyles['dark-mode-support'] ?? false;
 								?>
 								<div class="builder-field-wrapper">
@@ -436,7 +421,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 								</div>
 
 								<?php
-								$customStyles = $templateStyles['custom-styles'] ?? [];
+
 								?>
 								<div class="builder-field-wrapper block">
 									<label for="template_styles_additional_css">Additional CSS</label>
@@ -647,6 +632,8 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 						<button id="copyCode" data-code-in="#templateCode" class="wiz-button green"><i
 								class="fa-solid fa-copy"></i>&nbsp;&nbsp;Copy
 							HTML</button>
+						<button id="viewMsoCode" class="wiz-button green" data-post-id="<?php echo $postId ?>"><i
+								class="fa-solid fa-code"></i>&nbsp;&nbsp;View MSO Code</button>
 						<button id="viewJson" class="wiz-button green" data-post-id="<?php echo $postId ?>"><i
 								class="fa-solid fa-code"></i>&nbsp;&nbsp;View JSON</button>
 						<button id="exportJson" class="wiz-button green" data-post-id="<?php echo $postId ?>">
@@ -747,6 +734,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 
 
 		<div id="templatePreview">
+
 			<div id="templatePreview-status">
 			</div>
 			<iframe id="previewFrame" src="<?php echo home_url('template-frame/' . $postId); ?>"></iframe>
@@ -754,6 +742,8 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 
 	</div>
 </div>
+
+
 
 
 

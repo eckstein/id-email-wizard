@@ -1,48 +1,62 @@
 
 function init_element_title_tinymce($editable = null) {
-    var selector = '';
-    if ($editable) {
-        selector = $editable.selector;
-    } else {
-        selector = '.edit-row-title, .edit-columnset-title, .edit-column-title';
-    }
+    var selector = $editable ? $editable.selector : '.edit-row-title, .edit-columnset-title, .edit-column-title';
     
-    tinymce.init({
-        selector: selector,
-        license_key: 'gpl',
-        inline: true,
-        menubar: false,
-        toolbar: false,
-        convert_newlines_to_brs: false,
-        setup: function (editor) {
-            editor.on('click', function (e) {
-                if (editor.contentDocument.activeElement.nodeName === 'BODY') {
-                    editor.getBody().focus();
-                }
-            });
-            
-            editor.on('keydown', function (e) {
-                if (e.keyCode === 13) { // Enter key
-                    e.preventDefault();
-                    editor.save();
-                    editor.hide();
-                }
-            });
-            
-            editor.on('init', function () {
-                editor.setContent(editor.getContent({ format: 'raw' }));
-            });
-            
-            // Show the editor when the element is clicked
-            editor.on('click', function (e) {
-                editor.show();
-            });
-            
-            // Hide the editor when it loses focus
-            editor.on('blur', function (e) {
-                editor.hide();
-            });
+    function initializeTinyMCE($element) {
+        var elementId = $element.attr('id');
+        if (!elementId) {
+            elementId = 'tinymce-' + Math.random().toString(36).substr(2, 9);
+            $element.attr('id', elementId);
         }
+
+        // Remove existing editor if it exists
+        if (tinymce.get(elementId)) {
+            tinymce.execCommand('mceRemoveEditor', false, elementId);
+        }
+
+        // Initialize new editor
+        tinymce.init({
+            selector: '#' + elementId,
+            license_key: 'gpl',
+            inline: true,
+            menubar: false,
+            toolbar: false,
+            convert_newlines_to_brs: false,
+            setup: function (editor) {
+                editor.on('click', function (e) {
+                    if (editor.contentDocument.activeElement.nodeName === 'BODY') {
+                        editor.getBody().focus();
+                    }
+                });
+
+                editor.on('keydown', function (e) {
+                    if (e.keyCode === 13) { // Enter key
+                        e.preventDefault();
+                        editor.save();
+                        editor.destroy();
+                    }
+                });
+
+                editor.on('init', function () {
+                    editor.setContent(editor.getContent({ format: 'raw' }));
+                    editor.focus();
+                });
+
+                editor.on('blur', function (e) {
+                    setTimeout(function() {
+                        if (tinymce.get(elementId)) {
+                            editor.destroy();
+                        }
+                    }, 100);
+                });
+            }
+        });
+    }
+
+    // Add click event listener to elements
+    jQuery(document).on('click', selector, function(e) {
+        e.preventDefault();
+        initializeTinyMCE(jQuery(this));
     });
 }
 

@@ -84,17 +84,7 @@ jQuery(document).ready(function($) {
 		tabContent.addClass('active');
 	});
 
-	// template header logo select
-	 $('#template_header_logo').on('change', function() {
-		// Check if the selected value is 'manual'
-		if ($(this).val() === 'manual') {
-			// Show the manual input field
-			$('.template-header-logo-manual').show();
-		} else {
-			// Hide the manual input field
-			$('.template-header-logo-manual').hide();
-		}
-	});
+
 
 	// Merge tags inserting for Subject line and Preview Text
 	$('.builder-field').on('click keyup', function() {
@@ -399,6 +389,57 @@ jQuery(document).ready(function($) {
 			import_wiztemplate_json();
 		});
 
+	// View MSO code in popup
+	$("#viewMsoCode").on("click", function () {
+		var $button = $(this);
+		var $icon = $button.find('i');
+    
+		// Show spinner
+		$icon.removeClass('fa-code').addClass('fa-spinner fa-spin');
+    
+		var templateId = $button.data("post-id");
+    
+		jQuery.ajax({
+			url: idAjax.wizAjaxUrl,
+			type: 'POST',
+			data: {
+				action: 'get_mso_html',
+				postId: templateId,
+				security: idAjax_template_editor.nonce
+			},
+			success: function(response) {
+				// Hide spinner
+				$icon.removeClass('fa-spinner fa-spin').addClass('fa-code');
+            
+				if (response.success && response.data && response.data.msoHtml) {
+					Swal.fire({
+						title: 'MSO HTML Code',
+						html: response.data.msoHtml,
+						customClass: {
+							popup: 'mso-html-modal',
+							htmlContainer: 'mso-html-pre-wrap'
+						},
+						width: '800px',
+						didOpen: () => {
+							document.querySelectorAll('pre code').forEach((block) => {
+								hljs.highlightElement(block);
+							});
+						}
+					});
+				} else {
+					console.error('Error: ', response.data ? response.data.message : 'Unknown error');
+					do_wiz_notif({ message: response.data ? response.data.message : 'Failed to load MSO HTML', duration: 5000 });
+				}
+			},
+			error: function(jqXHR, textStatus, errorThrown) {
+				// Hide spinner
+				$icon.removeClass('fa-spinner fa-spin').addClass('fa-code');
+            
+				console.error('AJAX error: ' + textStatus + ' - ' + errorThrown);
+				do_wiz_notif({ message: 'Failed to load MSO HTML. Please try again.', duration: 5000 });
+			}
+		});
+	});
 	/*
 	****************
 	* Builder Element Interactions
@@ -489,16 +530,24 @@ jQuery(document).ready(function($) {
 
 		// Rotate columns switcher
 		$('#builder').on('click', '.rotate-columns', function() {
-			$(this).toggleClass('fa-rotate-90');
-			var $row = $(this).closest('.builder-row');
+			var activeState = $(this).hasClass('active');
+			$(this).toggleClass('active');
+			$(this).find('i').toggleClass('fa-rotate-90');
+			const $columnSet = $(this).closest('.builder-columnset');
+			const $colWrapper = $columnSet.find('.builder-columnset-columns');
 
-			// Rotate the columns
-			$row.find('.builder-columnset-columns').css('flex-direction', $(this).hasClass('fa-rotate-90')? 'column' : 'row');
+			// Expand the columnset content if it's collapsed
+			if (!$columnSet.find('.builder-columnset-content').is(':visible')) {
+				expandBuilderElementVis($columnSet, '.builder-columnset-content');
+			}			
 
 			// Update column data attribute
-			$row.attr('data-column-stacked', $(this).hasClass('fa-rotate-90')? 'stacked' : 'false');
+			$columnSet.attr('data-column-stacked', !activeState ? 'stacked' : 'false');
 
-			expandBuilderElementVis($row, '.builder-row-content');
+			setTimeout(function () {
+				// Rotate the columns
+				$colWrapper.attr('data-column-stacked', !activeState ? 'stacked' : 'false');
+			}, 200);
 		});
 
 		// Handle click event on the column count adjustment settings icon

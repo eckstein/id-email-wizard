@@ -14,7 +14,7 @@ function collapseBuilderElementVis($element, toggledClass) {
     $element.find('.builder-element-summary').show();
 }
 
-function toggleBuilderElementVis($header, action = false) {
+function toggleBuilderElementVis($header, action = false, supressPreviewSync = false) {
     
     let $element, toggledClass;
     if ($header.hasClass('builder-row-header')) {
@@ -59,8 +59,10 @@ function toggleBuilderElementVis($header, action = false) {
 
     if (shouldExpand) {
         expandBuilderElementVis($element, toggledClass);
-        // Sync the preview element
-        syncPreviewElement($element, shouldExpand);
+        if (!supressPreviewSync) {
+            // Sync the preview element
+            syncPreviewElement($element, shouldExpand);
+        }
     } else {
         collapseBuilderElementVis($element, toggledClass);
     }
@@ -91,6 +93,9 @@ function syncPreviewElement($builderElement, isExpanding) {
     }
 
     let $firstChunk = $previewElement.hasClass('chunk') ? $previewElement : $previewElement.find('.chunk').first();
+
+    console.log('Syncing preview element:', $previewElement);
+    console.log('First chunk:', $firstChunk);
     
     if (!$firstChunk.length) {
         // If no chunk is found, keep the original $previewElement
@@ -125,11 +130,11 @@ function syncPreviewElement($builderElement, isExpanding) {
 
     // check that the data-chunk-type data attributes match on the synced elements
         $builderFirstChunk = $builderElement.hasClass('builder-chunk') ? $builderElement : $builderElement.find('.builder-chunk').first();
-        if ($firstChunk.data('chunk-type') !== $builderFirstChunk.data('chunk-type')) {
-            console.warn('Mismatched data-chunk-type data attributes');
-            update_template_preview();
-            return;
-        }
+        // if ($firstChunk.attr('data-chunk-type') !== $builderFirstChunk.attr('data-chunk-type')) {
+        //     console.warn('Mismatched data-chunk-type data attributes');
+        //     update_template_preview();
+        //     return;
+        // }
 
     setTimeout(function() {
         if ($previewElement.length && isExpanding) {
@@ -657,7 +662,7 @@ function generate_column_layout_choices(currentLayout) {
     ];
     layouts.forEach(function(layout) {
         var currentLayoutClass = layout.value === currentLayout ? ' current-layout' : '';
-        popupHtml += `<div class="builder-actions-popup-option column-select-option ${layout.value}${currentLayoutClass}" data-layout="${layout.value}">
+        popupHtml += `<div class="builder-actions-popup-option column-select-option exclude-from-toggle ${layout.value}${currentLayoutClass}" data-layout="${layout.value}">
                           <div class="layout-icon">
                               ${get_layout_icon_html(layout.value)}
                           </div>
@@ -669,14 +674,14 @@ function generate_column_layout_choices(currentLayout) {
 }
 
 function generate_json_action_choices() {
-    var popupHtml = '<div class="builder-actions-popup json-actions-popup">';
+    var popupHtml = '<div class="builder-actions-popup json-actions-popup exclude-from-toggle">';
     var actions = [
         { name: 'Copy JSON', value: 'copy_json', title: 'Copy the current template JSON to clipboard' },
         { name: 'Export JSON', value: 'export_json', title: 'Export the current template JSON to a file' },
         { name: 'Import JSON', value: 'import_json', title: 'Import JSON data' },
     ];
     actions.forEach(function (action) {
-        popupHtml += `<div class="builder-actions-popup-option json-action-option" data-action="${action.value}" title="${action.title}">
+        popupHtml += `<div class="builder-actions-popup-option json-action-option exclude-from-toggle" data-action="${action.value}" title="${action.title}">
                           ${action.name}
                       </div>`;
     });
@@ -688,17 +693,24 @@ function handle_wiz_json_action(clicked, action) {
     const $clicked = jQuery(clicked);
     let jsonData;
     var templateId = idAjax.currentPostId;
-    var rowIndex = $clicked.closest('.builder-row').attr('data-row-id');
-    var columnSetIndex = null;
     var $row = $clicked.closest('.builder-row');
+    var rowIndex = $row.attr('data-row-id');
+    var columnSetIndex = null;
+    
     if ($clicked.closest('.json-actions').attr('data-json-element') === 'row') {
         jsonData = gather_rows_data(rowIndex);
+        // add element type to jsonData
+        jsonData.push({ element_type: 'row' });
     } else if ($clicked.closest('.json-actions').attr('data-json-element') === 'columnset') {
         columnSetIndex = $clicked.closest('.builder-columnset').attr('data-columnset-id');
         jsonData = gather_columnsets_data(jQuery($row), columnSetIndex);
+        // add element type to jsonData
+        jsonData.push({ element_type: 'columnset' });
     } else {
         return;
     }
+
+    console.log('jsonData:', jsonData);
     
     // validate JSON data
     if (!jsonData || typeof jsonData !== 'object') {
@@ -718,10 +730,10 @@ function handle_wiz_json_action(clicked, action) {
             copy_json_to_clipboard(jsonData);
             break;
         case 'export_json':
-            export_json_to_file(jsonData);
+            export_json_to_file(jsonData, templateId, rowIndex, columnSetIndex);
             break;
         case 'import_json':
-            show_json_import_modal(templateId, rowIndex, columnSetIndex)
+            show_json_import_modal(templateId, rowIndex, columnSetIndex, $clicked)
             break;
         default:
             break;
@@ -736,89 +748,143 @@ function copy_json_to_clipboard(jsonData) {
     do_wiz_notif({ message: 'JSON copied to clipboard', duration: 5000 });
 }
 
-function export_json_to_file(jsonData) {
+function export_json_to_file(jsonData, templateId, rowIndex, columnSetIndex) {
     var jsonString = JSON.stringify(jsonData);
     var blob = new Blob([jsonString], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
     var link = document.createElement('a');
     link.href = url;
     link.download = 'template_data.json';
+    // Name the file based on the template ID, row index, and column set index
+    if (columnSetIndex !== null) {
+        link.download = `template_data_${templateId}_row_${rowIndex}_columnset_${columnSetIndex}.json`;
+    } else {
+        link.download = `template_data_${templateId}_row_${rowIndex}.json`;
+    }
+
     link.click();
     URL.revokeObjectURL(url);
     do_wiz_notif({ message: 'JSON exported to file', duration: 5000 });
 }
 
-function show_json_import_modal(templateId, rowIndex, columnSetIndex) {
-    // Show a swal box with an input for the JSON
+function show_json_import_modal(templateId, rowIndex, columnSetIndex, $clicked) {
     Swal.fire({
         title: 'Import JSON',
-        html: '<textarea id="json-input" class="swal2-input" placeholder="Enter JSON here"></textarea>',
+        html: `
+            <textarea id="json-input" class="swal2-input" placeholder="Enter JSON here"></textarea>
+            <input type="file" id="json-file-input" accept=".json">
+        `,
         showCancelButton: true,
         confirmButtonText: 'Import',
         cancelButtonText: 'Cancel',
-        preConfirm: function () {
-            var jsonInput = document.getElementById('json-input').value;
-            try {
-                var jsonData = JSON.parse(jsonInput);
-                return jsonData;
-            } catch (error) {
-                swal({
-                    title: 'Error',
-                    text: 'Invalid JSON',
-                    type: 'error'
-                });
-                return null;
+        preConfirm: async function () {
+            let jsonData;
+            const jsonInput = document.getElementById('json-input').value;
+            const jsonFile = document.getElementById('json-file-input').files[0];
+
+            if (jsonInput) {
+                try {
+                    jsonData = JSON.parse(jsonInput);
+                } catch (error) {
+                    Swal.showValidationMessage('Invalid JSON data in text input');
+                    return false;
+                }
+            } else if (jsonFile) {
+                try {
+                    const fileContent = await jsonFile.text();
+                    jsonData = JSON.parse(fileContent);
+                } catch (error) {
+                    Swal.showValidationMessage('Invalid JSON file');
+                    return false;
+                }
+            } else {
+                Swal.showValidationMessage('Please enter JSON data or select a file');
+                return false;
             }
+
+            return jsonData;
         }
     }).then(function (result) {
         if (result.value) {
-            // Handle the imported JSON data
-            handle_json_pattern_import(result.value, templateId, rowIndex, columnSetIndex);
+            handle_json_pattern_import(result.value, $clicked, rowIndex, columnSetIndex);
         }
     });
 }
 
-function handle_json_pattern_import(jsonData, templateId, rowIndex, columnSetIndex) {
-    var $row = jQuery('.builder-row[data-row-id="' + rowIndex + '"]');
-    get_wiztemplate_json(templateId, 
-        function(json) {
-            console.log(json);
-            var templateData = json;
-            
-            // Parse the incoming jsonData
-            var importedData = JSON.parse(jsonData);
-            
-            // Find the correct row in templateData
-            if (templateData.rows && templateData.rows[rowIndex]) {
-                if (columnSetIndex !== undefined) {
-                    // Replace only the specified columnset
-                    if (templateData.rows[rowIndex].columnsets && templateData.rows[rowIndex].columnsets[columnSetIndex]) {
-                        templateData.rows[rowIndex].columnsets[columnSetIndex] = importedData;
-                    } else {
-                        console.error('Specified columnset not found');
-                        return;
-                    }
-                } else {
-                    // Replace the entire row
-                    templateData.rows[rowIndex] = importedData;
-                }
-                
-                // Update the session storage with the modified template data
-                sessionStorage.setItem('unsavedChanges', 'true');
-                save_template_to_session(JSON.stringify(templateData));
-                update_template_preview_part($row);
-                
-                do_wiz_notif({ message: 'Template updated successfully', duration: 5000 });
-                console.log('Template updated successfully');
-            } else {
-                do_wiz_notif({ message: 'Import Error: Specified row not found', duration: 5000 });
-                console.error('Specified row not found');
-            }
-        },
-        function() {
-            console.error('Error fetching template JSON');
+function handle_json_pattern_import(jsonData, $clicked, rowIndex, columnSetIndex = null) {
+    const currentTemplateData = get_template_from_session();
+    
+    // Find the element_type object and remove it from jsonData
+    const elementTypeObj = jsonData.find(item => item.hasOwnProperty('element_type'));
+    const elementType = elementTypeObj ? elementTypeObj.element_type : null;
+    jsonData = jsonData.filter(item => !item.hasOwnProperty('element_type'));
+
+    if (!elementType) {
+        do_wiz_notif({ message: 'Invalid JSON data: missing element type', duration: 5000 });
+        return;
+    }
+
+    let importMessage = '';
+    let updatedData = null;
+
+    if (elementType === 'row') {
+        // Make sure we're importing into a row
+        if (rowIndex && columnSetIndex) {
+            do_wiz_notif({ message: 'You can\'t import a columnset into a row', duration: 5000 });
+            return;
         }
-    );
+        importMessage = 'Are you sure you want to replace the current row with the imported data?';
+        updatedData = {...currentTemplateData, rows: {...currentTemplateData.rows, [rowIndex]: jsonData[0]}};
+    } else if (elementType === 'columnset') {
+        // Make sure we're importing into a columnset
+        if (!columnSetIndex) {
+            do_wiz_notif({ message: 'You can\'t import a row into a columnset', duration: 5000 });
+            return;
+        }
+        importMessage = 'Are you sure you want to replace the current columnset with the imported data?';
+        updatedData = {
+            ...currentTemplateData,
+            rows: {
+                ...currentTemplateData.rows,
+                [rowIndex]: {
+                    ...currentTemplateData.rows[rowIndex],
+                    columnSets: {
+                        ...currentTemplateData.rows[rowIndex].columnSets,
+                        [columnSetIndex]: jsonData[0]
+                    }
+                }
+            }
+        };
+    } else {
+        do_wiz_notif({ message: 'Invalid element type in imported JSON', duration: 5000 });
+        return;
+    }
+
+    // Confirm with the user before importing
+    Swal.fire({
+        title: 'Confirm Import',
+        text: importMessage,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, import it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Save the template
+            save_template_data(updatedData);
+            
+            // Show success message
+            do_wiz_notif({ message: 'Data imported successfully', duration: 3000 });
+            
+            // Refresh the page after a short delay to allow the notification to be seen
+            setTimeout(() => {
+                location.reload();
+            }, 3000);
+        } else {
+            do_wiz_notif({ message: 'Import cancelled', duration: 3000 });
+        }
+    });
 }
 
 function get_layout_icon_html(layoutValue) {
@@ -1189,7 +1255,7 @@ function get_template_part_do_callback(params, callback) {
     var defaultParams = {
         action: "get_wiztemplate_part_html",
         templateData: JSON.stringify(templateData),
-        isEditor: false,
+        isEditor: true,
         templateId: idAjax_template_editor.currentPostId,
         security: idAjax_template_editor.nonce,
         partType: null,
@@ -1431,7 +1497,7 @@ function processPreviewUpdateQueue() {
 }
 
 function getBuilderParams($element) {
-    let params = {};
+    let params = { isEditor: true };
     if ($element.closest('.builder-chunk').length) {
         const $chunk = $element.closest('.builder-chunk');
         params = {
