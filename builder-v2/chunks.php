@@ -312,7 +312,10 @@ function idwiz_get_icon_list_chunk($chunk, $templateOptions, $chunkIndex = null,
 	$chunkSettings = $chunk['settings'] ?? [];
 
 	$visibility = get_visibility_class_and_style($chunkSettings);
+	$darkModeVisibility = get_visibility_class_and_style($chunkSettings, true);
 	$classAttr = $visibility['class'] ? 'class="' . esc_attr($visibility['class']) . '"' : '';
+
+	$darkModeSupport = $templateOptions['template_styles']['custom-styles']['dark-mode-support'] === true ? true : false;
 
 	$chunkDataAttr = $isEditor ? "data-chunk-index='" . $chunkIndex . "' data-chunk-type='" . $chunk["field_type"] . "'" : "";
 
@@ -331,9 +334,29 @@ function idwiz_get_icon_list_chunk($chunk, $templateOptions, $chunkIndex = null,
 	$iconWidth = $chunkSettings['icon_width'] ?? '80px';
 
 	$imageSrc = $chunkFields['image_url'] ?? '';
+	$darkModeImageSrc = $chunkFields['dark_mode_image_url'] ?? '';
+
 	$cachedImageSrc = get_wizbuilder_image_src($imageSrc ?? '', $isEditor);
+	$cachedDarkModeImageSrc = get_wizbuilder_image_src($darkModeImageSrc ?? '', $isEditor);
+
+	// Determine the aspect ratio of the image
+	$imageAspectRatioResult = get_image_aspect_ratio($imageSrc); // we pass the remote URL here, not the cached data
+	$status = $imageAspectRatioResult['status'];
+	$imageAspectRatio = $imageAspectRatioResult['data'];
+
+	if ($status == 'error') {
+		$imageAspectRatio = 1;
+	}
+
+	// Calculate the height based on the aspect ratio and msoWidth
+	// Remove "px" from iconWidth
+	$iconWidthPx = str_replace('px', '', $iconWidth);
+	$msoHeight = round($iconWidthPx / $imageAspectRatio, 2);
+
 	$imageLink = $chunkFields['image_link'] ?? '';
 	$imageAlt = $chunkFields['image_alt'] ?? '';
+
+	$lightModeImgClass = ($darkModeSupport && $darkModeImageSrc) ? 'light-image' : '';
 
 	$textContent = $chunkFields['plain_text_content'] ?? '<p>Your content goes here!</p>';
 	$textContent = add_aria_label_to_links($textContent);
@@ -355,8 +378,13 @@ function idwiz_get_icon_list_chunk($chunk, $templateOptions, $chunkIndex = null,
 	<div class="icon-bullet-wrapper" style="max-width: ' . $listWidth . '; width: 100%; margin: 0 auto; font-family: Arial, sans-serif; font-size: ' . $templateFontSize . '; line-height: 1.5;">
 	  <div class="icon-bullet-image-wrap" style="width: ' . $iconWidth . '; float: left;">
 		<a href="' . $imageLink . '" style="display: block; text-align: right;">
-		  <img class="icon-bullet-image" src="' . $cachedImageSrc . '" style="max-width: 100%; width: ' . $iconWidth . '; height: auto;" width="' . $iconWidth . '" alt="' . $imageAlt . '">
-		</a>
+		<img class="icon-bullet-image '. $lightModeImgClass.'" src="' . $cachedImageSrc . '" style="display:block; max-width: 100%; width: ' . $iconWidth . '; height: auto;" height=' . $msoHeight . ' width="' . $iconWidthPx . '" alt="' . $imageAlt . '">';
+	if ($darkModeSupport && $darkModeImageSrc) {
+		$output .= '<!--[if !mso]><!-->';
+		$output .= '<img ' . $imageAlt . ' class="id-image dark-image ' . $visibility['class'] . '" target="_blank" rel="noopener noreferrer" src="' . $cachedDarkModeImageSrc . '" style="' . $darkModeVisibility['inlineStyle'] . '" width= "' . $iconWidthPx . '" height="' . $msoHeight . '"  />';
+		$output .= '<!--<![endif]-->';
+	}
+	$output .= 	'</a>
 	  </div>
 	<!--[if mso]></td><td valign="top"><![endif]-->
 	  <div class="icon-bullet-content-wrap" style="margin-left: ' . (intval($iconWidth) + 10) . 'px;">
@@ -471,12 +499,17 @@ function idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex = null, $is
 
 	$chunkSettings = $chunk['settings'];
 
+	$darkModeSupport = $templateOptions['template_styles']['custom-styles']['dark-mode-support'] === true ? true : false;
+
 	$visibility = get_visibility_class_and_style($chunkSettings);
+	
 	if ($visibility['class'] != '') {
 		$tableClassHtml = 'class="' . esc_attr($visibility['class']) . '"';
 	} else {
 		$tableClassHtml = '';
 	}
+
+	$darkModeVisibility = get_visibility_class_and_style($chunkSettings, true);
 
 	$chunkFields = $chunk['fields'];
 
@@ -495,7 +528,10 @@ function idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex = null, $is
 	$templateWidth = $templateOptions['template_styles']['body-and-background']['template_width'] ?? '648';
 
 	$imageSrc = $chunkFields['image_url'] ?? '';
-	$cachedImageSrc = get_wizbuilder_image_src($chunkFields['image_url'] ?? '', $isEditor);
+	$cachedImageSrc = get_wizbuilder_image_src($imageSrc ?? '', $isEditor);
+
+	$darkModeImageSrc = $chunkFields['dark_mode_image_url'] ?? '';
+	$cachedDarkModeImageSrc = get_wizbuilder_image_src($darkModeImageSrc ?? '', $isEditor);
 
 	$imageLink = $chunkFields['image_link'] ?? '';
 	$imageAlt = $chunkFields['image_alt'] ?? '';
@@ -564,7 +600,15 @@ function idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex = null, $is
 	if ($imageLink) {
 		$output .= '<a href="' . $imageLink . '" ' . $ariaHidden . ' class="id-image-link" title="' . $imageAlt . '">';
 	}
-	$output .= '<img ' . $altAttribute . ' class="id-image ' . $visibility['class'] . '" target="_blank" rel="noopener noreferrer" src="' . $cachedImageSrc . '" style="' . $pointerEventsCss . 'width:100%; height:auto;' . $visibility['inlineStyle'] . '" />';
+
+	$lightModeImgClass = ($darkModeSupport && $darkModeImageSrc) ? 'light-image' : '';
+	$output .= '<img ' . $altAttribute . ' class="id-image '.$lightModeImgClass.' ' . $visibility['class'] . '" target="_blank" rel="noopener noreferrer" src="' . $cachedImageSrc . '" style="display:block;' . $pointerEventsCss . 'width:100%; height:auto;' . $visibility['inlineStyle'] . '" />';
+	
+	if ($darkModeSupport && $darkModeImageSrc) {
+		$output .= '<!--[if !mso]><!-->';
+		$output .= '<img ' . $altAttribute . ' class="id-image dark-image ' . $visibility['class'] . '" target="_blank" rel="noopener noreferrer" src="' . $cachedDarkModeImageSrc . '" style="' . $pointerEventsCss . 'width:100%; height:auto;' . $darkModeVisibility['inlineStyle'] . '" />';
+		$output .= '<!--<![endif]-->';
+	}
 	if ($imageLink) {
 		$output .= '</a>';
 	}
@@ -582,7 +626,6 @@ function idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex = null, $is
 
 function idwiz_get_standard_header($templateOptions, $isEditor = false)
 {
-	error_log('Standard header call: ' .$isEditor);
 	$templateStyles = $templateOptions['template_styles'];
 	$headerFooterSettings = $templateStyles['header-and-footer'];
 	$templateWidth = $templateStyles['body-and-background']['template_width'];
@@ -620,10 +663,12 @@ function idwiz_get_standard_header($templateOptions, $isEditor = false)
 	$output .= '<td style="font-size: 0;line-height:0;margin:0;padding:' . $headerPadding . ';">';
 	$output .= '<![endif]-->';
 	$output .= '<a href="https://www.idtech.com" style="margin:0; padding: 0;" aria-label="iD Tech Camps" title="iD Tech Camps">';
-	$output .= '<img class="light-image" src="' . $headerLogoUrl . '" width="' . $templateWidth . '" height="' . $msoHeight .'" alt="" style="max-width:100%; display:block;" />';
+	//Only give the light image a class if there's a dark image to go with it
+	$lightModeImgClass = $useDarkMode ? 'light-image' : '';
+	$output .= '<img class="'.$lightModeImgClass.'" src="' . $headerLogoUrl . '" width="' . $templateWidth . '" height="' . $msoHeight .'" alt="" style="max-width:100%; display:block;" />';
 	if ($useDarkMode) {
-	$output .= '<!--[if !mso]><!-->';
-	$output .= '<img class="dark-image" src="' . $darkModeLogoUrl . '" width="' . $templateWidth . '" height="' . $msoHeight . '"alt="" style="max-width:100%; display:none;" />';
+		$output .= '<!--[if !mso]><!-->';
+		$output .= '<img class="dark-image" src="' . $darkModeLogoUrl . '" width="' . $templateWidth . '" height="' . $msoHeight . '"alt="" style="max-width:100%; display:none;" />';
 		$output .= '<!--<![endif]-->';
 	}
 	$output .= '</a>';
@@ -645,15 +690,11 @@ function idwiz_get_standard_footer($templateStyles, $isEditor = false)
 	}
 
 	$bodyAndBackground = $templateStyles['body-and-background'];
-	$linkStyles = $templateStyles['link-styles'];
 
 	$showUnsub = json_decode($headerAndFooter['show_unsub'] ?? 'true');
 	$footerBackground = $headerAndFooter['footer-background'] ?? [];
 	$footerBackgroundCss = generate_background_css($footerBackground);
-	$footerTextColor = $headerAndFooter['template_footer_text_color'] ?? '#343434';
 	$templateWidth = $bodyAndBackground['template_width'];
-	$templateLinkColor = $linkStyles['template_link_style_color'] ?? '#1b75d0';
-	$footerLinkColor = $headerAndFooter['template_footer_link_color'] ?? $templateLinkColor ?? '#343434';
 
 	$gmailBlendDesktop = json_decode($headerAndFooter['footer_force_white_text_on_desktop'] ?? 'false');
 	$gmailBlendMobile = json_decode($headerAndFooter['footer_force_white_text_on_mobile'] ?? 'false');
@@ -678,11 +719,11 @@ function idwiz_get_standard_footer($templateStyles, $isEditor = false)
 	}
 
 	// Contact information
-	$output .= idwiz_get_contact_info($footerTextColor);
+	$output .= idwiz_get_contact_info();
 
 	// Unsubscribe links
 	if ($showUnsub) {
-		$output .= idwiz_get_unsubscribe_links($footerLinkColor);
+		$output .= idwiz_get_unsubscribe_links();
 	}
 
 	if ($gmailBlendDesktop || $gmailBlendMobile) {
@@ -710,7 +751,6 @@ function idwiz_get_fine_print_disclaimer($templateOptions)
 	$finePrintDisclaimer = $templateOptions['message_settings']['fine_print_disclaimer'];
 	$footerBackground = $headerAndFooter['footer-background'] ?? [];
 	$footerBackgroundCss = generate_background_css($footerBackground);
-	$footerTextColor = $headerAndFooter['template_footer_text_color'] ?? '#ffffff';
 	$templateWidth = $bodyAndBackground['template_width'];
 
 	$gmailBlendDesktop = json_decode($headerAndFooter['footer_force_white_text_on_desktop'] ?? 'false');
@@ -733,7 +773,7 @@ function idwiz_get_fine_print_disclaimer($templateOptions)
 			$output .= '<div class="gmail-blend-screen ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
 			$output .= '<div class="gmail-blend-difference ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
 		}
-		$output .= '<center style="font-size:12px !important;color:' . $footerTextColor . ';line-height:16px;padding-left: 20px; padding-right: 20px;">' . $finePrintDisclaimer . '</center>';
+		$output .= '<center style="font-size:12px !important;line-height:16px;padding-left: 20px; padding-right: 20px;">' . $finePrintDisclaimer . '</center>';
 		if ($gmailBlendDesktop || $gmailBlendMobile) {
 			$output .= '</div>';
 			$output .= '</div>';
@@ -786,9 +826,9 @@ function idwiz_get_social_media_icons($isEditor = false)
 	return $output;
 }
 
-function idwiz_get_contact_info($footerTextColor)
+function idwiz_get_contact_info()
 {
-	return '<p style="color:' . $footerTextColor . ';margin:0;padding: 1em 0;font-family:Poppins,sans-serif;font-size:12px;line-height:16px;">
+	return '<p style="margin:0;padding: 1em 0;font-family:Poppins,sans-serif;font-size:12px;line-height:16px;">
 		<strong>Contact Us:</strong><br />
 		1-888-709-8324<br />
 		+1-408-871-3700 (international)<br /><br />
@@ -799,13 +839,13 @@ function idwiz_get_contact_info($footerTextColor)
 	</p>';
 }
 
-function idwiz_get_unsubscribe_links($footerLinkColor)
+function idwiz_get_unsubscribe_links()
 {
 	$output = '{{#if userId}}';
-	$output .= '<a href="{{hostedUnsubscribeUrl}}" aria-label="Manage Subscription Preferences" title="Manage Subscription Preferences" style="color: ' . $footerLinkColor . ';">Manage preferences</a><br />';
+	$output .= '<a class="footer-link" href="{{hostedUnsubscribeUrl}}" aria-label="Manage Subscription Preferences" title="Manage Subscription Preferences">Manage preferences</a><br />';
 	$output .= '{{/if}}';
-	$output .= '<a href="{{unsubscribeMessageTypeUrl}}" aria-label="Unsubscribe from emails like this" title="Manage Subscription Preferences" style="color: ' . $footerLinkColor . ';">Unsubscribe from emails like this</a><br />';
-	$output .= '<a href="{{unsubscribeUrl}}" aria-label="Unsubscribe from all marketing emails" title="Manage Subscription Preferences" style="color: ' . $footerLinkColor . ';">Unsubscribe from all marketing emails</a><br /><br />';
+	$output .= '<a class="footer-link" href="{{unsubscribeMessageTypeUrl}}" aria-label="Unsubscribe from emails like this" title="Manage Subscription Preferences">Unsubscribe from emails like this</a><br />';
+	$output .= '<a class="footer-link" href="{{unsubscribeUrl}}" aria-label="Unsubscribe from all marketing emails" title="Manage Subscription Preferences">Unsubscribe from all marketing emails</a><br /><br />';
 	return $output;
 }
 
@@ -959,7 +999,7 @@ function idwiz_get_email_body_top($templateSettings, $templateStyles)
 					<td style="padding:20px 0; ' . $pageBackgroundCss . '"> 
 					<![endif]-->
 						<div class="outer" style="width: 100%; max-width: ' . $templateWidth . 'px; margin: 0 auto; ' . $pageBackgroundCss .'">
-						<h1 style="max-height:0;max-width:0;mso-font-width:0%;mso-style-textfill-type: none; white-space: nowrap;font-size:1px;color:rgba(0,0,0,0);text-indent:9px;">'
+						<h1 style="max-height:0;max-width:0;mso-font-width:0%;mso-style-textfill-type: none; white-space: nowrap;font-size:1px!important;color:rgba(0,0,0,0);text-indent:9px;">'
 							. $subjectLine . 
 						'</h1>';
 						

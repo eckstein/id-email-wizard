@@ -14,6 +14,9 @@ function wrap_with_placeholder($name, $content, $dataParams = [])
 }
 function generate_template_structure($templateData, $isEditor = false)
 {
+    // Turn $isEditor from 'true' to true and 'false' to false
+    $isEditor = $isEditor === 'true';
+    
     $rows = $templateData['rows'] ?? [];
     $templateOptions = $templateData['template_options'] ?? [];
     $templateSettings = $templateOptions['message_settings'] ?? [];
@@ -155,13 +158,15 @@ function generate_row_start($rowIndex, $templateData = null, $isEditor = false)
         return;
     }
 
-    $return = '';
-    if ($isEditor) {
-        $return = '<wizPlaceholder data-preview-part="row_start" data-row-index="' . $rowIndex . '"></wizPlaceholder>';
+    $row = $templateData['rows'][$rowIndex] ?? null;
+    if (!$row) {
+        return;
     }
 
-    $row = $templateData['rows'][$rowIndex] ?? null;
-    if (!$row) return '';
+    $return = '';
+    if ($isEditor) {
+        $return .= '<wizPlaceholder data-preview-part="row_start" data-row-index="' . $rowIndex . '"></wizPlaceholder>';
+    }
     
 
     $rowBackgroundCss = generate_background_css($row['background_settings']);
@@ -328,17 +333,7 @@ function generate_column_start($rowIndex, $columnSetIndex, $columnIndex, $templa
         $columnWidthPct = 100;
     }
 
-    // Convert valign value to align-self values
-    $flexAlignSelfValue = 'flex-start';
-    if ($colValign === 'top') {
-        $flexAlignSelfValue = 'flex-start';
-    } elseif ($colValign === 'middle') {
-        $flexAlignSelfValue = 'center';
-    } elseif ($colValign === 'bottom') {
-        $flexAlignSelfValue = 'flex-end';
-    }
-
-    $columnStyle = "width: {$columnWidthPct}%; max-width: {$columnWidthPx}px; font-size: {$templateStyles['font-styles']['template_font_size']}; align-self: {$flexAlignSelfValue}; text-align: left;'";
+    $columnStyle = "display: inline-block; width: {$columnWidthPct}%; max-width: {$columnWidthPx}px; font-size: {$templateStyles['font-styles']['template_font_size']}; vertical-align: {$colValign}; text-align: left;'";
 
     $columnDataAttr = $isEditor ? 'data-column-index=' . $columnIndex : '';
     $return = '';
@@ -428,7 +423,6 @@ function get_wiztemplate_part_html()
     // Get the template data
     $templateData = json_decode(stripslashes($_POST['templateData']), true);
     $isEditor = $_POST['isEditor'] ?? false;
-    error_log('Is editor: ' . $isEditor);
     $partType = isset($_POST['partType']) ? sanitize_text_field($_POST['partType']) : null;
 
     $rowIndex = isset($_POST['rowIndex']) ? intval($_POST['rowIndex']) : null;

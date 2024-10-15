@@ -713,11 +713,13 @@ function render_chunk_fields($chunkType, $chunkData, $uniqueId)
             break;
         case 'image':
             $imageUrl = $chunkData['fields']['image_url'] ?? 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/full-width-image.jpg';
+            $darkModeImageUrl = $chunkData['fields']['dark_mode_image_url'] ?? '';
             $imageLink = $chunkData['fields']['image_link'] ?? 'https://www.idtech.com';
             $imageAlt = $chunkData['fields']['image_alt'] ?? '';
 
             echo "<div class='builder-field-group flex'>";
             echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-image-url'>Image URL</label><input type='text' name='image_url' id='{$uniqueId}-image-url' value='{$imageUrl}' placeholder='https://'></div>";
+            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-dark-mode-image-url'>Dark Mode Image URL</label><input type='text' name='dark_mode_image_url' id='{$uniqueId}-dark-mode-image-url' value='{$darkModeImageUrl}' placeholder='https://'></div>";
             echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-image-link'>Image Link</label><input type='text' name='image_link' id='{$uniqueId}-image-link' value='{$imageLink}' placeholder='https://'></div>";
             echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-image-alt'>Image Alt</label><input type='text' name='image_alt' id='{$uniqueId}-image-alt' value='{$imageAlt}' placeholder='Describe the image or leave blank'></div>";
             echo "</div>"; // close builder-field-group
@@ -725,11 +727,13 @@ function render_chunk_fields($chunkType, $chunkData, $uniqueId)
             break;
         case 'icon-list':
             $imageUrl = $chunkData['fields']['image_url'] ?? 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/full-width-image.jpg';
+            $darkModeImageUrl = $chunkData['fields']['dark_mode_image_url'] ?? '';
             $imageLink = $chunkData['fields']['image_link'] ?? 'https://www.idtech.com';
             $imageAlt = $chunkData['fields']['image_alt'] ?? '';
             echo "<div class='builder-field-group flex noWrap'>";
             echo "<div class='builder-field-group icon-list-image-fields'>";
             echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-image-url'>Image URL</label><input type='text' name='image_url' id='{$uniqueId}-image-url' value='{$imageUrl}' placeholder='https://'></div>";
+            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-dark-mode-image-url'>Dark Mode Image URL</label><input type='text' name='dark_mode_image_url' id='{$uniqueId}-dark-mode-image-url' value='{$darkModeImageUrl}' placeholder='https://'></div>";
             echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-image-link'>Image Link</label><input type='text' name='image_link' id='{$uniqueId}-image-link' value='{$imageLink}' placeholder='https://'></div>";
             echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-image-alt'>Image Alt</label><input type='text' name='image_alt' id='{$uniqueId}-image-alt' value='{$imageAlt}' placeholder='Describe the image or leave blank'></div>";
             echo "</div>";
@@ -747,7 +751,7 @@ function render_chunk_fields($chunkType, $chunkData, $uniqueId)
             $buttonBorderColor = $chunkData['fields']['button_border_color'] ?? '#343434';
             $buttonBorderSize = $chunkData['fields']['button_border_size'] ?? '1px';
             $buttonBorderRadius = $chunkData['fields']['button_border_radius'] ?? '30px';
-            $buttonPadding = $chunkData['fields']['button_padding'] ?? '15px 60px';
+            $buttonPadding = $chunkData['fields']['button_padding'] ?? '10px 80px';
             $buttonAlign = $chunkData['fields']['button_align'] ?? 'center';
 
             $buttonLink = $chunkData['fields']['button_link'] ?? 'https://www.idtech.com';

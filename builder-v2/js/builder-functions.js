@@ -1554,13 +1554,27 @@ function replacePreviewContent(iframe, params, decodedHTML) {
         const endSelector = selector.replace('_start', '_end');
         const endPlaceholder = iframe.querySelector(endSelector);
         if (endPlaceholder) {
+            // Create a temporary container
+            const tempContainer = document.createElement('div');
+            tempContainer.innerHTML = decodedHTML;
+
+            // Remove placeholders from the decodedHTML
+            const placeholdersToRemove = tempContainer.querySelectorAll('wizPlaceholder');
+            placeholdersToRemove.forEach(placeholder => placeholder.remove());
+
+            // Get the cleaned HTML content
+            const cleanedHTML = tempContainer.innerHTML;
+
+            // Replace content between existing placeholders
             let currentNode = startPlaceholder.nextSibling;
             while (currentNode && currentNode !== endPlaceholder) {
                 const nextNode = currentNode.nextSibling;
                 currentNode.remove();
                 currentNode = nextNode;
             }
-            startPlaceholder.insertAdjacentHTML('afterend', decodedHTML);
+            startPlaceholder.insertAdjacentHTML('afterend', cleanedHTML);
+        } else {
+            console.warn('End placeholder not found');
         }
     } else {
         console.warn('Unable to find placeholder for', params);

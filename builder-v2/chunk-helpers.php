@@ -199,7 +199,7 @@ return ob_get_clean();
 
 
 
-function get_visibility_class_and_style($settingsObject)
+function get_visibility_class_and_style($settingsObject, $darkMode = false)
 {
 
     $desktopVisibility = filter_var($settingsObject['desktop_visibility'] ?? true, FILTER_VALIDATE_BOOLEAN);
@@ -220,6 +220,10 @@ function get_visibility_class_and_style($settingsObject)
     } elseif ($desktopVisibility === false && $mobileVisibility === false) {
         // Hidden on all devices
         $inlineStyle = 'display: none !important;';
+    }
+
+    if ($darkMode) {
+        $inlineStyle = 'display: none;'; // hides by default on light mode
     }
 
     // Join all classes into a single string

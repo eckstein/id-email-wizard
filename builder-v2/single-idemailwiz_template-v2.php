@@ -195,24 +195,9 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 										</div>
 
 									</div>
-									<div class="builder-field-wrapper template-footer-text-color centered">
-										<?php
-										$templateFooterTextColor = $templateHeaderFooterStyles['template_footer_text_color'] ?? '#000';
-										?>
-										<label for="template_styles_footer_text_color">Text</label>
-										<input class="builder-colorpicker" type="color" data-preview-part="standard_footer"
-											name="template_footer_text_color" id="template_styles_footer_text_color"
-											data-color-value="<?php echo $templateFooterTextColor; ?>">
-									</div>
-									<div class="builder-field-wrapper template-footer-link-color centered">
-										<?php
-										$templateFooterLinkColor = $templateHeaderFooterStyles['template_footer_link_color'] ?? '#000';
-										?>
-										<label for="template_styles_footer_link_color">Links</label>
-										<input class="builder-colorpicker" type="color" data-preview-part="standard_footer"
-											name="template_footer_link_color" id="template_styles_footer_link_color"
-											data-color-value="<?php echo $templateFooterLinkColor; ?>">
-									</div>
+								</div>
+								<div class="builder-field-group flex">
+
 									<?php
 									$forceWhiteTextDevices = [
 										[

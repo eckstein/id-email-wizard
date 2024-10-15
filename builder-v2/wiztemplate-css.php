@@ -39,14 +39,14 @@
         $darkModeCss = <<<HTML
         <style type="text/css">
             .dark-image, .dark-image img {
-                display: none;
+                display: none!important;
             }
         @media (prefers-color-scheme: dark ) {
             .light-image {
                 display:none!important
             }
             .dark-image {
-                display:inline!important
+                display:block!important
             }
             p,h1,h2,h3,h4,h5,h6 {
             color: {$baseDarkModeTextColor};
@@ -59,7 +59,7 @@
             }
         [data-ogsc] .dark-image,
         [data-ogsb] .dark-image {
-                display:inline!important
+                display:block!important
             }
         [data-ogsc] p,[data-ogsc] h1,[data-ogsc] h2,[data-ogsc] h3,[data-ogsc] h4,[data-ogsc] h5,[data-ogsc] h6 {
             color: #fff;
@@ -310,11 +310,12 @@
 
     .columnSet {
        white-space: nowrap;
-       display: flex;
-       flex-wrap: wrap;
+       display: table;
     }
     .column {
+        display: inline-block;
         white-space: normal;
+        vertical-align: top;
     }
 
     @media screen and (max-width: 480px) {

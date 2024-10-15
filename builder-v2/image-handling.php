@@ -19,8 +19,8 @@ function get_image_aspect_ratio($imageSrc, $defaultRatio = 3)
 
 
 
-// Gets image data either from the cashe or from the remote server
-function get_cached_image_data($url, $cache_time = 1 * WEEK_IN_SECONDS, $max_size = 2097152)
+// Gets image data either from the cache or from the remote server
+function get_cached_image_data($url, $cache_time = 1 * WEEK_IN_SECONDS, $max_size = 5242880)
 {
     $cache_key = 'wiz_image_cache_' . md5($url);
     $cached_data = get_transient($cache_key);

@@ -133,7 +133,6 @@ jQuery(document).ready(function ($) {
 							toggleOverlay(false);
 						});
 					} else {
-						console.log(data.fields);
 						create_or_update_iterable_template(data.fields, result.value, data.alreadySent)
 							.then(handleTemplateUpdateSuccess)
 							.catch(handleTemplateUpdateFailure);
