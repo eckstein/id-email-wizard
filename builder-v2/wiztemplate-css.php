@@ -48,7 +48,7 @@
             .dark-image {
                 display:block!important
             }
-            p,h1,h2,h3,h4,h5,h6 {
+            html, body, article {
             color: {$baseDarkModeTextColor};
             }
         }
@@ -62,10 +62,10 @@
                 display:block!important
             }
         [data-ogsc] p,[data-ogsc] h1,[data-ogsc] h2,[data-ogsc] h3,[data-ogsc] h4,[data-ogsc] h5,[data-ogsc] h6 {
-            color: #fff;
+            color: {$baseDarkModeTextColor};
             }
         [data-ogsb] p,[data-ogsb] h1,[data-ogsb] h2,[data-ogsb] h3,[data-ogsb] h4,[data-ogsb] h5,[data-ogsb] h6 {
-            color: #fff;
+            color: {$baseDarkModeTextColor};
             }
             
         </style>
