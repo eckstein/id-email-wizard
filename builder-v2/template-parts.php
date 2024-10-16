@@ -338,7 +338,7 @@ function generate_column_start($rowIndex, $columnSetIndex, $columnIndex, $templa
     $columnDataAttr = $isEditor ? 'data-column-index=' . $columnIndex : '';
     $return = '';
     if ($isEditor) {
-        $return = '<wizPlaceholder data-preview-part="column_start" data-row-index="' . $rowIndex . '" data-columnset-index="' . $columnSetIndex . '" data-column-index="' . $columnIndex . '"></wizPlaceholder>';
+        $return .= '<wizPlaceholder data-preview-part="column_start" data-row-index="' . $rowIndex . '" data-columnset-index="' . $columnSetIndex . '" data-column-index="' . $columnIndex . '"></wizPlaceholder>';
     }
     $return .= "<!--[if mso]><td style='$msoColBackgroundCSS vertical-align:$colValign;' width='$columnWidthPx' valign='$colValign'><![endif]-->";
     $return .= "<div class='column $columnClasses $mobileWrapClass' $columnDataAttr style='$columnStyle $colBackgroundCSS' valign='$colValign' dir='ltr'>";
@@ -350,8 +350,8 @@ function generate_column_end($rowIndex, $colSetIndex, $columnIndex, $isEditor = 
 {
     $return = '';
 
-    $return .= "</div>"; // Close .column div
-    $return .= "<!--[if mso]></td><![endif]-->";
+    $return .= '</div>'; // Close .column div
+    $return .= '<!--[if mso]></td><![endif]-->';
 
     if ($isEditor) {
         $return .= '<wizPlaceholder data-preview-part="column_end" data-row-index="' . $rowIndex . '" data-columnset-index="' . $colSetIndex . '" data-column-index="' . $columnIndex . '"></wizPlaceholder>';

@@ -94,8 +94,8 @@ function syncPreviewElement($builderElement, isExpanding) {
 
     let $firstChunk = $previewElement.hasClass('chunk') ? $previewElement : $previewElement.find('.chunk').first();
 
-    console.log('Syncing preview element:', $previewElement);
-    console.log('First chunk:', $firstChunk);
+    // console.log('Syncing preview element:', $previewElement);
+    // console.log('First chunk:', $firstChunk);
     
     if (!$firstChunk.length) {
         // If no chunk is found, keep the original $previewElement
@@ -1085,7 +1085,7 @@ function add_chunk_by_type(chunkType, addChunkTrigger, duplicate = false) {
     idemailwiz_do_ajax('add_new_chunk', idAjax_template_editor.nonce, data,
         function(response) {
                 if (response.data.html) {
-                console.log('Response: ' + JSON.stringify(response));
+                //console.log('Response: ' + JSON.stringify(response));
                 var newChunk;
                 if (chunkId !== undefined && chunkId !== '') {
                     // Insert after the specified chunk
@@ -1109,7 +1109,7 @@ function add_chunk_by_type(chunkType, addChunkTrigger, duplicate = false) {
 
                 var columnSet = newChunk.closest('.builder-columnset');
 
-                update_template_preview_part(columnSet);
+                //update_template_preview_part(columnSet);
 
             }
         },
@@ -1120,7 +1120,7 @@ function add_chunk_by_type(chunkType, addChunkTrigger, duplicate = false) {
 }
 
 
-jQuery.fn.insertMergeTag = function(insertText) {
+function insertMergeTag(insertText) {
   const inputElement = jQuery(this);
   const currentValue = inputElement.val();
 
@@ -1148,6 +1148,8 @@ function finalize_new_item($element, response) {
     $element.addClass('newly-added');
     setTimeout(() => $element.removeClass('newly-added'), 3000);
 
+    setTimeout(function () {
+        
     if ($element.hasClass('builder-row')) {
         reindexDataAttributes('row-id');
         update_template_preview_part(jQuery('#builder').find($element), 'newRow');
@@ -1164,6 +1166,7 @@ function finalize_new_item($element, response) {
         }
         
     }
+    }, 500);
 
     save_template_to_session();
 
@@ -1558,21 +1561,34 @@ function replacePreviewContent(iframe, params, decodedHTML) {
             const tempContainer = document.createElement('div');
             tempContainer.innerHTML = decodedHTML;
 
-            // Remove placeholders from the decodedHTML
-            const placeholdersToRemove = tempContainer.querySelectorAll('wizPlaceholder');
-            placeholdersToRemove.forEach(placeholder => placeholder.remove());
+            // Remove only the matching outer placeholders from the decodedHTML
+            const startPlaceholderInNew = tempContainer.querySelector(selector);
+            const endPlaceholderInNew = tempContainer.querySelector(endSelector);
+            
+            if (startPlaceholderInNew && endPlaceholderInNew) {
+                // Extract content between the outer placeholders
+                const contentBetweenPlaceholders = Array.from(tempContainer.childNodes)
+                    .filter(node => node.nodeType === Node.ELEMENT_NODE || node.nodeType === Node.TEXT_NODE)
+                    .slice(
+                        Array.from(tempContainer.childNodes).indexOf(startPlaceholderInNew) + 1,
+                        Array.from(tempContainer.childNodes).indexOf(endPlaceholderInNew)
+                    );
 
-            // Get the cleaned HTML content
-            const cleanedHTML = tempContainer.innerHTML;
+                // Replace content between existing placeholders in iframe
+                let currentNode = startPlaceholder.nextSibling;
+                while (currentNode && currentNode !== endPlaceholder) {
+                    const nextNode = currentNode.nextSibling;
+                    currentNode.remove();
+                    currentNode = nextNode;
+                }
 
-            // Replace content between existing placeholders
-            let currentNode = startPlaceholder.nextSibling;
-            while (currentNode && currentNode !== endPlaceholder) {
-                const nextNode = currentNode.nextSibling;
-                currentNode.remove();
-                currentNode = nextNode;
+                // Insert the new content
+                contentBetweenPlaceholders.forEach(node => 
+                    startPlaceholder.parentNode.insertBefore(node.cloneNode(true), endPlaceholder)
+                );
+            } else {
+                console.warn('Matching placeholders not found in new content');
             }
-            startPlaceholder.insertAdjacentHTML('afterend', cleanedHTML);
         } else {
             console.warn('End placeholder not found');
         }

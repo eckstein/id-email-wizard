@@ -251,7 +251,7 @@ async function id_delete_folders(folderIds) {
                 html: 'and templates have been moved.',
                 icon: 'success',
             }).then(function () {
-				console.log('Redirect to:' + result.value.newFolderLink);
+				//console.log('Redirect to:' + result.value.newFolderLink);
                 window.location.href = result.value.newFolderLink;
             });
         }

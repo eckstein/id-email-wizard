@@ -336,9 +336,6 @@ function idwiz_get_icon_list_chunk($chunk, $templateOptions, $chunkIndex = null,
 	$imageSrc = $chunkFields['image_url'] ?? '';
 	$darkModeImageSrc = $chunkFields['dark_mode_image_url'] ?? '';
 
-	$cachedImageSrc = get_wizbuilder_image_src($imageSrc ?? '', $isEditor);
-	$cachedDarkModeImageSrc = get_wizbuilder_image_src($darkModeImageSrc ?? '', $isEditor);
-
 	// Determine the aspect ratio of the image
 	$imageAspectRatioResult = get_image_aspect_ratio($imageSrc); // we pass the remote URL here, not the cached data
 	$status = $imageAspectRatioResult['status'];
@@ -378,10 +375,10 @@ function idwiz_get_icon_list_chunk($chunk, $templateOptions, $chunkIndex = null,
 	<div class="icon-bullet-wrapper" style="max-width: ' . $listWidth . '; width: 100%; margin: 0 auto; font-family: Arial, sans-serif; font-size: ' . $templateFontSize . '; line-height: 1.5;">
 	  <div class="icon-bullet-image-wrap" style="width: ' . $iconWidth . '; float: left;">
 		<a href="' . $imageLink . '" style="display: block; text-align: right;">
-		<img class="icon-bullet-image '. $lightModeImgClass.'" src="' . $cachedImageSrc . '" style="display:block; max-width: 100%; width: ' . $iconWidth . '; height: auto;" height=' . $msoHeight . ' width="' . $iconWidthPx . '" alt="' . $imageAlt . '">';
+		<img class="icon-bullet-image '. $lightModeImgClass.'" src="' . $imageSrc . '" style="display:block; max-width: 100%; width: ' . $iconWidth . '; height: auto;" height=' . $msoHeight . ' width="' . $iconWidthPx . '" alt="' . $imageAlt . '">';
 	if ($darkModeSupport && $darkModeImageSrc) {
 		$output .= '<!--[if !mso]><!-->';
-		$output .= '<img ' . $imageAlt . ' class="id-image dark-image ' . $visibility['class'] . '" target="_blank" rel="noopener noreferrer" src="' . $cachedDarkModeImageSrc . '" style="' . $darkModeVisibility['inlineStyle'] . '" width= "' . $iconWidthPx . '" height="' . $msoHeight . '"  />';
+		$output .= '<img ' . $imageAlt . ' class="id-image dark-image ' . $visibility['class'] . '" target="_blank" rel="noopener noreferrer" src="' . $darkModeImageSrc . '" style="' . $darkModeVisibility['inlineStyle'] . '" width= "' . $iconWidthPx . '" height="' . $msoHeight . '"  />';
 		$output .= '<!--<![endif]-->';
 	}
 	$output .= 	'</a>
@@ -528,10 +525,8 @@ function idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex = null, $is
 	$templateWidth = $templateOptions['template_styles']['body-and-background']['template_width'] ?? '648';
 
 	$imageSrc = $chunkFields['image_url'] ?? '';
-	$cachedImageSrc = get_wizbuilder_image_src($imageSrc ?? '', $isEditor);
 
 	$darkModeImageSrc = $chunkFields['dark_mode_image_url'] ?? '';
-	$cachedDarkModeImageSrc = get_wizbuilder_image_src($darkModeImageSrc ?? '', $isEditor);
 
 	$imageLink = $chunkFields['image_link'] ?? '';
 	$imageAlt = $chunkFields['image_alt'] ?? '';
@@ -567,6 +562,11 @@ function idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex = null, $is
 
 	$output = '';
 	$output .= '<div class="chunk ' . $chunkClasses . ' ' . $visibility['class'] . '" ' . $chunkDataAttr . ' style="' . $backgroundColorCss . ' ' . $visibility['inlineStyle'] . $chunkPaddingCss . '">';
+	// if ($isEditor) {
+	// 	$output .= '<div class="chunk-image-info">';
+	// 	$output .= 'Aspect Ratio: ' . $imageAspectRatio . ' | Width: ' . $msoWidth . ' | Height: ' . $msoHeight;
+	// 	$output .= '</div>';
+	// }
 	if ($visibility['class'] == 'mobile-only') {
 		$output .= '<!--[if !mso]><!-->';
 	}
@@ -602,11 +602,11 @@ function idwiz_get_image_chunk($chunk, $templateOptions, $chunkIndex = null, $is
 	}
 
 	$lightModeImgClass = ($darkModeSupport && $darkModeImageSrc) ? 'light-image' : '';
-	$output .= '<img ' . $altAttribute . ' class="id-image '.$lightModeImgClass.' ' . $visibility['class'] . '" target="_blank" rel="noopener noreferrer" src="' . $cachedImageSrc . '" style="display:block;' . $pointerEventsCss . 'width:100%; height:auto;' . $visibility['inlineStyle'] . '" />';
+	$output .= '<img ' . $altAttribute . ' class="id-image '.$lightModeImgClass.' ' . $visibility['class'] . '" target="_blank" rel="noopener noreferrer" src="' . $imageSrc . '" style="display:block;' . $pointerEventsCss . 'width:100%; height:auto;' . $visibility['inlineStyle'] . '" />';
 	
 	if ($darkModeSupport && $darkModeImageSrc) {
 		$output .= '<!--[if !mso]><!-->';
-		$output .= '<img ' . $altAttribute . ' class="id-image dark-image ' . $visibility['class'] . '" target="_blank" rel="noopener noreferrer" src="' . $cachedDarkModeImageSrc . '" style="' . $pointerEventsCss . 'width:100%; height:auto;' . $darkModeVisibility['inlineStyle'] . '" />';
+		$output .= '<img ' . $altAttribute . ' class="id-image dark-image ' . $visibility['class'] . '" target="_blank" rel="noopener noreferrer" src="' . $darkModeImageSrc . '" style="' . $pointerEventsCss . 'width:100%; height:auto;' . $darkModeVisibility['inlineStyle'] . '" />';
 		$output .= '<!--<![endif]-->';
 	}
 	if ($imageLink) {
@@ -633,13 +633,13 @@ function idwiz_get_standard_header($templateOptions, $isEditor = false)
 	if (!$showIdHeader) {
 		return '';
 	}
-	$headerLogo = $headerFooterSettings['template_header_logo'] ?? '';
+	$headerLogoUrl = $headerFooterSettings['template_header_logo'] ?? '';
 
 	$useDarkMode = $headerFooterSettings['show_dark_mode_header'] ?? false;
-	$darkModeLogo = $headerFooterSettings['template_header_logo_dark_mode'] ?? '';
+	$darkModeLogoUrl = $headerFooterSettings['template_header_logo_dark_mode'] ?? '';
 
 	// Determine the aspect ratio of the image
-	$imageAspectRatioResult = get_image_aspect_ratio($headerLogo); // we pass the remote URL here, not the cached data
+	$imageAspectRatioResult = get_image_aspect_ratio($headerLogoUrl); // we pass the remote URL here, not the cached data
 	$status = $imageAspectRatioResult['status'];
 	$imageAspectRatio = $imageAspectRatioResult['data'];
 
@@ -651,9 +651,6 @@ function idwiz_get_standard_header($templateOptions, $isEditor = false)
 
 	// Calculate the height based on the aspect ratio and msoWidth
 	$msoHeight = round($templateWidth / $imageAspectRatio, 0);
-
-	$headerLogoUrl = get_wizbuilder_image_src($headerLogo ?? '', $isEditor);
-	$darkModeLogoUrl = get_wizbuilder_image_src($darkModeLogo ?? '', $isEditor);
 
 	$headerPadding = $headerFooterSettings['header_padding'] ?? '0 0 20px 0';
 	$output = '<div class="chunk id-header ' . $chunkClasses . '" role="header" aria-label="iD Tech Camps" style="padding:' . $headerPadding . ';">';
@@ -801,17 +798,17 @@ function idwiz_get_social_media_icons($isEditor = false)
 		[
 			'url' => 'https://www.facebook.com/computercamps',
 			'title' => 'iD Tech on Facebook',
-			'src' => get_wizbuilder_image_src('https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/e1322b55-a0f4-4246-b530-3a0790a4c361.png', $isEditor)
+			'src' => 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/e1322b55-a0f4-4246-b530-3a0790a4c361.png',
 		],
 		[
 			'url' => 'https://twitter.com/idtechcamps',
 			'title' => 'iD Tech on Twitter',
-			'src' => get_wizbuilder_image_src('https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/94d22bf5-cc89-43f6-a4d8-8567c4e81d9d.png', $isEditor)
+			'src' => 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/94d22bf5-cc89-43f6-a4d8-8567c4e81d9d.png',
 		],
 		[
 			'url' => 'https://www.instagram.com/idtech/',
 			'title' => 'iD Tech on Instagram',
-			'src' => get_wizbuilder_image_src('https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/6b969394-7c4c-45c1-9079-7e98dddcbbb2.png', $isEditor)
+			'src' => 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/6b969394-7c4c-45c1-9079-7e98dddcbbb2.png',
 		]
 	];
 
