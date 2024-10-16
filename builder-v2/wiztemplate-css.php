@@ -38,31 +38,28 @@
     if ($darkModeSupport) {
         $darkModeCss = <<<HTML
         <style type="text/css">
-            .dark-image, .dark-image img {
+            .dark-image {
                 display: none!important;
             }
         @media (prefers-color-scheme: dark ) {
             .light-image {
-                display:none!important
+                display:none!important;
             }
             .dark-image {
-                display:block!important
+                display:block!important;
             }
             html, body, article {
             color: {$baseDarkModeTextColor};
             }
         }
         
-        [data-ogsc] .light-image,
-        [data-ogsb] .light-image {
-                display:none!important
+        [data-ogsc] .light-image {
+                display:none!important;
             }
-        [data-ogsc] .dark-image,
-        [data-ogsb] .dark-image {
-                display:block!important
+        [data-ogsc] .dark-image {
+                display:block!important;
             }
-        [data-ogsc] html, [data-ogsc] body, [data-ogsc] article,
-        [data-ogsb] html, [data-ogsb] body, [data-ogsb] article {
+        [data-ogsc] html, [data-ogsc] body, [data-ogsc] article {
             color: {$baseDarkModeTextColor};
             }
             
