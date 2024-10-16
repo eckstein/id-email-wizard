@@ -39,14 +39,14 @@
         $darkModeCss = <<<HTML
         <style type="text/css">
             .dark-image {
+                display: none;
+            }
+        @media (prefers-color-scheme: dark) {
+            .light-image {
                 display: none!important;
             }
-        @media (prefers-color-scheme: dark ) {
-            .light-image {
-                display:none!important;
-            }
             .dark-image {
-                display:block!important;
+                display: block!important;
             }
             html, body, article {
             color: {$baseDarkModeTextColor};
@@ -54,10 +54,10 @@
         }
         
         [data-ogsc] .light-image {
-                display:none!important;
+                display: none!important;
             }
         [data-ogsc] .dark-image {
-                display:block!important;
+                display: block!important;
             }
         [data-ogsc] html, [data-ogsc] body, [data-ogsc] article {
             color: {$baseDarkModeTextColor};
