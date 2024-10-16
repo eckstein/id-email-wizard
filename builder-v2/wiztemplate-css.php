@@ -39,7 +39,7 @@
         $darkModeCss = <<<HTML
         <style type="text/css">
             .dark-image {
-                display: none;
+                display: none!important;
             }
         @media (prefers-color-scheme: dark) {
             .light-image {
