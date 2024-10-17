@@ -38,6 +38,7 @@
     if ($darkModeSupport) {
         $darkModeCss = <<<HTML
         <style type="text/css">
+            /* We add important to overrid the mobile/desktop settings if needed */
             .dark-image {
                 display: none!important;
             }

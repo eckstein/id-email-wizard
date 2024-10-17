@@ -178,7 +178,7 @@ function generate_row_start($rowIndex, $templateData = null, $isEditor = false)
     $rowDataAttr = $isEditor ? 'data-row-index=' . $rowIndex : '';
 
     $return .= "<div class='row $rowClasses' $rowDataAttr style='font-size:0; width: 100%; margin: 0; padding: 0; " . $rowBackgroundCss . "'>";
-    $return .= "<!--[if mso]><table class='row' role='presentation' width='100%' style='$rowBackgroundCssMso white-space:nowrap;width: 100%; border: 0; border-spacing: 0;margin: 0 auto;text-align:center; '><tr><td><![endif]-->";
+    $return .= "<!--[if mso]><table class='row $rowClasses' role='presentation' width='100%' style='$rowBackgroundCssMso white-space:nowrap;width: 100%; border: 0; border-spacing: 0;margin: 0 auto;text-align:center; '><tr><td><![endif]-->";
 
    
     return $return;
@@ -249,7 +249,7 @@ function generate_columnset_start($rowIndex, $columnSetIndex, $templateData = nu
         
     }
     $return .= "<div class='columnSet $columnSetClasses $layoutClass $mobileWrapClass' $colSetDataAttr $magicRtl style='$colSetBackgroundCss text-align: center; font-size: 0; width: 100%;'>";
-    $return .= "<!--[if mso]><table role='presentation' class='columnset' width='100%' style='$colSetBackgroundCssMso margin:0; padding:0;'><tr><![endif]-->";
+    $return .= "<!--[if mso]><table role='presentation' class='columnset $columnSetClasses' width='100%' style='$colSetBackgroundCssMso margin:0; padding:0;'><tr><![endif]-->";
 
     return $return;
 }
@@ -340,7 +340,7 @@ function generate_column_start($rowIndex, $columnSetIndex, $columnIndex, $templa
     if ($isEditor) {
         $return .= '<wizPlaceholder data-preview-part="column_start" data-row-index="' . $rowIndex . '" data-columnset-index="' . $columnSetIndex . '" data-column-index="' . $columnIndex . '"></wizPlaceholder>';
     }
-    $return .= "<!--[if mso]><td style='$msoColBackgroundCSS vertical-align:$colValign;' width='$columnWidthPx' valign='$colValign'><![endif]-->";
+    $return .= "<!--[if mso]><td class='$columnClasses' style='$msoColBackgroundCSS vertical-align:$colValign;' width='$columnWidthPx' valign='$colValign'><![endif]-->";
     $return .= "<div class='column $columnClasses $mobileWrapClass' $columnDataAttr style='$columnStyle $colBackgroundCSS' valign='$colValign' dir='ltr'>";
 
     return $return;
