@@ -262,8 +262,10 @@ function generateRecEngineHtml($args)
                 $value = esc_attr($option['value']);
                 $id = "option-{$key}-{$value}";
                 $label = esc_html($option['label']);
-                $html .= "    <input type='radio' id='$id' name='$key' class='selection-input {$key}-input' value='$value' aria-label='$label' required>\n";
+                $html .= "<label for='x_$id' class='selection-option $key-option mso-label'>$label</label>\n";
+                $html .= "<input type='radio' id='$id' name='$key' class='selection-input {$key}-input' value='$value' aria-label='$label' required>\n";
                 $html .= "<label for='$id' class='selection-option $key-option'>$label</label>\n";
+                
             }
         }
     }
