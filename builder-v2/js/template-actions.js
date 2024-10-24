@@ -54,7 +54,7 @@ jQuery(document).ready(function ($) {
 						confirmButtonText: 'Continue <i class="fa fa-arrow-right"></i>',
 					}).then((whereToGo) => {
 						if (whereToGo.value == 1) {
-							window.location.href = response.data.newURL;
+							window.open(response.data.newURL, '_blank');
 						} else {
 							const isTemplateArchive = window.location.href.indexOf("/templates/") > -1;
 							if (isTemplateArchive) {
