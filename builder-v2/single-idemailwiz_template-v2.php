@@ -525,8 +525,8 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 
 								<input type="text" id="template_settings_ga_campaign_name" name="ga_campaign_name"
 									class="builder-field"
-									value="<?php echo isset($templateSettings['ga_campaign_name']) ? $templateSettings['ga_campaign_name'] : '{{campaignID}}'; ?>">
-								<div class="field-description">Leave blank to turn off GA tracking. {{campaignID}} = Iterable campaign ID.</div>
+									value="<?php echo isset($templateSettings['ga_campaign_name']) ? $templateSettings['ga_campaign_name'] : '{{campaignId}}'; ?>">
+								<div class="field-description">Leave blank to turn off GA tracking. {{campaignId}} = Iterable campaign ID.</div>
 							</div>
 							<div class="builder-field-wrapper block">
 								<label>UTM Parameters</label>
