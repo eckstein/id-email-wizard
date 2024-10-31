@@ -700,7 +700,7 @@ function wiz_encrypt_email($userData)
 		$pepperedEmail = $userData['email'] . $salt . WIZ_PEPPER;
 		$userData['wizId'] = hash('sha256', $pepperedEmail);
 
-		// Remove the plan text email from the data
+		// Remove the plain text email from the data
 		unset($userData['email']);
 
 		// Store the salt to reproduce this hash in the future
@@ -708,13 +708,6 @@ function wiz_encrypt_email($userData)
 
 		return $userData;
 	}
-
-	return false;
-}
-
-// Define the function for decryption
-function wiz_decrypt_email($encryptedUser)
-{
 
 	return false;
 }
@@ -768,15 +761,15 @@ function idemailwiz_sync_users($startDate = null, $endDate = null)
 
 		foreach ($users as $user) {
 			// Check if the user exists in the database
-			$existingWizId = $wpdb->get_var(
+			$existingUser = $wpdb->get_row(
 				$wpdb->prepare(
-					"SELECT COUNT(*) FROM $table_name WHERE wizId = %s",
+					"SELECT wizId FROM $table_name WHERE wizId = %s LIMIT 1",
 					$user['wizId']
 				)
 			);
 
 			// Set update or insert designations
-			if ($existingWizId > 0) {
+			if ($existingUser) {
 				// User exists, prepare to update
 				$records_to_update[] = $user;
 			} else {

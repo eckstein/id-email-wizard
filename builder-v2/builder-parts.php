@@ -162,7 +162,7 @@ function generate_builder_row($rowId, $rowData = [])
                         <input type='text' name='row_classes' id='{$uniqueId}-row-classes' value='{$rowClasses}'>
                     </div>
                 </div>
-                <fieldset name="row_background_settings">
+                <fieldset name="background_settings">
     HTML;
 
     $html .= generate_background_settings_module($rowBackgroundSettings, '');
@@ -636,7 +636,7 @@ function show_specific_chunk_settings($chunkData, $uniqueId, $settings, $chunkTy
                 
 
 
-                case 'force_white_text_devices':
+                case 'force_white_text_devices': 
                     $forceWhiteTextDevices = [
                         ['id' => $uniqueId . '_force-white-text-desktop', 'name' => 'force_white_text_on_desktop', 'display' => 'desktop', 'label' => '<i class="fa-solid fa-desktop"></i>'],
                         ['id' => $uniqueId . '_force-white-text-mobile', 'name' => 'force_white_text_on_mobile', 'display' => 'mobile', 'label' => '<i class="fa-solid fa-mobile-screen-button"></i>']
