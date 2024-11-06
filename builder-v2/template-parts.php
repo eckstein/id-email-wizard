@@ -333,7 +333,7 @@ function generate_column_start($rowIndex, $columnSetIndex, $columnIndex, $templa
         $columnWidthPct = 100;
     }
 
-    $columnStyle = "display: inline-block; width: {$columnWidthPct}%; max-width: {$columnWidthPx}px; font-size: {$templateStyles['font-styles']['template_font_size']}; vertical-align: {$colValign}; text-align: left;'";
+    $columnStyle = "display: inline-block; width: {$columnWidthPct}%; max-width: {$columnWidthPx}px; font-size: {$templateStyles['font-styles']['template_font_size']}; vertical-align: {$colValign}; text-align: left;";
 
     $columnDataAttr = $isEditor ? 'data-column-index=' . $columnIndex : '';
     $return = '';
