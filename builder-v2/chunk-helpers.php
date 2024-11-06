@@ -271,9 +271,9 @@ function generate_background_css($backgroundSettings, $prefix = '', $forMso = fa
             }
 
             // Only include fallback color for mso clients
-            if ($forMso) {
+            //if ($forMso) {
                 $css[] = "background-color: $fallback_color;";
-            }
+            //}
             if ($image_url) {
                 $css[] = "background-image: url($image_url);";
                 $css[] = "background-position: $position;";
