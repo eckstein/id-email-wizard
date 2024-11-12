@@ -201,17 +201,17 @@ foreach ($allPurchases as $purchase) {
 
                                 <th>Medium</th>
                                 <th class="campaignName">Campaign</th>
-                                <th class="dtNumVal">Sent</th>
-                                <th class="dtNumVal">Opens</th>
+                                <th class="dtNumVal uniqueSends">Sent</th>
+                                <th class="dtNumVal uniqueOpens">Opens</th>
                                 <th>Opened</th>
-                                <th class="dtNumVal">Clicks</th>
+                                <th class="dtNumVal uniqueClicks">Clicks</th>
                                 <th>CTR</th>
                                 <th>CTO</th>
-                                <th class="dtNumVal">Prchs</th>
-                                <th>Rev</th>
-                                <th>GA Rev</th>
+                                <th class="dtNumVal uniquePurchases">Prchs</th>
+                                <th class="campaignRevenue">Rev</th>
+                                <th class="gaRevenue">GA Rev</th>
                                 <th>CVR</th>
-                                <th class="dtNumVal">Unsubs</th>
+                                <th class="dtNumVal uniqueUnsubs">Unsubs</th>
                                 <th>Unsubed</th>
                                 <th class="campaignId">ID</th>
                             </tr>
@@ -252,17 +252,17 @@ foreach ($allPurchases as $purchase) {
                                                 <?php echo $campaign['name']; ?>
                                             </a></td>
                                         <td class="uniqueSends">
-                                            <?php echo number_format($uniqueEmailSends); ?>
+                                            <?php echo $uniqueEmailSends; ?>
                                         </td>
                                         <td class="uniqueOpens">
-                                            <?php echo number_format($uniqueEmailOpens); ?>
+                                            <?php echo $uniqueEmailOpens; ?>
                                         </td>
 
                                         <td class="openRate">
                                             <?php echo number_format($wizOpenRate * 1, '2'); ?>%
                                         </td>
                                         <td class="uniqueClicks">
-                                            <?php echo number_format($uniqueEmailClicks); ?>
+                                            <?php echo $uniqueEmailClicks; ?>
                                         </td>
                                         <td class="ctr">
                                             <?php echo number_format($wizCtr * 1, 2); ?>%
@@ -271,19 +271,19 @@ foreach ($allPurchases as $purchase) {
                                             <?php echo number_format($wizCto * 1, 2); ?>%
                                         </td>
                                         <td class="uniquePurchases">
-                                            <?php echo number_format($uniquePurchases); ?>
+                                            <?php echo $uniquePurchases; ?>
                                         </td>
                                         <td class="campaignRevenue">
-                                            <?php echo number_format($revenue * 1, 2); ?>
+                                            <?php echo $revenue; ?>
                                         </td>
                                         <td class="gaRevenue">
-                                            <?php echo number_format($gaRevenue * 1, 2); ?>
+                                            <?php echo $gaRevenue; ?>
                                         </td>
                                         <td class="cvr">
                                             <?php echo number_format($wizCvr * 1, 2); ?>%
                                         </td>
                                         <td class="uniqueUnsubs">
-                                            <?php echo number_format($uniqueUnsubscribes); ?>
+                                            <?php echo $uniqueUnsubscribes; ?>
                                         </td>
                                         <td class="unsubRate">
                                             <?php echo number_format($wizUnsubRate * 1, 2); ?>%

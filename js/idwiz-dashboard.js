@@ -49,6 +49,16 @@
 		
 
 		if ($("#dashboard-campaigns").length) {
+
+			// Custom sorting for money
+			$.fn.dataTable.ext.type.order['currency-pre'] = function (data) {
+				return parseFloat(data.replace(/[^\d.-]/g, ''));
+			};
+
+			// Custom sorting for numbers
+			$.fn.dataTable.ext.type.order['formatted-num-pre'] = function (data) {
+				return parseFloat(data.replace(/[^\d.-]/g, ''));
+			};
 			
 			// Custom sorting for date format 'm/d/Y'
 			$.fn.dataTable.ext.type.order["date-mdy-pre"] = function (dateString) {
@@ -61,14 +71,33 @@
 				columnDefs: [
 					{ targets: "campaignDate", type: "date-mdy" },
 					{ targets: "campaignId", visible: false },
-					//{ targets: "dtNumVal", type: "num" },
+					{ 
+						targets: ["campaignRevenue", "gaRevenue"],
+						type: "currency",
+						render: function(data, type, row) {
+							if (type === 'display' || type === 'filter') {
+								return '$' + parseFloat(data).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+							}
+							return data;
+						}
+					},
+					{
+						targets: ["uniqueSends", "uniqueOpens", "uniqueClicks", "uniquePurchases", "uniqueUnsubs"],
+						type: "formatted-num",
+						render: function(data, type, row) {
+							if (type === 'display' || type === 'filter') {
+								return data.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+							}
+							return data;
+						}
+					}
 				],
 				order: [[0, "desc"]],
 				autoWidth: false,
 				scrollX: true,
 				scrollY: true,
 				paging: true,
-				pageLength: 10,
+				pageLength: 50,
 				select: true,
 				fixedHeader: {
 					header: true,
