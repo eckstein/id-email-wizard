@@ -792,7 +792,7 @@ function generate_purchases_table_data($purchases)
 			'Product' => $purchase['shoppingCartItems_name'],
 			'Division' => $purchase['shoppingCartItems_divisionName'],
 			'Location' => $purchase['shoppingCartItems_locationName'],
-			'Revenue' => '$' . number_format($purchase['shoppingCartItems_total'], 2),
+			'Revenue' => '$' . number_format($purchase['total'], 2),
 		];
 	}
 
@@ -819,7 +819,7 @@ function transfigure_purchases_by_product($purchases)
 		}
 
 		$products[$product]++;
-		$productRevenue[$product] += $purchase['shoppingCartItems_total'];
+		$productRevenue[$product] += $purchase['total'];
 	}
 
 	// Sort products by the number of purchases in descending order
