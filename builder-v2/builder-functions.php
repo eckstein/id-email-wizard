@@ -140,6 +140,12 @@ function add_or_duplicate_chunk()
 
     if (isset($_POST['duplicate']) && $_POST['chunk_data'] !== null) {
         $chunkData = $_POST['chunk_data'];
+        // Normalize boolean values for specific settings
+        if (isset($chunkData['settings'])) {
+            $chunkData['settings']['force_white_text_on_desktop'] = filter_var($chunkData['settings']['force_white_text_on_desktop'], FILTER_VALIDATE_BOOLEAN);
+            $chunkData['settings']['force_white_text_on_mobile'] = filter_var($chunkData['settings']['force_white_text_on_mobile'], FILTER_VALIDATE_BOOLEAN);
+            $chunkData['settings']['p_padding'] = filter_var($chunkData['settings']['p_padding'], FILTER_VALIDATE_BOOLEAN);
+        }
     } else {
         $chunkData = [];
     }

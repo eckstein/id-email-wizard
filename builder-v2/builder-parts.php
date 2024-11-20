@@ -647,7 +647,7 @@ function show_specific_chunk_settings($chunkData, $uniqueId, $settings, $chunkTy
                     echo "<div class='button-group checkbox'>";
                     foreach ($forceWhiteTextDevices as $opt) {
                         $fieldID = $opt['id'];
-                        $isChecked = $chunkSettings[$opt['name']];
+                        $isChecked = filter_var($chunkSettings[$opt['name']] ?? false, FILTER_VALIDATE_BOOLEAN);
                         $checkVal = $isChecked ? 'true' : 'false';
                         $checkedAtt = $isChecked ? 'checked' : '';
 
