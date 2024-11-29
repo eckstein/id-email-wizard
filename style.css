@@ -2,7 +2,12 @@ body.no-scroll {
 	overflow: hidden; /* Disables scrolling */
 }
 
-
+@media screen and (max-width: 768px) {
+	.entry-content {
+		padding: 0;
+	}
+	
+}
 /* Sub-header menu */
 .sub-toolbar {
 	position: sticky;
@@ -2893,6 +2898,7 @@ div.dt-button-collection .dt-button:hover {
 	padding: 10px;
 	position: relative;
 	left: -10px;
+	box-sizing: border-box;
 }
 .wizHeader .wizEntry input:active {
 	outline: thin dotted;
@@ -3112,6 +3118,11 @@ h2.wizArticle-title {
 }
 .wizcampaign-sections-row.noWrap {
 	flex-wrap: nowrap;
+}
+@media screen and (max-with: 660px) {
+	.wizcampaign-sections-row.noWrap {
+		flex-wrap: wrap;
+	}
 }
 .wizcampaign-sections-row.grid {
 	display: grid;
@@ -3758,6 +3769,7 @@ select:focus {
 .single-idwiz_initiative #initiative-campaigns-table > .wizcampaign-section {
 	width: 100%;
 	margin-top: 30px;
+	overflow-y: auto;
 }
 .single-idwiz_initiative #idemailwiz_initiative_campaign_table {
 	width: 100%;
@@ -3794,6 +3806,14 @@ select:focus {
 .template-timeline-wrapper {
 	max-width: 50%;
 }
+@media (max-width: 660px) {
+	.template-timeline-wrapper {
+		max-width: 100%;
+	}
+}
+.template-timeline-wrapper {
+	overflow-y: auto;
+}
 .template-timeline {
 	display: flex;
 	justify-content: space-between;
@@ -3828,6 +3848,11 @@ select:focus {
 
 #initiativeAssets {
 	max-width: 50%;
+}
+@media (max-width: 660px) {
+	#initiativeAssets {
+		max-width: 100%;
+	}
 }
 .initAssetsLibrary {
 	display: grid;
