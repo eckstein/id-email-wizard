@@ -8,6 +8,7 @@ $campaign_type = isset($_GET['campaign_type']) ? $_GET['campaign_type'] : 'Blast
 $selected_campaign_ids = isset($_GET['campaign_ids']) ? array_map('intval', $_GET['campaign_ids']) : [];
 $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-d', strtotime('-30 days'));
 $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-d');
+$attribution_window = isset($_GET['attribution_window']) ? intval($_GET['attribution_window']) : 24;
 
 // Enqueue Select2
 wp_enqueue_style('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css');
@@ -38,6 +39,17 @@ wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/di
 							End Date
 							<input type="date" name="end_date" value="<?php echo esc_attr($end_date); ?>" required>
 						</label>
+					</div>
+				</div>
+
+				<div class="form-section">
+					<h3>Attribution Settings</h3>
+					<div class="attribution-settings">
+						<label>
+							Attribution Window (hours)
+							<input type="number" name="attribution_window" value="<?php echo esc_attr($attribution_window); ?>" min="1" max="168" required>
+						</label>
+						<p class="description">Time window after send to attribute purchases (max 168 hours / 7 days)</p>
 					</div>
 				</div>
 
@@ -100,14 +112,28 @@ wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/di
 				echo '<div class="attribution-results">';
 				echo '<h3>Attribution Results</h3>';
 				
-				// First, get all purchases in the date range
+				// Temporarily store current user's attribution settings
+				$current_user_id = get_current_user_id();
+				$original_att_mode = get_user_meta($current_user_id, 'purchase_attribution_mode', true);
+				$original_att_length = get_user_meta($current_user_id, 'purchase_attribution_length', true);
+				
+				// Set attribution mode to campaign-id to get raw purchase data
+				update_user_meta($current_user_id, 'purchase_attribution_mode', 'campaign-id');
+				update_user_meta($current_user_id, 'purchase_attribution_length', 'allTime');
+				
+				// Get all purchases in the date range
 				$purchase_args = [
 					'startAt_start' => $start_date,
-					'startAt_end' => $end_date
+					'startAt_end' => $end_date,
+					'include_null_campaigns' => true // Include purchases with no campaign ID
 				];
 				
 				// Get all purchases in the date range
 				$purchases = get_idwiz_purchases($purchase_args);
+				
+				// Restore user's attribution settings
+				update_user_meta($current_user_id, 'purchase_attribution_mode', $original_att_mode);
+				update_user_meta($current_user_id, 'purchase_attribution_length', $original_att_length);
 				
 				if (empty($purchases)) {
 					echo '<p>No purchases found in the selected date range.</p>';
@@ -142,7 +168,7 @@ wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/di
 							$sends = get_idemailwiz_triggered_data('idemailwiz_triggered_sends', [
 								'campaignIds' => [$campaign_id],
 								'userId' => $purchase['userId'],
-								'startAt_start' => date('Y-m-d', $purchase_time - (24 * 3600)), // 24 hours before purchase
+								'startAt_start' => date('Y-m-d', $purchase_time - ($attribution_window * 3600)), // Custom window before purchase
 								'startAt_end' => date('Y-m-d', $purchase_time) // Up to purchase time
 							]);
 						} else {
@@ -152,7 +178,7 @@ wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/di
 							$campaign_time = (int)($campaign['startAt'] / 1000);
 							$hours_difference = ($purchase_time - $campaign_time) / 3600;
 							
-							if ($hours_difference >= 0 && $hours_difference <= 24) {
+							if ($hours_difference >= 0 && $hours_difference <= $attribution_window) {
 								$sends = get_engagement_data_by_campaign_id($campaign_id, 'Blast', 'send');
 								foreach ($sends as $send) {
 									if ($send['userId'] === $purchase['userId']) {
@@ -169,7 +195,7 @@ wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/di
 								$send_time = (int)($send['startAt'] / 1000);
 								$hours_difference = ($purchase_time - $send_time) / 3600;
 								
-								if ($hours_difference >= 0 && $hours_difference <= 24) {
+								if ($hours_difference >= 0 && $hours_difference <= $attribution_window) {
 									$attribution_info['time_window'] = number_format($hours_difference, 1);
 									$is_attributed = true;
 									break 2; // Break both loops
@@ -260,9 +286,20 @@ wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/di
     flex: 1;
 }
 
-.date-inputs input[type="date"] {
+.date-inputs input[type="date"],
+.attribution-settings input[type="number"] {
     width: 100%;
     padding: 8px;
+    margin-top: 5px;
+}
+
+.attribution-settings {
+    max-width: 300px;
+}
+
+.description {
+    font-size: 0.9em;
+    color: #666;
     margin-top: 5px;
 }
 
