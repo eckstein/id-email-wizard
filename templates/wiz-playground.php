@@ -147,65 +147,70 @@ wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/di
 				foreach ($purchases as $purchase) {
 					$attribution_info = [];
 					$is_attributed = false;
+					$attributed_campaign = null;
 					
-					// If purchase has a campaign ID that doesn't match our selected campaigns, skip it
-					if (isset($purchase['campaignId']) && !empty($purchase['campaignId']) && !in_array($purchase['campaignId'], $selected_campaign_ids)) {
-						continue;
-					}
-					
-					// Check UTM attribution
-					if (isset($purchase['campaignId']) && in_array($purchase['campaignId'], $selected_campaign_ids)) {
-						$attribution_info['utm_match'] = true;
-						$is_attributed = true;
-					}
-					
-					// Check time-based attribution only if no campaign ID or campaign ID matches
-					$purchase_time = strtotime($purchase['purchaseDate']);
-					
-					foreach ($selected_campaign_ids as $campaign_id) {
-						// Get campaign sends for this user
-						if ($campaign_type === 'Triggered') {
-							$sends = get_idemailwiz_triggered_data('idemailwiz_triggered_sends', [
-								'campaignIds' => [$campaign_id],
-								'userId' => $purchase['userId'],
-								'startAt_start' => date('Y-m-d', $purchase_time - ($attribution_window * 3600)), // Custom window before purchase
-								'startAt_end' => date('Y-m-d', $purchase_time) // Up to purchase time
-							]);
+					// First check for campaign ID match (regardless of time window)
+					if (isset($purchase['campaignId']) && !empty($purchase['campaignId'])) {
+						if (in_array($purchase['campaignId'], $selected_campaign_ids)) {
+							$attribution_info['type'] = 'Campaign ID Match';
+							$is_attributed = true;
+							$attributed_campaign = get_idwiz_campaign($purchase['campaignId']);
 						} else {
-							$campaign = get_idwiz_campaign($campaign_id);
-							if (!$campaign || !isset($campaign['startAt'])) continue;
+							// If it has a different campaign ID, skip it
+							continue;
+						}
+					} else {
+						// No campaign ID, check for time-based attribution
+						$purchase_time = strtotime($purchase['purchaseDate']);
+						
+						foreach ($selected_campaign_ids as $campaign_id) {
+							// Get campaign sends for this user
+							if ($campaign_type === 'Triggered') {
+								$sends = get_idemailwiz_triggered_data('idemailwiz_triggered_sends', [
+									'campaignIds' => [$campaign_id],
+									'userId' => $purchase['userId'],
+									'startAt_start' => date('Y-m-d', $purchase_time - ($attribution_window * 3600)),
+									'startAt_end' => date('Y-m-d', $purchase_time)
+								]);
+							} else {
+								$campaign = get_idwiz_campaign($campaign_id);
+								if (!$campaign || !isset($campaign['startAt'])) continue;
+								
+								$campaign_time = (int)($campaign['startAt'] / 1000);
+								$hours_difference = ($purchase_time - $campaign_time) / 3600;
+								
+								if ($hours_difference >= 0 && $hours_difference <= $attribution_window) {
+									$sends = get_engagement_data_by_campaign_id($campaign_id, 'Blast', 'send');
+									foreach ($sends as $send) {
+										if ($send['userId'] === $purchase['userId']) {
+											$attribution_info['type'] = number_format($hours_difference, 1) . ' hours after send';
+											$is_attributed = true;
+											$attributed_campaign = $campaign;
+											break 2;
+										}
+									}
+								}
+							}
 							
-							$campaign_time = (int)($campaign['startAt'] / 1000);
-							$hours_difference = ($purchase_time - $campaign_time) / 3600;
-							
-							if ($hours_difference >= 0 && $hours_difference <= $attribution_window) {
-								$sends = get_engagement_data_by_campaign_id($campaign_id, 'Blast', 'send');
+							if (!empty($sends)) {
 								foreach ($sends as $send) {
-									if ($send['userId'] === $purchase['userId']) {
-										$attribution_info['time_window'] = number_format($hours_difference, 1);
+									$send_time = (int)($send['startAt'] / 1000);
+									$hours_difference = ($purchase_time - $send_time) / 3600;
+									
+									if ($hours_difference >= 0 && $hours_difference <= $attribution_window) {
+										$attribution_info['type'] = number_format($hours_difference, 1) . ' hours after send';
 										$is_attributed = true;
-										break 2; // Break both loops
+										$attributed_campaign = get_idwiz_campaign($campaign_id);
+										break 2;
 									}
 								}
 							}
 						}
-						
-						if (!empty($sends)) {
-							foreach ($sends as $send) {
-								$send_time = (int)($send['startAt'] / 1000);
-								$hours_difference = ($purchase_time - $send_time) / 3600;
-								
-								if ($hours_difference >= 0 && $hours_difference <= $attribution_window) {
-									$attribution_info['time_window'] = number_format($hours_difference, 1);
-									$is_attributed = true;
-									break 2; // Break both loops
-								}
-							}
-						}
 					}
 					
-					if ($is_attributed) {
+					if ($is_attributed && $attributed_campaign) {
 						$purchase['attribution_info'] = $attribution_info;
+						$purchase['attributed_campaign'] = $attributed_campaign;
 						$attributed_purchases[] = $purchase;
 					}
 				}
@@ -218,21 +223,13 @@ wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/di
 						<th>User ID</th>
 						<th>Order ID</th>
 						<th>Amount</th>
-						<th>Campaign ID</th>
+						<th>Campaign Name</th>
 						<th>Attribution Type</th>
 					</tr></thead>';
 					echo '<tbody>';
 					
 					$total_revenue = 0;
 					foreach ($attributed_purchases as $purchase) {
-						$attribution_text = [];
-						if (isset($purchase['attribution_info']['time_window'])) {
-							$attribution_text[] = $purchase['attribution_info']['time_window'] . ' hours after send';
-						}
-						if (isset($purchase['attribution_info']['utm_match'])) {
-							$attribution_text[] = 'Campaign ID Match';
-						}
-						
 						$total_revenue += floatval($purchase['total']);
 						
 						echo '<tr>';
@@ -240,8 +237,8 @@ wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/di
 						echo '<td>' . esc_html($purchase['userId']) . '</td>';
 						echo '<td>' . esc_html($purchase['orderId']) . '</td>';
 						echo '<td>$' . number_format($purchase['total'], 2) . '</td>';
-						echo '<td>' . esc_html($purchase['campaignId']) . '</td>';
-						echo '<td>' . implode('<br>', $attribution_text) . '</td>';
+						echo '<td>' . esc_html($purchase['attributed_campaign']['name']) . '</td>';
+						echo '<td>' . esc_html($purchase['attribution_info']['type']) . '</td>';
 						echo '</tr>';
 					}
 					
