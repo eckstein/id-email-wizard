@@ -92,8 +92,8 @@ function idwiz_get_customer_types_chartdata($chartOptions)
     $purchases = get_idwiz_purchases($purchaseArgs);
     $orderCounts = group_first_and_repeat_purchases($purchases);
 
-    $newCount = $orderCounts['new'];
-    $returningCount = $orderCounts['returning'];
+    $newCount = isset($orderCounts['new']) ? $orderCounts['new'] : 0;
+    $returningCount = isset($orderCounts['returning']) ? $orderCounts['returning'] : 0;
 
     return [
         'type' => 'pie',

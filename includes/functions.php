@@ -949,7 +949,7 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
 		'uniqueEmailOpens' => $totalOpens,
 		'uniqueEmailClicks' => $totalClicks,
 		'uniqueUnsubscribes' => $totalUnsubscribes,
-		'totalComplaints' => $totalUnsubscribes,
+		'totalComplaints' => $totalComplaints,
 		'uniqueEmailsDelivered' => $totalDeliveries,
 		'uniquePurchases' => $totalPurchases,
 		'wizDeliveryRate' => ($totalDeliveries> 0 && $totalSends > 0) ? ($totalDeliveries / $totalSends) * 100 : 0,

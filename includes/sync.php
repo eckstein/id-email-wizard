@@ -797,6 +797,7 @@ function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDa
 	$omitFields = [
 		'shoppingCartItems.orderDetailId',
 		'shoppingCartItems.parentOrderDetailId',
+		'shoppingCartItems.courseId',
 		'shoppingCartItems.predecessorOrderDetailId',
 		'shoppingCartItems.financeUnitId',
 		'shoppingCartItems.numberOfLessonsPurchasedOpl',
