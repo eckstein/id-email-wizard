@@ -566,11 +566,11 @@ function build_idwiz_query($args, $table_name)
 			}
 		}
 
-		// Apply date range if provided
-		if (isset($where_args['startAt_start'])) {
+		// Apply date range if provided and not empty
+		if (isset($where_args['startAt_start']) && !empty($where_args['startAt_start'])) {
 			$sql .= $wpdb->prepare(" AND purchaseDate >= %s", $where_args['startAt_start']);
 		}
-		if (isset($where_args['startAt_end'])) {
+		if (isset($where_args['startAt_end']) && !empty($where_args['startAt_end'])) {
 			$sql .= $wpdb->prepare(" AND purchaseDate <= %s", $where_args['startAt_end']);
 		}
 	}
