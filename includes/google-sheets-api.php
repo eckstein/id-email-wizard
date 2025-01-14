@@ -13,7 +13,8 @@ function sync_ga_campaign_revenue_data()
     $countInserts = 0;
 
     // Fetch GA data from SheetDB 
-    $url = get_field('ga_rev_sheet_url', 'options');
+    $settings = get_option('idemailwiz_settings', array());
+    $url = $settings['ga_rev_sheet_url'];
     $result = idemailwiz_iterable_curl_call($url, null, false, 3, 5);
 
     $ga_data = $result['response'];
@@ -121,7 +122,8 @@ function sync_ga_campaign_revenue_data()
 
 function idwiz_google_sheet_api_curl_call($url)
 {
-    $bearer_token = get_field('ga_revenue_api_sheet_bearer_token', 'options');
+    $settings = get_option('idemailwiz_settings', array());
+    $bearer_token = $settings['ga_revenue_api_sheet_bearer_token'];
 
     // Initialize cURL session
     $ch = curl_init();

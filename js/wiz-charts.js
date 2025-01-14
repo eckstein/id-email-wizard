@@ -239,48 +239,77 @@ function idwiz_fill_chart_canvas(canvas) {
 						if (!options.plugins.tooltip.callbacks) {
 							options.plugins.tooltip.callbacks = {};
 						}
-						if (response.data.options.hideTooltipTitle) {
-							options.plugins.tooltip.callbacks.title = function () {
-								return ""; // hides the default label (x-axis label) from the tooltip
-							};
-						} else {
-							options.plugins.tooltip.callbacks.title = function (tooltipItems) {
+						
+						options.plugins.tooltip.mode = 'nearest';
+						options.plugins.tooltip.intersect = true;
+						
+						options.plugins.tooltip.callbacks = {
+							title: function(tooltipItems) {
+								if (!tooltipItems.length) return '';
+								
 								let datasetIndex = tooltipItems[0].datasetIndex;
 								let date = tooltipItems[0].label;
-								let tooltipData = datasets[datasetIndex].tooltipData && datasets[datasetIndex].tooltipData[date];
+								let tooltipData = datasets[datasetIndex].tooltipData?.[date];
 
 								if (tooltipData) {
-									let displayDate = datasetIndex === 1 ? tooltipData.originalDate : date; // Use originalDate for previous year
-									return `${displayDate} | ${tooltipData.name}`;
+									// Support for year-over-year comparison
+									let displayDate = datasetIndex === 1 ? tooltipData.originalDate : date;
+									return tooltipData.name ? `${displayDate} | ${tooltipData.name}` : displayDate;
 								}
 								return date;
-							};
-						}
-
-						options.plugins.tooltip.callbacks.label = function (context) {
-							let index = context.dataIndex;
-							let datasetIndex = context.datasetIndex;
-							let date = context.label;
-							let tooltipData = datasets[datasetIndex].tooltipData[date];
-
-							let label = "";
-							if (!response.data.options.hideTooltipLabel) {
-								label = context.dataset.label || "";
-								if (label) {
-									label += ": ";
+							},
+							label: function(context) {
+								// Get basic info
+								let value = context.parsed.y;
+								let label = context.dataset.label || '';
+								
+								if (response.data.options.hideTooltipLabel) {
+									label = '';
 								}
-							}
+								
+								// Early return if no value
+								if (value === null || value === undefined) {
+									return label + (label ? ': ' : '') + 'No data';
+								}
 
-							if (context.parsed.y !== null && tooltipData) {
-								label += new Intl.NumberFormat("en-US", {
-									style: "percent",
-									minimumFractionDigits: 2
-								}).format(tooltipData.value / 100);
-							} else {
-								label += "No data";
-							}
+								// Format the label prefix
+								let formattedLabel = label ? label + ': ' : '';
 
-							return label;
+								// Get tooltip data if available
+								let tooltipData = context.dataset.tooltipData?.[context.label];
+								
+								// Determine data type from tooltip data or y-axis
+								let dataType = tooltipData?.dataType || 
+												context.chart.options.scales[context.dataset.yAxisID]?.dataType || 
+												'number';
+
+								// Format the value based on data type
+								switch(dataType) {
+									case 'percent':
+										// Handle both decimal and whole number percentages
+										let percentValue = tooltipData?.value ? tooltipData.value / 100 : value;
+										formattedLabel += new Intl.NumberFormat("en-US", {
+											style: "percent",
+											minimumFractionDigits: 2
+										}).format(percentValue);
+										break;
+
+									case 'money':
+									case 'currency':
+										formattedLabel += new Intl.NumberFormat("en-US", {
+											style: "currency",
+											currency: "USD",
+											minimumFractionDigits: 0,
+											maximumFractionDigits: 0
+										}).format(value);
+										break;
+
+									default:
+										formattedLabel += new Intl.NumberFormat("en-US").format(value);
+								}
+
+								return formattedLabel;
+							}
 						};
 					}
 				} else {
@@ -290,47 +319,96 @@ function idwiz_fill_chart_canvas(canvas) {
 						options.plugins.tooltip.intersect = true;
 						options.plugins.tooltip.callbacks = {
 							title: function(tooltipItems) {
-								let item = tooltipItems[0];
-								let datasetIndex = item.datasetIndex;
-								let date = item.label;
-								let tooltipData = datasets[datasetIndex].tooltipData && datasets[datasetIndex].tooltipData[date];
-
-								if (tooltipData) {
-									let displayDate = datasetIndex === 1 ? tooltipData.originalDate : date; // Use originalDate for previous year
-									return `${displayDate} | ${tooltipData.name}`;
+								if (!tooltipItems.length) return '';
+								
+								// For pie charts, the label is the category name
+								if (response.data.type === 'pie' || response.data.type === 'doughnut') {
+									return tooltipItems[0].label;
 								}
-								return date;
+								
+								return tooltipItems[0].label || '';
 							},
 							label: function(context) {
-								let datasetIndex = context.datasetIndex;
-								let date = context.label;
-								let tooltipData = datasets[datasetIndex].tooltipData && datasets[datasetIndex].tooltipData[date];
+								// Special handling for pie/doughnut charts
+								if (response.data.type === 'pie' || response.data.type === 'doughnut') {
+									let value = context.raw; // Use raw value for pie charts
+									let label = context.label || '';
+									let tooltipData = context.dataset.tooltipData?.[label];
+									
+									// Calculate percentage of total
+									let total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+									let percentage = ((value / total) * 100).toFixed(2);
+									
+									let formattedValue;
+									let dataType = tooltipData?.dataType || 
+													context.chart.options?.dataType || 
+													'number';
 
-								let label = context.dataset.label || '';
-								if (label) {
-									label += ': ';
+									// Format the value based on data type
+									switch(dataType) {
+										case 'money':
+										case 'currency':
+											formattedValue = new Intl.NumberFormat("en-US", {
+												style: "currency",
+												currency: "USD",
+												minimumFractionDigits: 0,
+												maximumFractionDigits: 0
+											}).format(value);
+											break;
+											
+										case 'percent':
+											formattedValue = new Intl.NumberFormat("en-US", {
+												style: "percent",
+												minimumFractionDigits: 2
+											}).format(value / 100);
+											break;
+											
+										default:
+											formattedValue = new Intl.NumberFormat("en-US").format(value);
+									}
+
+									// Show both the value and the percentage
+									return `${formattedValue} (${percentage}%)`;
 								}
 
-								if (context.parsed.y !== null && tooltipData) {
-									if (!tooltipData.dataType || tooltipData.dataType === 'percent') {
-									label += new Intl.NumberFormat("en-US", {
-										style: "percent",
-										minimumFractionDigits: 2
-									}).format(tooltipData.value / 100);
-									} else if (tooltipData.dataType === 'money') {
-										label += new Intl.NumberFormat("en-US", {
+								// Existing code for other chart types
+								let value = context.parsed.y;
+								let label = context.dataset.label || '';
+								
+								if (value === null || value === undefined) {
+									return label + (label ? ': ' : '') + 'No data';
+								}
+
+								let formattedLabel = label ? label + ': ' : '';
+								let tooltipData = context.dataset.tooltipData?.[context.label];
+								let dataType = tooltipData?.dataType || 
+												context.chart.options.scales[context.dataset.yAxisID]?.dataType || 
+												'number';
+
+								switch(dataType) {
+									case 'percent':
+										let percentValue = tooltipData?.value ? tooltipData.value / 100 : value;
+										formattedLabel += new Intl.NumberFormat("en-US", {
+											style: "percent",
+											minimumFractionDigits: 2
+										}).format(percentValue);
+										break;
+
+									case 'money':
+									case 'currency':
+										formattedLabel += new Intl.NumberFormat("en-US", {
 											style: "currency",
 											currency: "USD",
-										}).format(tooltipData.value);
-									} else {
-										label += tooltipData.value;
-										
-									}
-								} else {
-									label += "No data";
+											minimumFractionDigits: 0,
+											maximumFractionDigits: 0
+										}).format(value);
+										break;
+
+									default:
+										formattedLabel += new Intl.NumberFormat("en-US").format(value);
 								}
 
-								return label;
+								return formattedLabel;
 							}
 						};
 					}

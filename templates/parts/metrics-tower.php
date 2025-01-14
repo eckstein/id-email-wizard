@@ -31,9 +31,9 @@ if ($metricType == 'wizUnsubRate' || $metricType == 'wizCompRate') {
     </h5>
     <div class="metric-item this-month">
         <div class="metric-label">
-            <?php if (isset($_GET['view']) && $_GET['view'] != 'FY' || !isset($_GET['view'])) { ?>
+            
             This Month
-            <?php } ?>
+            
         </div>
         <div class="metric-value">
             <?php
@@ -41,7 +41,6 @@ if ($metricType == 'wizUnsubRate' || $metricType == 'wizCompRate') {
             ?>
         </div>
     </div>
-    <?php if (isset($_GET['view']) && $_GET['view'] != 'FY' || !isset($_GET['view'])) { ?>
     <div class="metric-item">
         <div class="metric-label">
             Prev. Month
@@ -66,5 +65,4 @@ if ($metricType == 'wizUnsubRate' || $metricType == 'wizCompRate') {
             </div>
         </div>
     </div>
-    <?php } ?>
 </div>

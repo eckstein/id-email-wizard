@@ -98,8 +98,8 @@ function idemailwiz_create_databases()
 		total_users INT,
 		userIds LONGTEXT,
 		PRIMARY KEY (id),
-		INDEX year (year)
-		INDEX month (month)
+		INDEX year (year),
+		INDEX month (month),
 		INDEX week (week)
 	) ENGINE=InnoDB $charset_collate;";
 
@@ -587,6 +587,20 @@ function build_idwiz_query($args, $table_name)
 		$sql .= " AND $campaignKey IS NOT NULL";
 	}
 
+	if ($table_name == $wpdb->prefix . 'idemailwiz_campaigns' && isset($args['type'])) {
+		$sql .= $wpdb->prepare(" AND type = %s", $args['type']);
+	}
+
+	// For purchases table, add campaign type filtering
+	if ($table_name == $wpdb->prefix . 'idemailwiz_purchases' && isset($args['campaign_type'])) {
+		// Remove campaign_type from where_args to prevent double filtering
+		unset($where_args['campaign_type']);
+		
+		$sql .= " AND campaignId IN (
+			SELECT id FROM {$wpdb->prefix}idemailwiz_campaigns 
+			WHERE type = " . $wpdb->prepare("%s", $args['campaign_type']) . "
+		)";
+	}
 
 	foreach ($where_args as $key => $value) {
 		if ($value !== null && $value !== '') {

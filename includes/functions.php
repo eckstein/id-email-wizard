@@ -288,81 +288,6 @@ function idwiz_extract_campaigns_images($campaignIds = [])
 
 
 
-add_action('wp_ajax_idwiz_fetch_base_templates', 'idwiz_fetch_base_templates');
-
-function idwiz_fetch_base_templates()
-{
-	// Verify nonce
-	if (!check_ajax_referer('id-general', 'security', false)) {
-		wp_send_json_error(array('message' => 'Nonce verification failed.'));
-		return;
-	}
-
-	// Initialize HTML strings for different types of templates
-	$initiative_html = '';
-	$layout_html = '';
-
-	// Get the term by slug
-	$base_template_term = get_term_by('slug', 'base-templates', 'idemailwiz_folder');
-
-	// Check if the term exists and is not an error
-	if ($base_template_term && !is_wp_error($base_template_term)) {
-
-		// Define WP_Query arguments
-		$args = array(
-			'post_type' => 'idemailwiz_template',
-			'tax_query' => array(
-				array(
-					'taxonomy' => 'idemailwiz_folder',
-					'field' => 'term_id',
-					'terms' => $base_template_term->term_id,
-				),
-			),
-		);
-
-		// Execute the query
-		$query = new WP_Query($args);
-
-		// Loop through the posts and construct the HTML
-		if ($query->have_posts()) {
-			while ($query->have_posts()) {
-				$query->the_post();
-				$post_id = get_the_ID();
-				$title = get_the_title();
-				$mockups = get_field('template_mock-ups', $post_id);
-				$initiative = get_field('base_template_for_initiative', $post_id);
-
-				$dtMockup = $mockups['mock-up-image-desktop'] ?? '';
-				$previewMockup = $dtMockup ? '<div class="create-from-template-mockup"><img src="' . $dtMockup . '"/></div>' : '';
-
-				$template_html = "<div class='startTemplate' data-postid='{$post_id}'>
-                                    <h4>{$title}</h4>
-                                    {$previewMockup}
-                                  </div>";
-
-				if ($initiative) {
-					$initiative_html .= $template_html;
-				} else {
-					$layout_html .= $template_html;
-				}
-			}
-			wp_reset_postdata();
-		}
-	}
-
-	$final_html = '<div class="swalTabs">
-                     <ul>
-                       <li><a href="#initiativeTemplates">Initiative Templates</a></li>
-                       <li><a href="#layoutTemplates">Layout Templates</a></li>
-                     </ul>
-                     <div id="initiativeTemplates" class="templateSelectWrap">' . $initiative_html . '</div>
-                     <div id="layoutTemplates" class="templateSelectWrap">' . $layout_html . '</div>
-                   </div>';
-
-	// Send the HTML as a successful AJAX response
-	wp_send_json_success(array('html' => $final_html));
-}
-
 
 
 // Add or remove a favorite template or folder from a user's profile
@@ -639,18 +564,6 @@ function get_idwiz_revenue($startDate, $endDate, $campaignTypes = ['Triggered', 
 
 
 
-function get_idwiz_header_tabs($tabs, $currentActiveItem)
-{
-	echo '<div id="header-tabs">';
-	foreach ($tabs as $tab) {
-		$title = $tab['title'];
-		$view = $tab['view'];
-		$isActive = ($currentActiveItem == $view) ? 'active' : '';
-		$url = add_query_arg(['view' => $view, 'wizMonth' => false, 'wizYear' => false]);
-		echo "<a href=\"{$url}\" class=\"campaign-tab {$isActive}\">{$title}</a>";
-	}
-	echo '</div>';
-}
 
 
 

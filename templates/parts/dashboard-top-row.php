@@ -19,14 +19,7 @@ $lastDayOfMonth = $endDateTime->format('Y-m-t');
         <div class="wizcampaign-section-title-area">
             <h4>Purchases & Revenue</h4>
             <div class="wizcampaign-section-title-area-right wizcampaign-section-icons">
-                <?php
-                if ($startDate === $firstDayOfMonth && ($endDate === $lastDayOfMonth || $endDate === $currentDate)) { ?>
-                    <!--GA Goal: $-->
-                    <?php 
-                    if ($displayGoal && is_int($displayGoal)) {
-                        echo number_format($displayGoal, 2); 
-                    } ?>
-                <?php } ?>
+               
             </div>
         </div>
         <div class="wizcampaign-section-content">

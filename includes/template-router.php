@@ -71,7 +71,7 @@ function idemailwiz_template_chooser($template)
     // Custom endpoint templates
     $endpoint_templates = [
         'user-profile' => 'user-profile.php',
-        'settings' => 'wiz-settings.php',
+
         'sync-station' => 'sync-station.php',
         'campaign-monitor' => 'campaign-monitor.php',
         'course-mapping' => 'page-course-mapping.php',

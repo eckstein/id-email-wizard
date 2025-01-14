@@ -1,5 +1,5 @@
 <?php
-if (isset($_GET['view']) && $_GET['view'] != 'FY' || !isset($_GET['view'])) {
+
     // Get the current month and year from the query parameters or use the current date as default
     $currentMonth = isset($_GET['startDate']) ? (new DateTime($_GET['startDate']))->format('m') : date('m');
     $currentYear = isset($_GET['startDate']) ? (new DateTime($_GET['startDate']))->format('Y') : date('Y');
@@ -50,17 +50,3 @@ if (isset($_GET['view']) && $_GET['view'] != 'FY' || !isset($_GET['view'])) {
             <?php endif; ?>
         </div>
     </div>
-
-<?php 
-} elseif (isset($_GET['view']) && $_GET['view'] === 'FY') {
-?>
-
-<div id="dashboardDateNav">
-    <div class="wizDateNav-title">
-        <h1>Current Fiscal Year</h1>
-    </div>
-</div>
-
-<?php
-}
-?>

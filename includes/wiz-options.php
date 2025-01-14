@@ -38,14 +38,28 @@ function idemailwiz_register_settings()
     add_settings_field('base_template_folder', 'Base Templates Folder', 'idemailwiz_render_dropdown_taxonomy_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'base_templates_term', 'taxonomy' => 'idemailwiz_folder'));
     add_settings_field('folder_trash', 'Trash Folder', 'idemailwiz_render_dropdown_taxonomy_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'folder_trash', 'taxonomy' => 'idemailwiz_folder'));
     add_settings_field('dashboard_page', 'Dashboard Page', 'idemailwiz_render_dropdown_pages_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'dashboard_page'));
+
+    // API Settings
+    add_settings_field('iterable_api_key', 'Iterable API Key', 'idemailwiz_render_text_field', 'idemailwiz_settings', 'idemailwiz_main_section', array(
+        'option_name' => 'iterable_api_key',
+        'description' => 'Enter your Iterable API key for API authentication'
+    ));
+    add_settings_field('ga_rev_sheet_url', 'GA Revenue Sheet URL', 'idemailwiz_render_text_field', 'idemailwiz_settings', 'idemailwiz_main_section', array(
+        'option_name' => 'ga_rev_sheet_url',
+        'description' => 'URL for the Google Analytics revenue data sheet'
+    ));
+    add_settings_field('ga_revenue_api_sheet_bearer_token', 'GA Revenue Bearer Token', 'idemailwiz_render_text_field', 'idemailwiz_settings', 'idemailwiz_main_section', array(
+        'option_name' => 'ga_revenue_api_sheet_bearer_token',
+        'description' => 'Bearer token for GA revenue API authentication'
+    ));
+
     add_settings_field('campaigns_page', 'Campaigns Page', 'idemailwiz_render_dropdown_pages_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'campaigns_page'));
+
     add_settings_field('reports_page', 'Reports Page', 'idemailwiz_render_dropdown_pages_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'reports_page'));
     add_settings_field('experiments_page', 'Experiments Page', 'idemailwiz_render_dropdown_pages_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'experiments_page'));
     //add_settings_field('wizbuilder_field_group', 'WizBuilder ACF Field Group ID', 'idemailwiz_render_text_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'wizbuilder_field_group'));
 
 
-
-    add_settings_field('iterable_api_key', 'Iterable API Key', 'idemailwiz_render_text_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'iterable_api_key'));
 
     add_settings_field('external_cron_api', 'API key for external auth', 'idemailwiz_render_text_field', 'idemailwiz_settings', 'idemailwiz_main_section', array('option_name' => 'external_cron_api'));
 

@@ -1055,6 +1055,8 @@ function idwiz_get_comparison_column_buttons( $postId, $setId ) {
 	}
 	ob_start();
 	?>
+	<button title="Add campaigns to this set" class="wiz-button green centered add-compare-campaigns"
+		data-set-id="<?php echo $setId; ?>" data-post-id="<?php echo $postId; ?>"><i class="fa-solid fa-plus"></i> Add Campaigns</button>
 	<button title="Sort by date DESC" class="wiz-button green centered re-sort-compare-campaigns"
 		data-set-id="<?php echo $setId; ?>" data-post-id="<?php echo $postId; ?>"><i class="fa-solid fa-sort"></i> Date
 		Sort</button>

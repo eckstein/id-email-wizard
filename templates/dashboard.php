@@ -17,17 +17,6 @@ if (isset($_GET['startDate']) && $_GET['startDate'] !== '' && isset($_GET['endDa
     $startDateTime->setTimezone(new DateTimeZone('America/Los_Angeles'));
     $wizMonth = $startDateTime->format('m');
     $wizYear = $startDateTime->format('Y');
-} elseif (isset($_GET['view']) && $_GET['view'] === 'FY') {
-    $currentDate = new DateTime('now', new DateTimeZone('UTC'));
-    $currentDate->setTimezone(new DateTimeZone('America/Los_Angeles'));
-    $currentYear = $currentDate->format('Y');
-    $currentMonthAndDay = $currentDate->format('m-d');
-
-    $startYear = ($currentMonthAndDay >= '11-01') ? $currentYear : $currentYear - 1;
-    $endYear = $startYear + 1;
-
-    $startDate = "{$startYear}-11-01";
-    $endDate = "{$endYear}-10-31";
 } else {
     // Default to current month if no parameters are provided
     $currentDate = new DateTime('now', new DateTimeZone('UTC'));
@@ -44,24 +33,10 @@ $startDateTime->setTimezone(new DateTimeZone('America/Los_Angeles'));
 
 
 
-if (isset($_GET['view']) && $_GET['view'] === 'FY') {
-    $fyProjections = get_field('fy_' . $endYear . '_projections', 'options');
-    $displayGoal = 0;
-    foreach ($fyProjections as $wizMonthName => $monthlyGoal) {
-        $displayGoal += $monthlyGoal;
-    }
-} else {
-    $monthDateObj = DateTime::createFromFormat('!m', $wizMonth);
-    $wizMonthName = $monthDateObj->format('F');
-    $monthNameLower = strtolower($wizMonthName);
 
-    $fyProjections = get_field('fy_' . $wizYear . '_projections', 'options');
-    if ($fyProjections) {
-        $displayGoal = $fyProjections[$monthNameLower];
-    } else {
-        $displayGoal = 0;
-    }
-}
+$monthDateObj = DateTime::createFromFormat('!m', $wizMonth);
+$wizMonthName = $monthDateObj->format('F');
+$monthNameLower = strtolower($wizMonthName);
 
 if (isset($_GET['showTriggered']) && $_GET['showTriggered'] === 'true') {
     $campaignTypes = ['Blast', 'Triggered'];
@@ -80,22 +55,31 @@ $adjustedStartDate = new DateTime($startDate, new DateTimeZone('America/Los_Ange
 $adjustedStartDate->setTime(0, 0, 0); // Set the time to the beginning of the day
 $adjustedStartDateFormatted = $adjustedStartDate->format('Y-m-d');
 
+// Add type filtering at query level
+$campaignArgs = [
+    'startAt_start' => $adjustedStartDateFormatted, 
+    'startAt_end' => $endDate
+];
+
+if (!isset($_GET['showTriggered']) || $_GET['showTriggered'] !== 'true') {
+    $campaignArgs['type'] = 'Blast';
+}
+
 // Fetch all campaigns using the adjusted start date and the original end date
-$allCampaigns = get_idwiz_campaigns(['startAt_start' => $adjustedStartDateFormatted, 'startAt_end' => $endDate]);
+$allCampaigns = get_idwiz_campaigns($campaignArgs);
 
 // Fetch all purchases
-$allPurchases = get_idwiz_purchases(['startAt_start' => $startDate, 'startAt_end' => $endDate]);
+$purchaseArgs = [
+    'startAt_start' => $startDate,
+    'startAt_end' => $endDate
+];
 
-// Categorize campaigns into Blast and Triggered
-$blastCampaigns = [];
-$triggeredCampaigns = [];
-foreach ($allCampaigns as $campaign) {
-    if ($campaign['type'] == 'Blast') {
-        $blastCampaigns[] = $campaign;
-    } elseif ($campaign['type'] == 'Triggered') {
-        $triggeredCampaigns[] = $campaign;
-    }
+// Only fetch purchases for the campaign types we need
+if (!isset($_GET['showTriggered']) || $_GET['showTriggered'] !== 'true') {
+    $purchaseArgs['campaign_type'] = 'Blast';
 }
+
+$allPurchases = get_idwiz_purchases($purchaseArgs);
 
 // Create a map of all campaigns with campaign ID as key
 $campaignMap = [];
@@ -103,22 +87,13 @@ foreach ($allCampaigns as $campaign) {
     $campaignMap[$campaign['id']] = $campaign;
 }
 
-
-// Categorize purchases based on campaign type
-$blastPurchases = [];
-$triggeredPurchases = [];
-foreach ($allPurchases as $purchase) {
-    $purchaseCampaignId = $purchase['campaignId'];
-    if (isset($campaignMap[$purchaseCampaignId])) {
-        $purchaseCampaign = $campaignMap[$purchaseCampaignId];
-        if ($purchaseCampaign['type'] == 'Blast') {
-            $blastPurchases[] = $purchase;
-        } elseif ($purchaseCampaign['type'] == 'Triggered') {
-            $triggeredPurchases[] = $purchase;
-        }
-    }
+if (isset($_GET['showTriggered']) && $_GET['showTriggered'] === 'true') {
+    $displayCampaigns = $allCampaigns;
+} else {
+    $displayCampaigns = array_filter($allCampaigns, function($campaign) {
+        return $campaign['type'] === 'Blast';
+    });
 }
-
 
 ?>
 <article id="post-<?php the_ID(); ?>" <?php post_class('wiz_dashboard'); ?>>
@@ -129,17 +104,6 @@ foreach ($allPurchases as $purchase) {
         <div class="wizHeaderInnerWrap">
             <div class="wizHeader-left">
 
-
-                <?php
-                // $currentView = $_GET['view'] ?? 'Month';
-                // $viewTabs = [
-                //     ['title' => 'This Month', 'view' => 'Month'],
-                //     ['title' => 'Fiscal Year', 'view' => 'FY'],
-                // ];
-
-                // get_idwiz_header_tabs($viewTabs, $currentView);
-
-                ?>
             </div>
             <div class="wizHeader-right">
                 <div class="wizHeader-actions">
@@ -184,10 +148,9 @@ foreach ($allPurchases as $purchase) {
 
         <?php
         // Setup standard chart variables
-        //$standardChartCampaignIds = array_column($campaigns, 'id');
-        $standardChartCampaignIds = false;
+        $standardChartCampaignIds = array_column($allCampaigns, 'id');
+        $standardChartPurchases = $allPurchases;
         $lazyLoadCharts = false;
-        $standardChartPurchases = array_merge($blastPurchases, $triggeredPurchases);
         include plugin_dir_path(__FILE__) . 'parts/standard-charts.php';
         ?>
 
@@ -221,8 +184,8 @@ foreach ($allPurchases as $purchase) {
 
 
 
-                            if (!empty($blastCampaigns)) {
-                                foreach ($blastCampaigns as $campaign) {
+                            if (!empty($displayCampaigns)) {
+                                foreach ($displayCampaigns as $campaign) {
                                     $campaignMetrics = get_idwiz_metric($campaign['id']);
                                     $campaignStartStamp = (int)($campaign['startAt'] / 1000);
                                     $readableStartAt = date('m/d/Y', $campaignStartStamp);

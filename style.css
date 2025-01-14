@@ -5147,3 +5147,132 @@ color: #eee;
 	gap: 10px;
 	justify-content: flex-end;
 }
+
+/* Add these styles for the compare campaigns form */
+.compare-campaigns-swal-container {
+	z-index: 9999;
+}
+
+.compare-campaigns-swal-popup {
+	width: 600px !important;
+	max-width: 90vw;
+}
+
+.compare-campaigns-swal-content {
+	overflow: visible !important;
+}
+
+.compare-campaigns-form {
+	padding: 20px 0;
+}
+
+.compare-campaigns-form .form-group {
+	margin-bottom: 20px;
+}
+
+.compare-campaigns-form .campaign-mode-group {
+	display: flex;
+	justify-content: center;
+	margin-bottom: 30px;
+	gap: 0;
+	background: #f0f0f0;
+	padding: 3px;
+	border-radius: 5px;
+}
+
+.compare-campaigns-form .campaign-mode-tab {
+	flex: 1;
+	position: relative;
+	padding: 8px 15px;
+	text-align: center;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	border-radius: 3px;
+	color: #666;
+}
+
+.compare-campaigns-form .campaign-mode-tab input[type="radio"] {
+	position: absolute;
+	opacity: 0;
+	width: 0;
+	height: 0;
+}
+
+.compare-campaigns-form .campaign-mode-tab span {
+	display: block;
+	font-size: 14px;
+}
+
+/* Style for the active tab */
+.compare-campaigns-form .campaign-mode-tab input[type="radio"]:checked + span {
+	color: #fff;
+}
+
+.compare-campaigns-form .campaign-mode-tab input[type="radio"]:checked {
+	background: none;
+}
+
+/* Background for the active tab */
+.compare-campaigns-form .campaign-mode-tab input[type="radio"]:checked ~ span {
+	background: none;
+}
+
+.compare-campaigns-form .campaign-mode-tab:has(input[type="radio"]:checked) {
+	background-color: #94c52a;
+	color: #fff;
+}
+
+/* Hover effect for tabs */
+.compare-campaigns-form .campaign-mode-tab:hover {
+	background-color: #e0e0e0;
+}
+
+.compare-campaigns-form .campaign-mode-tab:has(input[type="radio"]:checked):hover {
+	background-color: #86b325;
+}
+
+.compare-campaigns-form .byDate-group {
+	display: flex;
+	flex-direction: column;
+	gap: 15px;
+}
+
+.compare-campaigns-form .date-input-wrapper {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+}
+
+.compare-campaigns-form .date-input-wrapper label {
+	font-weight: 500;
+	margin-left: 5px;
+}
+
+.compare-campaigns-form .date-input-wrapper input {
+	width: 100%;
+	margin: 0;
+}
+
+/* Select2 styling within Swal */
+.compare-campaigns-form .select2-container {
+	width: 100% !important;
+	margin: 10px 0;
+}
+
+.compare-campaigns-form .select2-container .select2-selection--multiple {
+	min-height: 100px;
+	border: 1px solid #d9d9d9;
+}
+
+.compare-campaigns-form .select2-container--default .select2-selection--multiple .select2-selection__choice {
+	background-color: #f3f3f3;
+	border: 1px solid #e4e4e4;
+	border-radius: 4px;
+	padding: 5px 8px;
+	margin: 4px;
+}
+
+/* Ensure Select2 dropdown appears above Swal */
+.select2-container--open {
+	z-index: 10000;
+}

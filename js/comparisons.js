@@ -342,28 +342,37 @@ jQuery(document).ready(function ($) {
 		Swal.fire({
 			title: "Add Campaigns",
 			html:
-				'<form id="add-compare-campaigns-form">' +
-				'<div class="form-group">' +
-				'<label><input type="radio" name="campaign_mode" value="byDate" checked> Date Range</label>&nbsp;&nbsp;' +
-				'<label><input type="radio" name="campaign_mode" value="byCampaign"> Specific Campaigns</label><br/><br/>' +
-				'<label><input type="radio" name="campaign_mode" value="byInitiative"> Initiatives</label><br/><br/>' +
+				'<form id="add-compare-campaigns-form" class="compare-campaigns-form">' +
+				'<div class="form-group campaign-mode-group">' +
+				'<label class="campaign-mode-tab"><input type="radio" name="campaign_mode" value="byDate" checked><span>Date Range</span></label>' +
+				'<label class="campaign-mode-tab"><input type="radio" name="campaign_mode" value="byCampaign"><span>Specific Campaigns</span></label>' +
+				'<label class="campaign-mode-tab"><input type="radio" name="campaign_mode" value="byInitiative"><span>Initiatives</span></label>' +
 				"</div>" +
 				'<div class="form-group byDate-group">' +
+				'<div class="date-input-wrapper">' +
 				"<label>Start Date:</label>" +
-				'<input type="date" class="swal2-input" id="start-date"><br/>' +
+				'<input type="date" class="swal2-input" id="start-date">' +
+				"</div>" +
+				'<div class="date-input-wrapper">' +
 				"<label>End Date:</label>" +
 				'<input type="date" class="swal2-input" id="end-date">' +
 				"</div>" +
+				"</div>" +
 				'<div class="form-group byCampaign-group" style="display: none;">' +
-				'<select class="swal2-input swalSelect2" id="campaign-select" multiple="multiple"></select>' +
+				'<select class="swal2-input campaign-select" id="campaign-select" multiple="multiple"></select>' +
 				"</div>" +
 				'<div class="form-group byInitiative-group" style="display: none;">' +
-				'<select class="swal2-input swalSelect2" id="initiative-select" multiple="multiple"></select>' +
+				'<select class="swal2-input initiative-select" id="initiative-select" multiple="multiple"></select>' +
 				"</div>" +
 				"</form>",
 			showCancelButton: true,
 			confirmButtonText: "Add Campaigns",
 			cancelButtonText: "Cancel",
+			customClass: {
+				container: 'compare-campaigns-swal-container',
+				popup: 'compare-campaigns-swal-popup',
+				content: 'compare-campaigns-swal-content'
+			},
 			preConfirm: () => {
 				var mode = $("input[name='campaign_mode']:checked").val();
 				if (mode === "byDate") {

@@ -16,8 +16,16 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
         // Set the appropriate headers based on the URL
         $headers = ["Content-Type: application/json"];
         if (strpos($apiURL, 'iterable')) {
-
-            $api_key = get_field('iterable_api_key', 'options');
+            $settings = get_option('idemailwiz_settings', array());
+            $api_key = isset($settings['iterable_api_key']) ? $settings['iterable_api_key'] : '';
+            
+            if (empty($api_key)) {
+                $error_msg = "Iterable API key not found in settings";
+                error_log($error_msg);
+                wiz_log($error_msg);
+                throw new Exception($error_msg);
+            }
+            
             $headers[] = "Api-Key: $api_key";
         }
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
@@ -114,7 +122,15 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
 function idemailwiz_iterable_curl_multi_call($apiURLs, $verifySSL = false)
 {
     // Fetch the API key
-    $api_key = $api_key = get_field('iterable_api_key', 'options');
+    $settings = get_option('idemailwiz_settings', array());
+    $api_key = isset($settings['iterable_api_key']) ? $settings['iterable_api_key'] : '';
+    
+    if (empty($api_key)) {
+        $error_msg = "Iterable API key not found in settings";
+        error_log($error_msg);
+        wiz_log($error_msg);
+        throw new Exception($error_msg);
+    }
 
     // Initialize cURL Multi handle
     $mh = curl_multi_init();

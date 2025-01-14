@@ -109,13 +109,12 @@ function idwiz_get_customer_types_chartdata($chartOptions)
         'options' => [
             'responsive' => true,
             'maintainAspectRatio' => false,
+            'dataType' => 'number',
             'plugins' => [
                 'tooltip' => [
-                    'callbacks' => [
-                        'label' => 'FORMAT_LABEL_JS_FUNCTION' // Placeholder
-                    ],
-                ],
-            ],
+                    'enabled' => true
+                ]
+            ]
         ],
     ];
 }

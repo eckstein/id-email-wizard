@@ -20,14 +20,6 @@ ini_set('memory_limit', '256M');
 set_time_limit(300);
 
 
-//Add ACF to header
-// function idwizacfheader()
-// {
-//     acf_form_head();
-// }
-// add_action('wp_head', 'idwizacfheader');
-
-
 // Plugin Activation
 register_activation_hook(__FILE__, 'idemailwiz_activate');
 function idemailwiz_activate()
