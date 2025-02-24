@@ -330,7 +330,7 @@ jQuery(document).ready(function ($) {
         }
     });
 
-    // Handle manual user ID load
+    // Handle manual student account number load
     $(document).on('click', '.load-user-data', function() {
         console.log('Manual load clicked');
         const accountNumber = $('.manual-user-id').val();

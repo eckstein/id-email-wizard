@@ -134,11 +134,11 @@ global $wpdb;
                                                         ?>
                                                     </select>
                                                     <div class="user-id-input" style="display: none;">
-                                                        <label>Or enter User ID:</label>
-                                                        <input type="text" class="manual-user-id wiz-input" placeholder="Enter User ID">
+                                                        <label>Or enter Student Account Number:</label>
+                                                        <input type="text" class="manual-user-id wiz-input" placeholder="Enter Student Account Number">
                                                         <button class="load-user-data wiz-button">Load User</button>
                                                     </div>
-                                                    <a href="#" class="toggle-user-input">Enter User ID manually</a>
+                                                    <a href="#" class="toggle-user-input">Enter Student Account Number manually</a>
                                                 </div>
                                                 
                                                 <div class="data-mapping-list">
