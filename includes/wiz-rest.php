@@ -153,51 +153,79 @@ function create_error_response($message, $code = 400)
     return new WP_REST_Response(['message' => $message], $code);
 }
 
+/**
+ * Handles the processing of preset values
+ */
+function process_preset_value($preset_name, $student_data) {
+    switch ($preset_name) {
+        case 'most_recent_purchase':
+            return get_most_recent_purchase_date($student_data);
+        // Add more preset cases here
+        default:
+            return null;
+    }
+}
+
+/**
+ * Gets the most recent purchase date for a student
+ */
+function get_most_recent_purchase_date($student_data) {
+    global $wpdb;
+    
+    // Get the most recent purchase
+    $purchase = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT purchaseDate 
+            FROM {$wpdb->prefix}idemailwiz_purchases 
+            WHERE shoppingCartItems_studentAccountNumber = %s 
+            ORDER BY purchaseDate DESC 
+            LIMIT 1",
+            $student_data['studentAccountNumber']
+        )
+    );
+
+    return $purchase ? $purchase->purchaseDate : null;
+}
+
 function wiz_handle_user_data_feed($data)
 {
-    // $wizSettings = get_option('idemailwiz_settings');
-    // $api_auth_token = $wizSettings['external_cron_api'];
+    $wizSettings = get_option('idemailwiz_settings');
+    $api_auth_token = $wizSettings['external_cron_api'];
 
-    // $token = $data->get_header('Authorization');
-    // if ($token !== $api_auth_token) {
-    //     return new WP_REST_Response('Invalid or missing token', 403);
-    // }
+    $token = $data->get_header('Authorization');
+    if (empty($api_auth_token) || $token !== 'Bearer ' . $api_auth_token) {
+        return new WP_REST_Response(['error' => 'Invalid or missing token'], 403);
+    }
 
     $params = $data->get_params();
-
-    $responseCode = 400; // default to fail
-
-    //$encryptedUser = wiz_encrypt_email($params);
-    $wizUser = get_idwiz_user_by_userID($params['userId']);
-
-    if (!$wizUser) {
-        $return = 'User ' . $params['userId'] . ' not found in Wizard!';
-    } else {
-        $return = [];
-        $responseCode = 200;
-        $userPurchases = get_idwiz_purchases(['userId' => $params['userId'], 'sortBy' => 'purchaseDate', 'sort' => 'DESC']);
-        foreach ($userPurchases as $purchase) {
-            $purchaseLocationName = $purchase['shoppingCartItems_locationName'];
-
-            if ($purchaseLocationName && $purchaseLocationName !== 'Online Campus') {
-
-                // query locations table for match by name
-                global $wpdb;
-                $locationData = $wpdb->get_results("SELECT * FROM wp_idemailwiz_locations WHERE name = '" . $purchaseLocationName . "' LIMIT 1");
-
-                // return 400 on error
-                if (empty($locationData)) {
-                    return new WP_REST_Response('Error: Location not active.', 400);
-                }
-
-                $return['location']['name'] = $locationData[0]->name;
-
-                $return['location']['firstSessionStartDate'] = $locationData[0]->firstSessionStartDate;
-                break;
-            }
-        }
+    
+    if (empty($params['account_number'])) {
+        return new WP_REST_Response(['error' => 'account_number parameter is required'], 400);
     }
-    return new WP_REST_Response($return, $responseCode);
+
+    // Get user data from the user feed database
+    global $wpdb;
+    $feed_data = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT * FROM {$wpdb->prefix}idemailwiz_userfeed WHERE studentAccountNumber = %s LIMIT 1",
+            $params['account_number']
+        ),
+        ARRAY_A
+    );
+
+    if (!$feed_data) {
+        return new WP_REST_Response(['error' => 'Student not found in feed'], 404);
+    }
+
+    // Process presets
+    $presets = [
+        'most_recent_purchase' => process_preset_value('most_recent_purchase', $feed_data)
+    ];
+
+    // Add presets to the response
+    $feed_data['_presets'] = $presets;
+
+    return new WP_REST_Response($feed_data, 200);
 }
 
 function map_division_to_abbreviation($division)
@@ -215,40 +243,103 @@ function map_division_to_abbreviation($division)
 }
 
 /**
- * Save all endpoints to the options table
+ * Save all endpoints to the database
  *
  * @param array $endpoints Array of endpoints
- * @return bool True if option was successfully updated, false otherwise.
+ * @return bool True if all endpoints were successfully saved, false otherwise.
  */
 function idwiz_save_all_endpoints($endpoints)
 {
-    return update_option('idwiz_rest_endpoints', $endpoints);
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_endpoints';
+    
+    // Start transaction
+    $wpdb->query('START TRANSACTION');
+    
+    // Clear existing endpoints
+    $wpdb->query("TRUNCATE TABLE $table_name");
+    
+    // Insert new endpoints
+    $success = true;
+    foreach ($endpoints as $endpoint) {
+        $result = $wpdb->insert(
+            $table_name,
+            array(
+                'route' => $endpoint,
+                'name' => $endpoint, // Default name to route
+                'description' => '', // Empty description by default
+                'config' => serialize(array()) // Empty config by default
+            ),
+            array('%s', '%s', '%s', '%s')
+        );
+        if ($result === false) {
+            $success = false;
+            break;
+        }
+    }
+    
+    // Commit or rollback based on success
+    if ($success) {
+        $wpdb->query('COMMIT');
+        return true;
+    } else {
+        $wpdb->query('ROLLBACK');
+        return false;
+    }
 }
 
 /**
- * Retrieve all endpoints from the options table
+ * Retrieve all endpoints from the database
  *
- * @return array Array of all endpoints
+ * @return array Array of endpoint routes
  */
 function idwiz_get_all_endpoints()
 {
-    return get_option('idwiz_rest_endpoints', array());
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_endpoints';
+    
+    $results = $wpdb->get_col("SELECT route FROM $table_name");
+    return $results ?: array();
 }
 
 /**
  * Add a new endpoint
  *
  * @param string $endpoint The endpoint route
+ * @param string $name Optional name for the endpoint
+ * @param string $description Optional description for the endpoint
+ * @param array $config Optional configuration for the endpoint
+ * @param array $data_mapping Optional data mapping configuration
+ * @param string $base_data_source Optional base data source (defaults to user_feed)
  * @return bool True if successful, false otherwise
  */
-function idwiz_add_endpoint($endpoint)
+function idwiz_add_endpoint($endpoint, $name = '', $description = '', $config = array(), $data_mapping = array(), $base_data_source = 'user_feed')
 {
-    $endpoints = idwiz_get_all_endpoints();
-    if (!in_array($endpoint, $endpoints)) {
-        $endpoints[] = $endpoint;
-        return idwiz_save_all_endpoints($endpoints);
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_endpoints';
+    
+    // Clean the endpoint route
+    $endpoint = ltrim($endpoint, '/');
+    
+    // Use route as name if none provided
+    if (empty($name)) {
+        $name = $endpoint;
     }
-    return false;
+    
+    $result = $wpdb->insert(
+        $table_name,
+        array(
+            'route' => $endpoint,
+            'name' => $name,
+            'description' => $description,
+            'config' => serialize($config),
+            'data_mapping' => serialize($data_mapping),
+            'base_data_source' => $base_data_source
+        ),
+        array('%s', '%s', '%s', '%s', '%s', '%s')
+    );
+    
+    return $result !== false;
 }
 
 /**
@@ -259,13 +350,95 @@ function idwiz_add_endpoint($endpoint)
  */
 function idwiz_remove_endpoint($endpoint)
 {
-    $endpoints = idwiz_get_all_endpoints();
-    $key = array_search($endpoint, $endpoints);
-    if ($key !== false) {
-        unset($endpoints[$key]);
-        return idwiz_save_all_endpoints(array_values($endpoints));
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_endpoints';
+    
+    $result = $wpdb->delete(
+        $table_name,
+        array('route' => $endpoint),
+        array('%s')
+    );
+    
+    return $result !== false;
+}
+
+/**
+ * Get a single endpoint's details
+ *
+ * @param string $endpoint The endpoint route
+ * @return array|false Endpoint details or false if not found
+ */
+function idwiz_get_endpoint($endpoint)
+{
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_endpoints';
+    
+    $result = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT * FROM $table_name WHERE route = %s",
+            $endpoint
+        ),
+        ARRAY_A
+    );
+    
+    if ($result) {
+        $result['config'] = unserialize($result['config']);
+        $result['data_mapping'] = unserialize($result['data_mapping']);
+        return $result;
     }
+    
     return false;
+}
+
+/**
+ * Update an endpoint's details
+ *
+ * @param string $endpoint The endpoint route
+ * @param array $data The data to update (name, description, config, data_mapping, base_data_source)
+ * @return bool True if successful, false otherwise
+ */
+function idwiz_update_endpoint($endpoint, $data)
+{
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_endpoints';
+    
+    $update_data = array();
+    $update_format = array();
+    
+    // Map of fields to their format specifiers
+    $field_formats = array(
+        'name' => '%s',
+        'description' => '%s',
+        'config' => '%s',
+        'data_mapping' => '%s',
+        'base_data_source' => '%s'
+    );
+    
+    foreach ($field_formats as $field => $format) {
+        if (isset($data[$field])) {
+            $value = $data[$field];
+            // Serialize arrays
+            if (in_array($field, ['config', 'data_mapping']) && is_array($value)) {
+                $value = serialize($value);
+            }
+            $update_data[$field] = $value;
+            $update_format[] = $format;
+        }
+    }
+    
+    if (empty($update_data)) {
+        return false;
+    }
+    
+    $result = $wpdb->update(
+        $table_name,
+        $update_data,
+        array('route' => $endpoint),
+        $update_format,
+        array('%s')
+    );
+    
+    return $result !== false;
 }
 
 add_action('rest_api_init', function () {
@@ -319,8 +492,12 @@ function idwiz_create_endpoint_callback()
 
     $endpoint = sanitize_text_field($_POST['endpoint']);
     $endpoint = ltrim($endpoint, '/');
+    
+    $name = sanitize_text_field($_POST['name'] ?? $endpoint);
+    $description = sanitize_textarea_field($_POST['description'] ?? '');
+    $config = isset($_POST['config']) ? json_decode(stripslashes($_POST['config']), true) : array();
 
-    if (idwiz_add_endpoint($endpoint)) {
+    if (idwiz_add_endpoint($endpoint, $name, $description, $config)) {
         wp_send_json_success('Endpoint created successfully');
     } else {
         wp_send_json_error('Failed to create the endpoint or it already exists.');
@@ -331,21 +508,133 @@ function idwiz_endpoint_handler($request)
 {
     $route = $request->get_route();
     $endpoint = str_replace('/idemailwiz/v1', '', $route);
+    $endpoint = trim($endpoint, '/');
 
-    switch ($endpoint) {
-        case '/user_data':
-           return wiz_handle_user_data_feed($request);
-            break;
-        case '/user_courses':
-            return wiz_handle_user_courses_data_feed($request);
-            break;
-        default:
-            return new WP_REST_Response(array(
-                'message' => 'Endpoint accessed, but no handler exists.',
-                'endpoint' => $endpoint,
-            ), 200);
-            break;
+    // Get endpoint configuration from database
+    $endpoint_config = idwiz_get_endpoint($endpoint);
+    if (!$endpoint_config) {
+        return new WP_REST_Response(array(
+            'error' => 'Endpoint configuration not found',
+        ), 404);
     }
+
+    // Get user data based on the request
+    $params = $request->get_params();
+    $account_number = isset($params['account_number']) ? sanitize_text_field($params['account_number']) : '';
     
+    if (empty($account_number)) {
+        return new WP_REST_Response(array(
+            'error' => 'Account number is required',
+        ), 400);
+    }
+
+    global $wpdb;
+    // Get user data from the user feed database
+    $feed_data = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT * FROM {$wpdb->prefix}idemailwiz_userfeed WHERE StudentAccountNumber = %s LIMIT 1",
+            $account_number
+        ),
+        ARRAY_A
+    );
+
+    if (!$feed_data) {
+        return new WP_REST_Response(array(
+            'error' => 'Student not found in feed',
+        ), 404);
+    }
+
+    // Build response data based on mappings
+    $response_data = array();
+    
+    if (!empty($endpoint_config['data_mapping'])) {
+        foreach ($endpoint_config['data_mapping'] as $key => $mapping) {
+            if ($mapping['type'] === 'static') {
+                $response_data[$key] = $mapping['value'];
+            } else if ($mapping['type'] === 'preset') {
+                $response_data[$key] = process_preset_value($mapping['value'], $feed_data);
+            }
+        }
+    } else {
+        // If no mappings, return all feed data
+        $response_data = $feed_data;
+    }
+
+    // Return in the same format as preview
+    return new WP_REST_Response(array(
+        'endpoint' => $endpoint,
+        'data' => $response_data
+    ), 200);
+}
+
+add_action('wp_ajax_idwiz_update_endpoint', 'idwiz_update_endpoint_callback');
+
+function idwiz_update_endpoint_callback()
+{
+    if (!check_ajax_referer('wiz-endpoints', 'security', false)) {
+        wp_send_json_error('Nonce check failed');
+        return;
+    }
+
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error('You do not have permission to perform this action.');
+    }
+
+    $endpoint = sanitize_text_field($_POST['endpoint']);
+    $data = json_decode(stripslashes($_POST['data']), true);
+
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        wp_send_json_error('Invalid JSON data provided');
+        return;
+    }
+
+    if (idwiz_update_endpoint($endpoint, $data)) {
+        wp_send_json_success('Endpoint updated successfully');
+    } else {
+        wp_send_json_error('Failed to update the endpoint');
+    }
+}
+
+// Add AJAX handler for getting user data for endpoint preview
+add_action('wp_ajax_idwiz_get_user_data', 'idwiz_get_user_data_for_preview');
+
+function idwiz_get_user_data_for_preview() {
+    // Verify nonce
+    if (!check_ajax_referer('wiz-endpoints', 'security', false)) {
+        wp_send_json_error('Invalid nonce');
+        return;
+    }
+
+    // Get account number
+    $account_number = isset($_POST['account_number']) ? sanitize_text_field($_POST['account_number']) : '';
+    if (empty($account_number)) {
+        wp_send_json_error('No student account number provided');
+        return;
+    }
+
+    global $wpdb;
+    // Get user data from the user feed database
+    $feed_data = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT * FROM {$wpdb->prefix}idemailwiz_userfeed WHERE StudentAccountNumber = %s LIMIT 1",
+            $account_number
+        ),
+        ARRAY_A
+    );
+
+    if (!$feed_data) {
+        wp_send_json_error('Student not found in feed');
+        return;
+    }
+
+    // Process presets
+    $presets = [
+        'most_recent_purchase' => process_preset_value('most_recent_purchase', $feed_data)
+    ];
+
+    // Add presets to the response
+    $feed_data['_presets'] = $presets;
+
+    wp_send_json_success($feed_data);
 }
 

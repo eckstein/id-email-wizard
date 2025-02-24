@@ -264,10 +264,11 @@ function idemailwiz_enqueue_assets()
 
 
     );
-    $stylesheetCacheBuster = time();
+    $shortRandom = substr(md5(time()), 0, 8);
+    $stylesheetCacheBuster = time().'-'.$shortRandom;
     wp_enqueue_style(
         'id-style',
-        plugins_url('/style.css?v=' . $stylesheetCacheBuster, __FILE__),
+        plugins_url('/style.css?ver=' . $stylesheetCacheBuster, __FILE__),
         array()
     );
 

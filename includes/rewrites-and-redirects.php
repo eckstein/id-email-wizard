@@ -37,13 +37,20 @@ function idemailwiz_custom_rewrite_rule()
     // Add custom endpoints
     add_rewrite_endpoint('metrics/campaign', EP_ROOT);
     add_rewrite_endpoint('metrics/journey', EP_ROOT);
-    //add_rewrite_endpoint('build-template', EP_ROOT);
     add_rewrite_endpoint('template-frame', EP_ROOT);
     add_rewrite_endpoint('user-profile', EP_ROOT);
     add_rewrite_endpoint('settings', EP_ROOT);
     add_rewrite_endpoint('sync-station', EP_ROOT);
     add_rewrite_endpoint('campaign-monitor', EP_ROOT);
     add_rewrite_endpoint('course-mapping', EP_ROOT);
+    add_rewrite_endpoint('endpoints', EP_ROOT);
+
+    // Add rewrite rule for endpoints with query parameters
+    add_rewrite_rule(
+        '^endpoints/([^/]+)/?$',
+        'index.php?pagename=endpoints&endpoint=$matches[1]',
+        'top'
+    );
 
     add_rewrite_endpoint('endpoints/iterable-triggeredSend', EP_ROOT);
 
@@ -54,6 +61,11 @@ function idemailwiz_custom_rewrite_rule()
 
 add_action('init', 'idemailwiz_custom_rewrite_rule', 10);
 
+// Add query var for endpoint parameter
+add_filter('query_vars', function($vars) {
+    $vars[] = 'endpoint';
+    return $vars;
+});
 
 // Custom permalinks for wiz templates
 add_filter('post_type_link', 'custom_template_permalink', 10, 2);

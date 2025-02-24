@@ -156,23 +156,46 @@ function idemailwiz_create_databases()
 		INDEX wizId (wizId),
 		INDEX userId (userId),
 		INDEX signupDate (signupDate)
-	)
-	ENGINE=InnoDB $charset_collate
+	) ENGINE=InnoDB $charset_collate
 	PARTITION BY RANGE (YEAR(signupDate)) (
-		PARTITION 2021 VALUES LESS THAN (2022),
-		PARTITION 2022 VALUES LESS THAN (2023),
-		PARTITION 2023 VALUES LESS THAN (2024),
-		PARTITION 2024 VALUES LESS THAN (2025),
-		PARTITION 2025 VALUES LESS THAN (2026),
-		PARTITION 2026 VALUES LESS THAN (2027),
-		PARTITION 2027 VALUES LESS THAN (2028),
-		PARTITION 2028 VALUES LESS THAN (2029),
-		PARTITION 2029 VALUES LESS THAN (2030),
-		PARTITION 2030 VALUES LESS THAN (2031),
-		PARTITION future VALUES LESS THAN MAXVALUE
+		PARTITION p2021 VALUES LESS THAN (2022),
+		PARTITION p2022 VALUES LESS THAN (2023),
+		PARTITION p2023 VALUES LESS THAN (2024),
+		PARTITION p2024 VALUES LESS THAN (2025),
+		PARTITION p2025 VALUES LESS THAN (2026),
+		PARTITION p2026 VALUES LESS THAN (2027),
+		PARTITION p2027 VALUES LESS THAN (2028),
+		PARTITION p2028 VALUES LESS THAN (2029),
+		PARTITION p2029 VALUES LESS THAN (2030),
+		PARTITION p2030 VALUES LESS THAN (2031),
+		PARTITION pfuture VALUES LESS THAN MAXVALUE
 	);";
 
-
+	$userfeed_table_name = $wpdb->prefix . 'idemailwiz_userfeed';
+	$wizTablesSql[$userfeed_table_name] = "CREATE TABLE IF NOT EXISTS $userfeed_table_name (
+		id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+		studentAccountNumber VARCHAR(20) NOT NULL,
+		userId VARCHAR(40),
+		accountNumber VARCHAR(20),
+		wizId VARCHAR(100),
+		studentFirstName VARCHAR(255),
+		studentLastName VARCHAR(255),
+		studentDOB DATE,
+		studentBirthDay INT,
+		studentBirthMonth INT,
+		studentBirthYear INT,
+		l10Level INT,
+		unscheduledLessons INT,
+		studentGender VARCHAR(10),
+		studentLastUpdated DATETIME,
+		last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+		PRIMARY KEY (id),
+		UNIQUE KEY studentAccountNumber (studentAccountNumber),
+		INDEX userId (userId),
+		INDEX accountNumber (accountNumber),
+		INDEX wizId (wizId),
+		INDEX studentLastUpdated (studentLastUpdated)
+	) ENGINE=InnoDB $charset_collate;";
 
 	$wizTemplateTableName = $wpdb->prefix . 'wiz_templates';
 	$wizTablesSql[$wizTemplateTableName] = "CREATE TABLE IF NOT EXISTS $wizTemplateTableName (
@@ -402,6 +425,21 @@ function idemailwiz_create_databases()
         message VARCHAR(255),
         PRIMARY KEY  (id)
     ) ENGINE=InnoDB $charset_collate;";
+
+	$endpoints_table_name = $wpdb->prefix . 'idemailwiz_endpoints';
+	$wizTablesSql[$endpoints_table_name] = "CREATE TABLE IF NOT EXISTS $endpoints_table_name (
+		id INT(11) NOT NULL AUTO_INCREMENT,
+		route VARCHAR(255) NOT NULL,
+		name VARCHAR(255),
+		description TEXT,
+		config LONGTEXT,
+		data_mapping LONGTEXT,
+		base_data_source VARCHAR(50) DEFAULT 'user_feed',
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+		PRIMARY KEY (id),
+		UNIQUE KEY route (route)
+	) ENGINE=InnoDB $charset_collate;";
 
 
 

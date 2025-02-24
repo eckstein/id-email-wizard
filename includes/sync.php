@@ -165,8 +165,18 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 		$prepared_values = array_values($item);
 
 		if ($operation === "insert") {
-			$sql = "INSERT INTO `{$table_name}` ({$fields}) VALUES ({$placeholders})";
-			$prepared_sql = $wpdb->prepare($sql, $prepared_values);
+			if ($table_name == $wpdb->prefix . 'idemailwiz_users') {
+				// For users table, use INSERT ... ON DUPLICATE KEY UPDATE
+				$updates = implode(", ", array_map(function ($field) {
+					return "`$field` = VALUES(`$field`)";
+				}, array_keys($item)));
+				$sql = "INSERT INTO `{$table_name}` ({$fields}) VALUES ({$placeholders}) ON DUPLICATE KEY UPDATE {$updates}";
+				$prepared_sql = $wpdb->prepare($sql, $prepared_values);
+			} else {
+				// For other tables, use regular INSERT
+				$sql = "INSERT INTO `{$table_name}` ({$fields}) VALUES ({$placeholders})";
+				$prepared_sql = $wpdb->prepare($sql, $prepared_values);
+			}
 		} elseif ($operation === "update") {
 			$updates = implode(", ", array_map(function ($field) {
 				return "`$field` = %s";
@@ -725,63 +735,289 @@ add_action('idemailwiz_sync_users', 'idemailwiz_sync_users');
 
 function idemailwiz_sync_users($startDate = null, $endDate = null)
 {
-	// Fetch the users
-	// Also cleans data and encrypts email
-	wiz_log('Fetching users from iterable...');
+    // Fetch the users
+    // Also cleans data and encrypts email
+    wiz_log('Fetching users from iterable...');
 
-	global $wpdb;
-	$table_name = $wpdb->prefix . 'idemailwiz_users';
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_users';
 
-	$batchSize = 1000; // Adjust the batch size as needed
+    $batchSize = 1000; // Adjust the batch size as needed
+    $userGenerator = idemailwiz_fetch_users($startDate, $endDate);
 
-	$userGenerator = idemailwiz_fetch_users($startDate, $endDate);
+    // Stats for overall sync
+    $syncStats = [
+        'users_processed' => 0,
+        'users_updated' => 0,
+        'users_inserted' => 0,
+        'students_processed' => 0,
+        'students_updated' => 0,
+        'students_skipped' => 0,
+        'errors' => []
+    ];
 
-	$wpdb->query('START TRANSACTION');
+    while (true) {
+        $users = [];
+        $studentRecords = [];
+        $records_to_insert = []; // Initialize array for new records
+        $records_to_update = []; // Initialize array for updates
 
-	// Prepare arrays for comparison
-	$records_to_update = [];
-	$records_to_insert = [];
+        // Collect a batch of users
+        for ($i = 0; $i < $batchSize && $userGenerator->valid(); $i++) {
+            $users[] = $userGenerator->current();
+            $userGenerator->next();
+        }
 
-	while (true) {
-		$users = [];
+        if (empty($users)) {
+            break; // No more users to process
+        }
 
-		wiz_log("Processing batch of $batchSize users...");
+        $wpdb->query('START TRANSACTION');
 
-		// Collect a batch of users
-		for ($i = 0; $i < $batchSize && $userGenerator->valid(); $i++) {
-			$users[] = $userGenerator->current();
-			$userGenerator->next();
-		}
+        try {
+            // Process users in current batch
+            foreach ($users as $user) {
+                $syncStats['users_processed']++;
+                
+                // Check if user exists
+                $existingUser = $wpdb->get_row(
+                    $wpdb->prepare(
+                        "SELECT wizId FROM $table_name WHERE wizId = %s LIMIT 1",
+                        $user['wizId']
+                    )
+                );
 
-		if (empty($users)) {
-			break; // No more users to process
-		}
+                // Update or insert user
+                if ($existingUser) {
+                    $records_to_update[] = $user;
+                    $syncStats['users_updated']++;
+                } else {
+                    $records_to_insert[] = $user;
+                    $syncStats['users_inserted']++;
+                }
 
+                // Process student array for this user
+                $processedStudents = process_student_array($user);
+                if ($processedStudents) {
+                    $studentRecords = array_merge($studentRecords, $processedStudents);
+                    $syncStats['students_processed'] += count($processedStudents);
+                }
+            }
 
+            // Batch process all student records collected from this batch of users
+            if (!empty($studentRecords)) {
+                $feedSyncStats = sync_user_feed_batch($studentRecords);
+                // Merge feed sync stats into overall stats
+                $syncStats['students_updated'] += $feedSyncStats['updated'];
+                $syncStats['students_skipped'] += $feedSyncStats['skipped'];
+                if (!empty($feedSyncStats['errors'])) {
+                    $syncStats['errors'] = array_merge($syncStats['errors'], $feedSyncStats['errors']);
+                }
+            }
 
-		foreach ($users as $user) {
-			// Check if the user exists in the database
-			$existingUser = $wpdb->get_row(
-				$wpdb->prepare(
-					"SELECT wizId FROM $table_name WHERE wizId = %s LIMIT 1",
-					$user['wizId']
-				)
-			);
+            // Process user records
+            if (!empty($records_to_insert) || !empty($records_to_update)) {
+                idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update);
+            }
 
-			// Set update or insert designations
-			if ($existingUser) {
-				// User exists, prepare to update
-				$records_to_update[] = $user;
-			} else {
-				// User not in the database, prepare to insert
-				$records_to_insert[] = $user;
-			}
-		}
-	}
-	// Process and log the sync operation
-	idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update);
+            $wpdb->query('COMMIT');
+        } catch (Exception $e) {
+            $wpdb->query('ROLLBACK');
+            $syncStats['errors'][] = "Batch processing failed: " . $e->getMessage();
+            wiz_log("Error in user sync batch: " . $e->getMessage());
+        }
+    }
 
-	$wpdb->query('COMMIT');
+    // Log final summary
+    $summary = sprintf(
+        "User sync complete: %d users processed (%d updated, %d inserted). Student feed: %d processed, %d updated, %d skipped. %d errors.",
+        $syncStats['users_processed'],
+        $syncStats['users_updated'],
+        $syncStats['users_inserted'],
+        $syncStats['students_processed'],
+        $syncStats['students_updated'],
+        $syncStats['students_skipped'],
+        count($syncStats['errors'])
+    );
+    wiz_log($summary);
+
+    if (!empty($syncStats['errors'])) {
+        wiz_log("Sync errors encountered: " . implode(", ", $syncStats['errors']));
+    }
+}
+
+function process_student_array($userData) {
+    if (!isset($userData['studentArray']) || empty($userData['studentArray'])) {
+        return null;
+    }
+
+    $studentArray = $userData['studentArray'];
+
+    // Handle serialized data
+    if (is_string($studentArray) && strpos($studentArray, 'a:') === 0) {
+        $unserializedData = @unserialize($studentArray);
+        if ($unserializedData !== false) {
+            $studentArray = $unserializedData;
+        } else {
+            return null;
+        }
+    }
+
+    // Handle JSON data
+    if (is_string($studentArray)) {
+        $decodedData = json_decode($studentArray, true);
+        if ($decodedData !== null) {
+            $studentArray = $decodedData;
+        }
+    }
+
+    if (!is_array($studentArray)) {
+        return null;
+    }
+
+    $processedStudents = [];
+    foreach ($studentArray as $student) {
+        if (!isset($student['StudentAccountNumber'])) {
+            continue;
+        }
+
+        // Convert StudentLastUpdated to MySQL datetime format if it exists
+        $studentLastUpdated = null;
+        if (isset($student['StudentLastUpdated'])) {
+            // Try to parse the date in various formats
+            $timestamp = strtotime($student['StudentLastUpdated']);
+            if ($timestamp !== false) {
+                $studentLastUpdated = date('Y-m-d H:i:s', $timestamp);
+            }
+        }
+
+        $processedStudents[] = [
+            'studentAccountNumber' => $student['StudentAccountNumber'],
+            'userId' => $userData['userId'],
+            'accountNumber' => $userData['accountNumber'],
+            'wizId' => $userData['wizId'],
+            'studentFirstName' => $student['StudentFirstName'] ?? '',
+            'studentLastName' => $student['StudentLastName'] ?? '',
+            'studentDOB' => $student['StudentDOB'] ?? null,
+            'studentBirthDay' => $student['StudentBirthDay'] ?? null,
+            'studentBirthMonth' => $student['StudentBirthMonth'] ?? null,
+            'studentBirthYear' => $student['StudentBirthYear'] ?? null,
+            'l10Level' => $student['L10Level'] ?? null,
+            'unscheduledLessons' => $student['UnscheduledLessons'] ?? null,
+            'studentGender' => $student['StudentGender'] ?? null,
+            'studentLastUpdated' => $studentLastUpdated,
+            'last_updated' => current_time('mysql')
+        ];
+    }
+
+    return $processedStudents;
+}
+
+function sync_user_feed_batch($studentRecords) {
+    global $wpdb;
+    $userfeed_table = $wpdb->prefix . 'idemailwiz_userfeed';
+    
+    $stats = [
+        'updated' => 0,
+        'skipped' => 0,
+        'errors' => []
+    ];
+
+    if (empty($studentRecords)) {
+        return $stats;
+    }
+
+    // Process in smaller sub-batches to avoid overwhelming the database
+    $subBatches = array_chunk($studentRecords, 100);
+    
+    foreach ($subBatches as $batch) {
+        // First, get existing records for comparison
+        $accountNumbers = array_column($batch, 'studentAccountNumber');
+        $placeholders = array_fill(0, count($accountNumbers), '%s');
+        $existing_records = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM $userfeed_table WHERE studentAccountNumber IN (" . implode(',', $placeholders) . ")",
+                $accountNumbers
+            ),
+            ARRAY_A
+        );
+
+        // Index existing records by studentAccountNumber
+        $existing_by_account = array();
+        foreach ($existing_records as $record) {
+            $existing_by_account[$record['studentAccountNumber']] = $record;
+        }
+
+        $values = [];
+        $placeholders = [];
+        $update_fields = [];
+        $records_to_update = [];
+        
+        foreach ($batch as $record) {
+            // Check if record exists and needs update based on studentLastUpdated
+            $should_update = true;
+            if (isset($existing_by_account[$record['studentAccountNumber']])) {
+                $existing = $existing_by_account[$record['studentAccountNumber']];
+                
+                // If both records have studentLastUpdated, compare them
+                if (!empty($record['studentLastUpdated']) && !empty($existing['studentLastUpdated'])) {
+                    $new_date = strtotime($record['studentLastUpdated']);
+                    $existing_date = strtotime($existing['studentLastUpdated']);
+                    
+                    if ($new_date <= $existing_date) {
+                        $stats['skipped']++;
+                        continue;
+                    }
+                } else {
+                    // If studentLastUpdated is not available, fall back to field comparison
+                    $should_update = false;
+                    foreach ($record as $field => $value) {
+                        if ($field !== 'last_updated' && $existing[$field] != $value) {
+                            $should_update = true;
+                            break;
+                        }
+                    }
+                    if (!$should_update) {
+                        $stats['skipped']++;
+                        continue;
+                    }
+                }
+            }
+
+            $placeholder = '(';
+            $placeholder .= implode(',', array_fill(0, count($record), '%s'));
+            $placeholder .= ')';
+            $placeholders[] = $placeholder;
+            $values = array_merge($values, array_values($record));
+            
+            // Prepare the ON DUPLICATE KEY UPDATE clause
+            if (empty($update_fields)) {
+                foreach ($record as $field => $value) {
+                    if ($field !== 'studentAccountNumber') { // Don't update the primary key
+                        $update_fields[] = "$field = VALUES($field)";
+                    }
+                }
+            }
+        }
+
+        if (!empty($placeholders)) {
+            $fields = array_keys($batch[0]);
+            $query = "INSERT INTO $userfeed_table (" . implode(',', $fields) . ") 
+                     VALUES " . implode(',', $placeholders) . "
+                     ON DUPLICATE KEY UPDATE " . implode(',', $update_fields);
+            
+            $prepared_query = $wpdb->prepare($query, $values);
+            $result = $wpdb->query($prepared_query);
+            
+            if ($result === false) {
+                $stats['errors'][] = "Error updating batch: " . $wpdb->last_error;
+            } else {
+                $stats['updated'] += $wpdb->rows_affected;
+            }
+        }
+    }
+    
+    return $stats;
 }
 
 function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDate = null)
@@ -1219,46 +1455,38 @@ function idemailwiz_sync_metrics($passedCampaigns = null)
 
 function idemailwiz_process_and_log_sync($table_name, $records_to_insert = null, $records_to_update = null, $records_to_delete = null)
 {
+    // Extracting the type (e.g., 'campaign', 'template', etc.) from the table name
+    $type = substr($table_name, strrpos($table_name, '_') + 1);
 
-	// Extracting the type (e.g., 'campaign', 'template', etc.) from the table name
-	$type = substr($table_name, strrpos($table_name, '_') + 1);
+    $insert_results = '';
+    $update_results = '';
+    $return = array();
 
-	$insert_results = '';
-	$update_results = '';
-	$logChunk = "";
-	$return = array();
+    // Only process and log if we have records to handle
+    if (!empty($records_to_insert)) {
+        $insert_results = idemailwiz_update_insert_api_data($records_to_insert, 'insert', $table_name);
+        $return['insert'] = $insert_results;
+    }
+    
+    if (!empty($records_to_update)) {
+        $update_results = idemailwiz_update_insert_api_data($records_to_update, 'update', $table_name);
+        $return['update'] = $update_results;
+    }
+    
+    if (!empty($records_to_delete)) {
+        $delete_results = idemailwiz_update_insert_api_data($records_to_delete, 'delete', $table_name);
+        $return['delete'] = $delete_results;
+    }
 
-	$logChunk .= ucfirst($type) . " sync results: ";
+    // Only log if we actually processed some records
+    if (!empty($records_to_insert) || !empty($records_to_update) || !empty($records_to_delete)) {
+        $logInsertUpdate = return_insert_update_logging($insert_results, $update_results, $table_name);
+        if ($logInsertUpdate && !strpos($logInsertUpdate, 'up to date')) {
+            wiz_log(ucfirst($type) . " sync results: " . $logInsertUpdate);
+        }
+    }
 
-	if ($records_to_insert) {
-		//$logChunk .= count($records_to_insert) . " $type" . " to insert.\n";
-		$insert_results = idemailwiz_update_insert_api_data($records_to_insert, 'insert', $table_name);
-	}
-	if ($records_to_update) {
-		//$logChunk .= count($records_to_update) . " $type" . " to update.\n";
-		$update_results = idemailwiz_update_insert_api_data($records_to_update, 'update', $table_name);
-	}
-	if ($records_to_delete) {
-		$delete_results = idemailwiz_update_insert_api_data($records_to_delete, 'delete', $table_name);
-	}
-
-	$logInsertUpdate = return_insert_update_logging($insert_results, $update_results, $table_name);
-
-	$logChunk .= $logInsertUpdate;
-
-	wiz_log($logChunk);
-
-	if ($records_to_insert) {
-		$return['insert'] = $insert_results;
-	}
-	if ($records_to_update) {
-		$return['update'] = $update_results;
-	}
-	if ($records_to_delete) {
-		$return['delete'] = $delete_results;
-	}
-
-	return $return;
+    return $return;
 }
 
 
