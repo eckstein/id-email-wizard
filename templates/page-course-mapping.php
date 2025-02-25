@@ -117,7 +117,7 @@ updateCourseFiscalYears();
                                 if ($recdCourse) {
                                     $activeClass = $recdCourse->wizStatus == 'active' ? 'active' : 'inactive';
                                     echo "<span class='course-blob $activeClass' data-recd-course-id='{$recdCourse->id}'>";
-                                    echo "<span class='blob-meta'>" . esc_html($recdCourse->id . ' | ' . $recdCourse->minAge . '-' . $recdCourse->maxAge) . "</span>";
+                                    echo "<span class='blob-meta'>" . esc_html($recdCourse->id . ' | ' . $recdCourse->abbreviation . ' | ' . $recdCourse->minAge . '-' . $recdCourse->maxAge) . "</span>";
                                     echo esc_html($recdCourse->title);
                                     echo "<span title='Remove course rec' class='remove-course'><i class='fa-solid fa-circle-xmark'></i></span>";
                                     echo "</span>";
