@@ -11,7 +11,6 @@ jQuery(document).on("click", ".add-course", function () {
         html: '<select id="selectCourse" style="width: 100%;" multiple="multiple"><option value="">Select courses</option></select>',
         showCancelButton: true,
         confirmButtonText: "Add Courses",
-        backdrop: false,
         allowOutsideClick: false,
         didOpen: function () {
             // Initialize Select2
@@ -20,6 +19,7 @@ jQuery(document).on("click", ".add-course", function () {
                 width: "100%",
                 placeholder: "Select courses",
                 multiple: true,
+                closeOnSelect: false,
                 ajax: {
                     transport: function (params, success, failure) {
                         idemailwiz_do_ajax(
@@ -51,6 +51,14 @@ jQuery(document).on("click", ".add-course", function () {
                         }
                     },
                 },
+            });
+            
+            // Make sure Select2 dropdown is above SweetAlert's z-index
+            jQuery('.select2-container--open').css('z-index', 1060);
+            
+            // Ensure click events work properly
+            jQuery(document).on('click', '.select2-results__option', function(e) {
+                e.stopPropagation();
             });
             
             // Auto-focus the search field
@@ -106,7 +114,6 @@ jQuery(document).on("click", ".remove-course", function () {
         showCancelButton: true,
         confirmButtonText: "Yes, remove it!",
         cancelButtonText: "No, cancel!",
-        backdrop: false
     }).then((result) => {
         if (result.isConfirmed) {
             // AJAX call to remove the course
