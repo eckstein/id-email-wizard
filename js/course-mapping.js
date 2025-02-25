@@ -3,12 +3,20 @@ jQuery(document).on("click", ".add-course", function () {
     var recType = jQuery(this).closest(".course-recs").data("rec-type");
     var division = jQuery(this).closest(".course-recs").data("division");
 
+    // Store current scroll position
+    var scrollPos = window.pageYOffset || document.documentElement.scrollTop;
+
     Swal.fire({
         title: "Add Course",
         html: '<select id="selectCourse" style="width: 100%;" multiple="multiple"><option value="">Select courses</option></select>',
         showCancelButton: true,
         confirmButtonText: "Add Courses",
+        scrollbarPadding: false,
+        allowOutsideClick: false,
         didOpen: function () {
+            // Restore scroll position
+            window.scrollTo(0, scrollPos);
+            
             // Initialize Select2
             var select2Instance = jQuery("#selectCourse").select2({
                 dropdownParent: jQuery(".swal2-container"),
@@ -53,6 +61,10 @@ jQuery(document).on("click", ".add-course", function () {
                 jQuery('.select2-search__field').focus();
             }, 100);
         },
+        willClose: function() {
+            // Restore scroll position when modal closes
+            window.scrollTo(0, scrollPos);
+        },
         preConfirm: function () {
             return new Promise(function (resolve) {
                 resolve({
@@ -85,9 +97,13 @@ jQuery(document).on("click", ".add-course", function () {
 });
 
 jQuery(document).on("click", ".remove-course", function () {
-     var recdCourseId = jQuery(this).closest(".course-blob").data("recd-course-id");
+    var recdCourseId = jQuery(this).closest(".course-blob").data("recd-course-id");
     var courseId = jQuery(this).closest(".course-recs").data("course-id");
     var recType = jQuery(this).closest(".course-recs").data("rec-type");
+    
+    // Store current scroll position
+    var scrollPos = window.pageYOffset || document.documentElement.scrollTop;
+    
     Swal.fire({
         title: "Are you sure?",
         text: "Do you really want to remove this course?",
@@ -95,6 +111,15 @@ jQuery(document).on("click", ".remove-course", function () {
         showCancelButton: true,
         confirmButtonText: "Yes, remove it!",
         cancelButtonText: "No, cancel!",
+        scrollbarPadding: false,
+        didOpen: function() {
+            // Restore scroll position
+            window.scrollTo(0, scrollPos);
+        },
+        willClose: function() {
+            // Restore scroll position when modal closes
+            window.scrollTo(0, scrollPos);
+        }
     }).then((result) => {
         if (result.isConfirmed) {
             // AJAX call to remove the course
