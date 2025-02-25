@@ -5,15 +5,16 @@ jQuery(document).on("click", ".add-course", function () {
 
     Swal.fire({
         title: "Add Course",
-        html: '<select id="selectCourse" style="width: 100%;"><option value="">Select a course</option></select>',
+        html: '<select id="selectCourse" style="width: 100%;" multiple="multiple"><option value="">Select courses</option></select>',
         showCancelButton: true,
-        confirmButtonText: "Add Course",
+        confirmButtonText: "Add Courses",
         didOpen: function () {
             // Initialize Select2
-            jQuery("#selectCourse").select2({
+            var select2Instance = jQuery("#selectCourse").select2({
                 dropdownParent: jQuery(".swal2-container"),
                 width: "100%",
-                placeholder: "Select a course",
+                placeholder: "Select courses",
+                multiple: true,
                 ajax: {
                     transport: function (params, success, failure) {
                         idemailwiz_do_ajax(
@@ -46,6 +47,11 @@ jQuery(document).on("click", ".add-course", function () {
                     },
                 },
             });
+            
+            // Auto-focus the search field
+            setTimeout(function() {
+                jQuery('.select2-search__field').focus();
+            }, 100);
         },
         preConfirm: function () {
             return new Promise(function (resolve) {
@@ -53,19 +59,19 @@ jQuery(document).on("click", ".add-course", function () {
                     course_id: courseId,
                     rec_type: recType,
                     status: "active",
-                    selected_course: jQuery("#selectCourse").val(),
+                    selected_courses: jQuery("#selectCourse").val(),
                 });
             });
         },
     }).then(function (result) {
-        if (result.isConfirmed && result.value.selected_course) {
+        if (result.isConfirmed && result.value.selected_courses && result.value.selected_courses.length > 0) {
             idemailwiz_do_ajax(
                 "id_add_course_to_rec",
                 idAjax_id_general.nonce,
                 {
                     course_id: result.value.course_id,
                     rec_type: result.value.rec_type,
-                    selected_course: result.value.selected_course,
+                    selected_courses: result.value.selected_courses,
                 },
                 function (response) {
                     location.reload();

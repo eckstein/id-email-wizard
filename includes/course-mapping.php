@@ -96,9 +96,14 @@ function id_add_course_to_rec_handler()
 
     $course_id = isset($_POST['course_id']) ? sanitize_text_field($_POST['course_id']) : '';
     $rec_type = isset($_POST['rec_type']) ? sanitize_text_field($_POST['rec_type']) : '';
-    $selected_course = isset($_POST['selected_course']) ? sanitize_text_field($_POST['selected_course']) : '';
+    $selected_courses = isset($_POST['selected_courses']) ? $_POST['selected_courses'] : [];
 
-    if (empty($course_id) || empty($rec_type) || empty($selected_course)) {
+    // If selected_courses is a string (happens when only one course is selected), convert it to array
+    if (!is_array($selected_courses) && !empty($selected_courses)) {
+        $selected_courses = [$selected_courses];
+    }
+
+    if (empty($course_id) || empty($rec_type) || empty($selected_courses)) {
         wp_send_json_error('Missing data');
         return;
     }
@@ -125,8 +130,13 @@ function id_add_course_to_rec_handler()
         $course_recs[$rec_type] = [];
     }
 
-    // Add the selected course
-    $course_recs[$rec_type][] = $selected_course;
+    // Add the selected courses
+    foreach ($selected_courses as $selected_course) {
+        $sanitized_course = sanitize_text_field($selected_course);
+        if (!in_array($sanitized_course, $course_recs[$rec_type])) {
+            $course_recs[$rec_type][] = $sanitized_course;
+        }
+    }
 
     // Update the course recommendations
     $updated = $wpdb->update($table_name, ['course_recs' => maybe_serialize($course_recs)], ['id' => $course_id]);
@@ -134,7 +144,7 @@ function id_add_course_to_rec_handler()
     if (false === $updated) {
         wp_send_json_error('Database update failed');
     } else {
-        wp_send_json_success('Course added successfully');
+        wp_send_json_success('Courses added successfully');
     }
 }
 
