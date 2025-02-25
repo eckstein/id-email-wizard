@@ -12,7 +12,7 @@ updateCourseFiscalYears();
 
             <form method="get" id="course-mapping-options" name="course-mapping-options">
                 <fieldset>
-                    <label for="division-select">Division(s) to map from:</label>
+                    <label for="division-select">Division(s) to map to:</label>
                     <select id="division-select" name="division-select[]" multiple onchange="this.form.submit()">
                         <?php
                         //$divisions = ['idtc', 'idta', 'vtc', 'ota', 'opl'];

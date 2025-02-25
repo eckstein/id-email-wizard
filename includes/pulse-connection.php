@@ -172,25 +172,18 @@ function wizPulse_map_courses_to_database()
 
     // Batch insert or update
     if (!empty($processed_courses)) {
-        $placeholders = array(
-            '%d',
-            '%s',
-            '%s',
-            '%s',
-            '%s',
-            '%d',
-            '%s',
-            '%s',
-            '%s',
-            '%d',
-            '%d',
-            '%d',
-            '%d',
-            '%d',
-            '%s'
-        );
-
         foreach ($processed_courses as $course) {
+            // Check if the course already exists and has course_recs
+            $existing_course = $wpdb->get_row($wpdb->prepare("SELECT course_recs FROM {$table_name} WHERE id = %d", $course['id']));
+            
+            // If the course exists and has course_recs, preserve that data
+            if ($existing_course && !empty($existing_course->course_recs)) {
+                $course['course_recs'] = $existing_course->course_recs;
+            }
+            
+            // Create placeholders array with the correct number of placeholders
+            $placeholders = array_fill(0, count($course), '%s');
+            
             $wpdb->replace(
                 $table_name,
                 $course,
