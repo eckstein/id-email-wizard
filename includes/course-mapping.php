@@ -55,7 +55,7 @@ function id_get_courses_options_handler()
     }
 
     // Add condition to check if 'locations' column is not empty/null (if not online)
-    if (!empty($division) && $division != 41) {
+    if (!empty($division) && $division != 41 && $division != 42 && $division != 47) {
         $query .= " AND locations IS NOT NULL AND locations != ''";
     }
 
