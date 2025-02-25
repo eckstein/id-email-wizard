@@ -19,7 +19,6 @@ jQuery(document).on("click", ".add-course", function () {
                 width: "100%",
                 placeholder: "Select courses",
                 multiple: true,
-                closeOnSelect: false,
                 ajax: {
                     transport: function (params, success, failure) {
                         idemailwiz_do_ajax(
@@ -51,14 +50,6 @@ jQuery(document).on("click", ".add-course", function () {
                         }
                     },
                 },
-            });
-            
-            // Make sure Select2 dropdown is above SweetAlert's z-index
-            jQuery('.select2-container--open').css('z-index', 1060);
-            
-            // Ensure click events work properly
-            jQuery(document).on('click', '.select2-results__option', function(e) {
-                e.stopPropagation();
             });
             
             // Auto-focus the search field
