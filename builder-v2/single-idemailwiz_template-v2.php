@@ -444,26 +444,48 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 					<form id="template-settings-form">
 						<?php
 						$email_type = $templateSettings['email_type'] ?? 'promotional';
+						$message_type_id = $messageSettings['message_type_id'] ?? '';
+						
+						// Set default message type ID based on email type if not set
+						if (empty($message_type_id)) {
+							$message_type_id = $email_type === 'transactional' ? '52620' : '52634';
+						}
 						?>
 						<div class="builder-field-group">
 							<div class="builder-field-wrapper">
-								<label>Email Channel</label>
+								<label>Email Channel & Message Type</label>
 								<div class="button-group radio">
-									<div class="builder-field-wrapper">
+									<div class="channel-toggles">
 										<input type="radio" id="template_settings_email_type_promotional"
 											name="email_type" value="promotional" hidden <?php echo $email_type == 'promotional' ? 'checked' : ''; ?>>
 										<label for="template_settings_email_type_promotional"
 											class="button-label"><i class="fa-solid fa-bullhorn"></i>
 											Promotional</label>
-									</div>
-									<div class="builder-field-wrapper">
+										
 										<input type="radio" id="template_settings_email_type_transactional"
 											name="email_type" value="transactional" hidden <?php echo $email_type == 'transactional' ? 'checked' : ''; ?>>
 										<label for="template_settings_email_type_transactional"
 											class="button-label"><i class="fa-solid fa-file-invoice-dollar"></i>
 											Transactional</label>
 									</div>
+									
+									<div class="message-types-wrapper">
+										<div class="message-types promotional-types <?php echo $email_type == 'promotional' ? 'active' : ''; ?>">
+											<select name="message_type" class="message-type-select" <?php echo $email_type != 'promotional' ? 'disabled' : ''; ?>>
+												<option value="52634" <?php echo $message_type_id == '52634' ? 'selected' : ''; ?>>Program News & Offers</option>
+												<option value="52641" <?php echo $message_type_id == '52641' ? 'selected' : ''; ?>>Event Invites & Updates</option>
+												<option value="52635" <?php echo $message_type_id == '52635' ? 'selected' : ''; ?>>Referral Progress Reports</option>
+												<option value="52636" <?php echo $message_type_id == '52636' ? 'selected' : ''; ?>>Tech & Education Insights</option>
+											</select>
+										</div>
+										<div class="message-types transactional-types <?php echo $email_type == 'transactional' ? 'active' : ''; ?>">
+											<select name="message_type" class="message-type-select" <?php echo $email_type != 'transactional' ? 'disabled' : ''; ?>>
+												<option value="52620" <?php echo $message_type_id == '52620' ? 'selected' : ''; ?>>Transactional</option>
+											</select>
+										</div>
+									</div>
 								</div>
+								<input type="hidden" id="template_settings_message_type_id" name="message_type_id" value="<?php echo esc_attr($message_type_id); ?>">
 							</div>
 						</div>
 						<div class="builder-field-group flex distribute">

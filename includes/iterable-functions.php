@@ -47,10 +47,24 @@ function idemailwiz_get_template_data_for_iterable()
 		'linkParams' => $iterableUtms,
 		'plainText' => $messageSettings['plain-text-content'] ?? '',
 	);
+
+	// Get email type and set appropriate message type ID
+	$email_type = $messageSettings['email_type'] ?? 'promotional';
+	$message_type_id = $messageSettings['message_type_id'] ?? '';
+
+	// For backward compatibility, set default message type ID if not set
+	if (empty($message_type_id)) {
+		$message_type_id = $email_type === 'transactional' ? '52620' : '52634';
+	}
+
+	// Ensure message type ID is an integer for Iterable API
+	$message_type_id = intval($message_type_id);
+
 	$reqTemplateFields = array(
 		'templateName' => html_entity_decode(get_the_title($post_id), ENT_QUOTES, 'UTF-8'),
 		'emailSubject' =>  html_entity_decode($messageSettings['subject_line'], ENT_QUOTES, 'UTF-8')  ?? '',
-		'messageType' => $messageSettings['email_type'] ?? 'promotional',
+		'messageType' => $email_type,
+		'messageTypeId' => $message_type_id,
 		'fromEmail' => $messageSettings['from_email'] ?? 'info@idtechonline.com',
 		'replyToEmail' => $messageSettings['reply_to'] ?? 'hello@idtechonline.com',
 		'createdBy' => $current_user->user_email,

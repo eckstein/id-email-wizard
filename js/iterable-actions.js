@@ -1,14 +1,54 @@
 jQuery(document).ready(function ($) {
 	// Constants
 	const config = {
-		TRANSACTIONAL_MESSAGE_TYPE_ID: 52620,
-		PROMOTIONAL_MESSAGE_TYPE_ID: 52634,
+		API_KEY: idAjax_iterable_actions.iterable_api_key,
 		TRANSACTIONAL_FROM_EMAIL: "info@idtechnotifications.com",
 		PROMOTIONAL_FROM_EMAIL: "info@idtechonline.com",
-		API_KEY: idAjax_iterable_actions.iterable_api_key,
 	};
 	//var existingTemplateId = $('#templateUI').data('iterableid');
 	var existingTemplateId = $('#iterable_template_id').val();
+
+	// Handle channel type change
+	$(document).on('change', 'input[name="email_type"]', function() {
+		const channelType = $(this).val();
+		$('.message-types').removeClass('active');
+		$('.message-type-select').prop('disabled', true);
+		
+		if (channelType === 'promotional') {
+			$('.promotional-types').addClass('active');
+			$('.promotional-types .message-type-select').prop('disabled', false);
+			// Set default message type if none selected
+			if (!$('.promotional-types .message-type-select').val()) {
+				$('.promotional-types .message-type-select').val('52634').trigger('change');
+			}
+		} else {
+			$('.transactional-types').addClass('active');
+			$('.transactional-types .message-type-select').prop('disabled', false);
+			// Set default message type if none selected
+			if (!$('.transactional-types .message-type-select').val()) {
+				$('.transactional-types .message-type-select').val('52620').trigger('change');
+			}
+		}
+	});
+
+	// Handle message type selection
+	$(document).on('change', '.message-type-select', function() {
+		if (!$(this).prop('disabled')) {
+			const messageTypeId = $(this).val();
+			// Store the selected message type ID in a hidden input
+			if (!$('#template_settings_message_type_id').length) {
+				$('<input>').attr({
+					type: 'hidden',
+					id: 'template_settings_message_type_id',
+					name: 'message_type_id',
+					value: messageTypeId
+				}).appendTo('#template-settings-form');
+			} else {
+				$('#template_settings_message_type_id').val(messageTypeId);
+			}
+			sessionStorage.setItem('unsavedChanges', 'true');
+		}
+	});
 
 	// Main click event handler
 	$("#sendToIterable").on("click", function () {
@@ -197,9 +237,15 @@ jQuery(document).ready(function ($) {
 				plainText,
 				googleAnalyticsCampaignName,
 				linkParams,
+				messageTypeId
 			} = templateData;
 
-			const messageTypeId = messageType == "transactional" ? config.TRANSACTIONAL_MESSAGE_TYPE_ID : config.PROMOTIONAL_MESSAGE_TYPE_ID;
+			// Ensure we have a valid message type ID
+			if (!messageTypeId) {
+				reject("No message type ID selected. Please select a message type before syncing.");
+				return;
+			}
+
 			const fromSender = messageType == "transactional" ? config.TRANSACTIONAL_FROM_EMAIL : config.PROMOTIONAL_FROM_EMAIL;
 
 			// Set up parameters for get_template_part_do_callback
