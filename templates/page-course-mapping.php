@@ -107,6 +107,7 @@ updateCourseFiscalYears();
                         $recTypes = ['idtc', 'idtc_ageup', 'vtc', 'vtc_ageup', 'idta', 'ota', 'opl'];
                         foreach ($recTypes as $recType) {
                             $division = get_division_id($recType);
+                            $divisionName = get_division_name($division);
                             $courseRecs = maybe_unserialize($course->course_recs);
                             $courseRecIds = isset($courseRecs[$recType]) ? $courseRecs[$recType] : [];
 
@@ -123,7 +124,7 @@ updateCourseFiscalYears();
                                     echo "</span>";
                                 }
                             }
-                            echo '<span title="Click to add course" class="add-course"></span>';
+                            echo '<span title="Click to add ' . $divisionName . ' course" class="add-course"></span>';
                             echo "</div></td>";
                         }
                         echo '</tr>';
