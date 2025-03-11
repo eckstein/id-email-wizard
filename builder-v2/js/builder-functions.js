@@ -1120,7 +1120,7 @@ function add_chunk_by_type(chunkType, addChunkTrigger, duplicate = false) {
 }
 
 
-function insertMergeTag(insertText) {
+jQuery.fn.insertMergeTag = function(insertText) {
   const inputElement = jQuery(this);
   const currentValue = inputElement.val();
 
@@ -1139,6 +1139,8 @@ function insertMergeTag(insertText) {
   inputElement.focus();
   inputElement.prop('selectionStart', inputElement.data('cursorPosition') + insertText.length);
   inputElement.prop('selectionEnd', inputElement.data('cursorPosition') + insertText.length);
+  
+  return this; // Return this for chaining
 };
 
 
