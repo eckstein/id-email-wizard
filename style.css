@@ -5921,3 +5921,49 @@ color: #eee;
 .button-group.radio .builder-field-wrapper {
     margin: 0;
 }
+
+/* Preset Definitions Styles */
+.preset-definitions {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+}
+
+.preset-definitions h3 {
+    margin: 0 0 1rem 0;
+    color: #495057;
+    font-size: 1.1rem;
+}
+
+.preset-definitions .no-presets-message {
+    color: #6c757d;
+    font-style: italic;
+    margin: 0;
+}
+
+.preset-definitions .preset-list {
+    margin: 0;
+    padding: 0;
+}
+
+.preset-definitions dt {
+    font-weight: 600;
+    color: #212529;
+    margin-top: 1rem;
+}
+
+.preset-definitions dt:first-child {
+    margin-top: 0;
+}
+
+.preset-definitions dd {
+    margin: 0.5rem 0 1rem 0;
+    color: #495057;
+    line-height: 1.4;
+}
+
+.preset-definitions dd:last-child {
+    margin-bottom: 0;
+}

@@ -36,6 +36,12 @@ function id_get_courses_options_handler()
     $division = isset($_POST['division']) ? intval($_POST['division']) : '';
     $term = isset($_POST['term']) ? sanitize_text_field($_POST['term']) : '';
     $wizStatus = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : '';
+    $targetFiscals = isset($_POST['target_fiscals']) ? $_POST['target_fiscals'] : [];
+    
+    // Convert string to array if needed
+    if (is_string($targetFiscals) && !empty($targetFiscals)) {
+        $targetFiscals = json_decode(stripslashes($targetFiscals), true);
+    }
 
     // Building the query
     $query = "SELECT id, title, abbreviation, minAge, maxAge FROM {$table_name} WHERE 1=1";
@@ -63,6 +69,18 @@ function id_get_courses_options_handler()
     if (!empty($wizStatus)) {
         $query .= " AND wizStatus = %s";
         $params[] = $wizStatus;
+    }
+    
+    // Add fiscal year filter
+    if (!empty($targetFiscals)) {
+        $fiscal_year_conditions = [];
+        foreach ($targetFiscals as $fiscalYear) {
+            $fiscal_year_conditions[] = "fiscal_years LIKE %s";
+            $params[] = '%' . $wpdb->esc_like($fiscalYear) . '%';
+        }
+        if (!empty($fiscal_year_conditions)) {
+            $query .= " AND (" . implode(' OR ', $fiscal_year_conditions) . ")";
+        }
     }
 
     // Filter out specific course IDs

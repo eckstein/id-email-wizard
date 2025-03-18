@@ -441,6 +441,46 @@ function idemailwiz_create_databases()
 		UNIQUE KEY route (route)
 	) ENGINE=InnoDB $charset_collate;";
 
+	$locations_table_name = $wpdb->prefix . 'idemailwiz_locations';
+	$wizTablesSql[$locations_table_name] = "CREATE TABLE IF NOT EXISTS $locations_table_name (
+		id INT,
+		name VARCHAR(255),
+		abbreviation VARCHAR(50),
+		addressArea TEXT,
+		firstSessionStartDate DATE,
+		lastSessionEndDate DATE,
+		courses TEXT,
+		divisions TEXT,
+		soldOutCourses TEXT,
+		locationStatus TEXT,
+		address TEXT,
+		locationUrl VARCHAR(255),
+		sessionWeeks TEXT,
+		PRIMARY KEY (id)
+	) ENGINE=InnoDB $charset_collate;";
+
+	$courses_table_name = $wpdb->prefix . 'idemailwiz_courses';
+	$wizTablesSql[$courses_table_name] = "CREATE TABLE IF NOT EXISTS $courses_table_name (
+		id INT,
+		title VARCHAR(255),
+		abbreviation VARCHAR(255),
+		locations TEXT,
+		mustTurnMinAgeByDate DATE,
+		division_id INT,
+		startDate DATE,
+		endDate DATE,
+		genres TEXT,
+		pathwayLevelCredits INT,
+		minAge INT,
+		maxAge INT,
+		isNew TINYINT(1),
+		isMostPopular TINYINT(1),
+		wizStatus VARCHAR(20),
+		course_recs TEXT,
+		fiscal_years TEXT,
+		courseUrl VARCHAR(255),
+		PRIMARY KEY (id)
+	) ENGINE=InnoDB $charset_collate;";
 
 
 	require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
@@ -611,6 +651,7 @@ function build_idwiz_query($args, $table_name)
 		if (isset($where_args['startAt_end']) && !empty($where_args['startAt_end'])) {
 			$sql .= $wpdb->prepare(" AND purchaseDate <= %s", $where_args['startAt_end']);
 		}
+		
 	}
 
 	// CampaignIds are under "id" for campaigns and metrics and under "campaignId" for everything else
@@ -722,12 +763,12 @@ function build_idwiz_query($args, $table_name)
 
 	if (isset($args['not-ids']) && is_array($args['not-ids'])) {
 		$placeholders = implode(',', array_fill(0, count($args['not-ids']), '%d'));
-		$sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND id NOT IN ($placeholders)"), $args['not-ids']));
+		$sql .= $wpdb->prepare(" AND id NOT IN ($placeholders)", $args['not-ids']);
 	}
 
 	if (isset($args['not-campaigns']) && is_array($args['not-campaigns'])) {
 		$placeholders = implode(',', array_fill(0, count($args['not-campaigns']), '%d'));
-		$sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND $campaignKey NOT IN ($placeholders)"), $args['nnot-campaigns']));
+		$sql .= $wpdb->prepare(" AND $campaignKey NOT IN ($placeholders)", $args['not-campaigns']);
 	}
 
 	if (isset($args['sortBy'])) {
@@ -743,7 +784,6 @@ function build_idwiz_query($args, $table_name)
 		$sql .= $wpdb->prepare(" OFFSET %d", (int) $args['offset']);
 	}
 
-	//error_log('Query args: ' . print_r($sql, true));
 	//print_r($sql);
 	return $sql;
 }

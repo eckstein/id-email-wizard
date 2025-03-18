@@ -12,7 +12,6 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
         // Initialize cURL
         $ch = curl_init($apiURL);
 
-
         // Set the appropriate headers based on the URL
         $headers = ["Content-Type: application/json"];
         if (strpos($apiURL, 'iterable')) {
@@ -47,53 +46,43 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
 
         // Execute the request
         $response = curl_exec($ch);
-        if ($response === false) {
+
+        // Check for cURL errors
+        if (curl_errno($ch)) {
             $error = curl_error($ch);
-            error_log("cURL Error: $error");
-            wiz_log("CURL Error:  $error");
+            curl_close($ch);
             
-            // Check for timeout error
-            if (curl_errno($ch) === CURLE_OPERATION_TIMEDOUT) {
+            // Check if it's a timeout error
+            if (curl_errno($ch) == CURLE_OPERATION_TIMEDOUT) {
                 $consecutiveTimeouts++;
-                if ($consecutiveTimeouts > 3 ) {
-                    throw new Exception("3 consecutive timeouts exceeded limit. Stopping execution.");
+                
+                if ($consecutiveTimeouts > 2) {
+                    wiz_log("Too many consecutive timeouts. Aborting API call.");
+                    throw new Exception("CONSECUTIVE_TIMEOUTS");
                 }
-                sleep(5); // Wait for 5 seconds before retrying
+                
+                sleep(2); // Wait before retrying
                 continue;
             }
-        } else {
-            $consecutiveTimeouts = 0; // Reset consecutive timeouts count if a successful response is received
+            
+            wiz_log("cURL Error: " . $error);
+            throw new Exception("cURL Error: " . $error);
         }
 
         // Get the HTTP status code
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
-        // Close cURL
+        // Close the cURL session
         curl_close($ch);
-
-        // Check for rate limit
-        if ($httpCode === 429) {
-            error_log("Rate limit hit. Waiting 5 seconds before retrying...");
-            wiz_log("Rate limit hit. Waiting 5 seconds before retrying...");
-            sleep(5); // Adjust this delay as needed.
-            continue;
-        }
-
-        // Check for authentication error
-        if ($httpCode === 401) {
-            error_log("Error fetching data from the API. HTTP Code: $httpCode. Response: $response");
-            wiz_log("Error fetching data from the API. HTTP Code: $httpCode. Response: $response");
-            throw new Exception("Authentication failed for API endpoint $apiURL. Check your API Key.");
-        }
 
         // If a 400 error occurs, log the response and attempt details
         if ($httpCode === 400 || $httpCode >= 400) {
             $consecutive400Errors++;
-            sleep(3); // Wait for 3 seconds before retrying
             if ($consecutive400Errors > $maxConsecutive400Errors) {
-                wiz_log("Consecutive HTTP Errors exceeded limit. Stopping execution. HTTP Error: $httpCode");
-                throw new Exception("Consecutive HTTP Errors exceeded limit. Stopping execution. HTTP Error: $httpCode");
+                wiz_log("Consecutive HTTP Errors exceeded limit. HTTP Error: $httpCode");
+                throw new Exception("CONSECUTIVE_400_ERRORS");
             }
+            sleep(3); // Wait for 3 seconds before retrying
         } else {
             $consecutive400Errors = 0; // Reset consecutive 400 errors count if other status code received
         }
@@ -102,8 +91,8 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
 
         // If maximum attempts reached, throw an exception
         if ($attempts > $retryAttempts) {
-            wiz_log("HTTP 400 Error after $retryAttempts attempts. Stopping execution.");
-            throw new Exception("HTTP 400 Error after $retryAttempts attempts. Stopping execution.");
+            wiz_log("HTTP Error after $retryAttempts attempts. Stopping execution.");
+            throw new Exception("MAX_RETRY_ATTEMPTS_REACHED");
         }
 
     } while ($httpCode === 400 || $httpCode === 429 || $consecutiveTimeouts > 0);
@@ -115,7 +104,7 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
     }
 
     // Return both the decoded response and the HTTP status code
-    return ['response' => $response, 'httpCode' => $httpCode];
+    return ['response' => $response, 'http_code' => $httpCode];
 }
 
 

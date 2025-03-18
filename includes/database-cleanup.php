@@ -202,43 +202,99 @@ function idemailwiz_backfill_campaign_start_dates($purchases = false)
     // Process purchases one by one
     $countUpdates = 0;
     foreach ($purchases as $purchase) {
-        // Fetch required campaign data
-        $campaignType = $wpdb->get_var("SELECT type FROM $campaigns_table WHERE id = {$purchase->campaignId}");
-        $purchaseTimestamp = strtotime($purchase->purchaseDate . ' 23:59:59 America/Los_Angeles') * 1000;
-
-        if ($campaignType === 'Blast') {
-            $campaignStartAt = $wpdb->get_var("SELECT startAt FROM $campaigns_table WHERE id = {$purchase->campaignId}");
-        } elseif ($campaignType === 'Triggered' || $campaignType === 'FromWorkflow') {
-            // Find the most recent triggered send before the purchase timestamp
-            $triggeredSend = $wpdb->get_row("
-                SELECT startAt
-                FROM $triggered_sends_table
-                WHERE campaignId = {$purchase->campaignId} AND userId = '{$purchase->userId}' AND startAt <= {$purchaseTimestamp}
-                ORDER BY startAt DESC
-                LIMIT 1
-            ");
-
-            if ($triggeredSend !== null) {
-                $campaignStartAt = $triggeredSend->startAt;
-            } else {
-                // Find the most recent triggered send for the campaign before the purchase timestamp
-                $triggeredSend = $wpdb->get_row("
-                    SELECT startAt
-                    FROM $triggered_sends_table
-                    WHERE campaignId = {$purchase->campaignId} AND startAt <= {$purchaseTimestamp}
-                    ORDER BY startAt DESC
-                    LIMIT 1
-                ");
-
-                $campaignStartAt = $triggeredSend !== null ? $triggeredSend->startAt : null;
+        try {
+            // Fetch required campaign data - use prepare to avoid SQL injection
+            $campaignType = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT type FROM $campaigns_table WHERE id = %d",
+                    $purchase->campaignId
+                )
+            );
+            
+            // Make sure purchase date is valid before converting to timestamp
+            if (empty($purchase->purchaseDate)) {
+                wiz_log("Purchase {$purchase->id} has no purchase date. Skipping.");
+                continue;
             }
-        } else {
+            
+            $purchaseTimestamp = strtotime($purchase->purchaseDate . ' 23:59:59 America/Los_Angeles') * 1000;
+            
+            // Default to null
             $campaignStartAt = null;
-        }
+            
+            if ($campaignType === 'Blast') {
+                $campaignStartAt = $wpdb->get_var(
+                    $wpdb->prepare(
+                        "SELECT startAt FROM $campaigns_table WHERE id = %d",
+                        $purchase->campaignId
+                    )
+                );
+            } elseif ($campaignType === 'Triggered' || $campaignType === 'FromWorkflow') {
+                // Find the most recent triggered send before the purchase timestamp
+                // Properly escape userId to avoid SQL injection
+                $userId = $wpdb->_real_escape($purchase->userId);
+                $triggeredSend = $wpdb->get_row(
+                    $wpdb->prepare(
+                        "SELECT startAt
+                        FROM $triggered_sends_table
+                        WHERE campaignId = %d AND userId = %s AND startAt <= %d
+                        ORDER BY startAt DESC
+                        LIMIT 1",
+                        $purchase->campaignId,
+                        $userId,
+                        $purchaseTimestamp
+                    )
+                );
 
-        // Update the purchase record
-        $updateSql = "UPDATE $purchases_table SET campaignStartAt = " . ($campaignStartAt !== null ? $campaignStartAt : 'NULL') . " WHERE id = '{$purchase->id}'";
-        $countUpdates += $wpdb->query($updateSql);
+                if ($triggeredSend !== null) {
+                    $campaignStartAt = $triggeredSend->startAt;
+                } else {
+                    // Find the most recent triggered send for the campaign before the purchase timestamp
+                    $triggeredSend = $wpdb->get_row(
+                        $wpdb->prepare(
+                            "SELECT startAt
+                            FROM $triggered_sends_table
+                            WHERE campaignId = %d AND startAt <= %d
+                            ORDER BY startAt DESC
+                            LIMIT 1",
+                            $purchase->campaignId,
+                            $purchaseTimestamp
+                        )
+                    );
+
+                    $campaignStartAt = $triggeredSend !== null ? $triggeredSend->startAt : null;
+                }
+            }
+
+            // Update the purchase record with proper SQL escaping
+            if ($campaignStartAt !== null) {
+                $result = $wpdb->update(
+                    $purchases_table,
+                    ['campaignStartAt' => $campaignStartAt],
+                    ['id' => $purchase->id],
+                    ['%d'],
+                    ['%s']
+                );
+            } else {
+                // For NULL values, we need a different approach
+                $result = $wpdb->query(
+                    $wpdb->prepare(
+                        "UPDATE $purchases_table SET campaignStartAt = NULL WHERE id = %s",
+                        $purchase->id
+                    )
+                );
+            }
+            
+            // Check if the update was successful and increment counter
+            if ($result !== false) {
+                $countUpdates += $result;
+            } else {
+                wiz_log("Failed to update purchase {$purchase->id}: " . $wpdb->last_error);
+            }
+        } catch (Exception $e) {
+            wiz_log("Error processing purchase {$purchase->id}: " . $e->getMessage());
+            continue; // Skip to the next purchase on error
+        }
     }
 
     wiz_log("Purchase campaign start date backfill completed for {$countUpdates} records.");

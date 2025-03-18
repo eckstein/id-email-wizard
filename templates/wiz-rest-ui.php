@@ -107,30 +107,10 @@ global $wpdb;
                                                 <div class="test-user-selector">
                                                     <label>Test User:</label>
                                                     <select class="test-user-select wiz-select">
-                                                        <option value="">Select a test user...</option>
                                                         <?php
-                                                        // Get users with their most recent purchase info
-                                                        $recent_users = $wpdb->get_results(
-                                                            "SELECT DISTINCT 
-                                                                uf.StudentAccountNumber,
-                                                                uf.StudentFirstName,
-                                                                p.shoppingCartItems_divisionName as division,
-                                                                p.purchaseDate
-                                                            FROM {$wpdb->prefix}idemailwiz_userfeed uf
-                                                            JOIN {$wpdb->prefix}idemailwiz_purchases p 
-                                                                ON uf.StudentAccountNumber = p.shoppingCartItems_studentAccountNumber
-                                                            WHERE uf.StudentAccountNumber IS NOT NULL 
-                                                            GROUP BY uf.StudentAccountNumber
-                                                            ORDER BY p.purchaseDate DESC 
-                                                            LIMIT 15"
-                                                        );
-                                                        foreach ($recent_users as $user) {
-                                                            echo '<option value="' . esc_attr($user->StudentAccountNumber) . '">' . 
-                                                                 esc_html($user->StudentAccountNumber) . 
-                                                                 (!empty($user->StudentFirstName) ? ' - ' . esc_html($user->StudentFirstName) : '') .
-                                                                 ' (' . esc_html($user->division) . ' purchase)' .
-                                                                 '</option>';
-                                                        }
+                                                        // Get users from previous fiscal year with at least one from each division
+                                                        $users = idwiz_get_previous_year_users();
+                                                        echo generate_user_options_html($users, true);
                                                         ?>
                                                     </select>
                                                     <div class="user-id-input" style="display: none;">
@@ -158,7 +138,33 @@ global $wpdb;
                                                         <?php else: ?>
                                                         <select class="mapping-preset wiz-select">
                                                             <option value="">Select Preset</option>
-                                                            <option value="most_recent_purchase" <?php selected($mapping['value'], 'most_recent_purchase'); ?>>Most Recent Purchase Date</option>
+                                                            <?php
+                                                            $presets = get_available_presets();
+                                                            $current_group = null;
+                                                            
+                                                            // Sort presets by group then name
+                                                            uasort($presets, function($a, $b) {
+                                                                $group_compare = strcmp($a['group'] ?? '', $b['group'] ?? '');
+                                                                if ($group_compare !== 0) return $group_compare;
+                                                                return strcmp($a['name'], $b['name']);
+                                                            });
+                                                            
+                                                            foreach ($presets as $preset_key => $preset) {
+                                                                if (($preset['group'] ?? null) !== $current_group) {
+                                                                    if ($current_group !== null) {
+                                                                        echo '</optgroup>';
+                                                                    }
+                                                                    if (isset($preset['group'])) {
+                                                                        echo '<optgroup label="' . esc_attr($preset['group']) . '">';
+                                                                    }
+                                                                    $current_group = $preset['group'] ?? null;
+                                                                }
+                                                                echo '<option value="' . esc_attr($preset_key) . '" ' . selected($mapping['value'], $preset_key, false) . '>' . esc_html($preset['name']) . '</option>';
+                                                            }
+                                                            if ($current_group !== null) {
+                                                                echo '</optgroup>';
+                                                            }
+                                                            ?>
                                                         </select>
                                                         <?php endif; ?>
                                                         <button class="remove-mapping" title="Remove Mapping">×</button>
@@ -180,6 +186,38 @@ global $wpdb;
                                         <div class="endpoint-preview-content">
                                             <pre class="payload-preview">Select a test user to preview the payload</pre>
                                         </div>
+                                    </div>
+                                </div>
+
+                                <!-- Add preset definitions section -->
+                                <div class="preset-definitions">
+                                    <h3>Selected Preset Definitions</h3>
+                                    <div class="preset-definitions-content">
+                                        <?php
+                                        $presets = get_available_presets();
+                                        $used_presets = [];
+                                        
+                                        // Collect used presets
+                                        foreach ($data_mapping as $mapping) {
+                                            if ($mapping['type'] === 'preset' && !empty($mapping['value'])) {
+                                                $preset_key = $mapping['value'];
+                                                if (isset($presets[$preset_key])) {
+                                                    $used_presets[$preset_key] = $presets[$preset_key];
+                                                }
+                                            }
+                                        }
+
+                                        if (empty($used_presets)) {
+                                            echo '<p class="no-presets-message">No presets currently in use. Add a preset mapping above to see its definition here.</p>';
+                                        } else {
+                                            echo '<dl class="preset-list">';
+                                            foreach ($used_presets as $key => $preset) {
+                                                echo '<dt>' . esc_html($preset['name']) . '</dt>';
+                                                echo '<dd>' . esc_html($preset['description']) . '</dd>';
+                                            }
+                                            echo '</dl>';
+                                        }
+                                        ?>
                                     </div>
                                 </div>
 

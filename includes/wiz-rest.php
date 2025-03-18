@@ -1,6 +1,28 @@
 <?php
 
-
+// Add this function near the top with other utility functions
+function generate_user_options_html($users, $sort_by_division = false) {
+    $html = '<option value="">Select a test user...</option>';
+    
+    // Optionally sort users by division
+    if ($sort_by_division && !empty($users)) {
+        usort($users, function($a, $b) {
+            return strcmp($a->division, $b->division);
+        });
+    }
+    
+    foreach ($users as $user) {
+        $html .= sprintf(
+            '<option value="%s">%s - %s (%s purchase on %s)</option>',
+            esc_attr($user->StudentAccountNumber),
+            esc_html($user->StudentAccountNumber),
+            esc_html($user->StudentFirstName ?: ''),
+            esc_html($user->division),
+            esc_html($user->purchaseDate)
+        );
+    }
+    return $html;
+}
 
 function wiz_handle_user_courses_data_feed($data)
 {
@@ -142,6 +164,7 @@ function get_course_recommendations($course, $toDivision, $needsAgeUp)
                 'abbreviation' => $recCourse->abbreviation,
                 'minAge' => $recCourse->minAge,
                 'maxAge' => $recCourse->maxAge,
+                'courseUrl' => $recCourse->courseUrl
             ];
         }
     }
@@ -154,13 +177,408 @@ function create_error_response($message, $code = 400)
 }
 
 /**
+ * Gets the most recent location for a student
+ */
+function get_last_location($student_data) {
+    global $wpdb;
+    
+    // Get the student's most recent purchase with a location
+    $purchase = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT shoppingCartItems_locationName 
+            FROM {$wpdb->prefix}idemailwiz_purchases 
+            WHERE shoppingCartItems_studentAccountNumber = %s 
+            AND shoppingCartItems_locationName IS NOT NULL 
+            AND shoppingCartItems_locationName != ''
+            ORDER BY purchaseDate DESC 
+            LIMIT 1",
+            $student_data['studentAccountNumber']
+        )
+    );
+
+    if (!$purchase || !$purchase->shoppingCartItems_locationName) {
+        return null;
+    }
+
+    // Get location details from locations table
+    $location = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT id, name, locationStatus, address 
+            FROM {$wpdb->prefix}idemailwiz_locations 
+            WHERE name = %s 
+            AND locationStatus IN ('Open', 'Registration opens soon')",
+            $purchase->shoppingCartItems_locationName
+        )
+    );
+
+    if (!$location) {
+        return null;
+    }
+
+    // Unserialize address if it exists
+    $address = $location->address ? unserialize($location->address) : null;
+    
+    // Build location URL
+    $url = 'https://www.idtech.com/locations/' . sanitize_title($location->name);
+
+    return [
+        'id' => $location->id,
+        'name' => $location->name,
+        'status' => $location->locationStatus,
+        'url' => $url,
+        'address' => $address
+    ];
+}
+
+/**
+ * Calculate distance between two points using Haversine formula
+ * @param float $lat1 Latitude of first point
+ * @param float $lon1 Longitude of first point
+ * @param float $lat2 Latitude of second point
+ * @param float $lon2 Longitude of second point
+ * @return float Distance in miles
+ */
+function calculate_distance($lat1, $lon1, $lat2, $lon2) {
+    // Convert degrees to radians
+    $lat1 = deg2rad(floatval($lat1));
+    $lon1 = deg2rad(floatval($lon1));
+    $lat2 = deg2rad(floatval($lat2));
+    $lon2 = deg2rad(floatval($lon2));
+    
+    // Earth radius in miles
+    $r = 3959;
+    
+    // Haversine formula
+    $dlon = $lon2 - $lon1;
+    $dlat = $lat2 - $lat1;
+    $a = sin($dlat/2) * sin($dlat/2) + cos($lat1) * cos($lat2) * sin($dlon/2) * sin($dlon/2);
+    $c = 2 * asin(sqrt($a));
+    $d = $r * $c;
+    
+    return $d;
+}
+
+/**
+ * Get nearby locations within specified radius
+ * @param array $student_data Student data including location coordinates
+ * @param int $radius_miles Radius in miles to search
+ * @return array Array of nearby locations
+ */
+function get_nearby_locations($student_data, $radius_miles = 30) {
+    global $wpdb;
+    
+    // First try to get student's location coordinates
+    $student_location = null;
+    
+    // Check if we have a last location with coordinates
+    $last_location = get_last_location($student_data);
+    if ($last_location && isset($last_location['address'])) {
+        if (!empty($last_location['address']['latitude']) && !empty($last_location['address']['longitude'])) {
+            $student_location = [
+                'latitude' => $last_location['address']['latitude'],
+                'longitude' => $last_location['address']['longitude']
+            ];
+        }
+    }
+    
+    // If no location found from last purchase, check if coordinates provided in student data
+    if (!$student_location) {
+        if (!empty($student_data['latitude']) && !empty($student_data['longitude'])) {
+            $student_location = [
+                'latitude' => $student_data['latitude'],
+                'longitude' => $student_data['longitude']
+            ];
+        }
+    }
+    
+    // If we still don't have location data, return empty array
+    if (!$student_location) {
+        error_log("Nearby Locations: No coordinates found for student {$student_data['studentAccountNumber']}");
+        return [];
+    }
+    
+    // Get all active locations
+    $locations = $wpdb->get_results(
+        "SELECT id, name, locationStatus, address, addressArea 
+         FROM {$wpdb->prefix}idemailwiz_locations 
+         WHERE locationStatus IN ('Open', 'Registration opens soon')
+         AND addressArea IS NOT NULL 
+         AND addressArea != ''
+         AND divisions IS NOT NULL",
+        ARRAY_A
+    );
+    
+    if (empty($locations)) {
+        error_log("Nearby Locations: No active locations found in database");
+        return [];
+    }
+    
+    // Calculate distance for each location and filter by radius
+    $nearby_locations = [];
+    
+    foreach ($locations as $location) {
+        $address = unserialize($location['address']);
+        
+        // Skip locations without coordinates
+        if (empty($address['latitude']) || empty($address['longitude'])) {
+            continue;
+        }
+        
+        // Calculate distance
+        $distance = calculate_distance(
+            $student_location['latitude'],
+            $student_location['longitude'],
+            $address['latitude'],
+            $address['longitude']
+        );
+        
+        // Add location if within radius
+        if ($distance <= $radius_miles) {
+            // Build location URL
+            $url = 'https://www.idtech.com/locations/' . sanitize_title($location['name']);
+            
+            $nearby_locations[] = [
+                'id' => $location['id'],
+                'name' => $location['name'],
+                'status' => $location['locationStatus'],
+                'url' => $url,
+                'address' => $address,
+                'distance' => round($distance, 1), // Round to 1 decimal place
+            ];
+        }
+    }
+    
+    // Sort by distance
+    usort($nearby_locations, function($a, $b) {
+        return $a['distance'] <=> $b['distance'];
+    });
+    
+    return [
+        'total_count' => count($nearby_locations),
+        'student_coordinates' => $student_location,
+        'locations' => $nearby_locations
+    ];
+}
+
+/**
+ * Get all available presets and their metadata
+ * This is the single source of truth for preset definitions
+ */
+function get_available_presets() {
+    return [
+        'most_recent_purchase' => [
+            'name' => 'Most Recent Purchase Date',
+            'group' => 'Purchase History',
+            'description' => 'Returns the date of the student\'s most recent purchase. Returns null if the student has no purchases.'
+        ],
+        'last_location' => [
+            'name' => 'Last Camp Location',
+            'group' => 'Location History',
+            'description' => 'Returns details about the student\'s most recent location including name, status, URL, and address. Only includes locations with status "Open" or "Registration opens soon". Returns null if no valid location is found.'
+        ],
+        'nearby_locations' => [
+            'name' => 'Nearby Camp Locations (30 Miles)',
+            'group' => 'Location History',
+            'description' => 'Returns locations within 30 miles of the student\'s last known location, sorted by distance. Uses Haversine formula for accurate distance calculation. Returns empty array if no coordinates found for student or no locations within range.'
+        ],
+        'ipc_course_recs' => [
+            'name' => 'IPC Course Recs',
+            'group' => 'Course Recs',
+            'description' => 'Returns up to 3 in-person course recommendations based on the student\'s previous purchases. Automatically handles age-up logic between iDTC and iDTA. Returns empty array if no recommendations found.'
+        ],
+        'idtc_course_recs' => [
+            'name' => 'iDTC Course Recs',
+            'group' => 'Course Recs',
+            'description' => 'Returns up to 3 iD Tech Camps course recommendations based on the student\'s previous iDTC purchases. Returns empty array if no recommendations found or if student aged out.'
+        ],
+        'idta_course_recs' => [
+            'name' => 'iDTA Course Recs',
+            'group' => 'Course Recs',
+            'description' => 'Returns up to 3 Teen Academy course recommendations based on the student\'s previous iDTA purchases. Returns empty array if no recommendations found or if student is not age-eligible.'
+        ],
+        'vtc_course_recs' => [
+            'name' => 'VTC Course Recs',
+            'group' => 'Course Recs',
+            'description' => 'Returns up to 3 Virtual Tech Camps course recommendations based on the student\'s previous VTC purchases. Returns empty array if no recommendations found.'
+        ],
+        'ota_course_recs' => [
+            'name' => 'OTA Course Recs',
+            'group' => 'Course Recs',
+            'description' => 'Returns up to 3 Online Teen Academy course recommendations based on the student\'s previous OTA purchases. Returns empty array if no recommendations found or if student is not age-eligible.'
+        ],
+        'opl_course_recs' => [
+            'name' => 'OPL Course Recs',
+            'group' => 'Course Recs',
+            'description' => 'Returns up to 3 Online Private Lessons course recommendations based on the student\'s previous OPL purchases. Returns empty array if no recommendations found.'
+        ],
+        'nearby_locations_with_course_recs' => [
+            'name' => 'Nearby Locations with Course Recs',
+            'description' => 'Returns nearby locations with course recommendations nested within each location. Combines location proximity data with personalized course recommendations.',
+            'group' => 'Location & Course Data'
+        ],
+    ];
+}
+
+/**
  * Handles the processing of preset values
  */
 function process_preset_value($preset_name, $student_data) {
+    $available_presets = get_available_presets();
+    
+    if (!isset($available_presets[$preset_name])) {
+        return null;
+    }
+    
     switch ($preset_name) {
         case 'most_recent_purchase':
             return get_most_recent_purchase_date($student_data);
-        // Add more preset cases here
+        case 'last_location':
+            return get_last_location($student_data);
+        case 'nearby_locations':
+            return get_nearby_locations($student_data, 30); // 30 miles radius
+        case 'ipc_course_recs':
+            return get_division_course_recommendations($student_data, 'ipc');
+        case 'idtc_course_recs':
+            return get_division_course_recommendations($student_data, 'idtc');
+        case 'idta_course_recs':
+            return get_division_course_recommendations($student_data, 'idta');
+        case 'vtc_course_recs':
+            return get_division_course_recommendations($student_data, 'vtc');
+        case 'ota_course_recs':
+            return get_division_course_recommendations($student_data, 'ota');
+        case 'opl_course_recs':
+            return get_division_course_recommendations($student_data, 'opl');
+        case 'nearby_locations_with_course_recs':
+            global $wpdb;
+            
+            // Get nearby locations
+            $nearby_data = get_nearby_locations($student_data);
+            
+            // If no nearby locations, return empty array
+            if (empty($nearby_data['locations'])) {
+                return [];
+            }
+            
+            // Get all location IDs
+            $location_ids = array_map(function($loc) {
+                return $loc['id'];
+            }, $nearby_data['locations']);
+            
+            // Get course data for all locations, including sessionWeeks
+            $location_courses = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT id, courses, sessionWeeks
+                     FROM {$wpdb->prefix}idemailwiz_locations 
+                     WHERE id IN (" . implode(',', array_fill(0, count($location_ids), '%d')) . ")",
+                    $location_ids
+                ),
+                ARRAY_A
+            );
+            
+            // Create a map of location ID to courses and sessionWeeks
+            $location_courses_map = [];
+            $location_weeks_map = [];
+            foreach ($location_courses as $loc) {
+                $courses = maybe_unserialize($loc['courses']);
+                if (!empty($courses) && is_array($courses)) {
+                    $location_courses_map[$loc['id']] = $courses;
+                }
+                
+                $session_weeks = $loc['sessionWeeks'] ? maybe_unserialize($loc['sessionWeeks']) : null;
+                if ($session_weeks) {
+                    $location_weeks_map[$loc['id']] = $session_weeks;
+                }
+            }
+            
+            // Get course recommendations for the student (only in-person courses)
+            // Use ipc parameter which handles both iDTC and iDTA recommendations based on age
+            $course_recs = get_division_course_recommendations($student_data, 'ipc');
+            
+            // Get all recommended course IDs to fetch their details
+            $course_ids = array_map(function($rec) {
+                return $rec['id'];
+            }, $course_recs['recs'] ?? []);
+            
+            // Fetch course details to determine if each is a camp or academy
+            $course_details = [];
+            if (!empty($course_ids)) {
+                $course_data = $wpdb->get_results(
+                    $wpdb->prepare(
+                        "SELECT id, title, abbreviation 
+                         FROM {$wpdb->prefix}idemailwiz_courses 
+                         WHERE id IN (" . implode(',', array_fill(0, count($course_ids), '%d')) . ")",
+                        $course_ids
+                    ),
+                    ARRAY_A
+                );
+                
+                // Create a map of course details
+                foreach ($course_data as $course) {
+                    // Determine if course is a camp or academy based on division_id
+                    // Division IDs:
+                    // - 22: iDTA (Teen Academy) - This is the only academy
+                    // - 25: iDTC (Tech Camp)
+                    // - 42: VTC (Virtual Tech Camp)
+                    // - 47: OTA (Online Teen Academy) - Despite "Academy" in the name, it has different session structure than iDTA
+                    // - 41: OPL (Online Private Lessons)
+                    $is_academy = $course['division_id'] == 22; // Only iDTA (22) is considered an academy
+                    
+                    $course_details[$course['id']] = [
+                        'title' => $course['title'],
+                        'abbreviation' => $course['abbreviation'],
+                        'division_id' => $course['division_id'],
+                        'type' => $is_academy ? 'academies' : 'camps'
+                    ];
+                }
+            }
+            
+            // Add course data to each location
+            foreach ($nearby_data['locations'] as &$location) {
+                $loc_id = $location['id'];
+                $location['course_recommendations'] = null;
+                
+                // Add personalized course recommendations if available
+                if (!empty($course_recs['recs'])) {
+                    // Filter recommendations to only include courses available at this location
+                    $location_specific_recs = array_filter($course_recs['recs'], function($rec) use ($location_courses_map, $loc_id) {
+                        return isset($location_courses_map[$loc_id]) && in_array($rec['id'], $location_courses_map[$loc_id]);
+                    });
+                    
+                    if (!empty($location_specific_recs)) {
+                        // Add sessionWeeks to each recommendation
+                        foreach ($location_specific_recs as &$rec) {
+                            $course_type = $course_details[$rec['id']]['type'] ?? 'camps'; // Default to camps if not determined
+                            
+                            // Add sessionWeeks if available for this location and course type
+                            if (isset($location_weeks_map[$loc_id]) && isset($location_weeks_map[$loc_id][$course_type])) {
+                                $rec['sessionWeeks'] = $location_weeks_map[$loc_id][$course_type];
+                            } else {
+                                $rec['sessionWeeks'] = [];
+                            }
+                        }
+                        
+                        $location['course_recommendations'] = [
+                            'recs' => array_values($location_specific_recs)
+                        ];
+                    }
+                }
+            }
+            
+            // Create locationRecs array with metadata and locations
+            $nearby_data['locationRecs'] = [
+                'total_count' => $course_recs['total_count'] ?? 0,
+                'age_up' => $course_recs['age_up'] ?? false,
+                'student_age' => $course_recs['student_age'] ?? null,
+                'from_fiscal_year' => $course_recs['from_fiscal_year'] ?? null,
+                'to_fiscal_year' => $course_recs['to_fiscal_year'] ?? null,
+                'last_purchase' => $course_recs['last_purchase'] ?? null,
+                'locations' => $nearby_data['locations']
+            ];
+            
+            // Remove the original locations array since it's now in locationRecs
+            unset($nearby_data['locations']);
+            
+            return $nearby_data;
         default:
             return null;
     }
@@ -186,6 +604,144 @@ function get_most_recent_purchase_date($student_data) {
 
     return $purchase ? $purchase->purchaseDate : null;
 }
+
+/**
+ * Gets course recommendations for a student between fiscal years
+ */
+function get_course_recommendations_between_fiscal_years($student_data, $from_fiscal_year, $to_fiscal_year) {
+    global $wpdb;
+    
+    // Get student account number from the data
+    $student_account_number = $student_data['studentAccountNumber'];
+    if (!$student_account_number) {
+        error_log("Course Recs: No student account number found");
+        return [];
+    }
+    
+    // Define fiscal year ranges
+    $fiscal_years = [
+        'fy25' => ['start' => '2024-11-01', 'end' => '2025-10-31'],
+        'fy24' => ['start' => '2023-11-01', 'end' => '2024-10-31'],
+        'fy23' => ['start' => '2022-11-01', 'end' => '2023-10-31']
+    ];
+    
+    if (!isset($fiscal_years[$from_fiscal_year]) || !isset($fiscal_years[$to_fiscal_year])) {
+        error_log("Course Recs: Invalid fiscal year specified");
+        return [];
+    }
+    
+    $from_dates = $fiscal_years[$from_fiscal_year];
+    
+    error_log("Course Recs: Searching for purchases between {$from_dates['start']} and {$from_dates['end']} for student $student_account_number");
+    
+    // Get the student's most recent purchase within the FROM fiscal year
+    $latestPurchase = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT p.*, uf.studentDOB 
+            FROM {$wpdb->prefix}idemailwiz_purchases p
+            JOIN {$wpdb->prefix}idemailwiz_userfeed uf ON p.shoppingCartItems_studentAccountNumber = uf.studentAccountNumber
+            WHERE p.shoppingCartItems_studentAccountNumber = %s 
+            AND p.shoppingCartItems_divisionId IN (22, 25)
+            AND p.purchaseDate BETWEEN %s AND %s
+            ORDER BY p.purchaseDate DESC 
+            LIMIT 1",
+            $student_account_number,
+            $from_dates['start'],
+            $from_dates['end']
+        ),
+        ARRAY_A
+    );
+
+    if (!$latestPurchase) {
+        error_log("Course Recs: No purchases found for student $student_account_number in $from_fiscal_year");
+        return [];
+    }
+
+    error_log("Course Recs: Found purchase from " . $latestPurchase['purchaseDate'] . " for course ID " . $latestPurchase['shoppingCartItems_id']);
+
+    // Get the course details
+    $course = get_course_details_by_id($latestPurchase['shoppingCartItems_id']);
+    if (is_wp_error($course) || !isset($course->course_recs)) {
+        error_log("Course Recs: Failed to get course details for ID " . $latestPurchase['shoppingCartItems_id']);
+        return [];
+    }
+
+    // Calculate student age and age at last purchase using DOB from the joined query
+    $studentDOB = $latestPurchase['studentDOB'];
+    if (!$studentDOB) {
+        error_log("Course Recs: No DOB found for student");
+        return [];
+    }
+
+    $studentAge = calculate_student_age($studentDOB);
+    $ageAtLastPurchase = calculate_age_at_purchase($studentDOB, $latestPurchase['purchaseDate']);
+
+    if ($studentAge === false) {
+        error_log("Course Recs: Invalid student DOB format");
+        return [];
+    }
+
+    error_log("Course Recs: Student age: $studentAge, Age at last purchase: $ageAtLastPurchase");
+
+    // Determine if student needs age-up recommendations
+    $needsAgeUp = determine_age_up_need($studentAge, $ageAtLastPurchase, $course);
+
+    // Get recommendations based on the student's current division
+    $fromDivision = $latestPurchase['shoppingCartItems_divisionId'] == 25 ? 'idtc' : 'idta';
+    $toDivision = $fromDivision; // Keep same division for recommendations
+
+    // Get course recommendations
+    $recommendations = get_course_recommendations($course, $toDivision, $needsAgeUp);
+
+    if (empty($recommendations)) {
+        error_log("Course Recs: No recommendations found for course ID " . $latestPurchase['shoppingCartItems_id']);
+        return [];
+    }
+
+    error_log("Course Recs: Found " . count($recommendations) . " recommendations");
+
+    // Limit to 3 recommendations and format for Iterable
+    $formattedRecs = [];
+    $count = 0;
+    foreach ($recommendations as $rec) {
+        if ($count >= 3) break;
+        
+        $formattedRecs[] = [
+            'id' => $rec['id'],
+            'title' => $rec['title'],
+            'abbreviation' => $rec['abbreviation'],
+            'age_range' => $rec['minAge'] . '-' . $rec['maxAge'],
+            'url' => $rec['courseUrl'] ?? ''
+        ];
+        $count++;
+    }
+
+    // Only return data if we actually have recommendations
+    if (empty($formattedRecs)) {
+        return [];
+    }
+
+    return [
+        'recs' => $formattedRecs,
+        'total_count' => count($formattedRecs),
+        'age_up' => $needsAgeUp,
+        'student_age' => $studentAge,
+        'from_fiscal_year' => $from_fiscal_year,
+        'to_fiscal_year' => $to_fiscal_year,
+        'last_purchase' => [
+            'date' => $latestPurchase['purchaseDate'],
+            'course_id' => $latestPurchase['shoppingCartItems_id'],
+            'course_name' => $course->title,
+            'abbreviation' => $course->abbreviation,
+            'age_range' => $course->minAge . '-' . $course->maxAge,
+            'courseUrl' => $course->courseUrl ?? '',
+            'division' => $latestPurchase['shoppingCartItems_divisionName'],
+            'division_id' => $latestPurchase['shoppingCartItems_divisionId'],
+            'location' => $latestPurchase['shoppingCartItems_locationName'] ?? null
+        ]
+    ];
+}
+
 
 function wiz_handle_user_data_feed($data)
 {
@@ -219,7 +775,8 @@ function wiz_handle_user_data_feed($data)
 
     // Process presets
     $presets = [
-        'most_recent_purchase' => process_preset_value('most_recent_purchase', $feed_data)
+        'most_recent_purchase' => process_preset_value('most_recent_purchase', $feed_data),
+        'last_location' => process_preset_value('last_location', $feed_data)
     ];
 
     // Add presets to the response
@@ -532,7 +1089,7 @@ function idwiz_endpoint_handler($request)
     // Get user data from the user feed database
     $feed_data = $wpdb->get_row(
         $wpdb->prepare(
-            "SELECT * FROM {$wpdb->prefix}idemailwiz_userfeed WHERE StudentAccountNumber = %s LIMIT 1",
+            "SELECT * FROM {$wpdb->prefix}idemailwiz_userfeed WHERE studentAccountNumber = %s LIMIT 1",
             $account_number
         ),
         ARRAY_A
@@ -544,6 +1101,36 @@ function idwiz_endpoint_handler($request)
         ), 404);
     }
 
+    // Process presets first
+    $presets = [];
+    
+    // Most recent purchase preset
+    $presets['most_recent_purchase'] = get_most_recent_purchase_date($feed_data);
+    
+    // Last location preset
+    $presets['last_location'] = process_preset_value('last_location', $feed_data);
+    
+    // Nearby locations preset
+    $presets['nearby_locations'] = process_preset_value('nearby_locations', $feed_data);
+    
+    // Process all course recommendation presets
+    $preset_types = [
+        'ipc_course_recs',
+        'idtc_course_recs',
+        'idta_course_recs',
+        'vtc_course_recs',
+        'ota_course_recs',
+        'opl_course_recs',
+        'nearby_locations_with_course_recs'
+    ];
+
+    foreach ($preset_types as $preset) {
+        $result = process_preset_value($preset, $feed_data);
+        if ($result !== null) {
+            $presets[$preset] = $result;
+        }
+    }
+
     // Build response data based on mappings
     $response_data = array();
     
@@ -552,7 +1139,10 @@ function idwiz_endpoint_handler($request)
             if ($mapping['type'] === 'static') {
                 $response_data[$key] = $mapping['value'];
             } else if ($mapping['type'] === 'preset') {
-                $response_data[$key] = process_preset_value($mapping['value'], $feed_data);
+                // Only include the preset if it exists and is not null
+                if (isset($presets[$mapping['value']]) && $presets[$mapping['value']] !== null) {
+                    $response_data[$key] = $presets[$mapping['value']];
+                }
             }
         }
     } else {
@@ -607,6 +1197,7 @@ function idwiz_get_user_data_for_preview() {
 
     // Get account number
     $account_number = isset($_POST['account_number']) ? sanitize_text_field($_POST['account_number']) : '';
+    
     if (empty($account_number)) {
         wp_send_json_error('No student account number provided');
         return;
@@ -616,7 +1207,7 @@ function idwiz_get_user_data_for_preview() {
     // Get user data from the user feed database
     $feed_data = $wpdb->get_row(
         $wpdb->prepare(
-            "SELECT * FROM {$wpdb->prefix}idemailwiz_userfeed WHERE StudentAccountNumber = %s LIMIT 1",
+            "SELECT * FROM {$wpdb->prefix}idemailwiz_userfeed WHERE studentAccountNumber = %s LIMIT 1",
             $account_number
         ),
         ARRAY_A
@@ -628,13 +1219,299 @@ function idwiz_get_user_data_for_preview() {
     }
 
     // Process presets
-    $presets = [
-        'most_recent_purchase' => process_preset_value('most_recent_purchase', $feed_data)
+    $presets = [];
+    
+    // Most recent purchase preset
+    $presets['most_recent_purchase'] = process_preset_value('most_recent_purchase', $feed_data);
+    
+    // Last location preset
+    $presets['last_location'] = process_preset_value('last_location', $feed_data);
+    
+    // Nearby locations preset
+    $presets['nearby_locations'] = process_preset_value('nearby_locations', $feed_data);
+    
+    // Process all course recommendation presets
+    $preset_types = [
+        'ipc_course_recs',
+        'idtc_course_recs',
+        'idta_course_recs',
+        'vtc_course_recs',
+        'ota_course_recs',
+        'opl_course_recs',
+        'nearby_locations_with_course_recs'
     ];
+
+    foreach ($preset_types as $preset) {
+        $result = process_preset_value($preset, $feed_data);
+        if ($result !== null) {
+            $presets[$preset] = $result;
+        }
+    }
 
     // Add presets to the response
     $feed_data['_presets'] = $presets;
 
     wp_send_json_success($feed_data);
+}
+
+/**
+ * Gets course recommendations for a specific division
+ */
+function get_division_course_recommendations($student_data, $division_type) {
+    global $wpdb;
+    
+    // Get student account number from the data
+    $student_account_number = $student_data['studentAccountNumber'];
+    if (!$student_account_number) {
+        error_log("Course Recs: No student account number found");
+        return [];
+    }
+    
+    // Define current fiscal year
+    $current_date = new DateTime();
+    $year = $current_date->format('Y');
+    $month = $current_date->format('n');
+    
+    // If we're in Nov-Dec, we're in the next fiscal year
+    if ($month >= 11) {
+        $current_fy_year = $year + 1;
+    } else {
+        $current_fy_year = $year;
+    }
+    
+    $current_fy = 'fy' . substr($current_fy_year, -2);
+    $current_fy_start = new DateTime(($current_fy_year - 1) . '-11-01');
+    $current_fy_end = new DateTime($current_fy_year . '-10-31');
+    
+    error_log("Course Recs: Current fiscal year is $current_fy ({$current_fy_start->format('Y-m-d')} to {$current_fy_end->format('Y-m-d')})");
+    
+    // Define division IDs based on division type
+    $fromDivisionIds = [];
+    $toDivision = '';
+    
+    switch($division_type) {
+        case 'ipc':
+            $fromDivisionIds = [22, 25]; // Both iDTA and iDTC
+            $toDivision = 'idtc'; // Default to iDTC, age-up logic will handle iDTA if needed
+            break;
+        case 'idtc':
+            $fromDivisionIds = [25];
+            $toDivision = 'idtc';
+            break;
+        case 'idta':
+            $fromDivisionIds = [22];
+            $toDivision = 'idta';
+            break;
+        case 'vtc':
+            $fromDivisionIds = [42];
+            $toDivision = 'vtc';
+            break;
+        case 'ota':
+            $fromDivisionIds = [47];
+            $toDivision = 'ota';
+            break;
+        case 'opl':
+            $fromDivisionIds = [41];
+            $toDivision = 'opl';
+            break;
+        default:
+            error_log("Course Recs: Invalid division type: $division_type");
+            return [];
+    }
+    
+    // Get the student's most recent purchase BEFORE the current fiscal year
+    $latestPurchase = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT p.*, uf.studentDOB 
+            FROM {$wpdb->prefix}idemailwiz_purchases p
+            JOIN {$wpdb->prefix}idemailwiz_userfeed uf ON p.shoppingCartItems_studentAccountNumber = uf.studentAccountNumber
+            WHERE p.shoppingCartItems_studentAccountNumber = %s 
+            AND p.shoppingCartItems_divisionId IN (" . implode(',', $fromDivisionIds) . ")
+            AND p.purchaseDate < %s
+            ORDER BY p.purchaseDate DESC 
+            LIMIT 1",
+            $student_account_number,
+            $current_fy_start->format('Y-m-d')
+        ),
+        ARRAY_A
+    );
+
+    if (!$latestPurchase) {
+        error_log("Course Recs: No previous purchases found for student $student_account_number");
+        return [];
+    }
+
+    error_log("Course Recs: Found purchase from " . $latestPurchase['purchaseDate'] . " for course ID " . $latestPurchase['shoppingCartItems_id']);
+
+    // Get the course details
+    $course = get_course_details_by_id($latestPurchase['shoppingCartItems_id']);
+    if (is_wp_error($course) || !isset($course->course_recs)) {
+        error_log("Course Recs: Failed to get course details for ID " . $latestPurchase['shoppingCartItems_id']);
+        return [];
+    }
+
+    // Calculate student age and age at last purchase using DOB from the joined query
+    $studentDOB = $latestPurchase['studentDOB'];
+    if (!$studentDOB) {
+        error_log("Course Recs: No DOB found for student");
+        return [];
+    }
+
+    $studentAge = calculate_student_age($studentDOB);
+    $ageAtLastPurchase = calculate_age_at_purchase($studentDOB, $latestPurchase['purchaseDate']);
+
+    if ($studentAge === false) {
+        error_log("Course Recs: Invalid student DOB format");
+        return [];
+    }
+
+    error_log("Course Recs: Student age: $studentAge, Age at last purchase: $ageAtLastPurchase");
+
+    // Determine if student needs age-up recommendations
+    $needsAgeUp = determine_age_up_need($studentAge, $ageAtLastPurchase, $course);
+
+    // For IPC recommendations, if student needs age-up and is 13+, switch to iDTA
+    if ($division_type === 'ipc' && $needsAgeUp && $studentAge >= 13) {
+        $toDivision = 'idta';
+    }
+
+    // Get course recommendations
+    $recommendations = get_course_recommendations($course, $toDivision, $needsAgeUp);
+
+    if (empty($recommendations)) {
+        error_log("Course Recs: No recommendations found for course ID " . $latestPurchase['shoppingCartItems_id']);
+        return [];
+    }
+
+    error_log("Course Recs: Found " . count($recommendations) . " recommendations");
+
+    // Limit to 3 recommendations and format for Iterable
+    $formattedRecs = [];
+    $count = 0;
+    foreach ($recommendations as $rec) {
+        if ($count >= 3) break;
+        
+        $formattedRecs[] = [
+            'id' => $rec['id'],
+            'title' => $rec['title'],
+            'abbreviation' => $rec['abbreviation'],
+            'age_range' => $rec['minAge'] . '-' . $rec['maxAge'],
+            'url' => $rec['courseUrl'] ?? ''
+        ];
+        $count++;
+    }
+
+    // Only return data if we actually have recommendations
+    if (empty($formattedRecs)) {
+        return [];
+    }
+
+    // Get fiscal year info for the last purchase
+    $purchase_date = new DateTime($latestPurchase['purchaseDate']);
+    $purchase_year = $purchase_date->format('Y');
+    $purchase_month = $purchase_date->format('n');
+    
+    // Determine the fiscal year of the purchase
+    if ($purchase_month >= 11) {
+        $purchase_fy_year = $purchase_year + 1;
+    } else {
+        $purchase_fy_year = $purchase_year;
+    }
+    
+    $from_fiscal_year = 'fy' . substr($purchase_fy_year, -2);
+    // We already calculated the current fiscal year above
+    $to_fiscal_year = $current_fy;
+
+    return [
+        'recs' => $formattedRecs,
+        'total_count' => count($formattedRecs),
+        'age_up' => $needsAgeUp,
+        'student_age' => $studentAge,
+        'from_fiscal_year' => $from_fiscal_year,
+        'to_fiscal_year' => $to_fiscal_year,
+        'last_purchase' => [
+            'date' => $latestPurchase['purchaseDate'],
+            'course_id' => $latestPurchase['shoppingCartItems_id'],
+            'course_name' => $course->title,
+            'abbreviation' => $course->abbreviation,
+            'age_range' => $course->minAge . '-' . $course->maxAge,
+            'courseUrl' => $course->courseUrl ?? '',
+            'division' => $latestPurchase['shoppingCartItems_divisionName'],
+            'division_id' => $latestPurchase['shoppingCartItems_divisionId'],
+            'location' => $latestPurchase['shoppingCartItems_locationName'] ?? null
+        ]
+    ];
+}
+
+// Add an AJAX endpoint to get available presets
+add_action('wp_ajax_idwiz_get_available_presets', 'idwiz_get_available_presets_callback');
+
+function idwiz_get_available_presets_callback() {
+    wp_send_json_success(get_available_presets());
+}
+
+/**
+ * Get users from the previous fiscal year with at least one from each division
+ */
+function idwiz_get_previous_year_users() {
+    global $wpdb;
+    
+    // Define current fiscal year
+    $current_date = new DateTime();
+    $year = $current_date->format('Y');
+    $month = $current_date->format('n');
+    
+    // If we're in Nov-Dec, we're in the next fiscal year
+    if ($month >= 11) {
+        $current_fy_year = $year + 1;
+    } else {
+        $current_fy_year = $year;
+    }
+    
+    // Define previous fiscal year date range
+    $prev_fy_year = $current_fy_year - 1;
+    $prev_fy_start = ($prev_fy_year - 1) . '-11-01';
+    $prev_fy_end = $prev_fy_year . '-10-31';
+    
+    // Get one recent user from each division
+    $division_ids = [22, 25, 42, 47, 41]; // IDTA, IDTC, VTC, OTA, OPL
+    $users = [];
+    
+    foreach ($division_ids as $division_id) {
+        $division_users = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT DISTINCT 
+                    uf.StudentAccountNumber,
+                    uf.StudentFirstName,
+                    p.shoppingCartItems_divisionName as division,
+                    p.purchaseDate
+                FROM {$wpdb->prefix}idemailwiz_userfeed uf
+                JOIN (
+                    SELECT 
+                        shoppingCartItems_studentAccountNumber,
+                        MAX(purchaseDate) as latest_purchase
+                    FROM {$wpdb->prefix}idemailwiz_purchases
+                    WHERE purchaseDate BETWEEN %s AND %s
+                    AND shoppingCartItems_divisionId = %d
+                    GROUP BY shoppingCartItems_studentAccountNumber
+                ) latest ON uf.StudentAccountNumber = latest.shoppingCartItems_studentAccountNumber
+                JOIN {$wpdb->prefix}idemailwiz_purchases p 
+                    ON p.shoppingCartItems_studentAccountNumber = latest.shoppingCartItems_studentAccountNumber
+                    AND p.purchaseDate = latest.latest_purchase
+                GROUP BY uf.StudentAccountNumber
+                ORDER BY purchaseDate DESC 
+                LIMIT 3", // Get 3 per division to ensure we have enough
+                $prev_fy_start,
+                $prev_fy_end,
+                $division_id
+            )
+        );
+        
+        if (!empty($division_users)) {
+            $users = array_merge($users, $division_users);
+        }
+    }
+    
+    return $users;
 }
 

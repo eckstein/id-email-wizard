@@ -8,7 +8,6 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 	global $wpdb;
 	$result = ['success' => [], 'errors' => []];
 
-
 	$id_field = 'id'; // Default ID field
 	$name_field = 'name'; // Default name field
 
@@ -22,196 +21,320 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 		$id_field = 'wizId';
 	}
 
-
-
-
-	foreach ($items as $key => $item) {
-
-		// If this is a campaigns table sync
-		if ($table_name == $wpdb->prefix . 'idemailwiz_campaigns' && $operation !== 'delete') {
-			//update the campaigns table lastWizSync with the current datetime
-			$item['lastWizSync'] = date('Y-m-d H:i:s');
-		}
-
-		// Add 'name' to the metrics array
-		if ($table_name == $wpdb->prefix . 'idemailwiz_metrics') {
-			$metricCampaign = get_idwiz_campaign($item['id']);
-			$metricName = $metricCampaign['name'];
-		}
-
-		// If this is a purchase sync, we do some database cleanup
-		if ($table_name == $wpdb->prefix . 'idemailwiz_purchases') {
-			// Exclude purchases with campaignIds that are negatives (like -12345)
-			if (isset($item['campaignId']) && $item['campaignId'] < 0) {
-				unset($items[$key]);
+	// Batch processing - process items in smaller batches to prevent timeouts
+	$batch_size = 250;
+	$item_batches = array_chunk($items, $batch_size);
+	
+	foreach ($item_batches as $batch) {
+		foreach ($batch as $key => $item) {
+			// If this is a campaigns table sync
+			if ($table_name == $wpdb->prefix . 'idemailwiz_campaigns' && $operation !== 'delete') {
+				//update the campaigns table lastWizSync with the current datetime
+				$item['lastWizSync'] = date('Y-m-d H:i:s');
 			}
-		}
 
-		// If this is a user sync
-		if ($table_name == $wpdb->prefix . 'idemailwiz_users') {
-			foreach ($item as $field => $value) {
-				// Change blank values to NULL
-				if ($value === '') {
-					$item[$field] = NULL;
+			// Add 'name' to the metrics array
+			if ($table_name == $wpdb->prefix . 'idemailwiz_metrics') {
+				$metricCampaign = get_idwiz_campaign($item['id']);
+				$metricName = $metricCampaign['name'] ?? '';
+			}
+
+			// If this is a purchase sync, we do some database cleanup and field normalization
+			if ($table_name == $wpdb->prefix . 'idemailwiz_purchases') {
+				
+				// Exclude purchases with campaignIds that are negatives (like -12345)
+				if (isset($item['campaignId']) && $item['campaignId'] < 0) {
 					continue;
 				}
-
-				// Change string "[]" to NULL
-				if ($value === '[]') {
-					$item[$field] = NULL;
-					continue;
+				
+				// Get table columns
+				$table_columns = $wpdb->get_col("SHOW COLUMNS FROM `{$table_name}`");
+				
+				// Normalize field names for purchases
+				$normalized_item = [];
+				foreach ($item as $field => $value) {
+					// Convert lowercase field names to proper case for the database
+					$normalized_field = $field;
+					
+					// Special handling for common fields that need specific casing
+					if (strtolower($field) === 'campaignid') {
+						$normalized_field = 'campaignId';
+					} elseif (strtolower($field) === 'campaignstartat') {
+						$normalized_field = 'campaignStartAt';
+					} elseif (strtolower($field) === 'purchasedate') {
+						$normalized_field = 'purchaseDate';
+					} elseif (strtolower($field) === 'createdat') {
+						$normalized_field = 'createdAt';
+					} elseif (strtolower($field) === 'userid') {
+						$normalized_field = 'userId';
+					} elseif (strtolower($field) === 'accountnumber') {
+						$normalized_field = 'accountNumber';
+					} elseif (strtolower($field) === 'orderid') {
+						$normalized_field = 'orderId';
+					} elseif (strtolower($field) === 'templateid') {
+						$normalized_field = 'templateId';
+					} elseif (strpos(strtolower($field), 'shoppingcartitems_') === 0) {
+						// Handle shopping cart items fields
+						$parts = explode('_', $field);
+						if (count($parts) > 1) {
+							array_shift($parts); // Remove 'shoppingcartitems'
+							$normalized_field = 'shoppingCartItems_' . implode('_', $parts);
+						}
+					}
+					
+					// Only include fields that exist in the database table (case-insensitive comparison)
+					$field_exists = false;
+					foreach ($table_columns as $col) {
+						if (strcasecmp($col, $normalized_field) === 0) {
+							$field_exists = true;
+							$normalized_field = $col; // Use the exact case from the database
+							break;
+						}
+					}
+					// If the field exists, add it to the normalized item
+					if ($field_exists) {
+						$normalized_item[$normalized_field] = $value;
+					} 
 				}
+				$item = $normalized_item;
+			}
 
-				// Check if the value is a string representation of an array
-				if (is_string($value) && strpos($value, '[') === 0) {
-					// Attempt to decode it as JSON
-					$decoded = json_decode($value, true);
+			// If this is a user sync
+			if ($table_name == $wpdb->prefix . 'idemailwiz_users') {
+				foreach ($item as $field => $value) {
+					// Change blank values to NULL
+					if ($value === '') {
+						$item[$field] = NULL;
+						continue;
+					}
 
-					// If decoding is successful and the result is an array, serialize it
-					if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-						$item[$field] = serialize($decoded);
+					// Change string "[]" to NULL
+					if ($value === '[]') {
+						$item[$field] = NULL;
+						continue;
+					}
+
+					// Check if the value is a string representation of an array
+					if (is_string($value) && strpos($value, '[') === 0) {
+						// Attempt to decode it as JSON
+						$decoded = json_decode($value, true);
+
+						// If decoding is successful and the result is an array, serialize it
+						if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+							$item[$field] = serialize($decoded);
+						}
 					}
 				}
 			}
-		}
 
-		// If this is a template record, we check if there's a wiz builder template with this template ID set as the sync-to
-		if ($table_name == $wpdb->prefix . 'idemailwiz_templates') {
-			$incomingTemplateId = $item['templateId'];
-			$wizDbTemplate = get_idwiz_template($incomingTemplateId);
-			$args = array(
-				'post_type' => 'idemailwiz_template',
-				'meta_key' => 'itTemplateId',
-				'meta_value' => $incomingTemplateId,
-				'posts_per_page' => 1
-			);
+			// If this is a template record, we check if there's a wiz builder template with this template ID set as the sync-to
+			if ($table_name == $wpdb->prefix . 'idemailwiz_templates') {
+				$incomingTemplateId = $item['templateId'] ?? 0;
+				if ($incomingTemplateId) {
+					$wizDbTemplate = get_idwiz_template($incomingTemplateId);
+					$args = array(
+						'post_type' => 'idemailwiz_template',
+						'meta_key' => 'itTemplateId',
+						'meta_value' => $incomingTemplateId,
+						'posts_per_page' => 1
+					);
 
-			$builderTemplates = get_posts($args);
+					$builderTemplates = get_posts($args);
 
-			if ($wizDbTemplate && !empty($builderTemplates)) {
-
-				$sql = $wpdb->prepare(
-					"UPDATE `{$wpdb->prefix}idemailwiz_templates` SET clientTemplateId = %s WHERE templateId = %d",
-					$builderTemplates[0]->ID,
-					$wizDbTemplate['templateId']
-
-				);
-				$wpdb->query($sql);
-			} else {
-				$sql = $wpdb->prepare(
-					"UPDATE `{$wpdb->prefix}idemailwiz_templates` SET clientTemplateId = NULL WHERE templateId = %d",
-					$incomingTemplateId
-				);
-				$wpdb->query($sql);
-			}
-		}
-
-
-
-		//If this is an experiment record, we check if the corrosponding campaign in the campaign table has the experiment ID present. If not, add it.
-		if ($table_name == $wpdb->prefix . 'idemailwiz_experiments') {
-			$experimentId = $item['experimentId'];
-
-			$experimentCampaign = get_idwiz_campaign($item['campaignId']);
-
-			//wiz_log('Found matching campaign: '.$experimentCampaign['id'].' for experiment '.$experimentId);
-
-			// Get the existing experimentIds, if any
-			$existingExperimentIds = $experimentCampaign['experimentIds'];
-			$experimentIdsArray = $existingExperimentIds ? unserialize($existingExperimentIds) : array();
-
-			// Add the new experimentId if it doesn't already exist in the array
-			if (!in_array($experimentId, $experimentIdsArray)) {
-				$experimentIdsArray[] = $experimentId;
-			}
-
-			// Serialize the updated array
-			$serializedExperimentIds = serialize($experimentIdsArray);
-
-			// Using prepare to safely insert values into the query
-			$sql = $wpdb->prepare(
-				"UPDATE `{$wpdb->prefix}idemailwiz_campaigns` SET experimentIds = %s WHERE id = %s",
-
-				$serializedExperimentIds,
-				$item['campaignId']
-			);
-			$wpdb->query($sql);
-		}
-
-
-		// Serialize values that are arrays
-		foreach ($item as $childKey => $childValue) {
-			if (is_array($childValue)) {
-				if (empty($childValue)) {
-					$item[$childKey] = null; // Set to NULL if the array is empty
-				} else {
-					$serialized = serialize($childValue);
-					$item[$childKey] = $serialized;
+					if ($wizDbTemplate && !empty($builderTemplates)) {
+						$sql = $wpdb->prepare(
+							"UPDATE `{$wpdb->prefix}idemailwiz_templates` SET clientTemplateId = %s WHERE templateId = %d",
+							$builderTemplates[0]->ID,
+							$wizDbTemplate['templateId']
+						);
+						$wpdb->query($sql);
+					} else {
+						$sql = $wpdb->prepare(
+							"UPDATE `{$wpdb->prefix}idemailwiz_templates` SET clientTemplateId = NULL WHERE templateId = %d",
+							$incomingTemplateId
+						);
+						$wpdb->query($sql);
+					}
 				}
 			}
-		}
 
-		// Convert key/header to camel case for db compatibility
-		$key = str_replace('.', '_', $key); // Replace periods with underscores
-		$words = explode(' ', $key); // Split the string into words
-		$words = array_map('ucwords', $words); // Capitalize the first letter of each word
-		$camelCaseString = implode('', $words); // Join the words back together
-		$key = lcfirst($camelCaseString); // Make the first letter lowercase and return
+			//If this is an experiment record, we check if the corrosponding campaign in the campaign table has the experiment ID present. If not, add it.
+			if ($table_name == $wpdb->prefix . 'idemailwiz_experiments' && isset($item['experimentId']) && isset($item['campaignId'])) {
+				$experimentId = $item['experimentId'];
+				$experimentCampaign = get_idwiz_campaign($item['campaignId']);
 
-		$fields = implode(",", array_map(function ($field) {
-			return "`" . esc_sql($field) . "`";
-		}, array_keys($item)));
-		$placeholders = implode(",", array_fill(0, count($item), "%s"));
-		$prepared_values = array_values($item);
+				if ($experimentCampaign) {
+					// Get the existing experimentIds, if any
+					$existingExperimentIds = $experimentCampaign['experimentIds'] ?? '';
+					$experimentIdsArray = $existingExperimentIds ? unserialize($existingExperimentIds) : array();
 
-		if ($operation === "insert") {
-			if ($table_name == $wpdb->prefix . 'idemailwiz_users') {
-				// For users table, use INSERT ... ON DUPLICATE KEY UPDATE
-				$updates = implode(", ", array_map(function ($field) {
-					return "`$field` = VALUES(`$field`)";
-				}, array_keys($item)));
-				$sql = "INSERT INTO `{$table_name}` ({$fields}) VALUES ({$placeholders}) ON DUPLICATE KEY UPDATE {$updates}";
-				$prepared_sql = $wpdb->prepare($sql, $prepared_values);
-			} else {
-				// For other tables, use regular INSERT
-				$sql = "INSERT INTO `{$table_name}` ({$fields}) VALUES ({$placeholders})";
-				$prepared_sql = $wpdb->prepare($sql, $prepared_values);
+					// Add the new experimentId if it doesn't already exist in the array
+					if (!in_array($experimentId, $experimentIdsArray)) {
+						$experimentIdsArray[] = $experimentId;
+					}
+
+					// Serialize the updated array
+					$serializedExperimentIds = serialize($experimentIdsArray);
+
+					// Using prepare to safely insert values into the query
+					$sql = $wpdb->prepare(
+						"UPDATE `{$wpdb->prefix}idemailwiz_campaigns` SET experimentIds = %s WHERE id = %d",
+						$serializedExperimentIds,
+						$item['campaignId']
+					);
+					$wpdb->query($sql);
+				}
 			}
-		} elseif ($operation === "update") {
-			$updates = implode(", ", array_map(function ($field) {
-				return "`$field` = %s";
+
+			// Serialize values that are arrays
+			foreach ($item as $childKey => $childValue) {
+				if (is_array($childValue)) {
+					if (empty($childValue)) {
+						$item[$childKey] = null; // Set to NULL if the array is empty
+					} else {
+						$serialized = serialize($childValue);
+						$item[$childKey] = $serialized;
+					}
+				}
+			}
+
+			// Convert key/header to camel case for db compatibility
+			$key = str_replace('.', '_', $key); // Replace periods with underscores
+			$words = explode(' ', $key); // Split the string into words
+			$words = array_map('ucwords', $words); // Capitalize the first letter of each word
+			$camelCaseString = implode('', $words); // Join the words back together
+			$key = lcfirst($camelCaseString); // Make the first letter lowercase and return
+
+			// Ensure item has proper values and id_field exists when needed
+			if (($operation === "update" || $operation === "delete") && !isset($item[$id_field])) {
+				$result['errors'][] = "Failed to perform {$operation}: missing ID field '{$id_field}'";
+				continue;
+			}
+
+			// Prepare field data for SQL query
+			$fields = implode(",", array_map(function ($field) {
+				return "`" . esc_sql($field) . "`";
 			}, array_keys($item)));
-			$sql = "UPDATE `{$table_name}` SET {$updates} WHERE `{$id_field}` = %s";
-			$prepared_sql = $wpdb->prepare($sql, array_merge($prepared_values, [$item[$id_field]]));
-		} elseif ($operation === "delete") {
-			$sql = "DELETE FROM `{$table_name}` WHERE `{$id_field}` = %s";
-			$prepared_sql = $wpdb->prepare($sql, [$item[$id_field]]);
-		}
-
-		// Do the insert/update
-		$query_result = $wpdb->query($prepared_sql);
-
-
-
-
-		// Extracting relevant details for logging
-		$item_name = isset($item[$name_field]) ? $item[$name_field] : ''; // Item name
-		if ($table_name == $wpdb->prefix . 'idemailwiz_metrics') {
-			$item_name = $metricName;
-		}
-		$item_id = $item[$id_field] ?? false; // Item ID
-
-		if ($item_id && $query_result !== false) {
-			if ($query_result > 0) {
-				// Success details
-				$result['success'][] = "Successfully performed {$operation} on '{$item_name}' (ID: {$item_id}).";
-			} else {
-				// Success, but no rows were affected
-				//$result['success'][] = "Skipped '{$item_name}' (ID: {$item_id}); no updates needed.";
+			
+			if (empty($fields)) {
+				$result['errors'][] = "Failed to perform {$operation}: no valid fields found";
+				continue;
 			}
-		} else {
-			// Error details
-			$result['errors'][] = "Failed to perform {$operation} on '{$item_name}' (ID: {$item_id}). Database Error: {$wpdb->last_error}.";
+
+			// Create correct number of placeholders for the values
+			$placeholders = implode(",", array_fill(0, count($item), "%s"));
+			$prepared_values = array_values($item);
+
+			try {
+				if ($operation === "insert") {
+					if ($table_name == $wpdb->prefix . 'idemailwiz_users') {
+						// For users table, use INSERT ... ON DUPLICATE KEY UPDATE
+						$updates = implode(", ", array_map(function ($field) {
+							return "`$field` = VALUES(`$field`)";
+						}, array_keys($item)));
+						$sql = "INSERT INTO `{$table_name}` ({$fields}) VALUES ({$placeholders}) ON DUPLICATE KEY UPDATE {$updates}";
+						try {
+							$prepared_sql = $wpdb->prepare($sql, $prepared_values);
+						} catch (Exception $e) {
+							wiz_log("Error in insert (with update) prepare statement: " . $e->getMessage() . " SQL: " . $sql);
+							$result['errors'][] = "Database prepare error: " . $e->getMessage();
+							continue;
+						}
+					} else {
+						// For other tables, use regular INSERT
+						$sql = "INSERT INTO `{$table_name}` ({$fields}) VALUES ({$placeholders})";
+						try {
+							$prepared_sql = $wpdb->prepare($sql, $prepared_values);
+						} catch (Exception $e) {
+							wiz_log("Error in insert prepare statement: " . $e->getMessage() . " SQL: " . $sql);
+							$result['errors'][] = "Database prepare error: " . $e->getMessage();
+							continue;
+						}
+					}
+				} elseif ($operation === "update") {
+					// Build update query with proper placeholders
+					$update_parts = [];
+					foreach (array_keys($item) as $field) {
+						if ($field !== $id_field) {
+							$update_parts[] = "`$field` = %s";
+						}
+					}
+					
+					// Remove ID field from values for the SET part
+					$update_values = array_values(array_filter($item, function($k) use ($id_field) {
+						return $k !== $id_field;
+					}, ARRAY_FILTER_USE_KEY));
+					
+					// Add ID value at the end for the WHERE clause
+					$update_values[] = $item[$id_field];
+					
+					$updates = implode(", ", $update_parts);
+					$sql = "UPDATE `{$table_name}` SET {$updates} WHERE `{$id_field}` = %s";
+					
+					// Ensure $update_values array length matches placeholder count
+					$placeholders_needed = substr_count($sql, '%s');
+					if (count($update_values) !== $placeholders_needed) {
+						wiz_log("Warning: Placeholder count mismatch in UPDATE query. Need {$placeholders_needed}, have " . count($update_values));
+						// If we don't have enough values, log this as an error and skip
+						if (count($update_values) < $placeholders_needed) {
+							$result['errors'][] = "Failed to perform {$operation}: placeholder count mismatch";
+							continue;
+						}
+						// If we have too many values, truncate the array
+						if (count($update_values) > $placeholders_needed) {
+							$update_values = array_slice($update_values, 0, $placeholders_needed);
+						}
+					}
+					
+					try {
+						$prepared_sql = $wpdb->prepare($sql, $update_values);
+					} catch (Exception $e) {
+						wiz_log("Error in prepare statement: " . $e->getMessage() . " SQL: " . $sql);
+						$result['errors'][] = "Database prepare error: " . $e->getMessage();
+						continue;
+					}
+				} elseif ($operation === "delete") {
+					$sql = "DELETE FROM `{$table_name}` WHERE `{$id_field}` = %s";
+					try {
+						$prepared_sql = $wpdb->prepare($sql, $item[$id_field]);
+					} catch (Exception $e) {
+						wiz_log("Error in delete prepare statement: " . $e->getMessage() . " SQL: " . $sql);
+						$result['errors'][] = "Database prepare error: " . $e->getMessage();
+						continue;
+					}
+				}
+
+				// Do the insert/update
+				$query_result = $wpdb->query($prepared_sql);
+
+				// Extracting relevant details for logging
+				$item_name = isset($item[$name_field]) ? $item[$name_field] : ''; // Item name
+				if ($table_name == $wpdb->prefix . 'idemailwiz_metrics') {
+					$item_name = $metricName ?? '';
+				}
+				$item_id = $item[$id_field] ?? 'unknown'; // Item ID
+
+				if ($query_result !== false) {
+					if ($query_result > 0) {
+						// Success details
+						$result['success'][] = "Successfully performed {$operation} on '{$item_name}' (ID: {$item_id}).";
+					} else {
+						// Success, but no rows were affected
+						//$result['success'][] = "Skipped '{$item_name}' (ID: {$item_id}); no updates needed.";
+					}
+				} else {
+					// Error details
+					$result['errors'][] = "Failed to perform {$operation} on '{$item_name}' (ID: {$item_id}). Database Error: {$wpdb->last_error}.";
+				}
+			} catch (Exception $e) {
+				$result['errors'][] = "Exception during {$operation}: " . $e->getMessage();
+				wiz_log("Exception during database {$operation}: " . $e->getMessage());
+			}
+		}
+		
+		// Add a small pause between batches to prevent server overload
+		if ($table_name == $wpdb->prefix . 'idemailwiz_templates') {
+			usleep(100000); // 100ms pause between template batches
 		}
 	}
 
@@ -267,24 +390,29 @@ function idemailwiz_fetch_templates($campaignIds = null)
 
 	if ($campaignIds) {
 		$templateIds = array_column(get_idwiz_templates(['campaignIds' => $campaignIds, 'fields' => 'templateId']), 'templateId');
+		wiz_log("Fetching " . count($templateIds) . " templates for specific campaigns.");
 	} else {
-
-		// Initialize URLs for fetching templates of different types and mediums
-
 		// Get a formatted end date of tomorrow
-		//$endDate = date('Y-m-d', strtotime('+1 day'));
 		$endDate = new DateTime();
 		$endDate->modify('+1 day');
 		$endDate = $endDate->format('Y-m-d');
+		
+		// Define start date to limit template fetch (last 90 days is a reasonable window)
+		$startDate = new DateTime();
+		$startDate->modify('-90 days');
+		$startDate = $startDate->format('Y-m-d');
+		
 		$templateAPIurls = [
-			'blastEmails' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=Email&endDateTime=' . $endDate,
-			'triggeredEmails' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=Email&endDateTime=' . $endDate,
-			'workflowEmails' => 'https://api.iterable.com/api/templates?templateType=Workflow&messageMedium=Email&endDateTime=' . $endDate,
-			'blastSMS' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=SMS&endDateTime=' . $endDate,
-			'triggeredSMS' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=SMS&endDateTime=' . $endDate,
+			'blastEmails' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=Email&startDateTime=' . $startDate . '&endDateTime=' . $endDate,
+			'triggeredEmails' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=Email&startDateTime=' . $startDate . '&endDateTime=' . $endDate,
+			'workflowEmails' => 'https://api.iterable.com/api/templates?templateType=Workflow&messageMedium=Email&startDateTime=' . $startDate . '&endDateTime=' . $endDate,
+			'blastSMS' => 'https://api.iterable.com/api/templates?templateType=Blast&messageMedium=SMS&startDateTime=' . $startDate . '&endDateTime=' . $endDate,
+			'triggeredSMS' => 'https://api.iterable.com/api/templates?templateType=Triggered&messageMedium=SMS&startDateTime=' . $startDate . '&endDateTime=' . $endDate,
 		];
 
-		// Fetch templates from all four endpoints
+		$templateIds = [];
+		
+		// Fetch templates from all endpoints
 		foreach ($templateAPIurls as $typeKey => $url) {
 			try {
 				$response = idemailwiz_iterable_curl_call($url);
@@ -302,41 +430,54 @@ function idemailwiz_fetch_templates($campaignIds = null)
 				wiz_log("Error during initial API call: " . $e->getMessage());
 			}
 		}
+		
+		wiz_log("Fetched " . count($templateIds) . " templates from API.");
 	}
 
-	// Fetch the detailed templates for all fetched templates
-	$urlsToFetch = [];
-	foreach ($templateIds as $templateId) {
+	// Process templates in larger batches to prevent timeout while maintaining performance
+	$batchSize = 200; // Increased from 100
+	$templateIdBatches = array_chunk($templateIds, $batchSize);
+	
+	wiz_log("Processing templates in " . count($templateIdBatches) . " batches of " . $batchSize);
+	
+	foreach ($templateIdBatches as $batchIndex => $templateIdBatch) {
+		// Fetch the detailed templates for this batch
+		$urlsToFetch = [];
+		foreach ($templateIdBatch as $templateId) {
+			// Try email endpoint first, and if it fails, fall back to SMS
+			$emailEndpoint = "https://api.iterable.com/api/templates/email/get?templateId=$templateId";
+			$smsEndpoint = "https://api.iterable.com/api/templates/sms/get?templateId=$templateId";
 
-		//error_log($templateId);
-
-		// Try email endpoint first, and if it fails, fall back to SMS
-		$emailEndpoint = "https://api.iterable.com/api/templates/email/get?templateId=$templateId";
-		$smsEndpoint = "https://api.iterable.com/api/templates/sms/get?templateId=$templateId";
-
-		$urlsToFetch[] = $emailEndpoint;
-		$urlsToFetch[] = $smsEndpoint;
-	}
-
-	try {
-		$multiResponses = idemailwiz_iterable_curl_multi_call($urlsToFetch);
-		$fetchedTemplates = [];
-
-		foreach ($multiResponses as $response) {
-			if ($response['httpCode'] == 200) {
-				$fetchedTemplate = idemailwiz_simplify_templates_array($response['response']);
-				$fetchedTemplates[] = $fetchedTemplate;
-			}
+			$urlsToFetch[] = $emailEndpoint;
+			$urlsToFetch[] = $smsEndpoint;
 		}
 
-		// Replace the original templates with the fetched ones
-		$allTemplates = $fetchedTemplates;
+		try {
+			$multiResponses = idemailwiz_iterable_curl_multi_call($urlsToFetch);
+			$fetchedTemplates = [];
 
-		usleep(10000);
-	} catch (Exception $e) {
-		wiz_log("Error during multi cURL request: " . $e->getMessage());
+			foreach ($multiResponses as $response) {
+				if ($response['httpCode'] == 200) {
+					$fetchedTemplate = idemailwiz_simplify_templates_array($response['response']);
+					if (!empty($fetchedTemplate)) {
+						$allTemplates[] = $fetchedTemplate;
+						$fetchedTemplates[] = $fetchedTemplate;
+					}
+				}
+			}
+
+			wiz_log("Processed batch " . ($batchIndex + 1) . " of " . count($templateIdBatches) . " with " . count($fetchedTemplates) . " templates");
+			
+			// Add a reasonable pause between batches to prevent API rate limiting, but not too long
+			if (count($templateIdBatches) > 1) {
+				usleep(25000); // 25ms pause (reduced from 50ms)
+			}
+		} catch (Exception $e) {
+			wiz_log("Error during multi cURL request: " . $e->getMessage());
+		}
 	}
 
+	wiz_log("Total templates processed: " . count($allTemplates));
 	return $allTemplates;
 }
 
@@ -1023,13 +1164,12 @@ function sync_user_feed_batch($studentRecords) {
 function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDate = null)
 {
 	date_default_timezone_set('UTC'); // Set timezone to UTC to match Iterable
-
+	wiz_log("Fetching purchases from Iterable API...");
 
 	// Define the base URL
 	$baseUrl = 'https://api.iterable.com/api/export/data.csv';
 
 	// Define the fields to be omitted
-
 	$omitFields = [
 		'shoppingCartItems.orderDetailId',
 		'shoppingCartItems.parentOrderDetailId',
@@ -1057,7 +1197,6 @@ function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDa
 		'delimiter' => ',',
 	];
 
-
 	// Define the start and end date time for the API call
 	$startDateTime = $startDate ?? date('Y-m-d', strtotime('-3 days'));
 	$endDateTime = $endDate ?? date('Y-m-d', strtotime('+1 day'));
@@ -1069,24 +1208,29 @@ function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDa
 			$queryParams['campaignId'] = $campaignIds[0];
 			$wizCampaign = get_idwiz_campaign($campaignIds[0]);
 
-			$startDateTime = date('Y-m-d', $wizCampaign['startAt'] / 1000);
+			if ($wizCampaign && isset($wizCampaign['startAt'])) {
+				$startDateTime = date('Y-m-d', (int)($wizCampaign['startAt'] / 1000));
+			}
 		} else {
 			// If multiple campaign IDs, find the earliest date
 			// Iterable only allows one campaign ID per call to the export API, and only max of 4 per minute, so we estimate the earliest and latest dates and use those
 			$wizCampaigns = get_idwiz_campaigns(['campaignIds' => $campaignIds]);
-			$earliestDate = min(array_column($wizCampaigns, 'startAt'));
-			$latestDate = max(array_column($wizCampaigns, 'startAt'));
+			
+			if (!empty($wizCampaigns)) {
+				$earliestDate = min(array_column($wizCampaigns, 'startAt'));
+				$latestDate = max(array_column($wizCampaigns, 'startAt'));
 
-			$startDateTime = date('Y-m-d', ($earliestDate / 1000) - 86400); // one day before campaign start date
-			$endDateTime = date('Y-m-d', ($latestDate / 1000) + MONTH_IN_SECONDS); // one month after last campaign start date
-
+				$startDateTime = date('Y-m-d', (int)(($earliestDate / 1000) - 86400)); // one day before campaign start date
+				$endDateTime = date('Y-m-d', (int)(($latestDate / 1000) + MONTH_IN_SECONDS)); // one month after last campaign start date
+			}
 		}
 	}
-
 
 	// Add the start and end datetime to the query parameters
 	$queryParams['startDateTime'] = $startDateTime;
 	$queryParams['endDateTime'] = $endDateTime;
+	
+	wiz_log("Purchase API date range: " . $startDateTime . " to " . $endDateTime);
 
 	// Build the base query string
 	$queryString = http_build_query($queryParams);
@@ -1101,21 +1245,21 @@ function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDa
 
 	try {
 		$response = idemailwiz_iterable_curl_call($url);
+		
+		if (!isset($response['response']) || empty($response['response'])) {
+			wiz_log("Error: Empty response from Iterable API for purchases");
+			return [];
+		}
+		
+		if (isset($response['http_code']) && $response['http_code'] != 200) {
+			wiz_log("Error: API returned HTTP code " . $response['http_code'] . " for purchases");
+			return [];
+		}
 	} catch (Throwable $e) {  // Catching Throwable to handle both Error and Exception
 		// Log the error with more details
-		wiz_log("Error encountered for fetch purchases curl call to : " . $url . " - " . $e->getMessage());
-
-
-		// Specific check for the "CONSECUTIVE_400_ERRORS" message
-		if ($e->getMessage() === "CONSECUTIVE_400_ERRORS") {
-			// Specific action for this type of error
-			wiz_log("More than 5 consecutive 400 errors encountered. Skipping...");
-		}
-
-		// Optionally, you can rethrow the exception or handle it differently
-		// throw $e;
+		wiz_log("Error encountered for fetch purchases curl call: " . $e->getMessage());
+		return [];
 	}
-
 
 	// Prepare the omit fields to match the processed headers format (safeguard)
 	$omitFields[] = 'shoppingCartItems'; //Add the main shoppingCartItems column to be omitted.
@@ -1131,11 +1275,15 @@ function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDa
 	if (($handle = fopen("php://temp", "r+")) !== FALSE) {
 		// Write the CSV content to the stream and rewind the pointer
 		fwrite($handle, $response['response']);
-		//error_log(print_r($response['response'], true));
 		rewind($handle);
 
 		// Parse the header line into headers
 		$headers = fgetcsv($handle);
+		
+		if (!$headers) {
+			wiz_log("Error: Could not parse CSV headers from API response");
+			return [];
+		}
 
 		// Prepare the headers
 		$processedHeaders = array_map(function ($header) {
@@ -1146,10 +1294,6 @@ function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDa
 		// Iterate over each line of the file
 		while (($values = fgetcsv($handle)) !== FALSE) {
 			$purchaseData = []; // Initialize as empty array
-
-			// Temporary variables to store campaignId and utmMedium values
-			$tempCampaignId = '';
-			$tempUtmMedium = '';
 
 			// Only process lines with the correct number of columns
 			if (count($values) === count($processedHeaders)) {
@@ -1163,26 +1307,11 @@ function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDa
 
 					// Clean the value
 					$cleanValue = str_replace(['[', ']', '"'], '', $value);
-
-					// Store campaignId and utmMedium values temporarily
-					// if ( $header === 'campaignid' ) {
-					// 	$tempCampaignId = $cleanValue;
-					// } elseif ( $header === 'shoppingcartitems_utmmedium' ) {
-					// 	$tempUtmMedium = $cleanValue;
-					// }
-
+					
 					// Add to the purchase data
 					$purchaseData[$header] = $cleanValue;
 				}
 			}
-
-			// Check if the purchase should be added based on campaignId and utmMedium
-			// if ( ! empty( $tempCampaignId ) || strpos( strtolower( $tempUtmMedium ), 'email' ) !== false ) {
-			// 	// If there's data to add, append it to all purchases
-			// 	if ( ! empty( $purchaseData ) ) {
-			// 		$allPurchases[] = $purchaseData;
-			// 	}
-			// }
 
 			if (!empty($purchaseData)) {
 				$allPurchases[] = $purchaseData;
@@ -1191,6 +1320,10 @@ function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDa
 
 		// Close the file handle
 		fclose($handle);
+		
+		wiz_log("Processed " . count($allPurchases) . " purchases from API");
+	} else {
+		wiz_log("Error: Could not open temporary file handle for CSV processing");
 	}
 
 	// Return the data array
@@ -1202,8 +1335,15 @@ function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDa
 
 function idemailwiz_sync_campaigns($passedCampaigns = null)
 {
-	// If no campaigns are passed, fetch them from Iterable
+	wiz_log("Starting campaign sync process...");
+
+	// Fetch campaigns from the API
 	$campaigns = idemailwiz_fetch_campaigns($passedCampaigns);
+
+	if (empty($campaigns) || is_string($campaigns)) {
+		wiz_log("No campaigns found to sync or error occurred: " . (is_string($campaigns) ? $campaigns : "Empty result"));
+		return "No campaigns found to sync or error occurred.";
+	}
 
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'idemailwiz_campaigns';
@@ -1213,70 +1353,133 @@ function idemailwiz_sync_campaigns($passedCampaigns = null)
 	$records_to_insert = [];
 	$records_to_delete = [];
 
-	foreach ($campaigns as $campaign) {
-		if (!isset($campaign['id'])) {
-			wiz_log('No ID found in the fetched campaign record!');
-			continue;
-		}
-
-		if ($campaign['campaignState'] == 'Aborted') {
-			//Skip aborted campaigns
-			continue;
-		}
-
-
-
-		// Get the latest startAt value from our DB for triggered campaigns
-		if ($campaign['type'] == 'Triggered') {
-			$latestStartAt = get_latest_triggered_startAt($campaign['id']);
-			if ($latestStartAt !== null) {
-				$campaign['startAt'] = $latestStartAt;
-			}
-		}
-
-		// Check for an existing campaign in the database
-		$wizCampaign = get_idwiz_campaign($campaign['id']);
-
-		if ($wizCampaign) {
-
-			// If campaigns are passed, update them all
-			if ($passedCampaigns) {
-				// Check for the x_Archived label in the labels array and, if present, delete the campaign
-				if (isset($campaign['labels']) && in_array('x_Archived', $campaign['labels'])) {
-					$records_to_delete[] = $campaign;
-					continue;
-				} else {
-					$records_to_update[] = $campaign;
-					continue;
-				}
-			}
-
-			if (isset($campaign['labels']) && in_array('x_Archived', $campaign['labels'])) {
-				$records_to_delete[] = $campaign;
+	try {
+		// First, filter out campaigns we want to skip
+		$filtered_campaigns = [];
+		foreach ($campaigns as $campaign) {
+			if (!isset($campaign['id'])) {
+				wiz_log('No ID found in the fetched campaign record!');
 				continue;
 			}
-
-			// Perform deep comparison to decide if update is needed
-			$fieldsDifferent = false;
-			foreach ($campaign as $key => $value) {
-				if (!isset($wizCampaign[$key]) || $wizCampaign[$key] != $value) {
-					$fieldsDifferent = true;
-					break;
+			
+			if (isset($campaign['campaignState']) && $campaign['campaignState'] == 'Aborted') {
+				// Skip aborted campaigns
+				continue;
+			}
+			
+			// Get the latest startAt value from our DB for triggered campaigns
+			if (isset($campaign['type']) && $campaign['type'] == 'Triggered') {
+				$latestStartAt = get_latest_triggered_startAt($campaign['id']);
+				if ($latestStartAt !== null) {
+					$campaign['startAt'] = $latestStartAt;
 				}
 			}
-
-			// Update the row if any field is different
-			if ($fieldsDifferent) {
-				$records_to_update[] = $campaign;
-			}
-		} else {
-			// Campaign not in DB, add it
-			$records_to_insert[] = $campaign;
+			
+			$filtered_campaigns[] = $campaign;
 		}
-	}
+		
+		$campaigns = $filtered_campaigns;
+		wiz_log("After filtering, processing " . count($campaigns) . " campaigns");
+		
+		// If we have no campaigns after filtering, return early
+		if (empty($campaigns)) {
+			return "No valid campaigns found to sync after filtering.";
+		}
 
-	// Process the insert/update and log the result
-	return idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update, $records_to_delete);
+		// Get all campaign IDs in one query for efficiency
+		$campaign_ids = array_column($campaigns, 'id');
+		
+		// Get all existing campaign records
+		try {
+			$placeholders = implode(',', array_fill(0, count($campaign_ids), '%d'));
+			$existing_campaigns_query = $wpdb->prepare("SELECT * FROM $table_name WHERE id IN ($placeholders)", $campaign_ids);
+			$existing_campaigns = $wpdb->get_results($existing_campaigns_query, ARRAY_A);
+			
+			if ($wpdb->last_error) {
+				throw new Exception("Database error fetching existing campaigns: " . $wpdb->last_error);
+			}
+			
+			// Create a lookup array for faster checking
+			$existing_campaign_lookup = [];
+			foreach ($existing_campaigns as $existing_campaign) {
+				$existing_campaign_lookup[$existing_campaign['id']] = $existing_campaign;
+			}
+		} catch (Exception $e) {
+			wiz_log("Error fetching existing campaigns: " . $e->getMessage());
+			return "Error fetching existing campaigns: " . $e->getMessage();
+		}
+
+		// Process campaigns in batches
+		$batch_size = 500;
+		$campaign_batches = array_chunk($campaigns, $batch_size);
+		
+		wiz_log("Processing campaigns in " . count($campaign_batches) . " batches of " . $batch_size);
+		
+		foreach ($campaign_batches as $batch_index => $campaign_batch) {
+			$batch_to_update = [];
+			$batch_to_insert = [];
+			$batch_to_delete = [];
+			
+			foreach ($campaign_batch as $campaign) {
+				// Check for archived campaigns and mark for deletion if needed
+				if (isset($campaign['labels']) && is_array($campaign['labels']) && in_array('x_Archived', $campaign['labels'])) {
+					$batch_to_delete[] = $campaign;
+					continue;
+				}
+				
+				// Check if campaign already exists using the lookup array
+				if (isset($existing_campaign_lookup[$campaign['id']])) {
+					// Perform deep comparison to decide if update is needed
+					$wizCampaign = $existing_campaign_lookup[$campaign['id']];
+					$fieldsDifferent = false;
+					
+					if ($passedCampaigns) {
+						// If campaigns are passed, update them all
+						$batch_to_update[] = $campaign;
+					} else {
+						// Otherwise, check if fields are different
+						foreach ($campaign as $key => $value) {
+							if (!isset($wizCampaign[$key]) || $wizCampaign[$key] != $value) {
+								$fieldsDifferent = true;
+								break;
+							}
+						}
+						
+						// Update the row if any field is different
+						if ($fieldsDifferent) {
+							$batch_to_update[] = $campaign;
+						}
+					}
+				} else {
+					// Campaign not in DB, add it
+					$batch_to_insert[] = $campaign;
+				}
+			}
+			
+			wiz_log("Batch " . ($batch_index + 1) . ": Processing " . count($batch_to_update) . " updates, " . count($batch_to_insert) . " inserts, and " . count($batch_to_delete) . " deletes");
+			
+			// Process this batch and add results to the main arrays
+			if (!empty($batch_to_insert)) {
+				$records_to_insert = array_merge($records_to_insert, $batch_to_insert);
+			}
+			
+			if (!empty($batch_to_update)) {
+				$records_to_update = array_merge($records_to_update, $batch_to_update);
+			}
+			
+			if (!empty($batch_to_delete)) {
+				$records_to_delete = array_merge($records_to_delete, $batch_to_delete);
+			}
+		}
+		
+		wiz_log("Campaigns to process: Total " . count($campaigns) . " (Insert: " . count($records_to_insert) . ", Update: " . count($records_to_update) . ", Delete: " . count($records_to_delete) . ")");
+
+		// Process the insert/update and log the result
+		return idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update, $records_to_delete);
+	} catch (Exception $e) {
+		wiz_log("Error in campaign sync process: " . $e->getMessage());
+		return "Error in campaign sync process: " . $e->getMessage();
+	}
 }
 
 
@@ -1285,10 +1488,16 @@ function idemailwiz_sync_campaigns($passedCampaigns = null)
 
 function idemailwiz_sync_templates($passedCampaigns = null)
 {
+	wiz_log("Starting template sync process...");
+	
 	// Fetch relevant templates
 	// Note: The fetch function filters by updatedAt differences to limit results
 	$templates = idemailwiz_fetch_templates($passedCampaigns);
 
+	if (empty($templates)) {
+		wiz_log("No templates found to sync");
+		return "No templates found to sync.";
+	}
 
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'idemailwiz_templates';
@@ -1297,22 +1506,38 @@ function idemailwiz_sync_templates($passedCampaigns = null)
 	$records_to_update = [];
 	$records_to_insert = [];
 
+	// Get all template IDs in one query for efficiency
+	$template_ids = array_column($templates, 'templateId');
+	
+	// Fix for empty array check
+	if (empty($template_ids)) {
+		wiz_log("No template IDs found in fetched templates");
+		return "No template IDs found in fetched templates.";
+	}
+	
+	// Get all existing template IDs
+	$placeholders = implode(',', array_fill(0, count($template_ids), '%d'));
+	$existing_templates_query = $wpdb->prepare("SELECT templateId FROM $table_name WHERE templateId IN ($placeholders)", $template_ids);
+	$existing_template_ids = $wpdb->get_col($existing_templates_query);
+	
+	// Create a lookup array for faster checking
+	$existing_template_lookup = array_flip($existing_template_ids);
+
 	foreach ($templates as $template) {
 		if (!isset($template['templateId'])) {
 			wiz_log('No templateId found in the fetched template record!');
 			continue;
 		}
-		// See if the template exists in our database yet
-		$wizTemplate = get_idwiz_template($template['templateId']);
-
-		if ($wizTemplate) {
-			// Template exists, we'll update it
+		
+		// Check if template already exists using the lookup array
+		if (isset($existing_template_lookup[$template['templateId']])) {
 			$records_to_update[] = $template;
 		} else {
-			// Template not in the database, we'll add it
 			$records_to_insert[] = $template;
 		}
 	}
+	
+	wiz_log("Templates to process: " . count($templates) . " (Insert: " . count($records_to_insert) . ", Update: " . count($records_to_update) . ")");
 
 	// Process and log the sync operation
 	return idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update);
@@ -1324,38 +1549,72 @@ function idemailwiz_sync_templates($passedCampaigns = null)
 
 function idemailwiz_sync_purchases($campaignIds = null, $startDate = null, $endDate = null)
 {
-	$purchases = idemailwiz_fetch_purchases($campaignIds, $startDate, $endDate);
-
-	global $wpdb;
-	$purchases_table = $wpdb->prefix . 'idemailwiz_purchases';
-
-	$records_to_insert = [];
-	$records_to_update = [];
-
-	foreach ($purchases as $purchase) {
-		if (!isset($purchase['id'])) {
-			wiz_log('No ID found in the fetched purchase record!');
-			continue;
+	wiz_log("Starting purchase sync process...");
+	
+	try {
+		$purchases = idemailwiz_fetch_purchases($campaignIds, $startDate, $endDate);
+		
+		if (empty($purchases)) {
+			wiz_log("No purchases found to sync");
+			return "No purchases found to sync.";
 		}
 
-		// Fetch the campaign's startAt if campaignId is set
-		// if (isset($purchase['campaignId'])) {
-		// 	$campaignStartAt = $wpdb->get_var($wpdb->prepare("SELECT startAt FROM $campaigns_table WHERE id = %d", $purchase['campaignId']));
-		// 	if ($campaignStartAt) {
-		// 		$purchase['campaignStartAt'] = $campaignStartAt;
-		// 	}
-		// }
+		// Log the first purchase as a sample of the raw data
+		if (!empty($purchases[0])) {
+			wiz_log("Sample of raw purchase data: " . print_r($purchases[0], true));
+		}
 
-		$wizPurchase = $wpdb->get_var($wpdb->prepare("SELECT id FROM $purchases_table WHERE id = %s", $purchase['id']));
+		global $wpdb;
+		$purchases_table = $wpdb->prefix . 'idemailwiz_purchases';
 
-		if (!$wizPurchase) {
-			$records_to_insert[] = $purchase;
+		$records_to_insert = [];
+		$records_to_update = [];
+		
+		// Get all existing purchase IDs in one query for efficiency
+		$purchase_ids = array_column($purchases, 'id');
+		
+		// Fix for wpdb::prepare error - handle empty arrays and properly prepare the query
+		if (empty($purchase_ids)) {
+			$existing_purchase_ids = [];
 		} else {
-			$records_to_update[] = $purchase;
+			$placeholders = implode(',', array_fill(0, count($purchase_ids), '%s'));
+			$existing_purchases_query = $wpdb->prepare("SELECT id FROM $purchases_table WHERE id IN ($placeholders)", $purchase_ids);
+			$existing_purchase_ids = $wpdb->get_col($existing_purchases_query);
 		}
-	}
+		
+		// Create a lookup array for faster checking
+		$existing_purchase_lookup = array_flip($existing_purchase_ids);
 
-	return idemailwiz_process_and_log_sync($purchases_table, $records_to_insert, $records_to_update);
+		foreach ($purchases as $purchase) {
+			if (!isset($purchase['id'])) {
+				wiz_log('No ID found in the fetched purchase record!');
+				continue;
+			}
+
+			// Fetch the campaign's startAt if campaignId is set
+			if (isset($purchase['campaignid']) && !empty($purchase['campaignid'])) {
+				$campaigns_table = $wpdb->prefix . 'idemailwiz_campaigns';
+				$campaignStartAt = $wpdb->get_var($wpdb->prepare("SELECT startAt FROM $campaigns_table WHERE id = %d", $purchase['campaignid']));
+				if ($campaignStartAt) {
+					$purchase['campaignstartat'] = $campaignStartAt;
+				}
+			}
+
+			// Check if purchase already exists using the lookup array
+			if (isset($existing_purchase_lookup[$purchase['id']])) {
+				$records_to_update[] = $purchase;
+			} else {
+				$records_to_insert[] = $purchase;
+			}
+		}
+		
+		wiz_log("Purchases to process: " . count($purchases) . " (Insert: " . count($records_to_insert) . ", Update: " . count($records_to_update) . ")");
+		
+		return idemailwiz_process_and_log_sync($purchases_table, $records_to_insert, $records_to_update);
+	} catch (Exception $e) {
+		wiz_log("Error in purchase sync: " . $e->getMessage());
+		return "Error in purchase sync: " . $e->getMessage();
+	}
 }
 
 
@@ -1725,22 +1984,36 @@ function idemailwiz_sync_non_triggered_metrics($campaignIds = [], $sync_dbs = nu
 	$response = [];
 
 	set_transient('idemailwiz_blast_sync_in_progress', true, (5 * MINUTE_IN_SECONDS));
+	wiz_log("Starting metrics sync process...");
 
 	$sync_dbs = $sync_dbs ?? ['campaigns', 'templates', 'metrics', 'purchases', 'experiments'];
+	
 	foreach ($sync_dbs as $db) {
+		wiz_log("Syncing " . $db . "...");
 		if (!empty($campaignIds)) {
 			$syncArgs = $campaignIds;
 		}
+		
 		$function_name = 'idemailwiz_sync_' . $db;
 		if (!function_exists($function_name)) {
-			return ['error' => 'Sync function does not exist for ' . $db];
+			wiz_log("Error: Sync function does not exist for " . $db);
+			$response[$db] = ['error' => 'Sync function does not exist for ' . $db];
+			continue;
 		}
-		$result = call_user_func($function_name, $syncArgs);
-
-		if ($result === false) {
-			return ['error' => 'Sync failed for ' . $db];
+		
+		try {
+			$result = call_user_func($function_name, $syncArgs);
+			
+			if ($result === false) {
+				wiz_log("Error: Sync failed for " . $db);
+				$response[$db] = ['error' => 'Sync failed for ' . $db];
+			} else {
+				$response[$db] = $result;
+			}
+		} catch (Exception $e) {
+			wiz_log("Exception during " . $db . " sync: " . $e->getMessage());
+			$response[$db] = ['error' => 'Exception during sync: ' . $e->getMessage()];
 		}
-		$response[$db] = $result;
 	}
 
 	// Do our general database cleanups
@@ -1748,6 +2021,7 @@ function idemailwiz_sync_non_triggered_metrics($campaignIds = [], $sync_dbs = nu
 	do_database_cleanups($campaignIds);
 
 	delete_transient('idemailwiz_blast_sync_in_progress');
+	wiz_log("Completed metrics sync process");
 
 	return $response;
 }
@@ -2333,13 +2607,17 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 				$msTimestamp = (int) ($createdAt->format('U.u') * 1000);
 
 				// Prepare data for insertion
-				$batchInsertData[] = $wpdb->prepare("(%s, %s, %d, %d, %d)", [
-					$record['messageId'],
-					$record['userId'] ?? null,
-					$record['campaignId'] ?? null,
-					$record['templateId'] ?? null,
-					$msTimestamp,
-				]);
+				$query_args = array_merge(
+					["(%s, %s, %d, %d, %d)"],
+					[
+						$record['messageId'],
+						$record['userId'] ?? null,
+						$record['campaignId'] ?? null,
+						$record['templateId'] ?? null,
+						$msTimestamp,
+					]
+				);
+				$batchInsertData[] = call_user_func_array([$wpdb, 'prepare'], $query_args);
 			}
 		} else {
 			wiz_log("Downloaded file is empty for job $jobId.");

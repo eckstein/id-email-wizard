@@ -5,6 +5,26 @@ jQuery(document).ready(function ($) {
     console.log('Test user select exists:', $('.test-user-select').length);
     console.log('Test user select HTML:', $('.test-user-select').parent().html());
     
+    // Add cache object at the top
+    const userDataCache = {
+        data: {},
+        timeout: 5 * 60 * 1000, // 5 minutes cache timeout
+        timestamps: {}
+    };
+
+    // Debounce function
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
     // Add endpoint modal
     $('.add-endpoint').on('click', function() {
         Swal.fire({
@@ -82,7 +102,7 @@ jQuery(document).ready(function ($) {
             if (result.isConfirmed) {
                 // AJAX call to create endpoint
                 $.ajax({
-                    url: idAjax.ajaxurl,
+                    url: idAjax_wiz_endpoints.ajaxurl,
                     type: 'POST',
                     data: {
                         action: 'idwiz_create_endpoint',
@@ -90,7 +110,7 @@ jQuery(document).ready(function ($) {
                         name: result.value.name,
                         description: result.value.description,
                         config: JSON.stringify(result.value.config),
-                        security: idAjax.wizAjaxNonce
+                        security: idAjax_wiz_endpoints.nonce
                     },
                     success: function(response) {
                         if (response.success) {
@@ -143,12 +163,12 @@ jQuery(document).ready(function ($) {
         }).then((result) => {
             if (result.isConfirmed) {
                 $.ajax({
-                    url: idAjax.ajaxurl,
+                    url: idAjax_wiz_endpoints.ajaxurl,
                     type: 'POST',
                     data: {
                         action: 'idwiz_remove_endpoint',
                         endpoint: endpoint,
-                        security: idAjax.wizAjaxNonce
+                        security: idAjax_wiz_endpoints.nonce
                     },
                     success: function(response) {
                         if (response.success) {
@@ -294,17 +314,88 @@ jQuery(document).ready(function ($) {
         $(this).closest('.data-mapping-item').remove();
     });
 
+    // Function to generate preset options HTML
+    function generatePresetOptionsHtml(presets) {
+        let html = '<option value="">Select Preset</option>';
+        let currentGroup = null;
+        
+        // Sort presets by group then name
+        const sortedPresets = Object.entries(presets).sort((a, b) => {
+            const groupCompare = (a[1].group || '').localeCompare(b[1].group || '');
+            if (groupCompare !== 0) return groupCompare;
+            return a[1].name.localeCompare(b[1].name);
+        });
+        
+        for (const [value, preset] of sortedPresets) {
+            if (preset.group !== currentGroup) {
+                if (currentGroup !== null) {
+                    html += '</optgroup>';
+                }
+                if (preset.group) {
+                    html += `<optgroup label="${preset.group}">`;
+                }
+                currentGroup = preset.group;
+            }
+            html += `<option value="${value}">${preset.name}</option>`;
+        }
+        
+        if (currentGroup !== null) {
+            html += '</optgroup>';
+        }
+        
+        return html;
+    }
+
+    // Cache for presets
+    let presetsCache = null;
+
+    // Function to load presets
+    function loadPresets() {
+        return new Promise((resolve, reject) => {
+            if (presetsCache) {
+                resolve(presetsCache);
+                return;
+            }
+
+            $.ajax({
+                url: idAjax_wiz_endpoints.ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'idwiz_get_available_presets',
+                    security: idAjax_wiz_endpoints.nonce
+                },
+                success: function(response) {
+                    if (response.success) {
+                        presetsCache = response.data;
+                        resolve(presetsCache);
+                    } else {
+                        reject('Failed to load presets');
+                    }
+                },
+                error: function() {
+                    reject('Error loading presets');
+                }
+            });
+        });
+    }
+
     $(document).on('change', '.mapping-type', function() {
         const valueContainer = $(this).next();
-        if (this.value === 'static') {
+        const type = $(this).val();
+        if (type === 'static') {
             valueContainer.replaceWith('<input type="text" class="mapping-value wiz-input" placeholder="Value">');
         } else {
-            valueContainer.replaceWith(`
-                <select class="mapping-preset wiz-select">
-                    <option value="">Select Preset</option>
-                    <option value="most_recent_purchase">Most Recent Purchase Date</option>
-                </select>
-            `);
+            const loadingSelect = $('<select class="mapping-preset wiz-select"><option>Loading presets...</option></select>');
+            valueContainer.replaceWith(loadingSelect);
+            
+            loadPresets()
+                .then(presets => {
+                    loadingSelect.html(generatePresetOptionsHtml(presets));
+                })
+                .catch(error => {
+                    console.error('Error loading presets:', error);
+                    loadingSelect.html('<option value="">Error loading presets</option>');
+                });
         }
     });
 
@@ -318,38 +409,28 @@ jQuery(document).ready(function ($) {
         $(this).text($(this).text() === 'Enter Student Account Number manually' ? 'Select from dropdown' : 'Enter Student Account Number manually');
     });
 
-    // Handle user selection change
-    $(document).on('change', '.test-user-select', function() {
-        console.log('User selected from dropdown');
-        const accountNumber = $(this).val();
-        console.log('Account number:', accountNumber);
-        if (accountNumber) {
-            // Also update the manual input field to keep them in sync
-            $('.manual-user-id').val(accountNumber);
-            loadUserDataAndUpdatePreview(accountNumber);
-        }
-    });
-
-    // Handle manual student account number load
-    $(document).on('click', '.load-user-data', function() {
-        console.log('Manual load clicked');
-        const accountNumber = $('.manual-user-id').val();
-        console.log('Manual account number:', accountNumber);
-        if (accountNumber) {
-            // Also update the dropdown to keep them in sync
-            $('.test-user-select').val(accountNumber);
-            loadUserDataAndUpdatePreview(accountNumber);
-        }
-    });
-
     // Handle refresh preview button
-    $(document).on('click', '.refresh-preview', function() {
-        console.log('Refresh clicked');
+    $(document).on('click', '.refresh-preview', function(e) {
+        e.preventDefault();
+        console.log('Refresh preview clicked');
+        
+        // Get the current account number
         const accountNumber = $('.test-user-select').val() || $('.manual-user-id').val();
-        console.log('Refresh account number:', accountNumber);
-        if (accountNumber) {
-            loadUserDataAndUpdatePreview(accountNumber);
+        
+        if (!accountNumber) {
+            alert('Please select a test user first');
+            return;
         }
+        
+        // Clear cache for this account to force a fresh load
+        const cacheKey = accountNumber;
+        if (userDataCache.data[cacheKey]) {
+            delete userDataCache.data[cacheKey];
+            delete userDataCache.timestamps[cacheKey];
+        }
+        
+        // Reload the data
+        loadUserDataAndUpdatePreview(accountNumber);
     });
 
     function loadUserDataAndUpdatePreview(accountNumber) {
@@ -358,8 +439,16 @@ jQuery(document).ready(function ($) {
         const $preview = $activeContainer.find('.payload-preview');
         const endpoint = $activeContainer.attr('id').replace('endpoint-', '');
         
-        console.log('Endpoint:', endpoint);
-        
+        // Check cache first
+        const cacheKey = accountNumber;
+        const now = Date.now();
+        if (userDataCache.data[cacheKey] && 
+            (now - userDataCache.timestamps[cacheKey]) < userDataCache.timeout) {
+            console.log('Using cached data');
+            generatePreview(userDataCache.data[cacheKey], endpoint, $activeContainer);
+            return;
+        }
+
         // If there's a CodeMirror instance, update its content
         const editor = $preview.data('codemirror');
         if (editor) {
@@ -378,27 +467,78 @@ jQuery(document).ready(function ($) {
                 security: idAjax_wiz_endpoints.nonce
             },
             success: function(response) {
-                console.log('AJAX response:', response);
+                console.log('AJAX response received');
                 if (response.success) {
+                    // Validate that the response contains the expected data structure
+                    if (!response.data) {
+                        console.error('Response missing data property:', response);
+                        if (editor) {
+                            editor.setValue('Error: Invalid response format');
+                        } else {
+                            $preview.html('Error: Invalid response format');
+                        }
+                        return;
+                    }
+                    
+                    // Ensure _presets exists
+                    if (!response.data._presets) {
+                        console.warn('Response missing _presets property, creating empty object');
+                        response.data._presets = {};
+                    }
+                    
+                    // Log presets for debugging
+                    console.log('Presets in response:', response.data._presets);
+                    
+                    // Cache the response
+                    userDataCache.data[cacheKey] = response.data;
+                    userDataCache.timestamps[cacheKey] = now;
+                    
+                    // Generate the preview
                     generatePreview(response.data, endpoint, $activeContainer);
                 } else {
+                    const errorMsg = response.data || 'Unknown error';
+                    console.error('Error in AJAX response:', errorMsg);
                     if (editor) {
-                        editor.setValue('Error loading user data: ' + response.data);
+                        editor.setValue('Error loading user data: ' + errorMsg);
                     } else {
-                        $preview.html('Error loading user data: ' + response.data);
+                        $preview.html('Error loading user data: ' + errorMsg);
                     }
                 }
             },
             error: function(xhr, status, error) {
                 console.error('AJAX error:', error);
                 if (editor) {
-                    editor.setValue('Error loading user data');
+                    editor.setValue('Error loading user data: ' + error);
                 } else {
-                    $preview.html('Error loading user data');
+                    $preview.html('Error loading user data: ' + error);
                 }
             }
         });
     }
+
+    // Debounce the preview updates
+    const debouncedLoadUserData = debounce(loadUserDataAndUpdatePreview, 300);
+
+    // Update handlers to use debounced function
+    $(document).on('change', '.test-user-select', function() {
+        console.log('User selected from dropdown');
+        const accountNumber = $(this).val();
+        console.log('Account number:', accountNumber);
+        if (accountNumber) {
+            $('.manual-user-id').val(accountNumber);
+            debouncedLoadUserData(accountNumber);
+        }
+    });
+
+    $(document).on('click', '.load-user-data', function() {
+        console.log('Manual load clicked');
+        const accountNumber = $('.manual-user-id').val();
+        console.log('Manual account number:', accountNumber);
+        if (accountNumber) {
+            $('.test-user-select').val(accountNumber);
+            debouncedLoadUserData(accountNumber);
+        }
+    });
 
     function generatePreview(userData, endpoint, $container) {
         const $preview = $container.find('.payload-preview');
@@ -436,7 +576,10 @@ jQuery(document).ready(function ($) {
         // First, include the base data if using user_feed
         if (baseDataSource === 'user_feed') {
             const cleanUserData = { ...userData };
-            delete cleanUserData._presets;
+            // Make a deep copy without the _presets property
+            if (cleanUserData._presets) {
+                delete cleanUserData._presets;
+            }
             Object.assign(payload.data, cleanUserData);
         }
 
@@ -448,7 +591,15 @@ jQuery(document).ready(function ($) {
                 payload.data[mapping.key] = mapping.value;
             } else if (mapping.type === 'preset' && userData._presets) {
                 // Get the actual value from the preset
-                payload.data[mapping.key] = userData._presets[mapping.value] || `[Preset not found: ${mapping.value}]`;
+                const presetValue = userData._presets[mapping.value];
+                
+                // Only include the preset if it exists and is not null/undefined
+                if (presetValue !== undefined && presetValue !== null) {
+                    payload.data[mapping.key] = presetValue;
+                } else {
+                    // Return null instead of an error message when preset not found
+                    payload.data[mapping.key] = null;
+                }
             }
         });
 
@@ -551,5 +702,70 @@ jQuery(document).ready(function ($) {
                 alert('Error testing endpoint: ' + errorMessage);
             }
         });
+    });
+
+    // Function to update preset definitions
+    function updatePresetDefinitions($container) {
+        const $definitionsContent = $container.find('.preset-definitions-content');
+        const usedPresets = new Set();
+        
+        // Collect all used presets
+        $container.find('.data-mapping-item').each(function() {
+            const $item = $(this);
+            if ($item.find('.mapping-type').val() === 'preset') {
+                const presetValue = $item.find('.mapping-preset').val();
+                if (presetValue) {
+                    usedPresets.add(presetValue);
+                }
+            }
+        });
+
+        // If we have the presets cached, use them immediately
+        if (presetsCache) {
+            renderPresetDefinitions($definitionsContent, usedPresets);
+        } else {
+            // Otherwise load them first
+            loadPresets().then(() => {
+                renderPresetDefinitions($definitionsContent, usedPresets);
+            });
+        }
+    }
+
+    // Function to render preset definitions
+    function renderPresetDefinitions($container, usedPresets) {
+        if (usedPresets.size === 0) {
+            $container.html('<p class="no-presets-message">No presets currently in use. Add a preset mapping above to see its definition here.</p>');
+            return;
+        }
+
+        let html = '<dl class="preset-list">';
+        for (const presetKey of usedPresets) {
+            const preset = presetsCache[presetKey];
+            if (preset) {
+                html += `<dt>${preset.name}</dt>`;
+                html += `<dd>${preset.description}</dd>`;
+            }
+        }
+        html += '</dl>';
+        $container.html(html);
+    }
+
+    // Update handlers to trigger preset definitions update
+    $(document).on('change', '.mapping-type, .mapping-preset', function() {
+        const $container = $(this).closest('.endpoint-content');
+        updatePresetDefinitions($container);
+    });
+
+    $(document).on('click', '.remove-mapping', function() {
+        const $container = $(this).closest('.endpoint-content');
+        // Use setTimeout to ensure the DOM is updated before we check for presets
+        setTimeout(() => updatePresetDefinitions($container), 0);
+    });
+
+    // Update preset definitions when adding new mapping
+    $(document).on('click', '.add-mapping', function() {
+        const $container = $(this).closest('.endpoint-content');
+        // Use setTimeout to ensure the DOM is updated before we check for presets
+        setTimeout(() => updatePresetDefinitions($container), 0);
     });
 });

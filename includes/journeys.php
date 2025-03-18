@@ -40,6 +40,7 @@ function update_journey_send_times()
 
 	$workflows = $wpdb->get_results("SELECT DISTINCT workflowId FROM $campaigns_table", ARRAY_A);
 
+	$collectUpdates = [];
 	foreach ($workflows as $workflow) {
 		$workflowId = $workflow['workflowId'];
 
@@ -71,11 +72,13 @@ function update_journey_send_times()
 						['%d', '%d'],
 						['%d']
 					);
-					wiz_log('Updated journey send times for workflow ' . $workflowId);
+					$collectUpdates[] = $workflowId;
+					
 				}
 			}
 		}
 	}
+	wiz_log('Updated journey send times for workflows: ' . implode(', ', $collectUpdates));
 }
 
 add_action('init', function () {

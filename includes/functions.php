@@ -402,7 +402,7 @@ function generate_mini_table(
 		foreach ($data as $row) {
 			echo '<tr>';
 			foreach ($headers as $col => $width) {
-				$value = $row[$col] instanceof RawHtml ? (string) $row[$col] : htmlspecialchars($row[$col]);
+				$value = $row[$col] instanceof RawHtml ? (string) $row[$col] : htmlspecialchars($row[$col] ?? '');
 				echo '<td width="' . $width . '">' . $value . '</td>';
 			}
 			echo '</tr>';
@@ -824,6 +824,7 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
 	}
 
 	$purchases = get_idwiz_purchases($purchaseArgs);
+	
 
 	// Initialize variables for summable metrics
 	$totalSends = $totalOpens = $totalClicks = $totalUnsubscribes = $totalDeliveries = $totalPurchases = $totalComplaints = $totalRevenue = $gaRevenue = 0;

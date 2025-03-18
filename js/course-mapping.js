@@ -2,6 +2,7 @@ jQuery(document).on("click", ".add-course", function () {
     var courseId = jQuery(this).closest(".course-recs").data("course-id");
     var recType = jQuery(this).closest(".course-recs").data("rec-type");
     var division = jQuery(this).closest(".course-recs").data("division");
+    var targetFiscals = jQuery(this).closest(".course-recs").data("target-fiscals");
 
     // Capture the current scroll position
     var scrollPosition = jQuery(window).scrollTop();
@@ -27,6 +28,7 @@ jQuery(document).on("click", ".add-course", function () {
                             {
                                 term: params.data.term, // Pass the search term for filtering courses
                                 division: division,
+                                target_fiscals: targetFiscals
                             },
                             function (response) {
                                 success(response);
@@ -127,6 +129,14 @@ jQuery(document).on("click", ".remove-course", function () {
     });
 });
 
-jQuery('#division-select').select2();
-jQuery('#fy-select').select2();
+jQuery(document).ready(function() {
+    // Initialize select2 for dropdown menus
+    jQuery('#division-select, #source-fy-select, #target-fy-select').select2({
+        width: '100%',
+        dropdownAutoWidth: true,
+        closeOnSelect: false,
+        placeholder: "Select options",
+        allowClear: true
+    });
+});
 
