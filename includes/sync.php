@@ -1603,6 +1603,11 @@ function idemailwiz_sync_purchases($campaignIds = null, $startDate = null, $endD
 				$purchase['id'] = str_replace('purchase-', '', $purchase['id']);
 			}
 
+			// Convert campaignId to NULL if it's missing, empty, or zero
+			if (!isset($purchase['campaignid']) || empty($purchase['campaignid']) || $purchase['campaignid'] === 0 || $purchase['campaignid'] === '0') {
+				$purchase['campaignid'] = null;
+			}
+
 			// Fetch the campaign's startAt if campaignId is set
 			if (isset($purchase['campaignid']) && !empty($purchase['campaignid'])) {
 				$campaigns_table = $wpdb->prefix . 'idemailwiz_campaigns';
