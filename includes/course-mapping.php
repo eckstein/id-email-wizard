@@ -14,43 +14,8 @@ function get_course_details_by_id($course_id)
     // Execute the query
     $course = $wpdb->get_row($query);
 
-    // If not found by ID, try looking up by abbreviation
     if (is_null($course)) {
-        error_log("Course not found by ID: {$course_id}, trying by abbreviation");
-        $course = get_course_details_by_abbreviation($course_id);
-        
-        if (!is_wp_error($course)) {
-            return $course;
-        }
-    } else {
-        return $course;
-    }
-
-    return new WP_Error('no_course', __('Course not found', 'text-domain'));
-}
-
-/**
- * Get course details by abbreviation
- * 
- * @param string $abbreviation The unique course abbreviation
- * @return object|WP_Error Course details or error
- */
-function get_course_details_by_abbreviation($abbreviation)
-{
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'idemailwiz_courses';
-
-    // Sanitize the abbreviation to prevent SQL injection
-    $abbreviation = sanitize_text_field($abbreviation);
-
-    // Prepare the query to get the course by abbreviation
-    $query = $wpdb->prepare("SELECT * FROM {$table_name} WHERE abbreviation = %s", $abbreviation);
-
-    // Execute the query
-    $course = $wpdb->get_row($query);
-
-    if (is_null($course)) {
-        return new WP_Error('no_course', __('Course not found by abbreviation', 'text-domain'));
+        return new WP_Error('no_course', __('Course not found', 'text-domain'));
     }
 
     return $course;
