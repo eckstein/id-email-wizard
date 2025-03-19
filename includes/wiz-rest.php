@@ -514,14 +514,7 @@ function process_preset_value($preset_name, $student_data) {
                 
                 // Create a map of course details
                 foreach ($course_data as $course) {
-                    // Determine if course is a camp or academy based on division_id
-                    // Division IDs:
-                    // - 22: iDTA (Teen Academy) - This is the only academy
-                    // - 25: iDTC (Tech Camp)
-                    // - 42: VTC (Virtual Tech Camp)
-                    // - 47: OTA (Online Teen Academy) - Despite "Academy" in the name, it has different session structure than iDTA
-                    // - 41: OPL (Online Private Lessons)
-                    $is_academy = $course['division_id'] == 22; // Only iDTA (22) is considered an academy
+                    $is_academy = $course['division_id'] == 22;
                     
                     $course_details[$course['id']] = [
                         'title' => $course['title'],
@@ -533,9 +526,10 @@ function process_preset_value($preset_name, $student_data) {
             }
             
             // Add course data to each location
-            foreach ($nearby_data['locations'] as &$location) {
+            $locations_with_recs = [];
+            foreach ($nearby_data['locations'] as $location) {
                 $loc_id = $location['id'];
-                $location['course_recommendations'] = null;
+                $location_with_recs = $location;
                 
                 // Add personalized course recommendations if available
                 if (!empty($course_recs['recs'])) {
@@ -547,7 +541,7 @@ function process_preset_value($preset_name, $student_data) {
                     if (!empty($location_specific_recs)) {
                         // Add sessionWeeks to each recommendation
                         foreach ($location_specific_recs as &$rec) {
-                            $course_type = $course_details[$rec['id']]['type'] ?? 'camps'; // Default to camps if not determined
+                            $course_type = $course_details[$rec['id']]['type'] ?? 'camps';
                             
                             // Add sessionWeeks if available for this location and course type
                             if (isset($location_weeks_map[$loc_id]) && isset($location_weeks_map[$loc_id][$course_type])) {
@@ -557,28 +551,26 @@ function process_preset_value($preset_name, $student_data) {
                             }
                         }
                         
-                        $location['course_recommendations'] = [
-                            'recs' => array_values($location_specific_recs)
-                        ];
+                        $location_with_recs['courses'] = array_values($location_specific_recs);
                     }
                 }
+                
+                $locations_with_recs[] = $location_with_recs;
             }
             
-            // Create locationRecs array with metadata and locations
-            $nearby_data['locationRecs'] = [
-                'total_count' => $course_recs['total_count'] ?? 0,
-                'age_up' => $course_recs['age_up'] ?? false,
-                'student_age' => $course_recs['student_age'] ?? null,
-                'from_fiscal_year' => $course_recs['from_fiscal_year'] ?? null,
-                'to_fiscal_year' => $course_recs['to_fiscal_year'] ?? null,
+            // Return a cleaner, flatter structure
+            return [
+                'metadata' => [
+                    'total_locations' => count($locations_with_recs),
+                    'student_coordinates' => $nearby_data['student_coordinates'],
+                    'age_up' => $course_recs['age_up'] ?? false,
+                    'student_age' => $course_recs['student_age'] ?? null,
+                    'from_fiscal_year' => $course_recs['from_fiscal_year'] ?? null,
+                    'to_fiscal_year' => $course_recs['to_fiscal_year'] ?? null
+                ],
                 'last_purchase' => $course_recs['last_purchase'] ?? null,
-                'locations' => $nearby_data['locations']
+                'locations' => $locations_with_recs
             ];
-            
-            // Remove the original locations array since it's now in locationRecs
-            unset($nearby_data['locations']);
-            
-            return $nearby_data;
         default:
             return null;
     }
