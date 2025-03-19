@@ -1101,33 +1101,63 @@ function idwiz_endpoint_handler($request)
         ), 404);
     }
 
-    // Process presets first
+    // OPTIMIZATION: Only process presets that are actually needed based on the data mapping
     $presets = [];
+    $required_presets = [];
     
-    // Most recent purchase preset
-    $presets['most_recent_purchase'] = get_most_recent_purchase_date($feed_data);
+    // Determine which presets are actually required based on the data mapping
+    if (!empty($endpoint_config['data_mapping'])) {
+        foreach ($endpoint_config['data_mapping'] as $mapping) {
+            if ($mapping['type'] === 'preset') {
+                $required_presets[] = $mapping['value'];
+            }
+        }
+    } else {
+        // If no mappings, only include essential presets
+        $required_presets = ['most_recent_purchase', 'last_location'];
+    }
     
-    // Last location preset
-    $presets['last_location'] = process_preset_value('last_location', $feed_data);
+    // Only process required presets
+    if (in_array('most_recent_purchase', $required_presets)) {
+        $presets['most_recent_purchase'] = get_most_recent_purchase_date($feed_data);
+    }
     
-    // Nearby locations preset
-    $presets['nearby_locations'] = process_preset_value('nearby_locations', $feed_data);
+    if (in_array('last_location', $required_presets)) {
+        $presets['last_location'] = process_preset_value('last_location', $feed_data);
+    }
     
-    // Process all course recommendation presets
-    $preset_types = [
+    if (in_array('nearby_locations', $required_presets)) {
+        $presets['nearby_locations'] = process_preset_value('nearby_locations', $feed_data);
+    }
+    
+    $course_rec_presets = [
         'ipc_course_recs',
         'idtc_course_recs',
         'idta_course_recs',
         'vtc_course_recs',
         'ota_course_recs',
-        'opl_course_recs',
-        'nearby_locations_with_course_recs'
+        'opl_course_recs'
     ];
-
-    foreach ($preset_types as $preset) {
-        $result = process_preset_value($preset, $feed_data);
-        if ($result !== null) {
-            $presets[$preset] = $result;
+    
+    foreach ($course_rec_presets as $preset) {
+        if (in_array($preset, $required_presets)) {
+            try {
+                $presets[$preset] = process_preset_value($preset, $feed_data);
+            } catch (Exception $e) {
+                // Log error but continue processing
+                error_log("Error processing preset $preset: " . $e->getMessage());
+                $presets[$preset] = null;
+            }
+        }
+    }
+    
+    // Handle complex combination preset separately with error handling
+    if (in_array('nearby_locations_with_course_recs', $required_presets)) {
+        try {
+            $presets['nearby_locations_with_course_recs'] = process_preset_value('nearby_locations_with_course_recs', $feed_data);
+        } catch (Exception $e) {
+            error_log("Error processing nearby_locations_with_course_recs: " . $e->getMessage());
+            $presets['nearby_locations_with_course_recs'] = null;
         }
     }
 
@@ -1146,8 +1176,11 @@ function idwiz_endpoint_handler($request)
             }
         }
     } else {
-        // If no mappings, return all feed data
+        // If no mappings, return basic feed data plus essential presets
         $response_data = $feed_data;
+        if (!empty($presets)) {
+            $response_data['_presets'] = $presets;
+        }
     }
 
     // Return in the same format as preview
@@ -1260,6 +1293,10 @@ function idwiz_get_user_data_for_preview() {
 function get_division_course_recommendations($student_data, $division_type) {
     global $wpdb;
     
+    // Add timeout protection
+    $start_time = microtime(true);
+    $timeout_seconds = 5; // Set a reasonable timeout limit
+    
     // Get student account number from the data
     $student_account_number = $student_data['studentAccountNumber'];
     if (!$student_account_number) {
@@ -1319,22 +1356,33 @@ function get_division_course_recommendations($student_data, $division_type) {
             return [];
     }
     
-    // Get the student's most recent purchase BEFORE the current fiscal year
-    $latestPurchase = $wpdb->get_row(
-        $wpdb->prepare(
-            "SELECT p.*, uf.studentDOB 
-            FROM {$wpdb->prefix}idemailwiz_purchases p
-            JOIN {$wpdb->prefix}idemailwiz_userfeed uf ON p.shoppingCartItems_studentAccountNumber = uf.studentAccountNumber
-            WHERE p.shoppingCartItems_studentAccountNumber = %s 
-            AND p.shoppingCartItems_divisionId IN (" . implode(',', $fromDivisionIds) . ")
-            AND p.purchaseDate < %s
-            ORDER BY p.purchaseDate DESC 
-            LIMIT 1",
-            $student_account_number,
-            $current_fy_start->format('Y-m-d')
-        ),
-        ARRAY_A
-    );
+    // Check timeout
+    if ((microtime(true) - $start_time) > $timeout_seconds) {
+        error_log("Course Recs: Timeout exceeded before database query for student $student_account_number");
+        return [];
+    }
+    
+    try {
+        // Get the student's most recent purchase BEFORE the current fiscal year
+        $latestPurchase = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT p.*, uf.studentDOB 
+                FROM {$wpdb->prefix}idemailwiz_purchases p
+                JOIN {$wpdb->prefix}idemailwiz_userfeed uf ON p.shoppingCartItems_studentAccountNumber = uf.studentAccountNumber
+                WHERE p.shoppingCartItems_studentAccountNumber = %s 
+                AND p.shoppingCartItems_divisionId IN (" . implode(',', $fromDivisionIds) . ")
+                AND p.purchaseDate < %s
+                ORDER BY p.purchaseDate DESC 
+                LIMIT 1",
+                $student_account_number,
+                $current_fy_start->format('Y-m-d')
+            ),
+            ARRAY_A
+        );
+    } catch (Exception $e) {
+        error_log("Course Recs: Database error when getting purchase data: " . $e->getMessage());
+        return [];
+    }
 
     if (!$latestPurchase) {
         error_log("Course Recs: No previous purchases found for student $student_account_number");
@@ -1343,10 +1391,21 @@ function get_division_course_recommendations($student_data, $division_type) {
 
     error_log("Course Recs: Found purchase from " . $latestPurchase['purchaseDate'] . " for course ID " . $latestPurchase['shoppingCartItems_id']);
 
-    // Get the course details
-    $course = get_course_details_by_id($latestPurchase['shoppingCartItems_id']);
-    if (is_wp_error($course) || !isset($course->course_recs)) {
-        error_log("Course Recs: Failed to get course details for ID " . $latestPurchase['shoppingCartItems_id']);
+    // Check timeout
+    if ((microtime(true) - $start_time) > $timeout_seconds) {
+        error_log("Course Recs: Timeout exceeded before course details for student $student_account_number");
+        return [];
+    }
+    
+    try {
+        // Get the course details
+        $course = get_course_details_by_id($latestPurchase['shoppingCartItems_id']);
+        if (is_wp_error($course) || !isset($course->course_recs)) {
+            error_log("Course Recs: Failed to get course details for ID " . $latestPurchase['shoppingCartItems_id']);
+            return [];
+        }
+    } catch (Exception $e) {
+        error_log("Course Recs: Error getting course details: " . $e->getMessage());
         return [];
     }
 
@@ -1357,11 +1416,16 @@ function get_division_course_recommendations($student_data, $division_type) {
         return [];
     }
 
-    $studentAge = calculate_student_age($studentDOB);
-    $ageAtLastPurchase = calculate_age_at_purchase($studentDOB, $latestPurchase['purchaseDate']);
+    try {
+        $studentAge = calculate_student_age($studentDOB);
+        $ageAtLastPurchase = calculate_age_at_purchase($studentDOB, $latestPurchase['purchaseDate']);
 
-    if ($studentAge === false) {
-        error_log("Course Recs: Invalid student DOB format");
+        if ($studentAge === false) {
+            error_log("Course Recs: Invalid student DOB format");
+            return [];
+        }
+    } catch (Exception $e) {
+        error_log("Course Recs: Error calculating age: " . $e->getMessage());
         return [];
     }
 
@@ -1375,11 +1439,22 @@ function get_division_course_recommendations($student_data, $division_type) {
         $toDivision = 'idta';
     }
 
-    // Get course recommendations
-    $recommendations = get_course_recommendations($course, $toDivision, $needsAgeUp);
+    // Check timeout
+    if ((microtime(true) - $start_time) > $timeout_seconds) {
+        error_log("Course Recs: Timeout exceeded before getting recommendations for student $student_account_number");
+        return [];
+    }
+    
+    try {
+        // Get course recommendations
+        $recommendations = get_course_recommendations($course, $toDivision, $needsAgeUp);
 
-    if (empty($recommendations)) {
-        error_log("Course Recs: No recommendations found for course ID " . $latestPurchase['shoppingCartItems_id']);
+        if (empty($recommendations)) {
+            error_log("Course Recs: No recommendations found for course ID " . $latestPurchase['shoppingCartItems_id']);
+            return [];
+        }
+    } catch (Exception $e) {
+        error_log("Course Recs: Error getting recommendations: " . $e->getMessage());
         return [];
     }
 
