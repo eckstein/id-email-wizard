@@ -1182,7 +1182,6 @@ function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDa
 		'shoppingCartItems.totalDaysOfInstruction',
 		'currencyTypeId',
 		'eventName',
-		//'shoppingCartItems.id',
 		'shoppingCartItems.imageUrl',
 		'shoppingCartItems.subsidiaryId',
 		'shoppingCartItems.packageType',
@@ -1573,6 +1572,14 @@ function idemailwiz_sync_purchases($campaignIds = null, $startDate = null, $endD
 		// Get all existing purchase IDs in one query for efficiency
 		$purchase_ids = array_column($purchases, 'id');
 		
+		// Clean purchase IDs from any 'purchase-' prefix
+		foreach ($purchase_ids as &$id) {
+			if (is_string($id) && strpos($id, 'purchase-') === 0) {
+				$id = str_replace('purchase-', '', $id);
+			}
+		}
+		unset($id); // Break the reference to the last element
+		
 		// Fix for wpdb::prepare error - handle empty arrays and properly prepare the query
 		if (empty($purchase_ids)) {
 			$existing_purchase_ids = [];
@@ -1585,10 +1592,15 @@ function idemailwiz_sync_purchases($campaignIds = null, $startDate = null, $endD
 		// Create a lookup array for faster checking
 		$existing_purchase_lookup = array_flip($existing_purchase_ids);
 
-		foreach ($purchases as $purchase) {
+		foreach ($purchases as &$purchase) {
 			if (!isset($purchase['id'])) {
 				wiz_log('No ID found in the fetched purchase record!');
 				continue;
+			}
+
+			// Remove 'purchase-' prefix from ID if it exists
+			if (is_string($purchase['id']) && strpos($purchase['id'], 'purchase-') === 0) {
+				$purchase['id'] = str_replace('purchase-', '', $purchase['id']);
 			}
 
 			// Fetch the campaign's startAt if campaignId is set
