@@ -150,10 +150,7 @@ function get_course_recommendations($course, $toDivision, $needsAgeUp)
     $courseRecs = unserialize($course->course_recs);
     $recKey = $needsAgeUp && !in_array($toDivision, ['opl', 'ota', 'idta']) ? $toDivision . '_ageup' : $toDivision;
 
-    error_log("DEBUG: get_course_recommendations - Course ID: {$course->id}, toDivision: $toDivision, needsAgeUp: " . ($needsAgeUp ? 'true' : 'false') . ", recKey: $recKey");
-    
     if (!isset($courseRecs[$recKey]) || !is_array($courseRecs[$recKey]) || empty($courseRecs[$recKey])) {
-        error_log("DEBUG: No recommendations found for recKey: $recKey. Available keys: " . implode(', ', array_keys($courseRecs)));
         return [];
     }
 
@@ -169,12 +166,8 @@ function get_course_recommendations($course, $toDivision, $needsAgeUp)
                 'maxAge' => $recCourse->maxAge,
                 'courseUrl' => $recCourse->courseUrl
             ];
-        } else {
-            error_log("DEBUG: Error getting recommended course details for ID: $recCourseId - " . $recCourse->get_error_message());
         }
     }
-    
-    error_log("DEBUG: Found " . count($recommendations) . " recommendations for recKey: $recKey");
     return $recommendations;
 }
 
@@ -463,11 +456,11 @@ function process_preset_value($preset_name, $student_data) {
             
             // If no nearby locations, return empty array
             if (empty($nearby_data['locations'])) {
-                error_log("DEBUG: No nearby locations found for student {$student_data['studentAccountNumber']}");
+                error_log("Location Recs: No nearby locations found");
                 return [];
             }
             
-            error_log("DEBUG: Found " . count($nearby_data['locations']) . " nearby locations for student {$student_data['studentAccountNumber']}");
+            error_log("Location Recs: Found " . count($nearby_data['locations']) . " nearby locations");
             
             // Get all location IDs
             $location_ids = array_map(function($loc) {
@@ -485,8 +478,6 @@ function process_preset_value($preset_name, $student_data) {
                 ARRAY_A
             );
             
-            error_log("DEBUG: Found " . count($location_courses) . " locations with course data");
-            
             // Create a map of location ID to courses and sessionWeeks
             $location_courses_map = [];
             $location_weeks_map = [];
@@ -494,12 +485,9 @@ function process_preset_value($preset_name, $student_data) {
                 $courses = maybe_unserialize($loc['courses']);
                 if (!empty($courses) && is_array($courses)) {
                     $location_courses_map[$loc['id']] = $courses;
-                    error_log("DEBUG: Location ID {$loc['id']} has " . count($courses) . " courses");
-                    // Log a few sample courses to verify data format
-                    $sample = array_slice($courses, 0, 3);
-                    error_log("DEBUG: Sample courses at location {$loc['id']}: " . implode(', ', $sample));
+                    error_log("Location Recs: Location ID {$loc['id']} has " . count($courses) . " courses");
                 } else {
-                    error_log("DEBUG: Location ID {$loc['id']} has no courses data or invalid format. Raw data: " . print_r($loc['courses'], true));
+                    error_log("Location Recs: Location ID {$loc['id']} has no courses");
                 }
                 
                 $session_weeks = $loc['sessionWeeks'] ? maybe_unserialize($loc['sessionWeeks']) : null;
@@ -512,96 +500,28 @@ function process_preset_value($preset_name, $student_data) {
             // Use ipc parameter which handles both iDTC and iDTA recommendations based on age
             $course_recs = get_division_course_recommendations($student_data, 'ipc');
             
-            error_log("DEBUG: Course recs result: " . print_r($course_recs, true));
+            // Check if we have any recommendations
+            if (empty($course_recs['recs'])) {
+                error_log("Location Recs: No course recommendations found for student");
+                return [
+                    'metadata' => [
+                        'total_locations' => count($nearby_data['locations']),
+                        'student_coordinates' => $nearby_data['student_coordinates'],
+                        'error' => 'No course recommendations found'
+                    ],
+                    'last_purchase' => $course_recs['last_purchase'] ?? null,
+                    'locations' => $nearby_data['locations'] // Return locations without courses
+                ];
+            }
+            
+            error_log("Location Recs: Found " . count($course_recs['recs']) . " course recommendations");
             
             // Get all recommended course IDs to fetch their details
             $course_ids = array_map(function($rec) {
                 return $rec['id'];
-            }, $course_recs['recs'] ?? []);
+            }, $course_recs['recs']);
             
-            error_log("DEBUG: Found " . count($course_ids) . " recommended course IDs: " . implode(', ', $course_ids));
-            
-            // Check if any of these recommended courses are available at any of the nearby locations
-            $any_courses_available = false;
-            foreach ($location_ids as $loc_id) {
-                if (isset($location_courses_map[$loc_id])) {
-                    // Convert all IDs to strings for consistent comparison
-                    $string_course_ids = array_map('strval', $course_ids);
-                    $string_location_courses = array_map('strval', $location_courses_map[$loc_id]);
-                    
-                    $matching_courses = array_intersect($string_course_ids, $string_location_courses);
-                    if (!empty($matching_courses)) {
-                        $any_courses_available = true;
-                        error_log("DEBUG: Found matching courses at location $loc_id: " . implode(', ', $matching_courses));
-                        break;
-                    }
-                }
-            }
-            
-            // If no recommended courses are available at any location, try recommendations from the other division
-            if (!$any_courses_available && !empty($course_ids) && isset($course_recs['last_purchase'])) {
-                error_log("DEBUG: No courses from primary recommendations available at any nearby location, trying fallback");
-                
-                // Determine the alternate division to try
-                $alternate_division = $course_recs['last_purchase']['division_id'] == 22 ? 'idtc' : 'idta';
-                
-                // Only try idta if student is 13+
-                if ($alternate_division === 'idta' && $course_recs['student_age'] < 13) {
-                    error_log("DEBUG: Student is under 13, skipping idta fallback");
-                } else {
-                    error_log("DEBUG: Trying fallback recommendations from division: $alternate_division");
-                    
-                    // Get fallback recommendations and add them to the originals
-                    $fallback_recs = get_division_course_recommendations($student_data, $alternate_division);
-                    if (!empty($fallback_recs['recs'])) {
-                        error_log("DEBUG: Found " . count($fallback_recs['recs']) . " fallback recommendations");
-                        
-                        // Add fallback course IDs to the list
-                        $fallback_course_ids = array_map(function($rec) {
-                            return $rec['id'];
-                        }, $fallback_recs['recs']);
-                        
-                        error_log("DEBUG: Fallback course IDs: " . implode(', ', $fallback_course_ids));
-                        
-                        // Check if any fallback courses are available at any location
-                        $fallback_available = false;
-                        $available_fallbacks = [];
-                        
-                        foreach ($location_ids as $loc_id) {
-                            if (isset($location_courses_map[$loc_id])) {
-                                // Convert all IDs to strings for consistent comparison
-                                $string_fallback_ids = array_map('strval', $fallback_course_ids);
-                                $string_location_courses = array_map('strval', $location_courses_map[$loc_id]);
-                                
-                                $matching_fallbacks = array_intersect($string_fallback_ids, $string_location_courses);
-                                if (!empty($matching_fallbacks)) {
-                                    $fallback_available = true;
-                                    $available_fallbacks = array_unique(array_merge($available_fallbacks, $matching_fallbacks));
-                                    error_log("DEBUG: Found matching fallback courses at location $loc_id: " . implode(', ', $matching_fallbacks));
-                                }
-                            }
-                        }
-                        
-                        // Only add fallbacks if at least one is available at a location
-                        if ($fallback_available) {
-                            error_log("DEBUG: Adding " . count($available_fallbacks) . " available fallback courses");
-                            
-                            // Filter fallback recs to only include those available at some location
-                            $available_fallback_recs = array_filter($fallback_recs['recs'], function($rec) use ($available_fallbacks) {
-                                return in_array((string)$rec['id'], $available_fallbacks);
-                            });
-                            
-                            // Merge the recommendation lists, keeping original recommendations first
-                            $course_recs['recs'] = array_merge($course_recs['recs'], array_values($available_fallback_recs));
-                            $course_ids = array_merge($course_ids, array_map('strval', $available_fallbacks));
-                            
-                            error_log("DEBUG: Combined " . count($course_recs['recs']) . " recommendations");
-                        } else {
-                            error_log("DEBUG: No fallback courses available at any location, skipping fallbacks");
-                        }
-                    }
-                }
-            }
+            error_log("Location Recs: Recommended course IDs: " . implode(', ', $course_ids));
             
             // Fetch course details to determine if each is a camp or academy
             $course_details = [];
@@ -616,8 +536,6 @@ function process_preset_value($preset_name, $student_data) {
                     ARRAY_A
                 );
                 
-                error_log("DEBUG: Found " . count($course_data) . " course details from database");
-                
                 // Create a map of course details
                 foreach ($course_data as $course) {
                     $is_academy = $course['division_id'] == 22;
@@ -629,7 +547,7 @@ function process_preset_value($preset_name, $student_data) {
                         'type' => $is_academy ? 'academies' : 'camps'
                     ];
                     
-                    error_log("DEBUG: Course ID {$course['id']} is " . ($is_academy ? 'an academy' : 'a camp') . " course");
+                    error_log("Location Recs: Course ID {$course['id']} is " . ($is_academy ? 'academy' : 'camp'));
                 }
             }
             
@@ -641,45 +559,26 @@ function process_preset_value($preset_name, $student_data) {
                 
                 // Add personalized course recommendations if available
                 if (!empty($course_recs['recs'])) {
-                    // Log all recommended course IDs
-                    $rec_ids = array_map(function($rec) {
-                        return $rec['id'];
-                    }, $course_recs['recs']);
-                    
-                    error_log("DEBUG: All recommended course IDs: " . implode(', ', $rec_ids));
-                    
-                    // Check if the location has courses available
+                    // Log available courses at this location
                     if (isset($location_courses_map[$loc_id])) {
-                        error_log("DEBUG: Location $loc_id available courses: " . implode(', ', array_slice($location_courses_map[$loc_id], 0, 10)));
-                        
-                        // Log the intersection of recommended courses and available courses
-                        $available_recs = array_intersect($rec_ids, $location_courses_map[$loc_id]);
-                        error_log("DEBUG: Location $loc_id has " . count($available_recs) . " matching courses: " . implode(', ', $available_recs));
+                        error_log("Location Recs: Location ID $loc_id has courses: " . implode(', ', $location_courses_map[$loc_id]));
                     } else {
-                        error_log("DEBUG: Location $loc_id has no courses data in map");
+                        error_log("Location Recs: Location ID $loc_id has no courses in map");
                     }
                     
                     // Filter recommendations to only include courses available at this location
                     $location_specific_recs = array_filter($course_recs['recs'], function($rec) use ($location_courses_map, $loc_id) {
-                        // Cast both IDs to strings for consistent comparison
-                        $rec_id = (string)$rec['id'];
-                        $available = false;
-                        
-                        if (isset($location_courses_map[$loc_id])) {
-                            // Convert all location course IDs to strings for comparison
-                            $location_courses = array_map('strval', $location_courses_map[$loc_id]);
-                            $available = in_array($rec_id, $location_courses);
+                        $course_id = $rec['id'];
+                        $is_available = isset($location_courses_map[$loc_id]) && in_array($course_id, $location_courses_map[$loc_id]);
+                        if (!$is_available) {
+                            error_log("Location Recs: Course ID $course_id is not available at location ID $loc_id");
                         }
-                        
-                        if (!$available) {
-                            error_log("DEBUG: Course ID {$rec['id']} is not available at location $loc_id");
-                        }
-                        return $available;
+                        return $is_available;
                     });
                     
-                    error_log("DEBUG: Location $loc_id has " . count($location_specific_recs) . " specific course recommendations");
-                    
                     if (!empty($location_specific_recs)) {
+                        error_log("Location Recs: Found " . count($location_specific_recs) . " recommendations for location ID $loc_id");
+                        
                         // Add sessionWeeks to each recommendation
                         foreach ($location_specific_recs as &$rec) {
                             $course_type = $course_details[$rec['id']]['type'] ?? 'camps';
@@ -687,19 +586,15 @@ function process_preset_value($preset_name, $student_data) {
                             // Add sessionWeeks if available for this location and course type
                             if (isset($location_weeks_map[$loc_id]) && isset($location_weeks_map[$loc_id][$course_type])) {
                                 $rec['sessionWeeks'] = $location_weeks_map[$loc_id][$course_type];
-                                error_log("DEBUG: Added sessionWeeks for course {$rec['id']}, type $course_type");
                             } else {
                                 $rec['sessionWeeks'] = [];
-                                error_log("DEBUG: No sessionWeeks available for course {$rec['id']}, type $course_type at location $loc_id");
                             }
                         }
                         
                         $location_with_recs['courses'] = array_values($location_specific_recs);
                     } else {
-                        error_log("DEBUG: No specific recommendations found for location $loc_id");
+                        error_log("Location Recs: No matching recommendations for location ID $loc_id");
                     }
-                } else {
-                    error_log("DEBUG: No course recommendations available for student {$student_data['studentAccountNumber']}");
                 }
                 
                 $locations_with_recs[] = $location_with_recs;
@@ -1571,109 +1466,97 @@ function get_division_course_recommendations($student_data, $division_type) {
         return [];
     }
 
-    error_log("Course Recs: Student age: $studentAge, Age at last purchase: $ageAtLastPurchase");
+    error_log("Course Recs: Student age: $studentAge, Age at last purchase: $ageAtLastPurchase, Division: " . $latestPurchase['shoppingCartItems_divisionId']);
 
     // Determine if student needs age-up recommendations
     $needsAgeUp = determine_age_up_need($studentAge, $ageAtLastPurchase, $course);
+    $fromDivisionId = $latestPurchase['shoppingCartItems_divisionId'];
     
-    // Set the toDivision based on the fromDivision for ipc
+    // For ipc requests, collect ALL recommendations
     if ($division_type === 'ipc') {
-        $fromDivisionId = $latestPurchase['shoppingCartItems_divisionId'];
+        $allRecommendations = [];
         
-        error_log("DEBUG: Student {$student_account_number} fromDivisionId: {$fromDivisionId}, age: {$studentAge}");
-        
-        // If it was an iDTA purchase (division 22), use the same division
-        if ($fromDivisionId == 22) {
-            $toDivision = 'idta';
-            error_log("DEBUG: Previous purchase was iDTA, setting toDivision to 'idta'");
-            // Even for iDTA, still check if they need age-up recommendations within the academy age ranges
-            // This handles the case if they were on the younger end of iDTA and have aged up within the academy age range
+        // If student is 13+, they can take both camps and academies
+        if ($studentAge >= 13) {
+            error_log("Course Recs: Student is 13+, eligible for both camps and academies");
+            
+            // Try to get iDTA recommendations
+            $idta_recs = get_course_recommendations($course, 'idta', $needsAgeUp);
+            if (!empty($idta_recs)) {
+                $allRecommendations = array_merge($allRecommendations, $idta_recs);
+                error_log("Course Recs: Found " . count($idta_recs) . " iDTA recommendations");
+            }
+            
+            // Also try to get iDTC recommendations (always get these even if they had an iDTA purchase)
+            $idtc_recs = get_course_recommendations($course, 'idtc', $needsAgeUp);
+            if (!empty($idtc_recs)) {
+                $allRecommendations = array_merge($allRecommendations, $idtc_recs);
+                error_log("Course Recs: Found " . count($idtc_recs) . " iDTC recommendations");
+            }
         } 
-        // If it was an iDTC purchase (division 25)
-        else if ($fromDivisionId == 25) {
-            // If student is now 13+ and previously wasn't, they can get recommendations from both divisions
-            // For 'ipc' division type, prefer the same division they had before unless age-up is needed
-            if ($studentAge >= 13 && $ageAtLastPurchase < 13) {
-                // Student has crossed the 13+ threshold, can now take both camps and academies
-                // We'll try to get recommendations from both divisions
-                // Check if there are idta recommendations for this course
-                $idta_recs = get_course_recommendations($course, 'idta', true);
-                if (!empty($idta_recs)) {
-                    $toDivision = 'idta';
-                    error_log("DEBUG: Student aged up to 13+, found idta recommendations, using 'idta'");
-                } else {
-                    // Default back to camps if no academy recommendations available
-                    $toDivision = 'idtc';
-                    error_log("DEBUG: Student aged up to 13+, but no idta recommendations found, using 'idtc'");
-                }
-            } else {
-                // Student hasn't crossed a major age threshold, stay with camps
-                $toDivision = 'idtc';
-                error_log("DEBUG: Previous purchase was iDTC, and no significant age change, keeping toDivision as 'idtc'");
+        // If student is under 13, they can only take camps
+        else {
+            error_log("Course Recs: Student is under 13, only eligible for camps");
+            $idtc_recs = get_course_recommendations($course, 'idtc', $needsAgeUp);
+            if (!empty($idtc_recs)) {
+                $allRecommendations = array_merge($allRecommendations, $idtc_recs);
+                error_log("Course Recs: Found " . count($idtc_recs) . " iDTC recommendations");
             }
         }
-    } else {
-        // For specific division types (idtc, idta, etc.), the toDivision is already set
-        // Just make sure age-up is calculated correctly
-        $needsAgeUp = determine_age_up_need($studentAge, $ageAtLastPurchase, $course);
-        error_log("DEBUG: Specific division type '{$division_type}', toDivision: '{$toDivision}', needsAgeUp: " . ($needsAgeUp ? 'true' : 'false'));
-    }
-
-    error_log("Course Recs: Using toDivision: $toDivision, needsAgeUp: " . ($needsAgeUp ? 'true' : 'false'));
-
-    // Check timeout
-    if ((microtime(true) - $start_time) > $timeout_seconds) {
-        error_log("Course Recs: Timeout exceeded before getting recommendations for student $student_account_number");
-        return [];
-    }
-    
-    try {
-        // Get course recommendations
+        
+        // If we don't have any recommendations at all, log this and return empty
+        if (empty($allRecommendations)) {
+            error_log("Course Recs: No recommendations found for course ID " . $latestPurchase['shoppingCartItems_id']);
+            return [];
+        }
+        
+        error_log("Course Recs: Found a total of " . count($allRecommendations) . " recommendations");
+        
+        // Limit to 3 recommendations and format for Iterable
+        $formattedRecs = [];
+        $count = 0;
+        foreach ($allRecommendations as $rec) {
+            if ($count >= 3) break;
+            
+            $formattedRecs[] = [
+                'id' => $rec['id'],
+                'title' => $rec['title'],
+                'abbreviation' => $rec['abbreviation'],
+                'age_range' => $rec['minAge'] . '-' . $rec['maxAge'],
+                'url' => $rec['courseUrl'] ?? ''
+            ];
+            $count++;
+        }
+    } 
+    // For specific division requests (idtc, idta, etc.)
+    else {
+        // Get course recommendations for the specific division
         $recommendations = get_course_recommendations($course, $toDivision, $needsAgeUp);
-
+        
         if (empty($recommendations)) {
             error_log("Course Recs: No recommendations found for course ID " . $latestPurchase['shoppingCartItems_id'] . " with toDivision: $toDivision");
-            
-            // If we're in ipc mode and no recommendations found, try the other division
-            if ($division_type === 'ipc') {
-                $alternateToDivision = ($toDivision === 'idta') ? 'idtc' : 'idta';
-                
-                // Only try idta if student is 13+
-                if ($alternateToDivision === 'idta' && $studentAge < 13) {
-                    error_log("Course Recs: Student is under 13, skipping idta alternate recommendations");
-                } else {
-                    error_log("Course Recs: Trying alternate toDivision: $alternateToDivision");
-                    $recommendations = get_course_recommendations($course, $alternateToDivision, $needsAgeUp);
-                }
-            }
-            
-            if (empty($recommendations)) {
-                return [];
-            }
+            return [];
         }
-    } catch (Exception $e) {
-        error_log("Course Recs: Error getting recommendations: " . $e->getMessage());
-        return [];
-    }
-
-    error_log("Course Recs: Found " . count($recommendations) . " recommendations");
-
-    // Limit to 3 recommendations and format for Iterable
-    $formattedRecs = [];
-    $count = 0;
-    foreach ($recommendations as $rec) {
-        if ($count >= 3) break;
         
-        $formattedRecs[] = [
-            'id' => $rec['id'],
-            'title' => $rec['title'],
-            'abbreviation' => $rec['abbreviation'],
-            'age_range' => $rec['minAge'] . '-' . $rec['maxAge'],
-            'url' => $rec['courseUrl'] ?? ''
-        ];
-        $count++;
+        error_log("Course Recs: Found " . count($recommendations) . " recommendations for $toDivision");
+        
+        // Limit to 3 recommendations and format for Iterable
+        $formattedRecs = [];
+        $count = 0;
+        foreach ($recommendations as $rec) {
+            if ($count >= 3) break;
+            
+            $formattedRecs[] = [
+                'id' => $rec['id'],
+                'title' => $rec['title'],
+                'abbreviation' => $rec['abbreviation'],
+                'age_range' => $rec['minAge'] . '-' . $rec['maxAge'],
+                'url' => $rec['courseUrl'] ?? ''
+            ];
+            $count++;
+        }
     }
-
+    
     // Only return data if we actually have recommendations
     if (empty($formattedRecs)) {
         return [];
