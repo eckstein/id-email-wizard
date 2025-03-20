@@ -236,6 +236,7 @@ function idemailwiz_create_databases()
         imageUrl VARCHAR(255),
         heatmapFile VARCHAR(255),
         templateImage VARCHAR(255),
+		dataFeedId VARCHAR(255),
         PRIMARY KEY  (templateId)
     ) ENGINE=InnoDB $charset_collate;";
 

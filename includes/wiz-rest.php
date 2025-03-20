@@ -1301,12 +1301,9 @@ function get_division_course_recommendations($student_data, $division_type) {
     $year = $current_date->format('Y');
     $month = $current_date->format('n');
     
-    // If we're in Nov-Dec, we're in the next fiscal year
-    if ($month >= 11) {
-        $current_fy_year = $year + 1;
-    } else {
-        $current_fy_year = $year;
-    }
+    // For any date from November through October, the fiscal year is the next calendar year
+    // So March 2025 is in FY2025 (which runs 11/1/2024 - 10/31/2025)
+    $current_fy_year = ($month >= 11) ? $year + 1 : $year;
     
     $current_fy = 'fy' . substr($current_fy_year, -2);
     $current_fy_start = new DateTime(($current_fy_year - 1) . '-11-01');
@@ -1364,9 +1361,11 @@ function get_division_course_recommendations($student_data, $division_type) {
                 WHERE p.shoppingCartItems_studentAccountNumber = %s 
                 AND p.shoppingCartItems_divisionId IN (" . implode(',', $fromDivisionIds) . ")
                 AND p.purchaseDate < %s
+                AND p.purchaseDate >= DATE_SUB(%s, INTERVAL 1 YEAR)
                 ORDER BY p.purchaseDate DESC 
                 LIMIT 1",
                 $student_account_number,
+                $current_fy_start->format('Y-m-d'),
                 $current_fy_start->format('Y-m-d')
             ),
             ARRAY_A
