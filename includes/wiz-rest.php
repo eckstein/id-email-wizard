@@ -228,12 +228,12 @@ function get_course_recommendations($course, $toDivision, $needsAgeUp)
     }
     // For specific division type requests or non-in-person courses (or when needing age up)
     else {
-        $recKey = $needsAgeUp && !in_array($toDivision, ['opl', 'ota', 'idta']) ? $toDivision . '_ageup' : $toDivision;
-        
-        if (!isset($courseRecs[$recKey]) || !is_array($courseRecs[$recKey]) || empty($courseRecs[$recKey])) {
+    $recKey = $needsAgeUp && !in_array($toDivision, ['opl', 'ota', 'idta']) ? $toDivision . '_ageup' : $toDivision;
+
+    if (!isset($courseRecs[$recKey]) || !is_array($courseRecs[$recKey]) || empty($courseRecs[$recKey])) {
             error_log("Course Recs: No recommendations found for key $recKey");
-            return [];
-        }
+        return [];
+    }
         
         error_log("Course Recs: Found " . count($courseRecs[$recKey]) . " recommendations for key $recKey");
         
@@ -245,23 +245,23 @@ function get_course_recommendations($course, $toDivision, $needsAgeUp)
             error_log("Course Recs: Course 536 IS found in the $recKey mapping");
         } else {
             error_log("Course Recs: Course 536 is NOT found in the $recKey mapping");
+    }
+
+    $recommendations = [];
+    foreach ($courseRecs[$recKey] as $recCourseId) {
+        $recCourse = get_course_details_by_id($recCourseId);
+        if (!is_wp_error($recCourse)) {
+            $recommendations[] = [
+                'id' => $recCourse->id,
+                'title' => $recCourse->title,
+                'abbreviation' => $recCourse->abbreviation,
+                'minAge' => $recCourse->minAge,
+                'maxAge' => $recCourse->maxAge,
+                'courseUrl' => $recCourse->courseUrl
+            ];
         }
-        
-        $recommendations = [];
-        foreach ($courseRecs[$recKey] as $recCourseId) {
-            $recCourse = get_course_details_by_id($recCourseId);
-            if (!is_wp_error($recCourse)) {
-                $recommendations[] = [
-                    'id' => $recCourse->id,
-                    'title' => $recCourse->title,
-                    'abbreviation' => $recCourse->abbreviation,
-                    'minAge' => $recCourse->minAge,
-                    'maxAge' => $recCourse->maxAge,
-                    'courseUrl' => $recCourse->courseUrl
-                ];
-            }
-        }
-        return $recommendations;
+    }
+    return $recommendations;
     }
 }
 
@@ -1512,11 +1512,18 @@ function get_division_course_recommendations($student_data, $division)
     
     error_log("Course Recs: Student age is $student_age");
     
-    // Default to current fiscal year
-    $current_month = date('n');
-    $current_year = date('Y');
-    $fiscal_year = $current_month >= 11 ? 'fy' . ($current_year + 1) : 'fy' . $current_year;
-    $from_fiscal_year = 'fy' . ($current_year - 1);
+    // Calculate fiscal year information consistently
+    $current_date = new DateTime();
+    $year = intval($current_date->format('Y'));
+    $month = intval($current_date->format('n'));
+    
+    // For any date from November through October, the fiscal year is the next calendar year
+    // So November 2024 - October 2025 is FY2025
+    $current_fy_year = ($month >= 11) ? $year + 1 : $year;
+    $fiscal_year = 'fy' . substr($current_fy_year, -2);
+    $from_fiscal_year = 'fy' . substr($current_fy_year - 1, -2);
+    
+    error_log("Course Recs: Current fiscal year is $fiscal_year, previous fiscal year is $from_fiscal_year");
     
     // Check if student should receive age-up recommendation
     $needs_age_up = false;
