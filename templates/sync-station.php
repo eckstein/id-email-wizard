@@ -23,8 +23,6 @@ if (isset($_GET['db-cleanup'])) {
 		backfill_blast_engagment_data();
 	} else if ($doCleanup == 'update-course-fiscal-years') {
 		updateCourseFiscalYears();
-	} else if ($doCleanup == 'sync-user-feed') {
-		sync_user_feed_database();
 	}
 }
 
@@ -281,12 +279,6 @@ if (isset($_GET['sync'])) {
 										<i class="fa-solid fa-user-edit"></i> Cleanup Users Database
 									</a>
 									<p>Removes empty arrays and blank values; converts arrays to properly serialized data</p>
-								</div>
-								<div class="db-cleanup-item">
-									<a class="wiz-button green" href="<?php echo add_query_arg('db-cleanup', 'sync-user-feed'); ?>" id="syncUserFeed">
-										<i class="fa-solid fa-sync"></i> Sync User Feed Database
-									</a>
-									<p>Re-syncs all user data to the user feed database to ensure completeness</p>
 								</div>
 								<div class="db-cleanup-item">
 									<a class="wiz-button green" href="<?php echo add_query_arg('db-cleanup', 'fix-triggered-timestamps'); ?>" id="fixTriggeredTimestamps">
