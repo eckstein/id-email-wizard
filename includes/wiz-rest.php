@@ -521,6 +521,88 @@ function process_preset_value($preset_name, $student_data) {
             
             error_log("DEBUG: Found " . count($course_ids) . " recommended course IDs: " . implode(', ', $course_ids));
             
+            // Check if any of these recommended courses are available at any of the nearby locations
+            $any_courses_available = false;
+            foreach ($location_ids as $loc_id) {
+                if (isset($location_courses_map[$loc_id])) {
+                    // Convert all IDs to strings for consistent comparison
+                    $string_course_ids = array_map('strval', $course_ids);
+                    $string_location_courses = array_map('strval', $location_courses_map[$loc_id]);
+                    
+                    $matching_courses = array_intersect($string_course_ids, $string_location_courses);
+                    if (!empty($matching_courses)) {
+                        $any_courses_available = true;
+                        error_log("DEBUG: Found matching courses at location $loc_id: " . implode(', ', $matching_courses));
+                        break;
+                    }
+                }
+            }
+            
+            // If no recommended courses are available at any location, try recommendations from the other division
+            if (!$any_courses_available && !empty($course_ids) && isset($course_recs['last_purchase'])) {
+                error_log("DEBUG: No courses from primary recommendations available at any nearby location, trying fallback");
+                
+                // Determine the alternate division to try
+                $alternate_division = $course_recs['last_purchase']['division_id'] == 22 ? 'idtc' : 'idta';
+                
+                // Only try idta if student is 13+
+                if ($alternate_division === 'idta' && $course_recs['student_age'] < 13) {
+                    error_log("DEBUG: Student is under 13, skipping idta fallback");
+                } else {
+                    error_log("DEBUG: Trying fallback recommendations from division: $alternate_division");
+                    
+                    // Get fallback recommendations and add them to the originals
+                    $fallback_recs = get_division_course_recommendations($student_data, $alternate_division);
+                    if (!empty($fallback_recs['recs'])) {
+                        error_log("DEBUG: Found " . count($fallback_recs['recs']) . " fallback recommendations");
+                        
+                        // Add fallback course IDs to the list
+                        $fallback_course_ids = array_map(function($rec) {
+                            return $rec['id'];
+                        }, $fallback_recs['recs']);
+                        
+                        error_log("DEBUG: Fallback course IDs: " . implode(', ', $fallback_course_ids));
+                        
+                        // Check if any fallback courses are available at any location
+                        $fallback_available = false;
+                        $available_fallbacks = [];
+                        
+                        foreach ($location_ids as $loc_id) {
+                            if (isset($location_courses_map[$loc_id])) {
+                                // Convert all IDs to strings for consistent comparison
+                                $string_fallback_ids = array_map('strval', $fallback_course_ids);
+                                $string_location_courses = array_map('strval', $location_courses_map[$loc_id]);
+                                
+                                $matching_fallbacks = array_intersect($string_fallback_ids, $string_location_courses);
+                                if (!empty($matching_fallbacks)) {
+                                    $fallback_available = true;
+                                    $available_fallbacks = array_unique(array_merge($available_fallbacks, $matching_fallbacks));
+                                    error_log("DEBUG: Found matching fallback courses at location $loc_id: " . implode(', ', $matching_fallbacks));
+                                }
+                            }
+                        }
+                        
+                        // Only add fallbacks if at least one is available at a location
+                        if ($fallback_available) {
+                            error_log("DEBUG: Adding " . count($available_fallbacks) . " available fallback courses");
+                            
+                            // Filter fallback recs to only include those available at some location
+                            $available_fallback_recs = array_filter($fallback_recs['recs'], function($rec) use ($available_fallbacks) {
+                                return in_array((string)$rec['id'], $available_fallbacks);
+                            });
+                            
+                            // Merge the recommendation lists, keeping original recommendations first
+                            $course_recs['recs'] = array_merge($course_recs['recs'], array_values($available_fallback_recs));
+                            $course_ids = array_merge($course_ids, array_map('strval', $available_fallbacks));
+                            
+                            error_log("DEBUG: Combined " . count($course_recs['recs']) . " recommendations");
+                        } else {
+                            error_log("DEBUG: No fallback courses available at any location, skipping fallbacks");
+                        }
+                    }
+                }
+            }
+            
             // Fetch course details to determine if each is a camp or academy
             $course_details = [];
             if (!empty($course_ids)) {
@@ -579,7 +661,16 @@ function process_preset_value($preset_name, $student_data) {
                     
                     // Filter recommendations to only include courses available at this location
                     $location_specific_recs = array_filter($course_recs['recs'], function($rec) use ($location_courses_map, $loc_id) {
-                        $available = isset($location_courses_map[$loc_id]) && in_array($rec['id'], $location_courses_map[$loc_id]);
+                        // Cast both IDs to strings for consistent comparison
+                        $rec_id = (string)$rec['id'];
+                        $available = false;
+                        
+                        if (isset($location_courses_map[$loc_id])) {
+                            // Convert all location course IDs to strings for comparison
+                            $location_courses = array_map('strval', $location_courses_map[$loc_id]);
+                            $available = in_array($rec_id, $location_courses);
+                        }
+                        
                         if (!$available) {
                             error_log("DEBUG: Course ID {$rec['id']} is not available at location $loc_id");
                         }
