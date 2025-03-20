@@ -1358,6 +1358,51 @@ function get_division_course_recommendations($student_data, $division_type) {
         
         error_log("Course Recs: Looking for purchases between {$prev_fy_start->format('Y-m-d')} and {$prev_fy_end->format('Y-m-d')}");
         
+        // First check if this student has any purchases at all
+        $any_purchases = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) 
+                FROM {$wpdb->prefix}idemailwiz_purchases 
+                WHERE shoppingCartItems_studentAccountNumber = %s 
+                AND shoppingCartItems_divisionId IN (" . implode(',', $fromDivisionIds) . ")",
+                $student_account_number
+            )
+        );
+        
+        if ($any_purchases == 0) {
+            error_log("Course Recs: Student $student_account_number has no purchases at all in the requested divisions");
+            return [];
+        } else {
+            // Check what date range the purchases are in
+            $first_purchase = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT purchaseDate 
+                    FROM {$wpdb->prefix}idemailwiz_purchases 
+                    WHERE shoppingCartItems_studentAccountNumber = %s 
+                    AND shoppingCartItems_divisionId IN (" . implode(',', $fromDivisionIds) . ")
+                    ORDER BY purchaseDate ASC 
+                    LIMIT 1",
+                    $student_account_number
+                )
+            );
+            
+            $last_purchase = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT purchaseDate 
+                    FROM {$wpdb->prefix}idemailwiz_purchases 
+                    WHERE shoppingCartItems_studentAccountNumber = %s 
+                    AND shoppingCartItems_divisionId IN (" . implode(',', $fromDivisionIds) . ")
+                    ORDER BY purchaseDate DESC 
+                    LIMIT 1",
+                    $student_account_number
+                )
+            );
+            
+            if ($first_purchase && $last_purchase) {
+                error_log("Course Recs: Student $student_account_number has purchases from {$first_purchase->purchaseDate} to {$last_purchase->purchaseDate}");
+            }
+        }
+        
         $latestPurchase = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT p.*, uf.studentDOB 
@@ -1380,27 +1425,42 @@ function get_division_course_recommendations($student_data, $division_type) {
     }
 
     if (!$latestPurchase) {
-        error_log("Course Recs: No previous purchases found for student $student_account_number");
-        return [];
-    }
-
-    error_log("Course Recs: Found purchase from " . $latestPurchase['purchaseDate'] . " for course ID " . $latestPurchase['shoppingCartItems_id']);
-
-    // Check timeout
-    if ((microtime(true) - $start_time) > $timeout_seconds) {
-        error_log("Course Recs: Timeout exceeded before course details for student $student_account_number");
-        return [];
-    }
-    
-    try {
-        // Get the course details
-        $course = get_course_details_by_id($latestPurchase['shoppingCartItems_id']);
-        if (is_wp_error($course) || !isset($course->course_recs)) {
-            error_log("Course Recs: Failed to get course details for ID " . $latestPurchase['shoppingCartItems_id']);
+        // If we didn't find a purchase in the previous fiscal year, let's check the current fiscal year
+        try {
+            $latestPurchase = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT p.*, uf.studentDOB 
+                    FROM {$wpdb->prefix}idemailwiz_purchases p
+                    JOIN {$wpdb->prefix}idemailwiz_userfeed uf ON p.shoppingCartItems_studentAccountNumber = uf.studentAccountNumber
+                    WHERE p.shoppingCartItems_studentAccountNumber = %s 
+                    AND p.shoppingCartItems_divisionId IN (" . implode(',', $fromDivisionIds) . ")
+                    AND p.purchaseDate BETWEEN %s AND %s
+                    ORDER BY p.purchaseDate DESC 
+                    LIMIT 1",
+                    $student_account_number,
+                    $current_fy_start->format('Y-m-d'),
+                    $current_fy_end->format('Y-m-d')
+                ),
+                ARRAY_A
+            );
+            
+            if ($latestPurchase) {
+                error_log("Course Recs: Found purchase in CURRENT fiscal year for student $student_account_number from " . $latestPurchase['purchaseDate']);
+            }
+        } catch (Exception $e) {
+            error_log("Course Recs: Database error when getting current FY purchase data: " . $e->getMessage());
+        }
+        
+        if (!$latestPurchase) {
+            error_log("Course Recs: No purchases found for student $student_account_number in either previous or current fiscal year");
             return [];
         }
-    } catch (Exception $e) {
-        error_log("Course Recs: Error getting course details: " . $e->getMessage());
+    }
+
+    // Get the course details
+    $course = get_course_details_by_id($latestPurchase['shoppingCartItems_id']);
+    if (is_wp_error($course) || !isset($course->course_recs)) {
+        error_log("Course Recs: Failed to get course details for ID " . $latestPurchase['shoppingCartItems_id']);
         return [];
     }
 
@@ -1411,16 +1471,11 @@ function get_division_course_recommendations($student_data, $division_type) {
         return [];
     }
 
-    try {
-        $studentAge = calculate_student_age($studentDOB);
-        $ageAtLastPurchase = calculate_age_at_purchase($studentDOB, $latestPurchase['purchaseDate']);
+    $studentAge = calculate_student_age($studentDOB);
+    $ageAtLastPurchase = calculate_age_at_purchase($studentDOB, $latestPurchase['purchaseDate']);
 
-        if ($studentAge === false) {
-            error_log("Course Recs: Invalid student DOB format");
-            return [];
-        }
-    } catch (Exception $e) {
-        error_log("Course Recs: Error calculating age: " . $e->getMessage());
+    if ($studentAge === false) {
+        error_log("Course Recs: Invalid student DOB format");
         return [];
     }
 
