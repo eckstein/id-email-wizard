@@ -1370,13 +1370,37 @@ function get_division_course_recommendations($student_data, $division_type) {
         );
         
         if ($any_purchases == 0) {
-            error_log("Course Recs: Student $student_account_number has no purchases at all in the requested divisions");
-            return [];
+            error_log("Course Recs: Student $student_account_number has no purchases at all in the requested divisions [" . implode(',', $fromDivisionIds) . "]");
+            
+            // If this is a specific division request but we failed, try with broader ipc divisions as a fallback
+            if ($division_type !== 'ipc' && ($division_type === 'idtc' || $division_type === 'idta')) {
+                error_log("Course Recs: Trying fallback to ipc divisions for student $student_account_number");
+                $fallback_divisions = [22, 25]; // Both iDTA and iDTC
+                
+                $has_fallback_purchases = $wpdb->get_var(
+                    $wpdb->prepare(
+                        "SELECT COUNT(*) 
+                        FROM {$wpdb->prefix}idemailwiz_purchases 
+                        WHERE shoppingCartItems_studentAccountNumber = %s 
+                        AND shoppingCartItems_divisionId IN (22, 25)",
+                        $student_account_number
+                    )
+                );
+                
+                if ($has_fallback_purchases > 0) {
+                    error_log("Course Recs: Found fallback purchases in ipc divisions for student $student_account_number");
+                    $fromDivisionIds = $fallback_divisions;
+                } else {
+                    return [];
+                }
+            } else {
+                return [];
+            }
         } else {
             // Check what date range the purchases are in
             $first_purchase = $wpdb->get_row(
                 $wpdb->prepare(
-                    "SELECT purchaseDate 
+                    "SELECT purchaseDate, shoppingCartItems_divisionId, shoppingCartItems_divisionName
                     FROM {$wpdb->prefix}idemailwiz_purchases 
                     WHERE shoppingCartItems_studentAccountNumber = %s 
                     AND shoppingCartItems_divisionId IN (" . implode(',', $fromDivisionIds) . ")
@@ -1388,7 +1412,7 @@ function get_division_course_recommendations($student_data, $division_type) {
             
             $last_purchase = $wpdb->get_row(
                 $wpdb->prepare(
-                    "SELECT purchaseDate 
+                    "SELECT purchaseDate, shoppingCartItems_divisionId, shoppingCartItems_divisionName
                     FROM {$wpdb->prefix}idemailwiz_purchases 
                     WHERE shoppingCartItems_studentAccountNumber = %s 
                     AND shoppingCartItems_divisionId IN (" . implode(',', $fromDivisionIds) . ")
@@ -1399,7 +1423,7 @@ function get_division_course_recommendations($student_data, $division_type) {
             );
             
             if ($first_purchase && $last_purchase) {
-                error_log("Course Recs: Student $student_account_number has purchases from {$first_purchase->purchaseDate} to {$last_purchase->purchaseDate}");
+                error_log("Course Recs: Student $student_account_number has purchases from {$first_purchase->purchaseDate} (division {$first_purchase->shoppingCartItems_divisionName}) to {$last_purchase->purchaseDate} (division {$last_purchase->shoppingCartItems_divisionName})");
             }
         }
         
