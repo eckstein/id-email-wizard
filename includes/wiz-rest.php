@@ -1721,3 +1721,24 @@ function idwiz_get_previous_year_users() {
     return $users;
 }
 
+/**
+ * Gets student age from the student data array
+ */
+function get_student_age($student_data) {
+    // Check if DOB exists in the data
+    if (!isset($student_data['studentDOB']) || empty($student_data['studentDOB'])) {
+        error_log("Student Age: No DOB found for student {$student_data['studentAccountNumber']}");
+        return 0;
+    }
+    
+    // Use the existing calculate_student_age function to get age from DOB
+    $age = calculate_student_age($student_data['studentDOB']);
+    
+    if ($age === false) {
+        error_log("Student Age: Invalid DOB format for student {$student_data['studentAccountNumber']}");
+        return 0;
+    }
+    
+    return $age;
+}
+
