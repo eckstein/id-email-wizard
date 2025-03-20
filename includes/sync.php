@@ -989,6 +989,7 @@ function idemailwiz_sync_users($startDate = null, $endDate = null)
 
 function process_student_array($userData) {
     if (!isset($userData['studentArray']) || empty($userData['studentArray'])) {
+        wiz_log("Student array skipped: Empty or missing studentArray for user " . ($userData['userId'] ?? 'unknown'));
         return null;
     }
 
@@ -1000,6 +1001,7 @@ function process_student_array($userData) {
         if ($unserializedData !== false) {
             $studentArray = $unserializedData;
         } else {
+            wiz_log("Student array skipped: Failed to unserialize student array for user " . ($userData['userId'] ?? 'unknown'));
             return null;
         }
     }
@@ -1013,12 +1015,14 @@ function process_student_array($userData) {
     }
 
     if (!is_array($studentArray)) {
+        wiz_log("Student array skipped: Student array is not an array after processing for user " . ($userData['userId'] ?? 'unknown'));
         return null;
     }
 
     $processedStudents = [];
     foreach ($studentArray as $student) {
         if (!isset($student['StudentAccountNumber'])) {
+            wiz_log("Student skipped: Missing StudentAccountNumber for user " . ($userData['userId'] ?? 'unknown'));
             continue;
         }
 
@@ -1029,6 +1033,8 @@ function process_student_array($userData) {
             $timestamp = strtotime($student['StudentLastUpdated']);
             if ($timestamp !== false) {
                 $studentLastUpdated = date('Y-m-d H:i:s', $timestamp);
+            } else {
+                wiz_log("Warning: Invalid StudentLastUpdated format for student " . $student['StudentAccountNumber'] . " (user " . ($userData['userId'] ?? 'unknown') . ")");
             }
         }
 
@@ -1106,21 +1112,29 @@ function sync_user_feed_batch($studentRecords) {
                     $existing_date = strtotime($existing['studentLastUpdated']);
                     
                     if ($new_date <= $existing_date) {
+                        wiz_log("Record skipped (older/same timestamp): Student " . $record['studentAccountNumber'] . 
+                               " - New timestamp: " . $record['studentLastUpdated'] . 
+                               " - Existing timestamp: " . $existing['studentLastUpdated']);
                         $stats['skipped']++;
                         continue;
                     }
                 } else {
                     // If studentLastUpdated is not available, fall back to field comparison
                     $should_update = false;
+                    $changed_fields = [];
                     foreach ($record as $field => $value) {
                         if ($field !== 'last_updated' && $existing[$field] != $value) {
                             $should_update = true;
-                            break;
+                            $changed_fields[] = $field;
                         }
                     }
                     if (!$should_update) {
+                        wiz_log("Record skipped (no changes): Student " . $record['studentAccountNumber']);
                         $stats['skipped']++;
                         continue;
+                    } else {
+                        wiz_log("Record will update: Student " . $record['studentAccountNumber'] . 
+                               " - Changed fields: " . implode(', ', $changed_fields));
                     }
                 }
             }
@@ -1152,6 +1166,7 @@ function sync_user_feed_batch($studentRecords) {
             
             if ($result === false) {
                 $stats['errors'][] = "Error updating batch: " . $wpdb->last_error;
+                wiz_log("Error updating batch in user feed: " . $wpdb->last_error);
             } else {
                 $stats['updated'] += $wpdb->rows_affected;
             }
