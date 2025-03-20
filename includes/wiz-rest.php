@@ -1352,7 +1352,12 @@ function get_division_course_recommendations($student_data, $division_type) {
     }
     
     try {
-        // Get the student's most recent purchase BEFORE the current fiscal year
+        // Get the student's most recent purchase from the previous fiscal year
+        $prev_fy_start = new DateTime(($current_fy_year - 2) . '-11-01');
+        $prev_fy_end = new DateTime(($current_fy_year - 1) . '-10-31');
+        
+        error_log("Course Recs: Looking for purchases between {$prev_fy_start->format('Y-m-d')} and {$prev_fy_end->format('Y-m-d')}");
+        
         $latestPurchase = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT p.*, uf.studentDOB 
@@ -1360,13 +1365,12 @@ function get_division_course_recommendations($student_data, $division_type) {
                 JOIN {$wpdb->prefix}idemailwiz_userfeed uf ON p.shoppingCartItems_studentAccountNumber = uf.studentAccountNumber
                 WHERE p.shoppingCartItems_studentAccountNumber = %s 
                 AND p.shoppingCartItems_divisionId IN (" . implode(',', $fromDivisionIds) . ")
-                AND p.purchaseDate < %s
-                AND p.purchaseDate >= DATE_SUB(%s, INTERVAL 1 YEAR)
+                AND p.purchaseDate BETWEEN %s AND %s
                 ORDER BY p.purchaseDate DESC 
                 LIMIT 1",
                 $student_account_number,
-                $current_fy_start->format('Y-m-d'),
-                $current_fy_start->format('Y-m-d')
+                $prev_fy_start->format('Y-m-d'),
+                $prev_fy_end->format('Y-m-d')
             ),
             ARRAY_A
         );
