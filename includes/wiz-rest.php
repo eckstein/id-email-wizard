@@ -506,9 +506,9 @@ function get_available_presets() {
             'description' => 'Returns up to 3 Online Private Lessons course recommendations based on the student\'s previous OPL purchases. Returns empty array if no recommendations found.'
         ],
         'nearby_locations_with_course_recs' => [
-            'name' => 'Nearby Locations with Course Recs',
-            'description' => 'Returns nearby locations with course recommendations nested within each location. Combines location proximity data with personalized course recommendations.',
-            'group' => 'Location & Course Data'
+            'name' => 'Course Recs with Nearby Locations',
+            'description' => 'Returns personalized course recommendations with nearby locations nested within each course. Each course includes available locations and their session weeks, making it easy to loop through course recommendations in templates.',
+            'group' => 'Course & Location Data'
         ],
     ];
 }
@@ -551,7 +551,17 @@ function process_preset_value($preset_name, $student_data) {
             // If no nearby locations, return empty array
             if (empty($nearby_data['locations'])) {
                 error_log("Location Recs: No nearby locations found");
-                return [];
+                return [
+                    'metadata' => [
+                        'total_courses' => 0,
+                        'total_locations' => count($nearby_data['locations']),
+                        'student_coordinates' => $nearby_data['student_coordinates'],
+                        'error' => 'No course recommendations found',
+                        'student_age' => get_student_age($student_data)
+                    ],
+                    'last_purchase' => null,
+                    'courses' => [] // Empty courses array
+                ];
             }
             
             error_log("Location Recs: Found " . count($nearby_data['locations']) . " nearby locations");
@@ -705,13 +715,14 @@ function process_preset_value($preset_name, $student_data) {
                 error_log("Location Recs: No course recommendations found for student");
                 return [
                     'metadata' => [
+                        'total_courses' => 0,
                         'total_locations' => count($nearby_data['locations']),
                         'student_coordinates' => $nearby_data['student_coordinates'],
                         'error' => 'No course recommendations found',
                         'student_age' => $student_age
                     ],
                     'last_purchase' => $last_purchase,
-                    'locations' => $nearby_data['locations'] // Return locations without courses
+                    'courses' => [] // Empty courses array
                 ];
             }
             
@@ -752,52 +763,76 @@ function process_preset_value($preset_name, $student_data) {
                 }
             }
             
-            // Add course data to each location
-            $locations_with_recs = [];
-            foreach ($nearby_data['locations'] as $location) {
-                $loc_id = $location['id'];
-                $location_with_recs = $location;
+            // NEW APPROACH: Restructure data with courses as primary and locations nested inside
+            $course_recs_with_locations = [];
+            
+            // Initialize course recommendations with empty locations array
+            foreach ($all_recommendations as $course_rec) {
+                $course_id = $course_rec['id'];
+                $course_type = isset($course_details[$course_id]) ? $course_details[$course_id]['type'] : 'camps';
                 
-                // Add personalized course recommendations if available
-                if (!empty($all_recommendations)) {
-                    // Filter recommendations to only include courses available at this location
-                    $location_specific_recs = array_filter($all_recommendations, function($rec) use ($location_courses_map, $loc_id) {
-                        $course_id = $rec['id'];
-                        $is_available = isset($location_courses_map[$loc_id]) && in_array($course_id, $location_courses_map[$loc_id]);
-                        if (!$is_available) {
-                            error_log("Location Recs: Course ID $course_id is not available at location ID $loc_id");
-                        }
-                        return $is_available;
-                    });
-                    
-                    if (!empty($location_specific_recs)) {
-                        error_log("Location Recs: Found " . count($location_specific_recs) . " recommendations for location ID $loc_id");
-                        
-                        // Add sessionWeeks to each recommendation
-                        foreach ($location_specific_recs as &$rec) {
-                            $course_type = $course_details[$rec['id']]['type'] ?? 'camps';
-                            
-                            // Add sessionWeeks if available for this location and course type
-                            if (isset($location_weeks_map[$loc_id]) && isset($location_weeks_map[$loc_id][$course_type])) {
-                                $rec['sessionWeeks'] = $location_weeks_map[$loc_id][$course_type];
-                            } else {
-                                $rec['sessionWeeks'] = [];
-                            }
-                        }
-                        
-                        $location_with_recs['courses'] = array_values($location_specific_recs);
-                    } else {
-                        error_log("Location Recs: No matching recommendations for location ID $loc_id");
-                    }
-                }
+                $course_with_locations = $course_rec;
+                $course_with_locations['locations'] = [];
+                $course_with_locations['course_type'] = $course_type;
                 
-                $locations_with_recs[] = $location_with_recs;
+                $course_recs_with_locations[$course_id] = $course_with_locations;
             }
             
-            // Return a cleaner, flatter structure
+            // Now populate each course with its available locations
+            foreach ($nearby_data['locations'] as $location) {
+                $loc_id = $location['id'];
+                
+                // Skip locations without course data
+                if (!isset($location_courses_map[$loc_id]) || empty($location_courses_map[$loc_id])) {
+                    continue;
+                }
+                
+                // For each recommended course, check if it's available at this location
+                foreach ($course_recs_with_locations as $course_id => &$course_rec) {
+                    if (in_array($course_id, $location_courses_map[$loc_id])) {
+                        // This course is available at this location
+                        $course_type = $course_rec['course_type']; // 'academies' or 'camps'
+                        
+                        // Create a simplified location object with just what we need
+                        $location_data = [
+                            'id' => $location['id'],
+                            'name' => $location['name'],
+                            'status' => $location['status'],
+                            'distance' => $location['distance'],
+                            'url' => $location['url'],
+                            'address' => $location['address'],
+                        ];
+                        
+                        // Add session weeks if available
+                        if (isset($location_weeks_map[$loc_id]) && isset($location_weeks_map[$loc_id][$course_type])) {
+                            $location_data['sessionWeeks'] = $location_weeks_map[$loc_id][$course_type];
+                        } else {
+                            $location_data['sessionWeeks'] = [];
+                        }
+                        
+                        // Add this location to the course's locations array
+                        $course_rec['locations'][] = $location_data;
+                    }
+                }
+            }
+            
+            // Filter out courses with no available locations
+            $course_recs_with_locations = array_filter($course_recs_with_locations, function($course) {
+                return !empty($course['locations']);
+            });
+            
+            // Convert from associative to indexed array for cleaner JSON
+            $course_recs_with_locations = array_values($course_recs_with_locations);
+            
+            // Sort courses by number of available locations (most locations first)
+            usort($course_recs_with_locations, function($a, $b) {
+                return count($b['locations']) - count($a['locations']);
+            });
+            
+            // Return the restructured data
             return [
                 'metadata' => [
-                    'total_locations' => count($locations_with_recs),
+                    'total_courses' => count($course_recs_with_locations),
                     'student_coordinates' => $nearby_data['student_coordinates'],
                     'student_age' => $student_age,
                     'from_fiscal_year' => $idta_recs['from_fiscal_year'] ?? ($idtc_recs['from_fiscal_year'] ?? null),
@@ -805,7 +840,7 @@ function process_preset_value($preset_name, $student_data) {
                     'recommendation_counts' => $metadata
                 ],
                 'last_purchase' => $last_purchase,
-                'locations' => $locations_with_recs
+                'courses' => $course_recs_with_locations
             ];
         
         default:
