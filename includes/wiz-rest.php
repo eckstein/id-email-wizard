@@ -1318,7 +1318,7 @@ function get_division_course_recommendations($student_data, $division_type) {
     switch($division_type) {
         case 'ipc':
             $fromDivisionIds = [22, 25]; // Both iDTA and iDTC
-            $toDivision = 'idtc'; // Default to iDTC, age-up logic will handle iDTA if needed
+            $toDivision = ''; // Will be set dynamically based on fromDivision and age
             break;
         case 'idtc':
             $fromDivisionIds = [25];
@@ -1358,75 +1358,6 @@ function get_division_course_recommendations($student_data, $division_type) {
         
         error_log("Course Recs: Looking for purchases between {$prev_fy_start->format('Y-m-d')} and {$prev_fy_end->format('Y-m-d')}");
         
-        // First check if this student has any purchases at all
-        $any_purchases = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT COUNT(*) 
-                FROM {$wpdb->prefix}idemailwiz_purchases 
-                WHERE shoppingCartItems_studentAccountNumber = %s 
-                AND shoppingCartItems_divisionId IN (" . implode(',', $fromDivisionIds) . ")",
-                $student_account_number
-            )
-        );
-        
-        if ($any_purchases == 0) {
-            error_log("Course Recs: Student $student_account_number has no purchases at all in the requested divisions [" . implode(',', $fromDivisionIds) . "]");
-            
-            // If this is a specific division request but we failed, try with broader ipc divisions as a fallback
-            if ($division_type !== 'ipc' && ($division_type === 'idtc' || $division_type === 'idta')) {
-                error_log("Course Recs: Trying fallback to ipc divisions for student $student_account_number");
-                $fallback_divisions = [22, 25]; // Both iDTA and iDTC
-                
-                $has_fallback_purchases = $wpdb->get_var(
-                    $wpdb->prepare(
-                        "SELECT COUNT(*) 
-                        FROM {$wpdb->prefix}idemailwiz_purchases 
-                        WHERE shoppingCartItems_studentAccountNumber = %s 
-                        AND shoppingCartItems_divisionId IN (22, 25)",
-                        $student_account_number
-                    )
-                );
-                
-                if ($has_fallback_purchases > 0) {
-                    error_log("Course Recs: Found fallback purchases in ipc divisions for student $student_account_number");
-                    $fromDivisionIds = $fallback_divisions;
-                } else {
-                    return [];
-                }
-            } else {
-                return [];
-            }
-        } else {
-            // Check what date range the purchases are in
-            $first_purchase = $wpdb->get_row(
-                $wpdb->prepare(
-                    "SELECT purchaseDate, shoppingCartItems_divisionId, shoppingCartItems_divisionName
-                    FROM {$wpdb->prefix}idemailwiz_purchases 
-                    WHERE shoppingCartItems_studentAccountNumber = %s 
-                    AND shoppingCartItems_divisionId IN (" . implode(',', $fromDivisionIds) . ")
-                    ORDER BY purchaseDate ASC 
-                    LIMIT 1",
-                    $student_account_number
-                )
-            );
-            
-            $last_purchase = $wpdb->get_row(
-                $wpdb->prepare(
-                    "SELECT purchaseDate, shoppingCartItems_divisionId, shoppingCartItems_divisionName
-                    FROM {$wpdb->prefix}idemailwiz_purchases 
-                    WHERE shoppingCartItems_studentAccountNumber = %s 
-                    AND shoppingCartItems_divisionId IN (" . implode(',', $fromDivisionIds) . ")
-                    ORDER BY purchaseDate DESC 
-                    LIMIT 1",
-                    $student_account_number
-                )
-            );
-            
-            if ($first_purchase && $last_purchase) {
-                error_log("Course Recs: Student $student_account_number has purchases from {$first_purchase->purchaseDate} (division {$first_purchase->shoppingCartItems_divisionName}) to {$last_purchase->purchaseDate} (division {$last_purchase->shoppingCartItems_divisionName})");
-            }
-        }
-        
         $latestPurchase = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT p.*, uf.studentDOB 
@@ -1449,42 +1380,27 @@ function get_division_course_recommendations($student_data, $division_type) {
     }
 
     if (!$latestPurchase) {
-        // If we didn't find a purchase in the previous fiscal year, let's check the current fiscal year
-        try {
-            $latestPurchase = $wpdb->get_row(
-                $wpdb->prepare(
-                    "SELECT p.*, uf.studentDOB 
-                    FROM {$wpdb->prefix}idemailwiz_purchases p
-                    JOIN {$wpdb->prefix}idemailwiz_userfeed uf ON p.shoppingCartItems_studentAccountNumber = uf.studentAccountNumber
-                    WHERE p.shoppingCartItems_studentAccountNumber = %s 
-                    AND p.shoppingCartItems_divisionId IN (" . implode(',', $fromDivisionIds) . ")
-                    AND p.purchaseDate BETWEEN %s AND %s
-                    ORDER BY p.purchaseDate DESC 
-                    LIMIT 1",
-                    $student_account_number,
-                    $current_fy_start->format('Y-m-d'),
-                    $current_fy_end->format('Y-m-d')
-                ),
-                ARRAY_A
-            );
-            
-            if ($latestPurchase) {
-                error_log("Course Recs: Found purchase in CURRENT fiscal year for student $student_account_number from " . $latestPurchase['purchaseDate']);
-            }
-        } catch (Exception $e) {
-            error_log("Course Recs: Database error when getting current FY purchase data: " . $e->getMessage());
-        }
-        
-        if (!$latestPurchase) {
-            error_log("Course Recs: No purchases found for student $student_account_number in either previous or current fiscal year");
-            return [];
-        }
+        error_log("Course Recs: No previous purchases found for student $student_account_number");
+        return [];
     }
 
-    // Get the course details
-    $course = get_course_details_by_id($latestPurchase['shoppingCartItems_id']);
-    if (is_wp_error($course) || !isset($course->course_recs)) {
-        error_log("Course Recs: Failed to get course details for ID " . $latestPurchase['shoppingCartItems_id']);
+    error_log("Course Recs: Found purchase from " . $latestPurchase['purchaseDate'] . " for course ID " . $latestPurchase['shoppingCartItems_id']);
+
+    // Check timeout
+    if ((microtime(true) - $start_time) > $timeout_seconds) {
+        error_log("Course Recs: Timeout exceeded before course details for student $student_account_number");
+        return [];
+    }
+    
+    try {
+        // Get the course details
+        $course = get_course_details_by_id($latestPurchase['shoppingCartItems_id']);
+        if (is_wp_error($course) || !isset($course->course_recs)) {
+            error_log("Course Recs: Failed to get course details for ID " . $latestPurchase['shoppingCartItems_id']);
+            return [];
+        }
+    } catch (Exception $e) {
+        error_log("Course Recs: Error getting course details: " . $e->getMessage());
         return [];
     }
 
@@ -1495,11 +1411,16 @@ function get_division_course_recommendations($student_data, $division_type) {
         return [];
     }
 
-    $studentAge = calculate_student_age($studentDOB);
-    $ageAtLastPurchase = calculate_age_at_purchase($studentDOB, $latestPurchase['purchaseDate']);
+    try {
+        $studentAge = calculate_student_age($studentDOB);
+        $ageAtLastPurchase = calculate_age_at_purchase($studentDOB, $latestPurchase['purchaseDate']);
 
-    if ($studentAge === false) {
-        error_log("Course Recs: Invalid student DOB format");
+        if ($studentAge === false) {
+            error_log("Course Recs: Invalid student DOB format");
+            return [];
+        }
+    } catch (Exception $e) {
+        error_log("Course Recs: Error calculating age: " . $e->getMessage());
         return [];
     }
 
@@ -1507,11 +1428,44 @@ function get_division_course_recommendations($student_data, $division_type) {
 
     // Determine if student needs age-up recommendations
     $needsAgeUp = determine_age_up_need($studentAge, $ageAtLastPurchase, $course);
-
-    // For IPC recommendations, if student needs age-up and is 13+, switch to iDTA
-    if ($division_type === 'ipc' && $needsAgeUp && $studentAge >= 13) {
-        $toDivision = 'idta';
+    
+    // Set the toDivision based on the fromDivision for ipc
+    if ($division_type === 'ipc') {
+        $fromDivisionId = $latestPurchase['shoppingCartItems_divisionId'];
+        
+        // If it was an iDTA purchase (division 22), use the same division
+        if ($fromDivisionId == 22) {
+            $toDivision = 'idta';
+            // Even for iDTA, still check if they need age-up recommendations within the academy age ranges
+            // This handles the case if they were on the younger end of iDTA and have aged up within the academy age range
+        } 
+        // If it was an iDTC purchase (division 25)
+        else if ($fromDivisionId == 25) {
+            // If student is now 13+ and previously wasn't, they can get recommendations from both divisions
+            // For 'ipc' division type, prefer the same division they had before unless age-up is needed
+            if ($studentAge >= 13 && $ageAtLastPurchase < 13) {
+                // Student has crossed the 13+ threshold, can now take both camps and academies
+                // We'll try to get recommendations from both divisions
+                // Check if there are idta recommendations for this course
+                $idta_recs = get_course_recommendations($course, 'idta', true);
+                if (!empty($idta_recs)) {
+                    $toDivision = 'idta';
+                } else {
+                    // Default back to camps if no academy recommendations available
+                    $toDivision = 'idtc';
+                }
+            } else {
+                // Student hasn't crossed a major age threshold, stay with camps
+                $toDivision = 'idtc';
+            }
+        }
+    } else {
+        // For specific division types (idtc, idta, etc.), the toDivision is already set
+        // Just make sure age-up is calculated correctly
+        $needsAgeUp = determine_age_up_need($studentAge, $ageAtLastPurchase, $course);
     }
+
+    error_log("Course Recs: Using toDivision: $toDivision, needsAgeUp: " . ($needsAgeUp ? 'true' : 'false'));
 
     // Check timeout
     if ((microtime(true) - $start_time) > $timeout_seconds) {
@@ -1524,8 +1478,24 @@ function get_division_course_recommendations($student_data, $division_type) {
         $recommendations = get_course_recommendations($course, $toDivision, $needsAgeUp);
 
         if (empty($recommendations)) {
-            error_log("Course Recs: No recommendations found for course ID " . $latestPurchase['shoppingCartItems_id']);
-            return [];
+            error_log("Course Recs: No recommendations found for course ID " . $latestPurchase['shoppingCartItems_id'] . " with toDivision: $toDivision");
+            
+            // If we're in ipc mode and no recommendations found, try the other division
+            if ($division_type === 'ipc') {
+                $alternateToDivision = ($toDivision === 'idta') ? 'idtc' : 'idta';
+                
+                // Only try idta if student is 13+
+                if ($alternateToDivision === 'idta' && $studentAge < 13) {
+                    error_log("Course Recs: Student is under 13, skipping idta alternate recommendations");
+                } else {
+                    error_log("Course Recs: Trying alternate toDivision: $alternateToDivision");
+                    $recommendations = get_course_recommendations($course, $alternateToDivision, $needsAgeUp);
+                }
+            }
+            
+            if (empty($recommendations)) {
+                return [];
+            }
         }
     } catch (Exception $e) {
         error_log("Course Recs: Error getting recommendations: " . $e->getMessage());
