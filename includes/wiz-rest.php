@@ -148,27 +148,121 @@ function determine_age_up_need($studentAge, $ageAtLastPurchase, $course)
 function get_course_recommendations($course, $toDivision, $needsAgeUp)
 {
     $courseRecs = unserialize($course->course_recs);
-    $recKey = $needsAgeUp && !in_array($toDivision, ['opl', 'ota', 'idta']) ? $toDivision . '_ageup' : $toDivision;
-
-    if (!isset($courseRecs[$recKey]) || !is_array($courseRecs[$recKey]) || empty($courseRecs[$recKey])) {
-        return [];
-    }
-
-    $recommendations = [];
-    foreach ($courseRecs[$recKey] as $recCourseId) {
-        $recCourse = get_course_details_by_id($recCourseId);
-        if (!is_wp_error($recCourse)) {
-            $recommendations[] = [
-                'id' => $recCourse->id,
-                'title' => $recCourse->title,
-                'abbreviation' => $recCourse->abbreviation,
-                'minAge' => $recCourse->minAge,
-                'maxAge' => $recCourse->maxAge,
-                'courseUrl' => $recCourse->courseUrl
-            ];
+    
+    // Debug log to see what's in the course_recs array
+    error_log("Course Recs: Course ID {$course->id} has mappings: " . implode(', ', array_keys($courseRecs ?? [])));
+    
+    // If this is a request for 'ipc' (in-person courses that could be either idtc or idta)
+    if ($toDivision === 'ipc') {
+        // Check for explicit 'ipc' mapping first
+        $recommendations = [];
+        
+        if (isset($courseRecs['ipc']) && is_array($courseRecs['ipc']) && !empty($courseRecs['ipc'])) {
+            error_log("Course Recs: Found " . count($courseRecs['ipc']) . " recommendations for ipc");
+            
+            // Debug: See actual course IDs in the mapping
+            error_log("Course Recs: IPC mapping contains courses: " . implode(', ', $courseRecs['ipc']));
+            
+            // Check if course 536 is in the mapping
+            if (in_array(536, $courseRecs['ipc'])) {
+                error_log("Course Recs: Course 536 IS found in the IPC mapping");
+            } else {
+                error_log("Course Recs: Course 536 is NOT found in the IPC mapping");
+            }
+            
+            foreach ($courseRecs['ipc'] as $recCourseId) {
+                $recCourse = get_course_details_by_id($recCourseId);
+                if (!is_wp_error($recCourse)) {
+                    $recommendations[] = [
+                        'id' => $recCourse->id,
+                        'title' => $recCourse->title,
+                        'abbreviation' => $recCourse->abbreviation,
+                        'minAge' => $recCourse->minAge,
+                        'maxAge' => $recCourse->maxAge,
+                        'courseUrl' => $recCourse->courseUrl
+                    ];
+                }
+            }
         }
+        
+        return $recommendations;
     }
-    return $recommendations;
+    // If we're looking for iDTA or iDTC recommendations
+    else if ($toDivision === 'idta' || $toDivision === 'idtc') {
+        // For students 13+, we want to check both iDTC and iDTA mappings
+        $recommendations = [];
+        
+        // Primary recommendation key (the one requested)
+        $primaryKey = $needsAgeUp && $toDivision === 'idtc' ? $toDivision . '_ageup' : $toDivision;
+        
+        // First check the primary division
+        if (isset($courseRecs[$primaryKey]) && is_array($courseRecs[$primaryKey]) && !empty($courseRecs[$primaryKey])) {
+            error_log("Course Recs: Found " . count($courseRecs[$primaryKey]) . " recommendations for key $primaryKey");
+            
+            // Debug: See actual course IDs in the mapping
+            error_log("Course Recs: $primaryKey mapping contains courses: " . implode(', ', $courseRecs[$primaryKey]));
+            
+            // Check if course 536 is in the mapping
+            if (in_array(536, $courseRecs[$primaryKey])) {
+                error_log("Course Recs: Course 536 IS found in the $primaryKey mapping");
+            } else {
+                error_log("Course Recs: Course 536 is NOT found in the $primaryKey mapping");
+            }
+            
+            foreach ($courseRecs[$primaryKey] as $recCourseId) {
+                $recCourse = get_course_details_by_id($recCourseId);
+                if (!is_wp_error($recCourse)) {
+                    $recommendations[] = [
+                        'id' => $recCourse->id,
+                        'title' => $recCourse->title,
+                        'abbreviation' => $recCourse->abbreviation,
+                        'minAge' => $recCourse->minAge,
+                        'maxAge' => $recCourse->maxAge,
+                        'courseUrl' => $recCourse->courseUrl
+                    ];
+                }
+            }
+        }
+        
+        return $recommendations;
+    }
+    // For specific division type requests or non-in-person courses (or when needing age up)
+    else {
+        $recKey = $needsAgeUp && !in_array($toDivision, ['opl', 'ota', 'idta']) ? $toDivision . '_ageup' : $toDivision;
+        
+        if (!isset($courseRecs[$recKey]) || !is_array($courseRecs[$recKey]) || empty($courseRecs[$recKey])) {
+            error_log("Course Recs: No recommendations found for key $recKey");
+            return [];
+        }
+        
+        error_log("Course Recs: Found " . count($courseRecs[$recKey]) . " recommendations for key $recKey");
+        
+        // Debug: See actual course IDs in the mapping
+        error_log("Course Recs: $recKey mapping contains courses: " . implode(', ', $courseRecs[$recKey]));
+        
+        // Check if course 536 is in the mapping
+        if (in_array(536, $courseRecs[$recKey])) {
+            error_log("Course Recs: Course 536 IS found in the $recKey mapping");
+        } else {
+            error_log("Course Recs: Course 536 is NOT found in the $recKey mapping");
+        }
+        
+        $recommendations = [];
+        foreach ($courseRecs[$recKey] as $recCourseId) {
+            $recCourse = get_course_details_by_id($recCourseId);
+            if (!is_wp_error($recCourse)) {
+                $recommendations[] = [
+                    'id' => $recCourse->id,
+                    'title' => $recCourse->title,
+                    'abbreviation' => $recCourse->abbreviation,
+                    'minAge' => $recCourse->minAge,
+                    'maxAge' => $recCourse->maxAge,
+                    'courseUrl' => $recCourse->courseUrl
+                ];
+            }
+        }
+        return $recommendations;
+    }
 }
 
 function create_error_response($message, $code = 400)
@@ -467,6 +561,13 @@ function process_preset_value($preset_name, $student_data) {
                 return $loc['id'];
             }, $nearby_data['locations']);
             
+            // Check for location 49 specifically
+            if (in_array(49, $location_ids)) {
+                error_log("Location Recs: Location ID 49 is in the nearby locations list");
+            } else {
+                error_log("Location Recs: Location ID 49 is NOT in the nearby locations list");
+            }
+            
             // Get course data for all locations, including sessionWeeks
             $location_courses = $wpdb->get_results(
                 $wpdb->prepare(
@@ -486,6 +587,18 @@ function process_preset_value($preset_name, $student_data) {
                 if (!empty($courses) && is_array($courses)) {
                     $location_courses_map[$loc['id']] = $courses;
                     error_log("Location Recs: Location ID {$loc['id']} has " . count($courses) . " courses");
+                    
+                    // Check location 49 specifically
+                    if ($loc['id'] == 49) {
+                        error_log("Location Recs: Location ID 49 courses: " . implode(', ', $courses));
+                        
+                        // Check if course 536 is available at location 49
+                        if (in_array(536, $courses)) {
+                            error_log("Location Recs: Course 536 IS available at location ID 49");
+                        } else {
+                            error_log("Location Recs: Course 536 is NOT available at location ID 49");
+                        }
+                    }
                 } else {
                     error_log("Location Recs: Location ID {$loc['id']} has no courses");
                 }
@@ -522,6 +635,13 @@ function process_preset_value($preset_name, $student_data) {
             }, $course_recs['recs']);
             
             error_log("Location Recs: Recommended course IDs: " . implode(', ', $course_ids));
+            
+            // Check if course 536 is in the recommendations
+            if (in_array(536, $course_ids)) {
+                error_log("Location Recs: Course 536 IS in the recommendations");
+            } else {
+                error_log("Location Recs: Course 536 is NOT in the recommendations");
+            }
             
             // Fetch course details to determine if each is a camp or academy
             $course_details = [];
@@ -562,6 +682,17 @@ function process_preset_value($preset_name, $student_data) {
                     // Log available courses at this location
                     if (isset($location_courses_map[$loc_id])) {
                         error_log("Location Recs: Location ID $loc_id has courses: " . implode(', ', $location_courses_map[$loc_id]));
+                        
+                        // Special check for location 49
+                        if ($loc_id == 49) {
+                            foreach ($course_ids as $rec_id) {
+                                if (in_array($rec_id, $location_courses_map[$loc_id])) {
+                                    error_log("Location Recs: Recommended course $rec_id IS available at location ID 49");
+                                } else {
+                                    error_log("Location Recs: Recommended course $rec_id is NOT available at location ID 49");
+                                }
+                            }
+                        }
                     } else {
                         error_log("Location Recs: Location ID $loc_id has no courses in map");
                     }
@@ -578,6 +709,14 @@ function process_preset_value($preset_name, $student_data) {
                     
                     if (!empty($location_specific_recs)) {
                         error_log("Location Recs: Found " . count($location_specific_recs) . " recommendations for location ID $loc_id");
+                        
+                        // Log specific recommendations for location 49
+                        if ($loc_id == 49) {
+                            $loc49_rec_ids = array_map(function($rec) {
+                                return $rec['id'];
+                            }, $location_specific_recs);
+                            error_log("Location Recs: Location ID 49 has specific recommendations: " . implode(', ', $loc49_rec_ids));
+                        }
                         
                         // Add sessionWeeks to each recommendation
                         foreach ($location_specific_recs as &$rec) {
@@ -642,7 +781,7 @@ function get_most_recent_purchase_date($student_data) {
 /**
  * Gets course recommendations for a student between fiscal years
  */
-function get_course_recommendations_between_fiscal_years($student_data, $from_fiscal_year, $to_fiscal_year) {
+function get_course_recommendations_between_fiscal_years($student_data, $from_fiscal_year, $to_fiscal_year, $division = null) {
     global $wpdb;
     
     // Get student account number from the data
@@ -666,7 +805,27 @@ function get_course_recommendations_between_fiscal_years($student_data, $from_fi
     
     $from_dates = $fiscal_years[$from_fiscal_year];
     
-    error_log("Course Recs: Searching for purchases between {$from_dates['start']} and {$from_dates['end']} for student $student_account_number");
+    // Define division IDs based on division parameter
+    $divisionIds = [];
+    if ($division === 'idtc') {
+        $divisionIds = [25]; // iD Tech Camps
+    } else if ($division === 'idta') {
+        $divisionIds = [22]; // iD Teen Academy
+    } else if ($division === 'vtc') {
+        $divisionIds = [42]; // Virtual Tech Camps
+    } else if ($division === 'ota') {
+        $divisionIds = [47]; // Online Teen Academy
+    } else if ($division === 'opl') {
+        $divisionIds = [41]; // Online Private Lessons
+    } else if ($division === 'ipc') {
+        $divisionIds = [22, 25]; // Both iDTA and iDTC for in-person courses
+    } else {
+        // If no division specified, include all divisions
+        $divisionIds = [22, 25, 42, 47, 41];
+    }
+    
+    $divisionString = implode(', ', $divisionIds);
+    error_log("Course Recs: Searching for purchases between {$from_dates['start']} and {$from_dates['end']} for student $student_account_number in divisions: $divisionString");
     
     // Get the student's most recent purchase within the FROM fiscal year
     $latestPurchase = $wpdb->get_row(
@@ -675,7 +834,7 @@ function get_course_recommendations_between_fiscal_years($student_data, $from_fi
             FROM {$wpdb->prefix}idemailwiz_purchases p
             JOIN {$wpdb->prefix}idemailwiz_userfeed uf ON p.shoppingCartItems_studentAccountNumber = uf.studentAccountNumber
             WHERE p.shoppingCartItems_studentAccountNumber = %s 
-            AND p.shoppingCartItems_divisionId IN (22, 25)
+            AND p.shoppingCartItems_divisionId IN ($divisionString)
             AND p.purchaseDate BETWEEN %s AND %s
             ORDER BY p.purchaseDate DESC 
             LIMIT 1",
@@ -687,11 +846,11 @@ function get_course_recommendations_between_fiscal_years($student_data, $from_fi
     );
 
     if (!$latestPurchase) {
-        error_log("Course Recs: No purchases found for student $student_account_number in $from_fiscal_year");
+        error_log("Course Recs: No purchases found for student $student_account_number in $from_fiscal_year for specified divisions");
         return [];
     }
 
-    error_log("Course Recs: Found purchase from " . $latestPurchase['purchaseDate'] . " for course ID " . $latestPurchase['shoppingCartItems_id']);
+    error_log("Course Recs: Found purchase from " . $latestPurchase['purchaseDate'] . " for course ID " . $latestPurchase['shoppingCartItems_id'] . " in division " . $latestPurchase['shoppingCartItems_divisionName']);
 
     // Get the course details
     $course = get_course_details_by_id($latestPurchase['shoppingCartItems_id']);
@@ -720,15 +879,33 @@ function get_course_recommendations_between_fiscal_years($student_data, $from_fi
     // Determine if student needs age-up recommendations
     $needsAgeUp = determine_age_up_need($studentAge, $ageAtLastPurchase, $course);
 
-    // Get recommendations based on the student's current division
-    $fromDivision = $latestPurchase['shoppingCartItems_divisionId'] == 25 ? 'idtc' : 'idta';
-    $toDivision = $fromDivision; // Keep same division for recommendations
+    // Get recommendations based on the student's current division or specified division
+    $fromDivision = '';
+    $toDivision = '';
+    
+    // Map the division ID to string representation
+    if ($latestPurchase['shoppingCartItems_divisionId'] == 25) {
+        $fromDivision = 'idtc';
+    } else if ($latestPurchase['shoppingCartItems_divisionId'] == 22) {
+        $fromDivision = 'idta';
+    } else if ($latestPurchase['shoppingCartItems_divisionId'] == 42) {
+        $fromDivision = 'vtc';
+    } else if ($latestPurchase['shoppingCartItems_divisionId'] == 47) {
+        $fromDivision = 'ota';
+    } else if ($latestPurchase['shoppingCartItems_divisionId'] == 41) {
+        $fromDivision = 'opl';
+    }
+    
+    // Use the specified division if provided, otherwise use the from division
+    $toDivision = $division ?? $fromDivision;
+    
+    error_log("Course Recs: Getting recommendations from division $fromDivision to division $toDivision");
 
     // Get course recommendations
     $recommendations = get_course_recommendations($course, $toDivision, $needsAgeUp);
 
     if (empty($recommendations)) {
-        error_log("Course Recs: No recommendations found for course ID " . $latestPurchase['shoppingCartItems_id']);
+        error_log("Course Recs: No recommendations found for course ID " . $latestPurchase['shoppingCartItems_id'] . " to division $toDivision");
         return [];
     }
 
@@ -744,6 +921,8 @@ function get_course_recommendations_between_fiscal_years($student_data, $from_fi
             'id' => $rec['id'],
             'title' => $rec['title'],
             'abbreviation' => $rec['abbreviation'],
+            'minAge' => $rec['minAge'],
+            'maxAge' => $rec['maxAge'],
             'age_range' => $rec['minAge'] . '-' . $rec['maxAge'],
             'url' => $rec['courseUrl'] ?? ''
         ];
@@ -1324,279 +1503,150 @@ function idwiz_get_user_data_for_preview() {
 /**
  * Gets course recommendations for a specific division
  */
-function get_division_course_recommendations($student_data, $division_type) {
-    global $wpdb;
+function get_division_course_recommendations($student_data, $division)
+{
+    error_log("Course Recs: Looking for $division recommendations for student {$student_data['studentAccountNumber']}");
     
-    // Add timeout protection
-    $start_time = microtime(true);
-    $timeout_seconds = 5; // Set a reasonable timeout limit
+    // Get student age
+    $student_age = get_student_age($student_data);
     
-    // Get student account number from the data
-    $student_account_number = $student_data['studentAccountNumber'];
-    if (!$student_account_number) {
-        error_log("Course Recs: No student account number found");
-        return [];
-    }
+    error_log("Course Recs: Student age is $student_age");
     
-    // Define current fiscal year
-    $current_date = new DateTime();
-    $year = $current_date->format('Y');
-    $month = $current_date->format('n');
+    // Default to current fiscal year
+    $current_month = date('n');
+    $current_year = date('Y');
+    $fiscal_year = $current_month >= 11 ? 'fy' . ($current_year + 1) : 'fy' . $current_year;
+    $from_fiscal_year = 'fy' . ($current_year - 1);
     
-    // For any date from November through October, the fiscal year is the next calendar year
-    // So March 2025 is in FY2025 (which runs 11/1/2024 - 10/31/2025)
-    $current_fy_year = ($month >= 11) ? $year + 1 : $year;
+    // Check if student should receive age-up recommendation
+    $needs_age_up = false;
     
-    $current_fy = 'fy' . substr($current_fy_year, -2);
-    $current_fy_start = new DateTime(($current_fy_year - 1) . '-11-01');
-    $current_fy_end = new DateTime($current_fy_year . '-10-31');
-    
-    error_log("Course Recs: Current fiscal year is $current_fy ({$current_fy_start->format('Y-m-d')} to {$current_fy_end->format('Y-m-d')})");
-    
-    // Define division IDs based on division type
-    $fromDivisionIds = [];
-    $toDivision = '';
-    
-    switch($division_type) {
-        case 'ipc':
-            $fromDivisionIds = [22, 25]; // Both iDTA and iDTC
-            $toDivision = ''; // Will be set dynamically based on fromDivision and age
-            break;
-        case 'idtc':
-            $fromDivisionIds = [25];
-            $toDivision = 'idtc';
-            break;
-        case 'idta':
-            $fromDivisionIds = [22];
-            $toDivision = 'idta';
-            break;
-        case 'vtc':
-            $fromDivisionIds = [42];
-            $toDivision = 'vtc';
-            break;
-        case 'ota':
-            $fromDivisionIds = [47];
-            $toDivision = 'ota';
-            break;
-        case 'opl':
-            $fromDivisionIds = [41];
-            $toDivision = 'opl';
-            break;
-        default:
-            error_log("Course Recs: Invalid division type: $division_type");
-            return [];
-    }
-    
-    // Check timeout
-    if ((microtime(true) - $start_time) > $timeout_seconds) {
-        error_log("Course Recs: Timeout exceeded before database query for student $student_account_number");
-        return [];
-    }
-    
-    try {
-        // Get the student's most recent purchase from the previous fiscal year
-        $prev_fy_start = new DateTime(($current_fy_year - 2) . '-11-01');
-        $prev_fy_end = new DateTime(($current_fy_year - 1) . '-10-31');
+    // Division-specific logic
+    if ($division === 'ipc') {
+        // For in-person courses, first check for direct IPC recommendations
+        error_log("Course Recs: Checking for direct IPC recommendations first");
         
-        error_log("Course Recs: Looking for purchases between {$prev_fy_start->format('Y-m-d')} and {$prev_fy_end->format('Y-m-d')}");
-        
-        $latestPurchase = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT p.*, uf.studentDOB 
-                FROM {$wpdb->prefix}idemailwiz_purchases p
-                JOIN {$wpdb->prefix}idemailwiz_userfeed uf ON p.shoppingCartItems_studentAccountNumber = uf.studentAccountNumber
-                WHERE p.shoppingCartItems_studentAccountNumber = %s 
-                AND p.shoppingCartItems_divisionId IN (" . implode(',', $fromDivisionIds) . ")
-                AND p.purchaseDate BETWEEN %s AND %s
-                ORDER BY p.purchaseDate DESC 
-                LIMIT 1",
-                $student_account_number,
-                $prev_fy_start->format('Y-m-d'),
-                $prev_fy_end->format('Y-m-d')
-            ),
-            ARRAY_A
-        );
-    } catch (Exception $e) {
-        error_log("Course Recs: Database error when getting purchase data: " . $e->getMessage());
-        return [];
-    }
-
-    if (!$latestPurchase) {
-        error_log("Course Recs: No previous purchases found for student $student_account_number");
-        return [];
-    }
-
-    error_log("Course Recs: Found purchase from " . $latestPurchase['purchaseDate'] . " for course ID " . $latestPurchase['shoppingCartItems_id']);
-
-    // Check timeout
-    if ((microtime(true) - $start_time) > $timeout_seconds) {
-        error_log("Course Recs: Timeout exceeded before course details for student $student_account_number");
-        return [];
-    }
-    
-    try {
-        // Get the course details
-        $course = get_course_details_by_id($latestPurchase['shoppingCartItems_id']);
-        if (is_wp_error($course) || !isset($course->course_recs)) {
-            error_log("Course Recs: Failed to get course details for ID " . $latestPurchase['shoppingCartItems_id']);
-            return [];
-        }
-    } catch (Exception $e) {
-        error_log("Course Recs: Error getting course details: " . $e->getMessage());
-        return [];
-    }
-
-    // Calculate student age and age at last purchase using DOB from the joined query
-    $studentDOB = $latestPurchase['studentDOB'];
-    if (!$studentDOB) {
-        error_log("Course Recs: No DOB found for student");
-        return [];
-    }
-
-    try {
-        $studentAge = calculate_student_age($studentDOB);
-        $ageAtLastPurchase = calculate_age_at_purchase($studentDOB, $latestPurchase['purchaseDate']);
-
-        if ($studentAge === false) {
-            error_log("Course Recs: Invalid student DOB format");
-            return [];
-        }
-    } catch (Exception $e) {
-        error_log("Course Recs: Error calculating age: " . $e->getMessage());
-        return [];
-    }
-
-    error_log("Course Recs: Student age: $studentAge, Age at last purchase: $ageAtLastPurchase, Division: " . $latestPurchase['shoppingCartItems_divisionId']);
-
-    // Determine if student needs age-up recommendations
-    $needsAgeUp = determine_age_up_need($studentAge, $ageAtLastPurchase, $course);
-    $fromDivisionId = $latestPurchase['shoppingCartItems_divisionId'];
-    
-    // For ipc requests, collect ALL recommendations
-    if ($division_type === 'ipc') {
-        $allRecommendations = [];
-        
-        // If student is 13+, they can take both camps and academies
-        if ($studentAge >= 13) {
-            error_log("Course Recs: Student is 13+, eligible for both camps and academies");
+        // For students 13+, first try iDTA recommendations (if they had previous idta purchases)
+        if ($student_age >= 13) {
+            error_log("Course Recs: Student is 13+, checking for direct IPC recommendations");
+            $ipc_recs = get_course_recommendations_between_fiscal_years($student_data, $from_fiscal_year, $fiscal_year, 'ipc');
             
-            // Try to get iDTA recommendations
-            $idta_recs = get_course_recommendations($course, 'idta', $needsAgeUp);
-            if (!empty($idta_recs)) {
-                $allRecommendations = array_merge($allRecommendations, $idta_recs);
-                error_log("Course Recs: Found " . count($idta_recs) . " iDTA recommendations");
+            if (!empty($ipc_recs['recs'])) {
+                error_log("Course Recs: Found " . count($ipc_recs['recs']) . " direct IPC recommendations");
+                return $ipc_recs;
             }
             
-            // Also try to get iDTC recommendations (always get these even if they had an iDTA purchase)
-            $idtc_recs = get_course_recommendations($course, 'idtc', $needsAgeUp);
-            if (!empty($idtc_recs)) {
-                $allRecommendations = array_merge($allRecommendations, $idtc_recs);
-                error_log("Course Recs: Found " . count($idtc_recs) . " iDTC recommendations");
+            // Try iDTA recommendations
+            error_log("Course Recs: No direct IPC recommendations, checking for iDTA recommendations");
+            $idta_recs = get_course_recommendations_between_fiscal_years($student_data, $from_fiscal_year, $fiscal_year, 'idta');
+            
+            if (!empty($idta_recs['recs'])) {
+                error_log("Course Recs: Found " . count($idta_recs['recs']) . " iDTA recommendations");
+                
+                // Log the actual recommendation course IDs
+                $rec_ids = array_map(function($rec) {
+                    return $rec['id'];
+                }, $idta_recs['recs']);
+                error_log("Course Recs: iDTA recommendation course IDs: " . implode(', ', $rec_ids));
+                
+                return $idta_recs;
             }
-        } 
-        // If student is under 13, they can only take camps
+            
+            // Also try iDTC recommendations regardless of previous purchases
+            error_log("Course Recs: Also checking for iDTC recommendations");
+            $idtc_recs = get_course_recommendations_between_fiscal_years($student_data, $from_fiscal_year, $fiscal_year, 'idtc');
+            
+            if (!empty($idtc_recs['recs'])) {
+                error_log("Course Recs: Found " . count($idtc_recs['recs']) . " iDTC recommendations");
+                
+                // Log the actual recommendation course IDs
+                $rec_ids = array_map(function($rec) {
+                    return $rec['id'];
+                }, $idtc_recs['recs']);
+                error_log("Course Recs: iDTC recommendation course IDs: " . implode(', ', $rec_ids));
+                
+                return $idtc_recs;
+            }
+        }
+        // For students under 13, check IPC recommendations (filter out any with min age 13+)
         else {
-            error_log("Course Recs: Student is under 13, only eligible for camps");
-            $idtc_recs = get_course_recommendations($course, 'idtc', $needsAgeUp);
-            if (!empty($idtc_recs)) {
-                $allRecommendations = array_merge($allRecommendations, $idtc_recs);
-                error_log("Course Recs: Found " . count($idtc_recs) . " iDTC recommendations");
+            error_log("Course Recs: Student is under 13, checking for IPC recommendations");
+            $ipc_recs = get_course_recommendations_between_fiscal_years($student_data, $from_fiscal_year, $fiscal_year, 'ipc');
+            
+            if (!empty($ipc_recs['recs'])) {
+                // Filter out any recommendations with minAge >= 13
+                $filtered_recs = array_filter($ipc_recs['recs'], function($rec) {
+                    return $rec['minAge'] < 13;
+                });
+                
+                if (!empty($filtered_recs)) {
+                    $ipc_recs['recs'] = array_values($filtered_recs);
+                    error_log("Course Recs: Found " . count($ipc_recs['recs']) . " appropriate IPC recommendations for under 13");
+                    
+                    // Log the actual recommendation course IDs
+                    $rec_ids = array_map(function($rec) {
+                        return $rec['id'];
+                    }, $ipc_recs['recs']);
+                    error_log("Course Recs: IPC recommendation course IDs: " . implode(', ', $rec_ids));
+                    
+                    return $ipc_recs;
+                }
+            }
+            
+            // Default to iDTC recommendations for under 13
+            error_log("Course Recs: Checking for iDTC recommendations for under 13");
+            $idtc_recs = get_course_recommendations_between_fiscal_years($student_data, $from_fiscal_year, $fiscal_year, 'idtc');
+            
+            if (!empty($idtc_recs['recs'])) {
+                error_log("Course Recs: Found " . count($idtc_recs['recs']) . " iDTC recommendations");
+                
+                // Log the actual recommendation course IDs
+                $rec_ids = array_map(function($rec) {
+                    return $rec['id'];
+                }, $idtc_recs['recs']);
+                error_log("Course Recs: iDTC recommendation course IDs: " . implode(', ', $rec_ids));
+                
+                return $idtc_recs;
             }
         }
         
-        // If we don't have any recommendations at all, log this and return empty
-        if (empty($allRecommendations)) {
-            error_log("Course Recs: No recommendations found for course ID " . $latestPurchase['shoppingCartItems_id']);
-            return [];
-        }
-        
-        error_log("Course Recs: Found a total of " . count($allRecommendations) . " recommendations");
-        
-        // Limit to 3 recommendations and format for Iterable
-        $formattedRecs = [];
-        $count = 0;
-        foreach ($allRecommendations as $rec) {
-            if ($count >= 3) break;
-            
-            $formattedRecs[] = [
-                'id' => $rec['id'],
-                'title' => $rec['title'],
-                'abbreviation' => $rec['abbreviation'],
-                'age_range' => $rec['minAge'] . '-' . $rec['maxAge'],
-                'url' => $rec['courseUrl'] ?? ''
-            ];
-            $count++;
-        }
-    } 
-    // For specific division requests (idtc, idta, etc.)
+        // If we get here, no recommendations were found
+        error_log("Course Recs: No IPC recommendations found");
+        return [
+            'from_fiscal_year' => $from_fiscal_year,
+            'to_fiscal_year' => $fiscal_year,
+            'student_age' => $student_age,
+            'age_up' => $needs_age_up,
+            'recs' => []
+        ];
+    }
+    // For division-specific recommendations (idta, idtc, etc.)
     else {
-        // Get course recommendations for the specific division
-        $recommendations = get_course_recommendations($course, $toDivision, $needsAgeUp);
-        
-        if (empty($recommendations)) {
-            error_log("Course Recs: No recommendations found for course ID " . $latestPurchase['shoppingCartItems_id'] . " with toDivision: $toDivision");
-            return [];
+        // Division-specific age checks
+        if (($division === 'idta' || $division === 'ota') && $student_age < 13) {
+            error_log("Course Recs: Student too young for $division recommendations");
+            $needs_age_up = true;
+        } else if ($division === 'idtc' && $student_age >= 18) {
+            error_log("Course Recs: Student too old for $division recommendations");
+            $needs_age_up = true;
         }
         
-        error_log("Course Recs: Found " . count($recommendations) . " recommendations for $toDivision");
+        $recommendations = get_course_recommendations_between_fiscal_years($student_data, $from_fiscal_year, $fiscal_year, $division);
         
-        // Limit to 3 recommendations and format for Iterable
-        $formattedRecs = [];
-        $count = 0;
-        foreach ($recommendations as $rec) {
-            if ($count >= 3) break;
-            
-            $formattedRecs[] = [
-                'id' => $rec['id'],
-                'title' => $rec['title'],
-                'abbreviation' => $rec['abbreviation'],
-                'age_range' => $rec['minAge'] . '-' . $rec['maxAge'],
-                'url' => $rec['courseUrl'] ?? ''
-            ];
-            $count++;
+        // Add age-up flag
+        $recommendations['age_up'] = $needs_age_up;
+        $recommendations['student_age'] = $student_age;
+        
+        if (!empty($recommendations['recs'])) {
+            // Log the actual recommendation course IDs
+            $rec_ids = array_map(function($rec) {
+                return $rec['id'];
+            }, $recommendations['recs']);
+            error_log("Course Recs: $division recommendation course IDs: " . implode(', ', $rec_ids));
         }
+        
+        return $recommendations;
     }
-    
-    // Only return data if we actually have recommendations
-    if (empty($formattedRecs)) {
-        return [];
-    }
-
-    // Get fiscal year info for the last purchase
-    $purchase_date = new DateTime($latestPurchase['purchaseDate']);
-    $purchase_year = $purchase_date->format('Y');
-    $purchase_month = $purchase_date->format('n');
-    
-    // Determine the fiscal year of the purchase
-    if ($purchase_month >= 11) {
-        $purchase_fy_year = $purchase_year + 1;
-    } else {
-        $purchase_fy_year = $purchase_year;
-    }
-    
-    $from_fiscal_year = 'fy' . substr($purchase_fy_year, -2);
-    // We already calculated the current fiscal year above
-    $to_fiscal_year = $current_fy;
-
-    return [
-        'recs' => $formattedRecs,
-        'total_count' => count($formattedRecs),
-        'age_up' => $needsAgeUp,
-        'student_age' => $studentAge,
-        'from_fiscal_year' => $from_fiscal_year,
-        'to_fiscal_year' => $to_fiscal_year,
-        'last_purchase' => [
-            'date' => $latestPurchase['purchaseDate'],
-            'course_id' => $latestPurchase['shoppingCartItems_id'],
-            'course_name' => $course->title,
-            'abbreviation' => $course->abbreviation,
-            'age_range' => $course->minAge . '-' . $course->maxAge,
-            'courseUrl' => $course->courseUrl ?? '',
-            'division' => $latestPurchase['shoppingCartItems_divisionName'],
-            'division_id' => $latestPurchase['shoppingCartItems_divisionId'],
-            'location' => $latestPurchase['shoppingCartItems_locationName'] ?? null
-        ]
-    ];
 }
 
 // Add an AJAX endpoint to get available presets
