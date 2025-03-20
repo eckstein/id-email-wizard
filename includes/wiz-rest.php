@@ -504,7 +504,7 @@ function process_preset_value($preset_name, $student_data) {
             if (!empty($course_ids)) {
                 $course_data = $wpdb->get_results(
                     $wpdb->prepare(
-                        "SELECT id, title, abbreviation 
+                        "SELECT id, title, abbreviation, division_id 
                          FROM {$wpdb->prefix}idemailwiz_courses 
                          WHERE id IN (" . implode(',', array_fill(0, count($course_ids), '%d')) . ")",
                         $course_ids
