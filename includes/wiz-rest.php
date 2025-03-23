@@ -1318,8 +1318,22 @@ function idwiz_endpoint_handler($request) {
     header('X-Accel-Buffering: no'); // Disable nginx buffering
     header('Content-Type: application/json');
     
-    // Track and log request rate
+    // Track and log request rate with backoff
     $current_rate = idwiz_track_request_rate();
+    if ($current_rate > 40) {
+        // Add a small delay based on current request rate
+        $delay = min(500000, ($current_rate - 40) * 10000); // microseconds (max 500ms)
+        usleep($delay);
+    }
+    
+    // Get a new database connection for this request
+    global $wpdb;
+    if (isset($wpdb->dbh)) {
+        // Close existing connection if any
+        mysqli_close($wpdb->dbh);
+    }
+    // Reconnect with a new connection
+    $wpdb->db_connect();
     
     $route = $request->get_route();
     $endpoint = str_replace('/idemailwiz/v1', '', $route);
@@ -1338,8 +1352,6 @@ function idwiz_endpoint_handler($request) {
     if (empty($account_number)) {
         return new WP_REST_Response(['error' => 'Account number is required'], 400);
     }
-
-    global $wpdb;
     
     // Optimize database queries by selecting only needed fields
     $needed_fields = ['studentAccountNumber', 'studentDOB'];
@@ -1421,7 +1433,7 @@ function idwiz_endpoint_handler($request) {
     $execution_time = round((microtime(true) - $start_time) * 1000);
     $data_size = strlen(json_encode($response_data));
     
-    error_log("ID Email Wiz REST API Success: Account Number=$account_number, Response Size=$data_size bytes, Execution Time={$execution_time}ms");
+    error_log("ID Email Wiz REST API Success: Account Number=$account_number, Response Size=$data_size bytes, Execution Time={$execution_time}ms, Request Rate={$current_rate}/min");
 
     return new WP_REST_Response([
         'endpoint' => $endpoint,
