@@ -308,6 +308,11 @@ function get_last_location($student_data) {
     if (!$location) {
         return null;
     }
+    
+    // Return null if this is Online Campus (ID 324)
+    if ($location->id == 324) {
+        return null;
+    }
 
     // Unserialize address if it exists
     $address = $location->address ? unserialize($location->address) : null;
@@ -549,20 +554,10 @@ function process_preset_value($preset_name, $student_data) {
             // Get nearby locations
             $nearby_data = get_nearby_locations($student_data);
             
-            // If no nearby locations, return empty array
+            // If no nearby locations, return null
             if (empty($nearby_data['locations'])) {
                 error_log("Location Recs: No nearby locations found");
-                return [
-                    'metadata' => [
-                        'total_courses' => 0,
-                        'total_locations' => count($nearby_data['locations']),
-                        'student_coordinates' => $nearby_data['student_coordinates'],
-                        'error' => 'No course recommendations found',
-                        'student_age' => get_student_age($student_data)
-                    ],
-                    'last_purchase' => null,
-                    'courses' => [] // Empty courses array
-                ];
+                return null;
             }
             
             error_log("Location Recs: Found " . count($nearby_data['locations']) . " nearby locations");
@@ -579,17 +574,7 @@ function process_preset_value($preset_name, $student_data) {
             
             if (empty($location_ids)) {
                 error_log("Location Recs: No valid locations found after filtering out Online Campus");
-                return [
-                    'metadata' => [
-                        'total_courses' => 0,
-                        'total_locations' => 0,
-                        'student_coordinates' => $nearby_data['student_coordinates'],
-                        'error' => 'No in-person locations available',
-                        'student_age' => get_student_age($student_data)
-                    ],
-                    'last_purchase' => null,
-                    'courses' => [] // Empty courses array
-                ];
+                return null;
             }
             
             // Get course data for all locations, including sessionWeeks
@@ -735,17 +720,7 @@ function process_preset_value($preset_name, $student_data) {
             // Check if we have any recommendations
             if (empty($all_recommendations)) {
                 error_log("Location Recs: No course recommendations found for student");
-                return [
-                    'metadata' => [
-                        'total_courses' => 0,
-                        'total_locations' => count($nearby_data['locations']),
-                        'student_coordinates' => $nearby_data['student_coordinates'],
-                        'error' => 'No course recommendations found',
-                        'student_age' => $student_age
-                    ],
-                    'last_purchase' => $last_purchase,
-                    'courses' => [] // Empty courses array
-                ];
+                return null;
             }
             
             error_log("Location Recs: Found " . count($all_recommendations) . " total course recommendations");
@@ -785,7 +760,7 @@ function process_preset_value($preset_name, $student_data) {
                 }
             }
             
-            // NEW APPROACH: Restructure data with courses as primary and locations nested inside
+            // Restructure data with courses as primary and locations nested inside
             $course_recs_with_locations = [];
             
             // Initialize course recommendations with empty locations array
@@ -1494,6 +1469,43 @@ function idwiz_endpoint_handler($request)
         } catch (Exception $e) {
             error_log("Error processing nearby_locations_with_course_recs: " . $e->getMessage());
             $presets['nearby_locations_with_course_recs'] = null;
+        }
+    }
+    
+    // Check if any required preset is null and return 404 if so
+    foreach ($required_presets as $preset) {
+        if (!isset($presets[$preset]) || $presets[$preset] === null) {
+            error_log("Required preset '$preset' is null for account number '$account_number'. Returning 404.");
+            return new WP_REST_Response(array(
+                'error' => "Required preset '$preset' is null",
+            ), 404);
+        }
+        
+        // Special check for empty arrays that should be considered null
+        if (is_array($presets[$preset]) && empty($presets[$preset])) {
+            // For 'nearby_locations', check if it has the expected structure but empty locations
+            if ($preset === 'nearby_locations' && isset($presets[$preset]['locations']) && empty($presets[$preset]['locations'])) {
+                error_log("Required preset '$preset' has empty locations for account number '$account_number'. Returning 404.");
+                return new WP_REST_Response(array(
+                    'error' => "Required preset '$preset' has empty locations",
+                ), 404);
+            }
+            // For course recommendations
+            else if (strpos($preset, '_course_recs') !== false && empty($presets[$preset])) {
+                error_log("Required preset '$preset' is empty for account number '$account_number'. Returning 404.");
+                return new WP_REST_Response(array(
+                    'error' => "Required preset '$preset' is empty",
+                ), 404);
+            }
+            // For nearby_locations_with_course_recs, check for empty courses
+            else if ($preset === 'nearby_locations_with_course_recs' && 
+                    (empty($presets[$preset]['courses']) || 
+                     $presets[$preset]['metadata']['total_courses'] === 0)) {
+                error_log("Required preset '$preset' has no valid courses for account number '$account_number'. Returning 404.");
+                return new WP_REST_Response(array(
+                    'error' => "Required preset '$preset' has no valid courses",
+                ), 404);
+            }
         }
     }
 
