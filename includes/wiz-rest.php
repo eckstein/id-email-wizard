@@ -1327,6 +1327,172 @@ function idwiz_track_request_rate() {
     return $requests_per_minute;
 }
 
+/**
+ * Process multiple preset values in an optimized batch
+ * This reduces the number of database queries by combining related presets
+ */
+function batch_process_preset_values($presets_to_process, $student_data) {
+    if (empty($presets_to_process)) {
+        return [];
+    }
+    
+    global $wpdb;
+    $results = [];
+    $student_account_number = $student_data['studentAccountNumber'];
+    
+    // Group related presets that can be processed together
+    $location_presets = array_intersect(['last_location', 'nearby_locations'], $presets_to_process);
+    $course_rec_presets = array_filter($presets_to_process, function($preset) {
+        return strpos($preset, 'course_recs') !== false;
+    });
+    $purchase_presets = array_intersect(['most_recent_purchase'], $presets_to_process);
+    
+    // Get location data if needed (in a single query)
+    if (!empty($location_presets)) {
+        // Get student's last location with one optimized query
+        $last_location_query = $wpdb->prepare(
+            "SELECT p.shoppingCartItems_locationName, l.id, l.name, l.locationStatus, l.address, l.locationUrl 
+            FROM {$wpdb->prefix}idemailwiz_purchases p
+            LEFT JOIN {$wpdb->prefix}idemailwiz_locations l ON p.shoppingCartItems_locationName = l.name
+            WHERE p.shoppingCartItems_studentAccountNumber = %s 
+            AND p.shoppingCartItems_locationName IS NOT NULL 
+            AND p.shoppingCartItems_locationName != ''
+            AND l.locationStatus IN ('Open', 'Registration opens soon')
+            AND l.id != 324
+            ORDER BY p.purchaseDate DESC 
+            LIMIT 1",
+            $student_account_number
+        );
+        
+        $location_data = $wpdb->get_row($last_location_query, ARRAY_A);
+        
+        if ($location_data) {
+            // Process the last location preset if requested
+            if (in_array('last_location', $presets_to_process)) {
+                $address = $location_data['address'] ? unserialize($location_data['address']) : null;
+                $url = !empty($location_data['locationUrl']) ? $location_data['locationUrl'] : null;
+                
+                $results['last_location'] = [
+                    'id' => $location_data['id'],
+                    'name' => $location_data['name'],
+                    'status' => $location_data['locationStatus'],
+                    'url' => $url,
+                    'address' => $address
+                ];
+            }
+            
+            // Process nearby locations preset if requested
+            if (in_array('nearby_locations', $presets_to_process)) {
+                $results['nearby_locations'] = get_nearby_locations($student_data, 30);
+            }
+        } else {
+            // No location data found
+            if (in_array('last_location', $presets_to_process)) {
+                $results['last_location'] = null;
+            }
+            if (in_array('nearby_locations', $presets_to_process)) {
+                $results['nearby_locations'] = [];
+            }
+        }
+    }
+    
+    // Get purchase data if needed
+    if (!empty($purchase_presets)) {
+        $purchase_query = $wpdb->prepare(
+            "SELECT purchaseDate 
+            FROM {$wpdb->prefix}idemailwiz_purchases 
+            WHERE shoppingCartItems_studentAccountNumber = %s 
+            ORDER BY purchaseDate DESC 
+            LIMIT 1",
+            $student_account_number
+        );
+        
+        $recent_purchase = $wpdb->get_row($purchase_query);
+        $results['most_recent_purchase'] = $recent_purchase ? $recent_purchase->purchaseDate : null;
+    }
+    
+    // Process course recommendation presets
+    if (!empty($course_rec_presets)) {
+        // Get student age once for all course rec functions
+        $student_age = get_student_age($student_data);
+        
+        // Calculate fiscal year information once
+        $current_date = new DateTime();
+        $year = intval($current_date->format('Y'));
+        $month = intval($current_date->format('n'));
+        $current_fy_year = ($month >= 11) ? $year + 1 : $year;
+        $fiscal_year = 'fy' . substr($current_fy_year, -2);
+        $from_fiscal_year = 'fy' . substr($current_fy_year - 1, -2);
+        
+        // Process each course recommendation type
+        foreach ($course_rec_presets as $preset) {
+            // Extract division from preset name (e.g., 'idtc_course_recs' -> 'idtc')
+            $division = str_replace('_course_recs', '', $preset);
+            
+            // For the special case of nearby_locations_with_course_recs
+            if ($preset === 'nearby_locations_with_course_recs') {
+                $results[$preset] = process_preset_value($preset, $student_data);
+                continue;
+            }
+            
+            // Get recommendations for this division
+            $recommendations = get_course_recommendations_between_fiscal_years(
+                $student_data, 
+                $from_fiscal_year,
+                $fiscal_year,
+                $division
+            );
+            
+            // Add student age and age-up info if not already present
+            if (!isset($recommendations['student_age'])) {
+                $recommendations['student_age'] = $student_age;
+            }
+            
+            if (!isset($recommendations['age_up'])) {
+                $needs_age_up = false;
+                if (($division === 'idta' || $division === 'ota') && $student_age < 13) {
+                    $needs_age_up = true;
+                } else if ($division === 'idtc' && $student_age >= 18) {
+                    $needs_age_up = true;
+                }
+                $recommendations['age_up'] = $needs_age_up;
+            }
+            
+            $results[$preset] = $recommendations;
+        }
+    }
+    
+    // Process remaining presets individually
+    $remaining_presets = array_diff($presets_to_process, array_merge(
+        $location_presets, 
+        $course_rec_presets,
+        $purchase_presets,
+        array_keys($results)
+    ));
+    
+    foreach ($remaining_presets as $preset) {
+        $results[$preset] = process_preset_value($preset, $student_data);
+    }
+    
+    return $results;
+}
+
+// Optimized function to get all required presets at once
+function get_required_presets($endpoint_config) {
+    if (empty($endpoint_config['data_mapping'])) {
+        return ['most_recent_purchase', 'last_location'];
+    }
+    
+    $required_presets = [];
+    foreach ($endpoint_config['data_mapping'] as $mapping) {
+        if ($mapping['type'] === 'preset') {
+            $required_presets[] = $mapping['value'];
+        }
+    }
+    
+    return $required_presets;
+}
+
 function idwiz_endpoint_handler($request) {
     // Track request start time
     $start_time = microtime(true);
@@ -1388,46 +1554,28 @@ function idwiz_endpoint_handler($request) {
         return new WP_REST_Response(['error' => 'Student not found in feed'], 404);
     }
 
-    // Determine required presets
-    $required_presets = [];
-    if (!empty($endpoint_config['data_mapping'])) {
-        foreach ($endpoint_config['data_mapping'] as $mapping) {
-            if ($mapping['type'] === 'preset') {
-                $required_presets[] = $mapping['value'];
-            }
-        }
-    } else {
-        $required_presets = ['most_recent_purchase', 'last_location'];
-    }
-
-    // Process presets with optimized error handling
-    $presets = [];
-    foreach ($required_presets as $preset) {
-        try {
-            // Check remaining time before processing each preset
-            $elapsed_time = microtime(true) - $start_time;
-            if ($elapsed_time > 8) { // If we're approaching the 10-second limit
-                return new WP_REST_Response([
-                    'error' => 'Request timeout - processing time exceeded',
-                    'elapsed_time' => round($elapsed_time * 1000)
-                ], 408);
-            }
-
-            $presets[$preset] = process_preset_value($preset, $feed_data);
-            
-            // Early return with 404 if a required preset is null or empty
-            if ($presets[$preset] === null || (is_array($presets[$preset]) && empty($presets[$preset]))) {
+    // Get all required presets at once
+    $required_presets = get_required_presets($endpoint_config);
+    
+    // Process all presets in optimized batches
+    try {
+        $presets = batch_process_preset_values($required_presets, $feed_data);
+        
+        // Check for any missing or empty required presets
+        foreach ($required_presets as $preset) {
+            if (!isset($presets[$preset]) || $presets[$preset] === null || 
+                (is_array($presets[$preset]) && empty($presets[$preset]))) {
                 return new WP_REST_Response([
                     'error' => "Required preset '$preset' is null or empty",
                     'elapsed_time' => round((microtime(true) - $start_time) * 1000)
                 ], 404);
             }
-        } catch (Exception $e) {
-            return new WP_REST_Response([
-                'error' => "Error processing preset '$preset': " . $e->getMessage(),
-                'elapsed_time' => round((microtime(true) - $start_time) * 1000)
-            ], 500);
         }
+    } catch (Exception $e) {
+        return new WP_REST_Response([
+            'error' => "Error processing presets: " . $e->getMessage(),
+            'elapsed_time' => round((microtime(true) - $start_time) * 1000)
+        ], 500);
     }
 
     // Build response data
@@ -1458,8 +1606,8 @@ function idwiz_endpoint_handler($request) {
         'data' => $response_data
     ], 200);
     
-    // Cache this response for 15 seconds
-    wp_cache_set($cache_key, $response, '', 15);
+    // Cache this response for 5 minutes
+    wp_cache_set($cache_key, $response, '', 300);
     
     return $response;
 }
@@ -1820,4 +1968,129 @@ function get_student_age($student_data) {
     
     return $age;
 }
+
+/**
+ * Ensure necessary database indexes exist for API endpoints
+ * This helps speed up commonly used queries
+ */
+function idwiz_ensure_api_indexes() {
+    global $wpdb;
+    
+    // Only run this periodically, using a transient to limit frequency
+    $indexes_checked = get_transient('idwiz_api_indexes_checked');
+    if ($indexes_checked) {
+        return;
+    }
+    
+    // List of indexes to check and create if missing
+    $indexes = [
+        // Userfeed indexes
+        [
+            'table' => $wpdb->prefix . 'idemailwiz_userfeed',
+            'name' => 'idx_student_account_number',
+            'column' => 'studentAccountNumber',
+            'check_query' => "SHOW INDEX FROM {$wpdb->prefix}idemailwiz_userfeed WHERE Key_name = 'idx_student_account_number'",
+            'create_query' => "ALTER TABLE {$wpdb->prefix}idemailwiz_userfeed ADD INDEX idx_student_account_number (studentAccountNumber)"
+        ],
+        
+        // Purchases indexes
+        [
+            'table' => $wpdb->prefix . 'idemailwiz_purchases',
+            'name' => 'idx_student_purchase_date',
+            'column' => 'shoppingCartItems_studentAccountNumber, purchaseDate',
+            'check_query' => "SHOW INDEX FROM {$wpdb->prefix}idemailwiz_purchases WHERE Key_name = 'idx_student_purchase_date'",
+            'create_query' => "ALTER TABLE {$wpdb->prefix}idemailwiz_purchases ADD INDEX idx_student_purchase_date (shoppingCartItems_studentAccountNumber, purchaseDate)"
+        ],
+        [
+            'table' => $wpdb->prefix . 'idemailwiz_purchases',
+            'name' => 'idx_location_student',
+            'column' => 'shoppingCartItems_locationName, shoppingCartItems_studentAccountNumber',
+            'check_query' => "SHOW INDEX FROM {$wpdb->prefix}idemailwiz_purchases WHERE Key_name = 'idx_location_student'",
+            'create_query' => "ALTER TABLE {$wpdb->prefix}idemailwiz_purchases ADD INDEX idx_location_student (shoppingCartItems_locationName, shoppingCartItems_studentAccountNumber)"
+        ],
+        [
+            'table' => $wpdb->prefix . 'idemailwiz_purchases',
+            'name' => 'idx_division_student',
+            'column' => 'shoppingCartItems_divisionId, shoppingCartItems_studentAccountNumber',
+            'check_query' => "SHOW INDEX FROM {$wpdb->prefix}idemailwiz_purchases WHERE Key_name = 'idx_division_student'",
+            'create_query' => "ALTER TABLE {$wpdb->prefix}idemailwiz_purchases ADD INDEX idx_division_student (shoppingCartItems_divisionId, shoppingCartItems_studentAccountNumber)"
+        ],
+        
+        // Locations index
+        [
+            'table' => $wpdb->prefix . 'idemailwiz_locations',
+            'name' => 'idx_location_name',
+            'column' => 'name',
+            'check_query' => "SHOW INDEX FROM {$wpdb->prefix}idemailwiz_locations WHERE Key_name = 'idx_location_name'",
+            'create_query' => "ALTER TABLE {$wpdb->prefix}idemailwiz_locations ADD INDEX idx_location_name (name)"
+        ]
+    ];
+    
+    foreach ($indexes as $index) {
+        // Check if index exists
+        $exists = $wpdb->get_results($index['check_query']);
+        
+        if (empty($exists)) {
+            // Index doesn't exist, create it
+            $wpdb->query($index['create_query']);
+            error_log("Created database index: {$index['name']} on {$index['table']} ({$index['column']})");
+        }
+    }
+    
+    // Set transient to prevent frequent checking
+    set_transient('idwiz_api_indexes_checked', true, DAY_IN_SECONDS);
+}
+
+// Add index checking with low priority (runs after tables are created)
+add_action('init', 'idwiz_ensure_api_indexes', 999);
+
+/**
+ * Disables unnecessary WordPress operations during API requests
+ * This reduces memory usage and processing time
+ */
+function idwiz_optimize_wordpress_for_api() {
+    // Only apply these optimizations to our REST API endpoints
+    if (!defined('REST_REQUEST') || !REST_REQUEST || strpos($_SERVER['REQUEST_URI'], '/idemailwiz/v1/') === false) {
+        return;
+    }
+    
+    // Disable heartbeat API
+    wp_deregister_script('heartbeat');
+    
+    // Disable post revisions for this request
+    remove_action('pre_post_update', 'wp_save_post_revision');
+    
+    // Disable pingbacks
+    add_filter('xmlrpc_enabled', '__return_false');
+    
+    // Disable emoji processing
+    remove_action('wp_head', 'print_emoji_detection_script', 7);
+    remove_action('admin_print_scripts', 'print_emoji_detection_script');
+    
+    // Disable embeds
+    remove_action('rest_api_init', 'wp_oembed_register_route');
+    
+    // Disable wp-cron for this request (will still run on normal page loads)
+    if (!defined('DOING_CRON')) {
+        define('DOING_CRON', true);
+    }
+    
+    // Set up high limits for database operations
+    add_filter('pre_option_thread_comments_depth', function() { return 0; });
+    
+    // Increase memory limits if needed
+    $current_limit = ini_get('memory_limit');
+    $current_limit_int = intval($current_limit);
+    if ($current_limit_int < 256 && $current_limit_int > 0) {
+        ini_set('memory_limit', '256M');
+    }
+}
+
+// Run this early to disable unnecessary features
+add_action('init', 'idwiz_optimize_wordpress_for_api', 1);
+
+/**
+ * Detects and manages concurrent requests from the same IP
+ * This helps prevent resource contention when external services hit the API
+ */
 
