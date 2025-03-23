@@ -297,7 +297,7 @@ function get_last_location($student_data) {
     // Get location details from locations table
     $location = $wpdb->get_row(
         $wpdb->prepare(
-            "SELECT id, name, locationStatus, address 
+            "SELECT id, name, locationStatus, address, locationUrl 
             FROM {$wpdb->prefix}idemailwiz_locations 
             WHERE name = %s 
             AND locationStatus IN ('Open', 'Registration opens soon')",
@@ -312,8 +312,8 @@ function get_last_location($student_data) {
     // Unserialize address if it exists
     $address = $location->address ? unserialize($location->address) : null;
     
-    // Build location URL
-    $url = 'https://www.idtech.com/locations/' . sanitize_title($location->name);
+    // Use locationUrl from database if available, otherwise fallback to generated URL
+    $url = !empty($location->locationUrl) ? $location->locationUrl : null;
 
     return [
         'id' => $location->id,
@@ -393,12 +393,13 @@ function get_nearby_locations($student_data, $radius_miles = 30) {
     
     // Get all active locations
     $locations = $wpdb->get_results(
-        "SELECT id, name, locationStatus, address, addressArea 
+        "SELECT id, name, locationStatus, address, addressArea, locationUrl
          FROM {$wpdb->prefix}idemailwiz_locations 
          WHERE locationStatus IN ('Open', 'Registration opens soon')
          AND addressArea IS NOT NULL 
          AND addressArea != ''
-         AND divisions IS NOT NULL",
+         AND divisions IS NOT NULL
+         AND id != 324", // Exclude Online Campus with ID 324
         ARRAY_A
     );
     
@@ -428,8 +429,8 @@ function get_nearby_locations($student_data, $radius_miles = 30) {
         
         // Add location if within radius
         if ($distance <= $radius_miles) {
-            // Build location URL
-            $url = 'https://www.idtech.com/locations/' . sanitize_title($location['name']);
+            // Use locationUrl from database if available, otherwise set to null
+            $url = !empty($location['locationUrl']) ? $location['locationUrl'] : null;
             
             $nearby_locations[] = [
                 'id' => $location['id'],
@@ -571,12 +572,33 @@ function process_preset_value($preset_name, $student_data) {
                 return $loc['id'];
             }, $nearby_data['locations']);
             
+            // Ensure Online Campus (ID 324) is excluded from locations
+            $location_ids = array_filter($location_ids, function($id) {
+                return $id !== 324;
+            });
+            
+            if (empty($location_ids)) {
+                error_log("Location Recs: No valid locations found after filtering out Online Campus");
+                return [
+                    'metadata' => [
+                        'total_courses' => 0,
+                        'total_locations' => 0,
+                        'student_coordinates' => $nearby_data['student_coordinates'],
+                        'error' => 'No in-person locations available',
+                        'student_age' => get_student_age($student_data)
+                    ],
+                    'last_purchase' => null,
+                    'courses' => [] // Empty courses array
+                ];
+            }
+            
             // Get course data for all locations, including sessionWeeks
             $location_courses = $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT id, courses, sessionWeeks
+                    "SELECT id, courses, sessionWeeks, locationUrl
                      FROM {$wpdb->prefix}idemailwiz_locations 
-                     WHERE id IN (" . implode(',', array_fill(0, count($location_ids), '%d')) . ")",
+                     WHERE id IN (" . implode(',', array_fill(0, count($location_ids), '%d')) . ")
+                     AND id != 324", // Extra safeguard to exclude Online Campus
                     $location_ids
                 ),
                 ARRAY_A
@@ -793,13 +815,22 @@ function process_preset_value($preset_name, $student_data) {
                         // This course is available at this location
                         $course_type = $course_rec['course_type']; // 'academies' or 'camps'
                         
+                        // Get the location URL from the database if available
+                        $locationUrl = null;
+                        foreach ($location_courses as $loc_data) {
+                            if ($loc_data['id'] == $loc_id && !empty($loc_data['locationUrl'])) {
+                                $locationUrl = $loc_data['locationUrl'];
+                                break;
+                            }
+                        }
+                        
                         // Create a simplified location object with just what we need
                         $location_data = [
                             'id' => $location['id'],
                             'name' => $location['name'],
                             'status' => $location['status'],
                             'distance' => $location['distance'],
-                            'url' => $location['url'],
+                            'url' => !empty($locationUrl) ? $locationUrl : $location['url'],
                             'address' => $location['address'],
                         ];
                         
