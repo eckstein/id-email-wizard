@@ -149,27 +149,12 @@ function get_course_recommendations($course, $toDivision, $needsAgeUp)
 {
     $courseRecs = unserialize($course->course_recs);
     
-    // Debug log to see what's in the course_recs array
-    error_log("Course Recs: Course ID {$course->id} has mappings: " . implode(', ', array_keys($courseRecs ?? [])));
-    
     // If this is a request for 'ipc' (in-person courses that could be either idtc or idta)
     if ($toDivision === 'ipc') {
         // Check for explicit 'ipc' mapping first
         $recommendations = [];
         
         if (isset($courseRecs['ipc']) && is_array($courseRecs['ipc']) && !empty($courseRecs['ipc'])) {
-            error_log("Course Recs: Found " . count($courseRecs['ipc']) . " recommendations for ipc");
-            
-            // Debug: See actual course IDs in the mapping
-            error_log("Course Recs: IPC mapping contains courses: " . implode(', ', $courseRecs['ipc']));
-            
-            // Check if course 536 is in the mapping
-            if (in_array(536, $courseRecs['ipc'])) {
-                error_log("Course Recs: Course 536 IS found in the IPC mapping");
-            } else {
-                error_log("Course Recs: Course 536 is NOT found in the IPC mapping");
-            }
-            
             foreach ($courseRecs['ipc'] as $recCourseId) {
                 $recCourse = get_course_details_by_id($recCourseId);
                 if (!is_wp_error($recCourse)) {
@@ -179,7 +164,7 @@ function get_course_recommendations($course, $toDivision, $needsAgeUp)
                         'abbreviation' => $recCourse->abbreviation,
                         'minAge' => $recCourse->minAge,
                         'maxAge' => $recCourse->maxAge,
-                        'courseUrl' => $recCourse->courseUrl
+                        'courseUrl' => $recCourse->courseUrl ?? ''
                     ];
                 }
             }
@@ -197,18 +182,6 @@ function get_course_recommendations($course, $toDivision, $needsAgeUp)
         
         // First check the primary division
         if (isset($courseRecs[$primaryKey]) && is_array($courseRecs[$primaryKey]) && !empty($courseRecs[$primaryKey])) {
-            error_log("Course Recs: Found " . count($courseRecs[$primaryKey]) . " recommendations for key $primaryKey");
-            
-            // Debug: See actual course IDs in the mapping
-            error_log("Course Recs: $primaryKey mapping contains courses: " . implode(', ', $courseRecs[$primaryKey]));
-            
-            // Check if course 536 is in the mapping
-            if (in_array(536, $courseRecs[$primaryKey])) {
-                error_log("Course Recs: Course 536 IS found in the $primaryKey mapping");
-            } else {
-                error_log("Course Recs: Course 536 is NOT found in the $primaryKey mapping");
-            }
-            
             foreach ($courseRecs[$primaryKey] as $recCourseId) {
                 $recCourse = get_course_details_by_id($recCourseId);
                 if (!is_wp_error($recCourse)) {
@@ -218,7 +191,7 @@ function get_course_recommendations($course, $toDivision, $needsAgeUp)
                         'abbreviation' => $recCourse->abbreviation,
                         'minAge' => $recCourse->minAge,
                         'maxAge' => $recCourse->maxAge,
-                        'courseUrl' => $recCourse->courseUrl
+                        'courseUrl' => $recCourse->courseUrl ?? ''
                     ];
                 }
             }
@@ -228,40 +201,28 @@ function get_course_recommendations($course, $toDivision, $needsAgeUp)
     }
     // For specific division type requests or non-in-person courses (or when needing age up)
     else {
-    $recKey = $needsAgeUp && !in_array($toDivision, ['opl', 'ota', 'idta']) ? $toDivision . '_ageup' : $toDivision;
+        $recKey = $needsAgeUp && !in_array($toDivision, ['opl', 'ota', 'idta']) ? $toDivision . '_ageup' : $toDivision;
 
-    if (!isset($courseRecs[$recKey]) || !is_array($courseRecs[$recKey]) || empty($courseRecs[$recKey])) {
-            error_log("Course Recs: No recommendations found for key $recKey");
-        return [];
-    }
-        
-        error_log("Course Recs: Found " . count($courseRecs[$recKey]) . " recommendations for key $recKey");
-        
-        // Debug: See actual course IDs in the mapping
-        error_log("Course Recs: $recKey mapping contains courses: " . implode(', ', $courseRecs[$recKey]));
-        
-        // Check if course 536 is in the mapping
-        if (in_array(536, $courseRecs[$recKey])) {
-            error_log("Course Recs: Course 536 IS found in the $recKey mapping");
-        } else {
-            error_log("Course Recs: Course 536 is NOT found in the $recKey mapping");
-    }
-
-    $recommendations = [];
-    foreach ($courseRecs[$recKey] as $recCourseId) {
-        $recCourse = get_course_details_by_id($recCourseId);
-        if (!is_wp_error($recCourse)) {
-            $recommendations[] = [
-                'id' => $recCourse->id,
-                'title' => $recCourse->title,
-                'abbreviation' => $recCourse->abbreviation,
-                'minAge' => $recCourse->minAge,
-                'maxAge' => $recCourse->maxAge,
-                'courseUrl' => $recCourse->courseUrl
-            ];
+        // If no key exists or it's empty, return an empty array
+        if (!isset($courseRecs[$recKey]) || !is_array($courseRecs[$recKey]) || empty($courseRecs[$recKey])) {
+            return [];
         }
-    }
-    return $recommendations;
+
+        $recommendations = [];
+        foreach ($courseRecs[$recKey] as $recCourseId) {
+            $recCourse = get_course_details_by_id($recCourseId);
+            if (!is_wp_error($recCourse)) {
+                $recommendations[] = [
+                    'id' => $recCourse->id,
+                    'title' => $recCourse->title,
+                    'abbreviation' => $recCourse->abbreviation,
+                    'minAge' => $recCourse->minAge,
+                    'maxAge' => $recCourse->maxAge,
+                    'courseUrl' => $recCourse->courseUrl ?? ''
+                ];
+            }
+        }
+        return $recommendations;
     }
 }
 
@@ -392,7 +353,6 @@ function get_nearby_locations($student_data, $radius_miles = 30) {
     
     // If we still don't have location data, return empty array
     if (!$student_location) {
-        error_log("Nearby Locations: No coordinates found for student {$student_data['studentAccountNumber']}");
         return [];
     }
     
@@ -409,7 +369,6 @@ function get_nearby_locations($student_data, $radius_miles = 30) {
     );
     
     if (empty($locations)) {
-        error_log("Nearby Locations: No active locations found in database");
         return [];
     }
     
@@ -556,11 +515,8 @@ function process_preset_value($preset_name, $student_data) {
             
             // If no nearby locations, return null
             if (empty($nearby_data['locations'])) {
-                error_log("Location Recs: No nearby locations found");
                 return null;
             }
-            
-            error_log("Location Recs: Found " . count($nearby_data['locations']) . " nearby locations");
             
             // Get all location IDs
             $location_ids = array_map(function($loc) {
@@ -573,7 +529,6 @@ function process_preset_value($preset_name, $student_data) {
             });
             
             if (empty($location_ids)) {
-                error_log("Location Recs: No valid locations found after filtering out Online Campus");
                 return null;
             }
             
@@ -596,9 +551,6 @@ function process_preset_value($preset_name, $student_data) {
                 $courses = maybe_unserialize($loc['courses']);
                 if (!empty($courses) && is_array($courses)) {
                     $location_courses_map[$loc['id']] = $courses;
-                    error_log("Location Recs: Location ID {$loc['id']} has " . count($courses) . " courses");
-                } else {
-                    error_log("Location Recs: Location ID {$loc['id']} has no courses");
                 }
                 
                 $session_weeks = $loc['sessionWeeks'] ? maybe_unserialize($loc['sessionWeeks']) : null;
@@ -609,7 +561,6 @@ function process_preset_value($preset_name, $student_data) {
             
             // Get student age
             $student_age = get_student_age($student_data);
-            error_log("Location Recs: Student age is $student_age");
             
             // Get comprehensive course recommendations based on age
             $all_recommendations = [];
@@ -621,7 +572,6 @@ function process_preset_value($preset_name, $student_data) {
             // Get recommendations based on age appropriate divisions
             if ($student_age >= 13) {
                 // For students 13+, get both IDTA and IDTC recommendations
-                error_log("Location Recs: Student is 13+, checking both Academy and Camp recommendations");
                 
                 // First try iDTA recommendations
                 $idta_recs = get_division_course_recommendations($student_data, 'idta');
@@ -629,7 +579,6 @@ function process_preset_value($preset_name, $student_data) {
                     $all_recommendations = $idta_recs['recs'];
                     $last_purchase = $idta_recs['last_purchase'];
                     $metadata['idta_count'] = count($idta_recs['recs']);
-                    error_log("Location Recs: Found " . count($all_recommendations) . " iDTA recommendations");
                 }
                 
                 // Then get iDTC recommendations
@@ -655,13 +604,11 @@ function process_preset_value($preset_name, $student_data) {
                     }
                     
                     $metadata['idtc_count'] = count($idtc_recs['recs']);
-                    error_log("Location Recs: After adding iDTC, found " . count($all_recommendations) . " total recommendations");
                 }
                 
                 // Check if student has a previous purchase and look for additional mappings
                 if (!empty($idta_recs['last_purchase']) && !empty($idta_recs['last_purchase']['course_id'])) {
                     $previous_course_id = $idta_recs['last_purchase']['course_id'];
-                    error_log("Location Recs: Checking additional mappings for course $previous_course_id");
                     
                     $previous_course = get_course_details_by_id($previous_course_id);
                     if (!is_wp_error($previous_course) && !empty($previous_course->course_recs)) {
@@ -672,8 +619,6 @@ function process_preset_value($preset_name, $student_data) {
                         
                         foreach ($additional_mapping_keys as $key) {
                             if (isset($mappings[$key]) && is_array($mappings[$key]) && !empty($mappings[$key])) {
-                                error_log("Location Recs: Found additional mappings in '$key' with " . count($mappings[$key]) . " courses");
-                                
                                 // Add these courses to our recommendations if they don't already exist
                                 foreach ($mappings[$key] as $course_id) {
                                     // Check if this course is already in recommendations
@@ -697,7 +642,6 @@ function process_preset_value($preset_name, $student_data) {
                                                 'age_range' => $additional_course->minAge . '-' . $additional_course->maxAge,
                                                 'url' => $additional_course->courseUrl ?? ''
                                             ];
-                                            error_log("Location Recs: Added course {$additional_course->id} from $key mapping");
                                         }
                                     }
                                 }
@@ -707,30 +651,23 @@ function process_preset_value($preset_name, $student_data) {
                 }
             } else {
                 // For students under 13, just get iDTC recommendations
-                error_log("Location Recs: Student is under 13, checking only Camp recommendations");
                 $idtc_recs = get_division_course_recommendations($student_data, 'idtc');
                 if (!empty($idtc_recs['recs'])) {
                     $all_recommendations = $idtc_recs['recs'];
                     $last_purchase = $idtc_recs['last_purchase'];
                     $metadata['idtc_count'] = count($idtc_recs['recs']);
-                    error_log("Location Recs: Found " . count($all_recommendations) . " iDTC recommendations");
                 }
             }
             
             // Check if we have any recommendations
             if (empty($all_recommendations)) {
-                error_log("Location Recs: No course recommendations found for student");
                 return null;
             }
-            
-            error_log("Location Recs: Found " . count($all_recommendations) . " total course recommendations");
             
             // Get all recommended course IDs to fetch their details
             $course_ids = array_map(function($rec) {
                 return $rec['id'];
             }, $all_recommendations);
-            
-            error_log("Location Recs: Recommended course IDs: " . implode(', ', $course_ids));
             
             // Fetch course details to determine if each is a camp or academy
             $course_details = [];
@@ -755,8 +692,6 @@ function process_preset_value($preset_name, $student_data) {
                         'division_id' => $course['division_id'],
                         'type' => $is_academy ? 'academies' : 'camps'
                     ];
-                    
-                    error_log("Location Recs: Course ID {$course['id']} is " . ($is_academy ? 'academy' : 'camp'));
                 }
             }
             
@@ -885,7 +820,6 @@ function get_course_recommendations_between_fiscal_years($student_data, $from_fi
     // Get student account number from the data
     $student_account_number = $student_data['studentAccountNumber'];
     if (!$student_account_number) {
-        error_log("Course Recs: No student account number found");
         return [];
     }
     
@@ -897,7 +831,6 @@ function get_course_recommendations_between_fiscal_years($student_data, $from_fi
     ];
     
     if (!isset($fiscal_years[$from_fiscal_year]) || !isset($fiscal_years[$to_fiscal_year])) {
-        error_log("Course Recs: Invalid fiscal year specified");
         return [];
     }
     
@@ -923,7 +856,6 @@ function get_course_recommendations_between_fiscal_years($student_data, $from_fi
     }
     
     $divisionString = implode(', ', $divisionIds);
-    error_log("Course Recs: Searching for purchases between {$from_dates['start']} and {$from_dates['end']} for student $student_account_number in divisions: $divisionString");
     
     // Get the student's most recent purchase within the FROM fiscal year
     $latestPurchase = $wpdb->get_row(
@@ -944,23 +876,18 @@ function get_course_recommendations_between_fiscal_years($student_data, $from_fi
     );
 
     if (!$latestPurchase) {
-        error_log("Course Recs: No purchases found for student $student_account_number in $from_fiscal_year for specified divisions");
         return [];
     }
-
-    error_log("Course Recs: Found purchase from " . $latestPurchase['purchaseDate'] . " for course ID " . $latestPurchase['shoppingCartItems_id'] . " in division " . $latestPurchase['shoppingCartItems_divisionName']);
 
     // Get the course details
     $course = get_course_details_by_id($latestPurchase['shoppingCartItems_id']);
     if (is_wp_error($course) || !isset($course->course_recs)) {
-        error_log("Course Recs: Failed to get course details for ID " . $latestPurchase['shoppingCartItems_id']);
         return [];
     }
 
     // Calculate student age and age at last purchase using DOB from the joined query
     $studentDOB = $latestPurchase['studentDOB'];
     if (!$studentDOB) {
-        error_log("Course Recs: No DOB found for student");
         return [];
     }
 
@@ -968,11 +895,8 @@ function get_course_recommendations_between_fiscal_years($student_data, $from_fi
     $ageAtLastPurchase = calculate_age_at_purchase($studentDOB, $latestPurchase['purchaseDate']);
 
     if ($studentAge === false) {
-        error_log("Course Recs: Invalid student DOB format");
         return [];
     }
-
-    error_log("Course Recs: Student age: $studentAge, Age at last purchase: $ageAtLastPurchase");
 
     // Determine if student needs age-up recommendations
     $needsAgeUp = determine_age_up_need($studentAge, $ageAtLastPurchase, $course);
@@ -996,45 +920,17 @@ function get_course_recommendations_between_fiscal_years($student_data, $from_fi
     
     // Use the specified division if provided, otherwise use the from division
     $toDivision = $division ?? $fromDivision;
-    
-    error_log("Course Recs: Getting recommendations from division $fromDivision to division $toDivision");
 
     // Get course recommendations
     $recommendations = get_course_recommendations($course, $toDivision, $needsAgeUp);
 
     if (empty($recommendations)) {
-        error_log("Course Recs: No recommendations found for course ID " . $latestPurchase['shoppingCartItems_id'] . " to division $toDivision");
-        return [];
-    }
-
-    error_log("Course Recs: Found " . count($recommendations) . " recommendations");
-
-    // Limit to 3 recommendations and format for Iterable
-    $formattedRecs = [];
-    $count = 0;
-    foreach ($recommendations as $rec) {
-        if ($count >= 3) break;
-        
-        $formattedRecs[] = [
-            'id' => $rec['id'],
-            'title' => $rec['title'],
-            'abbreviation' => $rec['abbreviation'],
-            'minAge' => $rec['minAge'],
-            'maxAge' => $rec['maxAge'],
-            'age_range' => $rec['minAge'] . '-' . $rec['maxAge'],
-            'url' => $rec['courseUrl'] ?? ''
-        ];
-        $count++;
-    }
-
-    // Only return data if we actually have recommendations
-    if (empty($formattedRecs)) {
         return [];
     }
 
     return [
-        'recs' => $formattedRecs,
-        'total_count' => count($formattedRecs),
+        'recs' => $recommendations,
+        'total_count' => count($recommendations),
         'age_up' => $needsAgeUp,
         'student_age' => $studentAge,
         'from_fiscal_year' => $from_fiscal_year,
@@ -1441,6 +1337,15 @@ function idwiz_endpoint_handler($request)
         $presets['nearby_locations'] = process_preset_value('nearby_locations', $feed_data);
     }
     
+    // Handle complex combination preset separately with error handling
+    if (in_array('nearby_locations_with_course_recs', $required_presets)) {
+        try {
+            $presets['nearby_locations_with_course_recs'] = process_preset_value('nearby_locations_with_course_recs', $feed_data);
+        } catch (Exception $e) {
+            $presets['nearby_locations_with_course_recs'] = null;
+        }
+    }
+    
     $course_rec_presets = [
         'ipc_course_recs',
         'idtc_course_recs',
@@ -1455,27 +1360,15 @@ function idwiz_endpoint_handler($request)
             try {
                 $presets[$preset] = process_preset_value($preset, $feed_data);
             } catch (Exception $e) {
-                // Log error but continue processing
-                error_log("Error processing preset $preset: " . $e->getMessage());
+                // Continue processing
                 $presets[$preset] = null;
             }
-        }
-    }
-    
-    // Handle complex combination preset separately with error handling
-    if (in_array('nearby_locations_with_course_recs', $required_presets)) {
-        try {
-            $presets['nearby_locations_with_course_recs'] = process_preset_value('nearby_locations_with_course_recs', $feed_data);
-        } catch (Exception $e) {
-            error_log("Error processing nearby_locations_with_course_recs: " . $e->getMessage());
-            $presets['nearby_locations_with_course_recs'] = null;
         }
     }
     
     // Check if any required preset is null and return 404 if so
     foreach ($required_presets as $preset) {
         if (!isset($presets[$preset]) || $presets[$preset] === null) {
-            error_log("Required preset '$preset' is null for account number '$account_number'. Returning 404.");
             return new WP_REST_Response(array(
                 'error' => "Required preset '$preset' is null",
             ), 404);
@@ -1485,14 +1378,12 @@ function idwiz_endpoint_handler($request)
         if (is_array($presets[$preset]) && empty($presets[$preset])) {
             // For 'nearby_locations', check if it has the expected structure but empty locations
             if ($preset === 'nearby_locations' && isset($presets[$preset]['locations']) && empty($presets[$preset]['locations'])) {
-                error_log("Required preset '$preset' has empty locations for account number '$account_number'. Returning 404.");
                 return new WP_REST_Response(array(
                     'error' => "Required preset '$preset' has empty locations",
                 ), 404);
             }
             // For course recommendations
             else if (strpos($preset, '_course_recs') !== false && empty($presets[$preset])) {
-                error_log("Required preset '$preset' is empty for account number '$account_number'. Returning 404.");
                 return new WP_REST_Response(array(
                     'error' => "Required preset '$preset' is empty",
                 ), 404);
@@ -1501,7 +1392,6 @@ function idwiz_endpoint_handler($request)
             else if ($preset === 'nearby_locations_with_course_recs' && 
                     (empty($presets[$preset]['courses']) || 
                      $presets[$preset]['metadata']['total_courses'] === 0)) {
-                error_log("Required preset '$preset' has no valid courses for account number '$account_number'. Returning 404.");
                 return new WP_REST_Response(array(
                     'error' => "Required preset '$preset' has no valid courses",
                 ), 404);
@@ -1640,12 +1530,8 @@ function idwiz_get_user_data_for_preview() {
  */
 function get_division_course_recommendations($student_data, $division)
 {
-    error_log("Course Recs: Looking for $division recommendations for student {$student_data['studentAccountNumber']}");
-    
     // Get student age
     $student_age = get_student_age($student_data);
-    
-    error_log("Course Recs: Student age is $student_age");
     
     // Calculate fiscal year information consistently
     $current_date = new DateTime();
@@ -1658,61 +1544,35 @@ function get_division_course_recommendations($student_data, $division)
     $fiscal_year = 'fy' . substr($current_fy_year, -2);
     $from_fiscal_year = 'fy' . substr($current_fy_year - 1, -2);
     
-    error_log("Course Recs: Current fiscal year is $fiscal_year, previous fiscal year is $from_fiscal_year");
-    
     // Check if student should receive age-up recommendation
     $needs_age_up = false;
     
     // Division-specific logic
     if ($division === 'ipc') {
         // For in-person courses, first check for direct IPC recommendations
-        error_log("Course Recs: Checking for direct IPC recommendations first");
-        
-        // For students 13+, first try iDTA recommendations (if they had previous idta purchases)
         if ($student_age >= 13) {
-            error_log("Course Recs: Student is 13+, checking for direct IPC recommendations");
             $ipc_recs = get_course_recommendations_between_fiscal_years($student_data, $from_fiscal_year, $fiscal_year, 'ipc');
             
             if (!empty($ipc_recs['recs'])) {
-                error_log("Course Recs: Found " . count($ipc_recs['recs']) . " direct IPC recommendations");
                 return $ipc_recs;
             }
             
             // Try iDTA recommendations
-            error_log("Course Recs: No direct IPC recommendations, checking for iDTA recommendations");
             $idta_recs = get_course_recommendations_between_fiscal_years($student_data, $from_fiscal_year, $fiscal_year, 'idta');
             
             if (!empty($idta_recs['recs'])) {
-                error_log("Course Recs: Found " . count($idta_recs['recs']) . " iDTA recommendations");
-                
-                // Log the actual recommendation course IDs
-                $rec_ids = array_map(function($rec) {
-                    return $rec['id'];
-                }, $idta_recs['recs']);
-                error_log("Course Recs: iDTA recommendation course IDs: " . implode(', ', $rec_ids));
-                
                 return $idta_recs;
             }
             
             // Also try iDTC recommendations regardless of previous purchases
-            error_log("Course Recs: Also checking for iDTC recommendations");
             $idtc_recs = get_course_recommendations_between_fiscal_years($student_data, $from_fiscal_year, $fiscal_year, 'idtc');
             
             if (!empty($idtc_recs['recs'])) {
-                error_log("Course Recs: Found " . count($idtc_recs['recs']) . " iDTC recommendations");
-                
-                // Log the actual recommendation course IDs
-                $rec_ids = array_map(function($rec) {
-                    return $rec['id'];
-                }, $idtc_recs['recs']);
-                error_log("Course Recs: iDTC recommendation course IDs: " . implode(', ', $rec_ids));
-                
                 return $idtc_recs;
             }
         }
         // For students under 13, check IPC recommendations (filter out any with min age 13+)
         else {
-            error_log("Course Recs: Student is under 13, checking for IPC recommendations");
             $ipc_recs = get_course_recommendations_between_fiscal_years($student_data, $from_fiscal_year, $fiscal_year, 'ipc');
             
             if (!empty($ipc_recs['recs'])) {
@@ -1723,37 +1583,19 @@ function get_division_course_recommendations($student_data, $division)
                 
                 if (!empty($filtered_recs)) {
                     $ipc_recs['recs'] = array_values($filtered_recs);
-                    error_log("Course Recs: Found " . count($ipc_recs['recs']) . " appropriate IPC recommendations for under 13");
-                    
-                    // Log the actual recommendation course IDs
-                    $rec_ids = array_map(function($rec) {
-                        return $rec['id'];
-                    }, $ipc_recs['recs']);
-                    error_log("Course Recs: IPC recommendation course IDs: " . implode(', ', $rec_ids));
-                    
                     return $ipc_recs;
                 }
             }
             
             // Default to iDTC recommendations for under 13
-            error_log("Course Recs: Checking for iDTC recommendations for under 13");
             $idtc_recs = get_course_recommendations_between_fiscal_years($student_data, $from_fiscal_year, $fiscal_year, 'idtc');
             
             if (!empty($idtc_recs['recs'])) {
-                error_log("Course Recs: Found " . count($idtc_recs['recs']) . " iDTC recommendations");
-                
-                // Log the actual recommendation course IDs
-                $rec_ids = array_map(function($rec) {
-                    return $rec['id'];
-                }, $idtc_recs['recs']);
-                error_log("Course Recs: iDTC recommendation course IDs: " . implode(', ', $rec_ids));
-                
                 return $idtc_recs;
             }
         }
         
         // If we get here, no recommendations were found
-        error_log("Course Recs: No IPC recommendations found");
         return [
             'from_fiscal_year' => $from_fiscal_year,
             'to_fiscal_year' => $fiscal_year,
@@ -1766,10 +1608,8 @@ function get_division_course_recommendations($student_data, $division)
     else {
         // Division-specific age checks
         if (($division === 'idta' || $division === 'ota') && $student_age < 13) {
-            error_log("Course Recs: Student too young for $division recommendations");
             $needs_age_up = true;
         } else if ($division === 'idtc' && $student_age >= 18) {
-            error_log("Course Recs: Student too old for $division recommendations");
             $needs_age_up = true;
         }
         
@@ -1778,14 +1618,6 @@ function get_division_course_recommendations($student_data, $division)
         // Add age-up flag
         $recommendations['age_up'] = $needs_age_up;
         $recommendations['student_age'] = $student_age;
-        
-        if (!empty($recommendations['recs'])) {
-            // Log the actual recommendation course IDs
-            $rec_ids = array_map(function($rec) {
-                return $rec['id'];
-            }, $recommendations['recs']);
-            error_log("Course Recs: $division recommendation course IDs: " . implode(', ', $rec_ids));
-        }
         
         return $recommendations;
     }
@@ -1869,7 +1701,6 @@ function idwiz_get_previous_year_users() {
 function get_student_age($student_data) {
     // Check if DOB exists in the data
     if (!isset($student_data['studentDOB']) || empty($student_data['studentDOB'])) {
-        error_log("Student Age: No DOB found for student {$student_data['studentAccountNumber']}");
         return 0;
     }
     
@@ -1877,7 +1708,6 @@ function get_student_age($student_data) {
     $age = calculate_student_age($student_data['studentDOB']);
     
     if ($age === false) {
-        error_log("Student Age: Invalid DOB format for student {$student_data['studentAccountNumber']}");
         return 0;
     }
     
