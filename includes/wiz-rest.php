@@ -1345,49 +1345,136 @@ function idwiz_endpoint_handler($request) {
         return new WP_REST_Response($cached_response, 200);
     }
 
-    // Track request for rate monitoring
+    // If we're processing too many requests, store this request for later and return 503
     $current_rate = idwiz_track_request_rate();
-
-    // If not in cache, queue for processing and return 503
-    $queue_key = 'idwiz_processing_queue';
-    $processing_queue = get_transient($queue_key) ?: [];
-    
-    // Check if this request is already in the queue
-    if (isset($processing_queue[$account_number])) {
-        $queued_time = $processing_queue[$account_number]['timestamp'];
-        $time_in_queue = time() - $queued_time;
+    if ($current_rate > 40) {
+        // Add to processing queue
+        $queue_key = 'idwiz_processing_queue';
+        $processing_queue = get_transient($queue_key) ?: [];
+        $processing_queue[$account_number] = [
+            'endpoint' => $endpoint,
+            'timestamp' => time()
+        ];
+        set_transient($queue_key, $processing_queue, 600); // Keep queue for 10 minutes
         
-        // If it's been in queue for more than 5 minutes, remove and requeue
-        if ($time_in_queue > 300) {
-            unset($processing_queue[$account_number]);
-        } else {
-            error_log("ID Email Wiz REST API Still Processing: Account Number=$account_number - In queue for {$time_in_queue}s");
+        error_log("ID Email Wiz REST API Queued: Account Number=$account_number - Current rate too high ($current_rate/min)");
+        return new WP_REST_Response([
+            'error' => 'Request queued for processing due to high load',
+            'retry_after' => 180 // Tell Iterable to retry in 3 minutes
+        ], 503);
+    }
+
+    // Get a new database connection for this request
+    global $wpdb;
+    if (isset($wpdb->dbh)) {
+        mysqli_close($wpdb->dbh);
+    }
+    $wpdb->db_connect();
+    
+    // Optimize database queries by selecting only needed fields
+    $needed_fields = ['studentAccountNumber', 'studentDOB'];
+    $fields_string = implode(', ', $needed_fields);
+    
+    // Get user data with optimized query
+    $feed_data = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT $fields_string FROM {$wpdb->prefix}idemailwiz_userfeed WHERE studentAccountNumber = %s LIMIT 1",
+            $account_number
+        ),
+        ARRAY_A
+    );
+
+    if (!$feed_data) {
+        return new WP_REST_Response(['error' => 'Student not found in feed'], 404);
+    }
+
+    // Determine required presets
+    $required_presets = [];
+    if (!empty($endpoint_config['data_mapping'])) {
+        foreach ($endpoint_config['data_mapping'] as $mapping) {
+            if ($mapping['type'] === 'preset') {
+                $required_presets[] = $mapping['value'];
+            }
+        }
+    } else {
+        $required_presets = ['most_recent_purchase', 'last_location'];
+    }
+
+    // Process presets with optimized error handling
+    $presets = [];
+    foreach ($required_presets as $preset) {
+        try {
+            // Check remaining time before processing each preset
+            $elapsed_time = microtime(true) - $start_time;
+            if ($elapsed_time > 8) {
+                // If we're about to timeout, queue for background processing
+                $queue_key = 'idwiz_processing_queue';
+                $processing_queue = get_transient($queue_key) ?: [];
+                $processing_queue[$account_number] = [
+                    'endpoint' => $endpoint,
+                    'timestamp' => time(),
+                    'partial_presets' => $presets // Store what we've processed so far
+                ];
+                set_transient($queue_key, $processing_queue, 600);
+                
+                error_log("ID Email Wiz REST API Timeout Queue: Account Number=$account_number - Processing time exceeded");
+                return new WP_REST_Response([
+                    'error' => 'Request queued for processing due to timeout',
+                    'elapsed_time' => round($elapsed_time * 1000),
+                    'retry_after' => 180
+                ], 503);
+            }
+
+            $presets[$preset] = process_preset_value($preset, $feed_data);
+            
+            if ($presets[$preset] === null || (is_array($presets[$preset]) && empty($presets[$preset]))) {
+                return new WP_REST_Response([
+                    'error' => "Required preset '$preset' is null or empty",
+                    'elapsed_time' => round((microtime(true) - $start_time) * 1000)
+                ], 404);
+            }
+        } catch (Exception $e) {
             return new WP_REST_Response([
-                'error' => 'Request is still being processed',
-                'retry_after' => 180,
-                'queued_for' => $time_in_queue
-            ], 503);
+                'error' => "Error processing preset '$preset': " . $e->getMessage(),
+                'elapsed_time' => round((microtime(true) - $start_time) * 1000)
+            ], 500);
         }
     }
+
+    // Build response data
+    $response_data = [];
+    if (!empty($endpoint_config['data_mapping'])) {
+        foreach ($endpoint_config['data_mapping'] as $key => $mapping) {
+            if ($mapping['type'] === 'static') {
+                $response_data[$key] = $mapping['value'];
+            } else if ($mapping['type'] === 'preset' && isset($presets[$mapping['value']])) {
+                $response_data[$key] = $presets[$mapping['value']];
+            }
+        }
+    } else {
+        $response_data = $feed_data;
+        if (!empty($presets)) {
+            $response_data['_presets'] = $presets;
+        }
+    }
+
+    // Calculate execution time
+    $execution_time = round((microtime(true) - $start_time) * 1000);
+    $data_size = strlen(json_encode($response_data));
     
-    // Add to processing queue
-    $processing_queue[$account_number] = [
+    // Cache the successful response for 10 minutes
+    $response_to_cache = [
         'endpoint' => $endpoint,
-        'timestamp' => time(),
-        'attempts' => 0
+        'data' => $response_data
     ];
-    set_transient($queue_key, $processing_queue, 600); // Keep queue for 10 minutes
+    set_transient($cache_key, $response_to_cache, 600);
     
-    error_log("ID Email Wiz REST API Queued: Account Number=$account_number - Immediate 503 response for background processing");
-    
-    // Return 503 with retry header
-    return new WP_REST_Response([
-        'error' => 'Request queued for processing',
-        'retry_after' => 180 // Tell Iterable to retry in 3 minutes
-    ], 503);
+    error_log("ID Email Wiz REST API Success: Account Number=$account_number, Response Size=$data_size bytes, Execution Time={$execution_time}ms, Request Rate={$current_rate}/min");
+
+    return new WP_REST_Response($response_to_cache, 200);
 }
 
-// Modify the background processing function to handle the actual data fetching
+// Add a new function to process the queued requests
 function process_queued_requests() {
     $queue_key = 'idwiz_processing_queue';
     $processing_queue = get_transient($queue_key);
@@ -1396,102 +1483,29 @@ function process_queued_requests() {
         return;
     }
     
-    // Process up to 5 requests per batch
-    $processed = 0;
     foreach ($processing_queue as $account_number => $request_data) {
-        if ($processed >= 5) break;
-        
-        // Skip if request is less than 1 minute old to avoid race conditions
-        if (time() - $request_data['timestamp'] < 60) {
+        // Skip if request is less than 2 minutes old
+        if (time() - $request_data['timestamp'] < 120) {
             continue;
         }
         
-        // Get endpoint configuration
-        $endpoint = $request_data['endpoint'];
-        $endpoint_config = idwiz_get_endpoint($endpoint);
-        if (!$endpoint_config) {
+        // Create a fake WP_REST_Request object
+        $request = new stdClass();
+        $request->get_route = function() use ($request_data) {
+            return '/idemailwiz/v1/' . $request_data['endpoint'];
+        };
+        $request->get_params = function() use ($account_number) {
+            return ['account_number' => $account_number];
+        };
+        
+        // Process the request
+        $result = idwiz_endpoint_handler($request);
+        
+        // If successful, remove from queue
+        if ($result->get_status() === 200) {
             unset($processing_queue[$account_number]);
-            continue;
+            set_transient($queue_key, $processing_queue, 600);
         }
-        
-        // Get user data
-        global $wpdb;
-        $needed_fields = ['studentAccountNumber', 'studentDOB'];
-        $fields_string = implode(', ', $needed_fields);
-        
-        $feed_data = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT $fields_string FROM {$wpdb->prefix}idemailwiz_userfeed WHERE studentAccountNumber = %s LIMIT 1",
-                $account_number
-            ),
-            ARRAY_A
-        );
-        
-        if (!$feed_data) {
-            unset($processing_queue[$account_number]);
-            continue;
-        }
-        
-        // Process presets
-        $presets = [];
-        $required_presets = [];
-        
-        if (!empty($endpoint_config['data_mapping'])) {
-            foreach ($endpoint_config['data_mapping'] as $mapping) {
-                if ($mapping['type'] === 'preset') {
-                    $required_presets[] = $mapping['value'];
-                }
-            }
-        } else {
-            $required_presets = ['most_recent_purchase', 'last_location'];
-        }
-        
-        foreach ($required_presets as $preset) {
-            try {
-                $presets[$preset] = process_preset_value($preset, $feed_data);
-            } catch (Exception $e) {
-                error_log("Error processing preset '$preset' for $account_number: " . $e->getMessage());
-                continue 2;
-            }
-        }
-        
-        // Build response data
-        $response_data = [];
-        if (!empty($endpoint_config['data_mapping'])) {
-            foreach ($endpoint_config['data_mapping'] as $key => $mapping) {
-                if ($mapping['type'] === 'static') {
-                    $response_data[$key] = $mapping['value'];
-                } else if ($mapping['type'] === 'preset' && isset($presets[$mapping['value']])) {
-                    $response_data[$key] = $presets[$mapping['value']];
-                }
-            }
-        } else {
-            $response_data = $feed_data;
-            if (!empty($presets)) {
-                $response_data['_presets'] = $presets;
-            }
-        }
-        
-        // Cache the successful response
-        $cache_key = 'idwiz_endpoint_' . $endpoint . '_' . $account_number;
-        $response_to_cache = [
-            'endpoint' => $endpoint,
-            'data' => $response_data
-        ];
-        set_transient($cache_key, $response_to_cache, 600);
-        
-        // Remove from queue
-        unset($processing_queue[$account_number]);
-        $processed++;
-        
-        error_log("ID Email Wiz REST API Background Processing Complete: Account Number=$account_number");
-    }
-    
-    // Update queue
-    if (!empty($processing_queue)) {
-        set_transient($queue_key, $processing_queue, 600);
-    } else {
-        delete_transient($queue_key);
     }
 }
 
