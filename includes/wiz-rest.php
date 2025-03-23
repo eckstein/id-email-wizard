@@ -1268,15 +1268,54 @@ function idwiz_create_endpoint_callback()
     }
 }
 
+/**
+ * Track request rate for REST API endpoints
+ */
+function idwiz_track_request_rate() {
+    static $request_times = array();
+    
+    // Remove timestamps older than 60 seconds
+    $cutoff_time = time() - 60;
+    $request_times = array_filter($request_times, function($timestamp) use ($cutoff_time) {
+        return $timestamp >= $cutoff_time;
+    });
+    
+    // Add current timestamp
+    $request_times[] = time();
+    
+    // Calculate requests per minute
+    $requests_per_minute = count($request_times);
+    
+    error_log("ID Email Wiz REST API Rate: $requests_per_minute requests in the last minute");
+    
+    // Check if we're over typical WordPress REST API rate limits
+    if ($requests_per_minute > 40) {
+        error_log("ID Email Wiz REST API WARNING: High request rate detected ($requests_per_minute/min) - may hit WordPress rate limits");
+    }
+    
+    return $requests_per_minute;
+}
+
 function idwiz_endpoint_handler($request)
 {
+    // Track request start time
+    $start_time = microtime(true);
+    
+    // Track and log request rate
+    $current_rate = idwiz_track_request_rate();
+    
     $route = $request->get_route();
     $endpoint = str_replace('/idemailwiz/v1', '', $route);
     $endpoint = trim($endpoint, '/');
 
+    // Log incoming request
+    error_log("ID Email Wiz REST API Request: Endpoint=$endpoint, Rate=$current_rate/min");
+
     // Get endpoint configuration from database
     $endpoint_config = idwiz_get_endpoint($endpoint);
     if (!$endpoint_config) {
+        $execution_time = round((microtime(true) - $start_time) * 1000);
+        error_log("ID Email Wiz REST API Error: Endpoint configuration not found for $endpoint. Execution time: {$execution_time}ms");
         return new WP_REST_Response(array(
             'error' => 'Endpoint configuration not found',
         ), 404);
@@ -1286,7 +1325,12 @@ function idwiz_endpoint_handler($request)
     $params = $request->get_params();
     $account_number = isset($params['account_number']) ? sanitize_text_field($params['account_number']) : '';
     
+    // Log the account number being requested
+    error_log("ID Email Wiz REST API: Account Number=$account_number");
+    
     if (empty($account_number)) {
+        $execution_time = round((microtime(true) - $start_time) * 1000);
+        error_log("ID Email Wiz REST API Error: Account number is required. Execution time: {$execution_time}ms");
         return new WP_REST_Response(array(
             'error' => 'Account number is required',
         ), 400);
@@ -1303,6 +1347,8 @@ function idwiz_endpoint_handler($request)
     );
 
     if (!$feed_data) {
+        $execution_time = round((microtime(true) - $start_time) * 1000);
+        error_log("ID Email Wiz REST API Error: Student not found in feed, Account Number=$account_number. Execution time: {$execution_time}ms");
         return new WP_REST_Response(array(
             'error' => 'Student not found in feed',
         ), 404);
@@ -1324,6 +1370,9 @@ function idwiz_endpoint_handler($request)
         $required_presets = ['most_recent_purchase', 'last_location'];
     }
     
+    // Log required presets
+    error_log("ID Email Wiz REST API: Required presets=" . implode(', ', $required_presets));
+    
     // Only process required presets
     if (in_array('most_recent_purchase', $required_presets)) {
         $presets['most_recent_purchase'] = get_most_recent_purchase_date($feed_data);
@@ -1342,6 +1391,8 @@ function idwiz_endpoint_handler($request)
         try {
             $presets['nearby_locations_with_course_recs'] = process_preset_value('nearby_locations_with_course_recs', $feed_data);
         } catch (Exception $e) {
+            $execution_time = round((microtime(true) - $start_time) * 1000);
+            error_log("ID Email Wiz REST API Error: Exception processing nearby_locations_with_course_recs - " . $e->getMessage() . ". Execution time: {$execution_time}ms");
             $presets['nearby_locations_with_course_recs'] = null;
         }
     }
@@ -1360,6 +1411,8 @@ function idwiz_endpoint_handler($request)
             try {
                 $presets[$preset] = process_preset_value($preset, $feed_data);
             } catch (Exception $e) {
+                $execution_time = round((microtime(true) - $start_time) * 1000);
+                error_log("ID Email Wiz REST API Error: Exception processing $preset - " . $e->getMessage() . ". Execution time: {$execution_time}ms");
                 // Continue processing
                 $presets[$preset] = null;
             }
@@ -1369,6 +1422,8 @@ function idwiz_endpoint_handler($request)
     // Check if any required preset is null and return 404 if so
     foreach ($required_presets as $preset) {
         if (!isset($presets[$preset]) || $presets[$preset] === null) {
+            $execution_time = round((microtime(true) - $start_time) * 1000);
+            error_log("ID Email Wiz REST API Error: Required preset '$preset' is null for Account Number=$account_number. Execution time: {$execution_time}ms");
             return new WP_REST_Response(array(
                 'error' => "Required preset '$preset' is null",
             ), 404);
@@ -1378,12 +1433,16 @@ function idwiz_endpoint_handler($request)
         if (is_array($presets[$preset]) && empty($presets[$preset])) {
             // For 'nearby_locations', check if it has the expected structure but empty locations
             if ($preset === 'nearby_locations' && isset($presets[$preset]['locations']) && empty($presets[$preset]['locations'])) {
+                $execution_time = round((microtime(true) - $start_time) * 1000);
+                error_log("ID Email Wiz REST API Error: Required preset '$preset' has empty locations for Account Number=$account_number. Execution time: {$execution_time}ms");
                 return new WP_REST_Response(array(
                     'error' => "Required preset '$preset' has empty locations",
                 ), 404);
             }
             // For course recommendations
             else if (strpos($preset, '_course_recs') !== false && empty($presets[$preset])) {
+                $execution_time = round((microtime(true) - $start_time) * 1000);
+                error_log("ID Email Wiz REST API Error: Required preset '$preset' is empty for Account Number=$account_number. Execution time: {$execution_time}ms");
                 return new WP_REST_Response(array(
                     'error' => "Required preset '$preset' is empty",
                 ), 404);
@@ -1392,6 +1451,8 @@ function idwiz_endpoint_handler($request)
             else if ($preset === 'nearby_locations_with_course_recs' && 
                     (empty($presets[$preset]['courses']) || 
                      $presets[$preset]['metadata']['total_courses'] === 0)) {
+                $execution_time = round((microtime(true) - $start_time) * 1000);
+                error_log("ID Email Wiz REST API Error: Required preset '$preset' has no valid courses for Account Number=$account_number. Execution time: {$execution_time}ms");
                 return new WP_REST_Response(array(
                     'error' => "Required preset '$preset' has no valid courses",
                 ), 404);
@@ -1420,6 +1481,13 @@ function idwiz_endpoint_handler($request)
             $response_data['_presets'] = $presets;
         }
     }
+
+    // Calculate execution time in milliseconds
+    $execution_time = round((microtime(true) - $start_time) * 1000);
+    
+    // Log successful response with data size and execution time
+    $data_size = isset($response_data) ? strlen(json_encode($response_data)) : 0;
+    error_log("ID Email Wiz REST API Success: Account Number=$account_number, Response Size=$data_size bytes, Execution Time={$execution_time}ms");
 
     // Return in the same format as preview
     return new WP_REST_Response(array(
