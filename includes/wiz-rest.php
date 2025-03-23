@@ -1294,6 +1294,26 @@ function idwiz_track_request_rate() {
     // Calculate requests per minute
     $requests_per_minute = count($request_times);
     
+    // Add throttling when high concurrency is detected
+    // Check how many requests happened in the last 5 seconds
+    $recent_cutoff = time() - 5;
+    $recent_requests = array_filter($request_times, function($timestamp) use ($recent_cutoff) {
+        return $timestamp >= $recent_cutoff;
+    });
+    $recent_count = count($recent_requests);
+    
+    // If we have high recent concurrency, add a small delay
+    if ($recent_count > 5) { 
+        // Calculate adaptive delay based on concurrency
+        $delay_ms = min(200, $recent_count * 10); // Max 200ms, scales with concurrency
+        
+        // Log the throttling
+        error_log("ID Email Wiz REST API: Throttling with {$delay_ms}ms delay due to concurrency ({$recent_count} requests in 5s)");
+        
+        // Apply the delay
+        usleep($delay_ms * 1000);
+    }
+    
     // Log rate information
     if ($requests_per_minute > 1) {  // Only log if there's more than one request
         error_log("ID Email Wiz REST API Rate: $requests_per_minute requests in the last minute");
@@ -1324,19 +1344,29 @@ function idwiz_endpoint_handler($request) {
     $route = $request->get_route();
     $endpoint = str_replace('/idemailwiz/v1', '', $route);
     $endpoint = trim($endpoint, '/');
-
-    // Get endpoint configuration from database
-    $endpoint_config = idwiz_get_endpoint($endpoint);
-    if (!$endpoint_config) {
-        return new WP_REST_Response(['error' => 'Endpoint configuration not found'], 404);
-    }
-
-    // Get user data based on the request
+    
+    // Get parameters
     $params = $request->get_params();
     $account_number = isset($params['account_number']) ? sanitize_text_field($params['account_number']) : '';
     
     if (empty($account_number)) {
         return new WP_REST_Response(['error' => 'Account number is required'], 400);
+    }
+    
+    // Check for cached response
+    $cache_key = 'idwiz_endpoint_' . md5($endpoint . '_' . $account_number . '_' . serialize($params));
+    $cached_response = wp_cache_get($cache_key);
+    
+    if ($cached_response !== false) {
+        // Log cache hit
+        error_log("ID Email Wiz REST API: Cache hit for account $account_number on endpoint $endpoint");
+        return $cached_response;
+    }
+
+    // Get endpoint configuration from database
+    $endpoint_config = idwiz_get_endpoint($endpoint);
+    if (!$endpoint_config) {
+        return new WP_REST_Response(['error' => 'Endpoint configuration not found'], 404);
     }
 
     global $wpdb;
@@ -1423,10 +1453,15 @@ function idwiz_endpoint_handler($request) {
     
     error_log("ID Email Wiz REST API Success: Account Number=$account_number, Response Size=$data_size bytes, Execution Time={$execution_time}ms");
 
-    return new WP_REST_Response([
+    $response = new WP_REST_Response([
         'endpoint' => $endpoint,
         'data' => $response_data
     ], 200);
+    
+    // Cache this response for 15 seconds
+    wp_cache_set($cache_key, $response, '', 15);
+    
+    return $response;
 }
 
 // Add this new function to help with request batching
@@ -1463,6 +1498,42 @@ function process_batch_requests($requests, $max_concurrent = 5) {
     
     return $results;
 }
+
+/**
+ * Detects and manages concurrent requests from the same IP
+ * This helps prevent resource contention when external services hit the API
+ */
+function idwiz_detect_request_bursts() {
+    static $ip_request_count = array();
+    
+    // Get client IP
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    
+    // Initialize or increment counter
+    if (!isset($ip_request_count[$ip])) {
+        $ip_request_count[$ip] = 1;
+    } else {
+        $ip_request_count[$ip]++;
+    }
+    
+    // If we detect a burst of requests from the same IP (likely Iterable)
+    // add a small staggered delay to prevent resource contention
+    if ($ip_request_count[$ip] > 3) {
+        $delay_ms = min(300, $ip_request_count[$ip] * 15); // Scale up to 300ms max
+        usleep($delay_ms * 1000);
+        
+        // Log this for debugging
+        error_log("ID Email Wiz REST API: Burst detection - Request {$ip_request_count[$ip]} from IP {$ip}, adding {$delay_ms}ms delay");
+        
+        // Reset counter after a while to not penalize legitimate traffic
+        if ($ip_request_count[$ip] > 20) {
+            $ip_request_count[$ip] = 10;
+        }
+    }
+}
+
+// Hook the burst detection to WordPress init action
+add_action('init', 'idwiz_detect_request_bursts', 1);
 
 add_action('wp_ajax_idwiz_update_endpoint', 'idwiz_update_endpoint_callback');
 
