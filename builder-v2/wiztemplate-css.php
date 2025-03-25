@@ -319,6 +319,70 @@
     @media screen and (max-width: 480px) {
         .columnSet.noWrap {
             white-space: nowrap;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        
+        /* Apply appropriate widths for each layout type in noWrap mode */
+        .two-col.noWrap .column {
+            max-width: 50% !important;
+            min-width: 50% !important;
+            width: 50% !important;
+            box-sizing: border-box;
+        }
+        
+        .three-col.noWrap .column {
+            max-width: 33.333% !important;
+            min-width: 33.333% !important;
+            width: 33.333% !important;
+            box-sizing: border-box;
+        }
+        
+        .four-col.noWrap .column {
+            max-width: 25% !important;
+            min-width: 25% !important;
+            width: 25% !important;
+            box-sizing: border-box;
+            font-size: 0.85em;
+        }
+        
+        /* Ensure images scale properly in noWrap columns */
+        .columnSet.noWrap .column img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        /* Adjust padding for tighter content in noWrap columns */
+        .four-col.noWrap .column {
+            padding: 0 2px;
+        }
+        
+        .sidebar-left.noWrap .column:first-child,
+        .sidebar-right.noWrap .column:last-child {
+            max-width: 30% !important;
+            min-width: 30% !important;
+            width: 30% !important;
+            box-sizing: border-box;
+        }
+        
+        .sidebar-left.noWrap .column:last-child,
+        .sidebar-right.noWrap .column:first-child {
+            max-width: 70% !important;
+            min-width: 70% !important;
+            width: 70% !important;
+            box-sizing: border-box;
+        }
+
+        .three-col .column.wrap,
+        .four-col .column.wrap,
+        .two-col .column.wrap,
+        .sidebar-left .column.wrap,
+        .sidebar-right .column.wrap {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 100% !important;
+            display: block !important;
+            overflow: hidden;
         }
 
         /* Mobile Headers */
@@ -376,6 +440,7 @@
     @media screen and (max-width: 480px) {
 
         .three-col .column.wrap,
+        .four-col .column.wrap,
         .two-col .column.wrap,
         .sidebar-left .column.wrap,
         .sidebar-right .column.wrap {
@@ -407,6 +472,14 @@
             overflow: hidden;
         }
 
+        .four-col .column {
+            max-width: 25% !important;
+            min-width: 25% !important;
+            display: inline-block;
+            text-align: left;
+            overflow: hidden;
+        }
+
         .two-col .column {
             max-width: 50% !important;
             min-width: 50% !important;
@@ -414,7 +487,6 @@
             text-align: left;
             overflow: hidden;
         }
-
 
         .desktop-only {
             display: block !important;
@@ -475,6 +547,56 @@
     </style>
 			
 <![endif]-->
+
+<style type="text/css">
+    .col-layout-visual-wrapper {
+        display: flex;
+        background: #ddd;
+        width: 100%;
+        height: 20px;
+        margin-bottom: 4px;
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .builder-actions-popup-option.one-col .col-layout-visual-wrapper div {
+        background: #333;
+        width: 100%;
+        height: 100%;
+    }
+
+    .builder-actions-popup-option.two-col .col-layout-visual-wrapper div {
+        background: #333;
+        width: 50%;
+        height: 100%;
+    }
+
+    .builder-actions-popup-option.three-col .col-layout-visual-wrapper div {
+        background: #333;
+        width: 33.33%;
+        height: 100%;
+    }
+    
+    .builder-actions-popup-option.four-col .col-layout-visual-wrapper div {
+        background: #333;
+        width: 25%;
+        height: 100%;
+    }
+
+    .builder-actions-popup-option.sidebar-left .col-layout-visual-wrapper div:first-child,
+    .builder-actions-popup-option.sidebar-right .col-layout-visual-wrapper div:last-child {
+        background: #333;
+        width: 30%;
+        height: 100%;
+    }
+
+    .builder-actions-popup-option.sidebar-left .col-layout-visual-wrapper div:last-child,
+    .builder-actions-popup-option.sidebar-right .col-layout-visual-wrapper div:first-child {
+        background: #333;
+        width: 70%;
+        height: 100%;
+    }
+</style>
 
 HTML;
 

@@ -204,8 +204,8 @@ function generate_builder_columnset($colSetIndex, $columnSet, $rowId)
 
     $columns = $columnSet['columns'] ?? [];
 
-    // Ensure there are always three columns available
-    while (count($columns) < 3) {
+    // Ensure there are always four columns available
+    while (count($columns) < 4) {
         $columns[] = [
             'title' => 'Column',
             'activation' => 'inactive',

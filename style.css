@@ -929,6 +929,18 @@ body.single-idemailwiz_template {
 	background-color: #ccc;
 }
 
+.builder-actions-popup-option.three-col .col-layout-visual-wrapper div {
+	width: 31%;
+	height: 100%;
+	background-color: #ccc;
+}
+
+.builder-actions-popup-option.four-col .col-layout-visual-wrapper div {
+	width: 23%;
+	height: 100%;
+	background-color: #ccc;
+}
+
 
 
 

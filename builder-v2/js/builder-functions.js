@@ -657,6 +657,7 @@ function generate_column_layout_choices(currentLayout) {
         { name: '1 Column', value: 'one-col' },
         { name: '2 Column', value: 'two-col' },
         { name: '3 Column', value: 'three-col' },
+        { name: '4 Column', value: 'four-col' },
         { name: 'Sidebar Left', value: 'sidebar-left' },
         { name: 'Sidebar Right', value: 'sidebar-right' }
     ];
@@ -895,6 +896,8 @@ function get_layout_icon_html(layoutValue) {
             return '<div class="col-layout-visual-wrapper"><div></div><div></div></div>';
         case 'three-col':
             return '<div class="col-layout-visual-wrapper"><div></div><div></div><div></div></div>';
+        case 'four-col':
+            return '<div class="col-layout-visual-wrapper"><div></div><div></div><div></div><div></div></div>';
         case 'sidebar-left':
             return '<div class="col-layout-visual-wrapper"><div></div><div></div></div>';
         case 'sidebar-right':
@@ -947,6 +950,15 @@ function handle_column_selection($element, selectedLayout) {
             $columns.eq(0).removeClass('inactive').addClass('active');
             $columns.eq(1).removeClass('inactive').addClass('active');
             $columns.eq(2).removeClass('inactive').addClass('active');
+            mobileWrapToggle.removeClass('disabled').addClass('active');
+            mobile_on_off(mobileWrapToggle, 'on');
+            magicWrapToggle.removeClass('disabled');
+            break;
+        case 'four-col':
+            $columns.eq(0).removeClass('inactive').addClass('active');
+            $columns.eq(1).removeClass('inactive').addClass('active');
+            $columns.eq(2).removeClass('inactive').addClass('active');
+            $columns.eq(3).removeClass('inactive').addClass('active');
             mobileWrapToggle.removeClass('disabled').addClass('active');
             mobile_on_off(mobileWrapToggle, 'on');
             magicWrapToggle.removeClass('disabled');
@@ -1019,6 +1031,20 @@ function toggle_magic_wrap($clicked) {
             $colSet.attr('data-column-id', 2);
         }
         if ($colSet.attr('data-column-id') == 2) {
+            $colSet.attr('data-column-id', 0);
+        }
+    }
+    if (colCount == 4) {
+        if ($colSet.attr('data-column-id') == 0) {
+            $colSet.attr('data-column-id', 3);
+        }
+        if ($colSet.attr('data-column-id') == 1) {
+            $colSet.attr('data-column-id', 2);
+        }
+        if ($colSet.attr('data-column-id') == 2) {
+            $colSet.attr('data-column-id', 1);
+        }
+        if ($colSet.attr('data-column-id') == 3) {
             $colSet.attr('data-column-id', 0);
         }
     }
