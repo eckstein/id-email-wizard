@@ -14,17 +14,52 @@ function do_database_cleanups($campaignIds = [])
 function update_opens_and_clicks_by_hour($blastCampaigns = [])
 {
     wiz_log('Updating opens and clicks by hour...');
-    
+
+    // Check if the input is potentially an error array from get_idwiz_campaigns
+    if (is_array($blastCampaigns) && isset($blastCampaigns['error'])) {
+         wiz_log('Error retrieving campaigns for hourly metrics: ' . $blastCampaigns['error']);
+         return; // Stop processing if there was an error fetching campaigns
+    }
+
+    // Check if the input is explicitly false (indicating a DB error in execute_idwiz_query)
+    if ($blastCampaigns === false) {
+         wiz_log('Error executing query for hourly metrics campaigns.');
+         return; // Stop processing
+    }
+
+    // Check if it's empty, and if so, fetch default campaigns
     if (empty($blastCampaigns)) {
         $now = new DateTime();
-        // minus 3 months
+        // minus 30 days
         $startAt = $now->sub(new DateInterval('P30D'))->format('Y-m-d');
         $blastCampaigns = get_idwiz_campaigns(['type' => 'Blast', 'fields' => 'id', 'startAt_start' => $startAt]);
+
+        // Re-check after fetching defaults
+        if (is_array($blastCampaigns) && isset($blastCampaigns['error'])) {
+             wiz_log('Error retrieving default campaigns for hourly metrics: ' . $blastCampaigns['error']);
+             return;
+        }
+        if ($blastCampaigns === false) {
+             wiz_log('Error executing query for default hourly metrics campaigns.');
+             return;
+        }
+        if (empty($blastCampaigns)) {
+             wiz_log('No recent blast campaigns found to update hourly metrics.');
+             return; // No campaigns found, nothing to do
+        }
     }
+
+    $processed_count = 0;
     foreach ($blastCampaigns as $campaign) {
-        idwiz_save_hourly_metrics($campaign['id']);
+        // Additional safety check inside the loop
+        if (is_array($campaign) && isset($campaign['id'])) {
+            idwiz_save_hourly_metrics($campaign['id']);
+            $processed_count++;
+        } else {
+            wiz_log('Skipping invalid campaign data during hourly metrics update: ' . print_r($campaign, true));
+        }
     }
-    wiz_log('Updated opens and clicks by hour for ' . count($blastCampaigns) . ' campaigns.');
+    wiz_log('Updated opens and clicks by hour for ' . $processed_count . ' campaigns.');
 }
 
 function update_null_user_ids()
@@ -187,52 +222,88 @@ function remove_apostrophes_from_column($table_suffix, $column_name)
 
 function idemailwiz_backfill_campaign_start_dates($purchases = false)
 {
+    wiz_log("Starting purchase campaign start date backfill...");
     global $wpdb;
     $purchases_table = $wpdb->prefix . 'idemailwiz_purchases';
     $campaigns_table = $wpdb->prefix . 'idemailwiz_campaigns';
     $triggered_sends_table = $wpdb->prefix . 'idemailwiz_triggered_sends';
 
-    // Fetch all purchases that have a campaignId and an empty or null campaignStartAt
+    $limit = 1000; // Define the limit for fetching purchases
+
+    // Fetch purchases that need backfilling
     if (!$purchases) {
-        $purchases = $wpdb->get_results("SELECT id, campaignId, userId, purchaseDate FROM $purchases_table WHERE campaignId IS NOT NULL AND (campaignStartAt IS NULL OR campaignStartAt = '') ORDER BY campaignId DESC LIMIT 1000");
+        $purchases = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, campaignId, userId, purchaseDate 
+             FROM $purchases_table 
+             WHERE campaignId IS NOT NULL AND (campaignStartAt IS NULL OR campaignStartAt = '') 
+             ORDER BY campaignId DESC 
+             LIMIT %d", 
+             $limit
+            ), 
+            OBJECT // Get results as objects to match original logic
+        );
     } else {
         $purchases = (array)$purchases;
     }
 
-    // Process purchases one by one
+    if (empty($purchases)) {
+        wiz_log("No purchases found needing campaign start date backfill.");
+        return "No purchases found needing backfill.";
+    }
+
+    // Extract unique campaign IDs from the purchases
+    $campaign_ids = array_unique(array_filter(wp_list_pluck($purchases, 'campaignId')));
+    $campaign_data_lookup = [];
+
+    // Fetch campaign data (type and startAt for Blasts) in bulk
+    if (!empty($campaign_ids)) {
+        $placeholders = implode(',', array_fill(0, count($campaign_ids), '%d'));
+        $campaign_results = $wpdb->get_results(
+            $wpdb->prepare("SELECT id, type, startAt FROM $campaigns_table WHERE id IN ($placeholders)", $campaign_ids),
+            ARRAY_A
+        );
+        // Create a lookup array keyed by campaign ID
+        foreach ($campaign_results as $campaign) {
+            $campaign_data_lookup[$campaign['id']] = [
+                'type' => $campaign['type'],
+                'startAt' => $campaign['startAt'] // Store Blast startAt directly
+            ];
+        }
+    }
+
     $countUpdates = 0;
+    $wpdb->query('START TRANSACTION'); // Start transaction for updates
+
     foreach ($purchases as $purchase) {
         try {
-            // Fetch required campaign data - use prepare to avoid SQL injection
-            $campaignType = $wpdb->get_var(
-                $wpdb->prepare(
-                    "SELECT type FROM $campaigns_table WHERE id = %d",
-                    $purchase->campaignId
-                )
-            );
-            
-            // Make sure purchase date is valid before converting to timestamp
-            if (empty($purchase->purchaseDate)) {
-                wiz_log("Purchase {$purchase->id} has no purchase date. Skipping.");
-                continue;
+            $campaignId = $purchase->campaignId;
+            $campaignStartAt = null; // Default to null
+
+            // Check if we have data for this campaign in our lookup
+            if (!isset($campaign_data_lookup[$campaignId])) {
+                // wiz_log("Campaign data not found in lookup for purchase {$purchase->id}, campaign {$campaignId}. Skipping.");
+                continue; // Skip if campaign info wasn't found (maybe deleted?)
             }
-            
-            $purchaseTimestamp = strtotime($purchase->purchaseDate . ' 23:59:59 America/Los_Angeles') * 1000;
-            
-            // Default to null
-            $campaignStartAt = null;
-            
+
+            $campaignData = $campaign_data_lookup[$campaignId];
+            $campaignType = $campaignData['type'];
+
             if ($campaignType === 'Blast') {
-                $campaignStartAt = $wpdb->get_var(
-                    $wpdb->prepare(
-                        "SELECT startAt FROM $campaigns_table WHERE id = %d",
-                        $purchase->campaignId
-                    )
-                );
+                $campaignStartAt = $campaignData['startAt'];
             } elseif ($campaignType === 'Triggered' || $campaignType === 'FromWorkflow') {
-                // Find the most recent triggered send before the purchase timestamp
-                // Properly escape userId to avoid SQL injection
-                $userId = $wpdb->_real_escape($purchase->userId);
+                // --- Triggered/Workflow lookup (still inefficient, but clearer) ---
+                if (empty($purchase->purchaseDate)) {
+                    // wiz_log("Purchase {$purchase->id} has no purchase date. Skipping triggered lookup.");
+                    continue;
+                }
+                if (empty($purchase->userId)) {
+                    // wiz_log("Purchase {$purchase->id} has no userId. Skipping triggered lookup.");
+                    continue;
+                }
+
+                $purchaseTimestamp = strtotime($purchase->purchaseDate . ' 23:59:59 America/Los_Angeles') * 1000;
+                
+                // Find the most recent triggered send before the purchase timestamp for the specific user
                 $triggeredSend = $wpdb->get_row(
                     $wpdb->prepare(
                         "SELECT startAt
@@ -240,62 +311,50 @@ function idemailwiz_backfill_campaign_start_dates($purchases = false)
                         WHERE campaignId = %d AND userId = %s AND startAt <= %d
                         ORDER BY startAt DESC
                         LIMIT 1",
-                        $purchase->campaignId,
-                        $userId,
+                        $campaignId,
+                        $purchase->userId, // Use object property access
                         $purchaseTimestamp
                     )
                 );
-
+                
                 if ($triggeredSend !== null) {
                     $campaignStartAt = $triggeredSend->startAt;
-                } else {
-                    // Find the most recent triggered send for the campaign before the purchase timestamp
-                    $triggeredSend = $wpdb->get_row(
-                        $wpdb->prepare(
-                            "SELECT startAt
-                            FROM $triggered_sends_table
-                            WHERE campaignId = %d AND startAt <= %d
-                            ORDER BY startAt DESC
-                            LIMIT 1",
-                            $purchase->campaignId,
-                            $purchaseTimestamp
-                        )
-                    );
-
-                    $campaignStartAt = $triggeredSend !== null ? $triggeredSend->startAt : null;
-                }
+                } 
+                // Optional Fallback: Find the most recent send for the campaign if user-specific not found
+                // else { 
+                //     $triggeredSendFallback = $wpdb->get_row(...
+                //     $campaignStartAt = $triggeredSendFallback !== null ? $triggeredSendFallback->startAt : null;
+                // }
+                 // --- End Triggered/Workflow lookup ---
             }
 
-            // Update the purchase record with proper SQL escaping
+            // Update the purchase record only if campaignStartAt was determined
             if ($campaignStartAt !== null) {
                 $result = $wpdb->update(
                     $purchases_table,
                     ['campaignStartAt' => $campaignStartAt],
                     ['id' => $purchase->id],
-                    ['%d'],
-                    ['%s']
+                    ['%d'], // Format for campaignStartAt (assuming bigint/numeric)
+                    ['%s']  // Format for id
                 );
-            } else {
-                // For NULL values, we need a different approach
-                $result = $wpdb->query(
-                    $wpdb->prepare(
-                        "UPDATE $purchases_table SET campaignStartAt = NULL WHERE id = %s",
-                        $purchase->id
-                    )
-                );
+                if ($result !== false) {
+                    $countUpdates += $result; // Increment by rows affected (usually 1)
+                }
+                 // else {
+                //     wiz_log("Failed to update purchase {$purchase->id}: " . $wpdb->last_error);
+                // }
             }
-            
-            // Check if the update was successful and increment counter
-            if ($result !== false) {
-                $countUpdates += $result;
-            } else {
-                wiz_log("Failed to update purchase {$purchase->id}: " . $wpdb->last_error);
-            }
+            // No need for the separate NULL update query anymore, update handles NULL if $campaignStartAt is NULL?
+            // Actually, the original check was (campaignStartAt IS NULL OR campaignStartAt = '')
+            // Let's stick to only updating if we found a non-null startAt to avoid accidentally nulling existing ones.
+
         } catch (Exception $e) {
             wiz_log("Error processing purchase {$purchase->id}: " . $e->getMessage());
             continue; // Skip to the next purchase on error
         }
     }
+    
+    $wpdb->query('COMMIT'); // Commit transaction
 
     wiz_log("Purchase campaign start date backfill completed for {$countUpdates} records.");
     return "Purchase campaign start date backfill completed for {$countUpdates} records.";

@@ -539,7 +539,7 @@ function idemailwiz_create_view()
             " . $wpdb->prefix . "idemailwiz_templates AS templates ON campaigns.templateId = templates.templateId
         LEFT JOIN 
             " . $wpdb->prefix . "idemailwiz_init_campaigns AS init_campaigns ON campaigns.id = init_campaigns.campaignId
-        WHERE metrics.uniqueEmailSends > 5
+        
         GROUP BY campaigns.id;
         ";
 
@@ -852,6 +852,10 @@ function get_idwiz_campaigns($args = [])
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'idemailwiz_campaigns';
 	$sql = build_idwiz_query($args, $table_name);
+	// Check if build_idwiz_query returned an error array
+	if (is_array($sql) && isset($sql['error'])) {
+		return $sql; // Return the error array directly
+	}
 	return execute_idwiz_query($sql, $args);
 }
 
@@ -860,6 +864,10 @@ function get_idwiz_templates($args = [])
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'idemailwiz_templates';
 	$sql = build_idwiz_query($args, $table_name);
+	// Check if build_idwiz_query returned an error array
+	if (is_array($sql) && isset($sql['error'])) {
+		return $sql; // Return the error array directly
+	}
 	return execute_idwiz_query($sql, $args);
 }
 
@@ -868,6 +876,10 @@ function get_idwiz_purchases($args = [])
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'idemailwiz_purchases';
 	$sql = build_idwiz_query($args, $table_name);
+	// Check if build_idwiz_query returned an error array
+	if (is_array($sql) && isset($sql['error'])) {
+		return $sql; // Return the error array directly
+	}
 	return execute_idwiz_query($sql, $args);
 }
 
@@ -876,6 +888,10 @@ function get_idwiz_metrics($args = [])
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'idemailwiz_metrics';
 	$sql = build_idwiz_query($args, $table_name);
+	// Check if build_idwiz_query returned an error array
+	if (is_array($sql) && isset($sql['error'])) {
+		return $sql; // Return the error array directly
+	}
 	return execute_idwiz_query($sql, $args);
 }
 
@@ -884,6 +900,10 @@ function get_idwiz_experiments($args = [])
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'idemailwiz_experiments';
 	$sql = build_idwiz_query($args, $table_name);
+	// Check if build_idwiz_query returned an error array
+	if (is_array($sql) && isset($sql['error'])) {
+		return $sql; // Return the error array directly
+	}
 	return execute_idwiz_query($sql, $args);
 }
 
