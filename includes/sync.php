@@ -809,6 +809,7 @@ function idemailwiz_fetch_users($startDate = null, $endDate = null)
 		'subscribedMessageTypeIds',
 		'unsubscribedChannelIds',
 		'unsubscribedMessageTypeIds',
+		'leadLocationID',
 	];
 
 	// Create the base array of query parameters without 'onlyFields'
@@ -1071,6 +1072,13 @@ function process_student_array($userData) {
         return null;
     }
 
+    // Process leadLocationID
+    $leadLocationId = null;
+    if (isset($userData['leadLocationID']) && !empty($userData['leadLocationID']) && $userData['leadLocationID'] !== '0') {
+        // Convert to integer if it's a valid numeric value
+        $leadLocationId = is_numeric($userData['leadLocationID']) ? (int)$userData['leadLocationID'] : $userData['leadLocationID'];
+    }
+
     $processedStudents = [];
     foreach ($studentArray as $student) {
         if (!isset($student['StudentAccountNumber'])) {
@@ -1102,6 +1110,7 @@ function process_student_array($userData) {
             'unscheduledLessons' => $student['UnscheduledLessons'] ?? null,
             'studentGender' => $student['StudentGender'] ?? null,
             'studentLastUpdated' => $studentLastUpdated,
+            'leadLocationId' => $leadLocationId,
             'last_updated' => current_time('mysql')
         ];
     }

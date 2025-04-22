@@ -266,7 +266,20 @@ jQuery(document).ready(function ($) {
         $('.endpoint-tab').removeClass('active');
         $('.endpoint-content').hide().removeClass('active');
         $(this).addClass('active');
-        $(`#endpoint-${endpoint}`).show().addClass('active');
+        const $activeContent = $(`#endpoint-${endpoint}`);
+        $activeContent.show().addClass('active');
+        
+        // Check if we need to update the test user dropdown
+        const baseDataSource = $activeContent.find('.endpoint-base-data-source').val();
+        const $testUserSelect = $activeContent.find('.test-user-select');
+        const currentType = $testUserSelect.data('type');
+        
+        // If dropdown type doesn't match the data source, reload options
+        if (baseDataSource === 'user_profile' && currentType !== 'user_profile') {
+            loadParentAccountOptions($testUserSelect);
+        } else if (baseDataSource === 'user_feed' && currentType !== 'user_feed') {
+            loadStudentAccountOptions($testUserSelect);
+        }
     });
 
     // Show initial endpoint content
@@ -379,6 +392,40 @@ jQuery(document).ready(function ($) {
         });
     }
 
+    // Function to get presets compatible with the base data source
+    function getCompatiblePresets(baseDataSource, allPresets) {
+        // Presets that work with student data (user_feed)
+        const studentPresets = [
+            'most_recent_purchase',
+            'last_location',
+            'nearby_locations',
+            'nearby_locations_with_course_recs',
+            'ipc_course_recs',
+            'idtc_course_recs',
+            'idta_course_recs',
+            'vtc_course_recs',
+            'ota_course_recs',
+            'opl_course_recs'
+        ];
+        
+        // Presets that work with parent/user data (user_profile)
+        const parentPresets = [
+            'location_with_courses'
+        ];
+        
+        const compatiblePresetKeys = (baseDataSource === 'user_profile') ? parentPresets : studentPresets;
+        
+        // Filter the allPresets object to only include compatible presets
+        const compatiblePresets = {};
+        for (const presetKey in allPresets) {
+            if (compatiblePresetKeys.includes(presetKey)) {
+                compatiblePresets[presetKey] = allPresets[presetKey];
+            }
+        }
+        
+        return compatiblePresets;
+    }
+
     $(document).on('change', '.mapping-type', function() {
         const valueContainer = $(this).next();
         const type = $(this).val();
@@ -388,9 +435,14 @@ jQuery(document).ready(function ($) {
             const loadingSelect = $('<select class="mapping-preset wiz-select"><option>Loading presets...</option></select>');
             valueContainer.replaceWith(loadingSelect);
             
+            // Get base data source
+            const baseDataSource = $(this).closest('.endpoint-content').find('.endpoint-base-data-source').val();
+            
             loadPresets()
                 .then(presets => {
-                    loadingSelect.html(generatePresetOptionsHtml(presets));
+                    // Filter presets by compatibility with base data source
+                    const compatiblePresets = getCompatiblePresets(baseDataSource, presets);
+                    loadingSelect.html(generatePresetOptionsHtml(compatiblePresets));
                 })
                 .catch(error => {
                     console.error('Error loading presets:', error);
@@ -438,9 +490,10 @@ jQuery(document).ready(function ($) {
         const $activeContainer = $('.endpoint-content.active');
         const $preview = $activeContainer.find('.payload-preview');
         const endpoint = $activeContainer.attr('id').replace('endpoint-', '');
+        const baseDataSource = $activeContainer.find('.endpoint-base-data-source').val();
         
         // Check cache first
-        const cacheKey = accountNumber;
+        const cacheKey = baseDataSource + '_' + accountNumber;
         const now = Date.now();
         if (userDataCache.data[cacheKey] && 
             (now - userDataCache.timestamps[cacheKey]) < userDataCache.timeout) {
@@ -464,10 +517,23 @@ jQuery(document).ready(function ($) {
             data: {
                 action: 'idwiz_get_user_data',
                 account_number: accountNumber,
+                base_data_source: baseDataSource,
                 security: idAjax_wiz_endpoints.nonce
             },
             success: function(response) {
                 console.log('AJAX response received');
+                
+                // Check if response is HTML (error page) instead of JSON
+                if (typeof response === 'string' && response.trim().startsWith('<')) {
+                    console.error('Received HTML response instead of JSON. Likely PHP error:', response);
+                    if (editor) {
+                        editor.setValue('PHP Error: Server returned HTML instead of JSON. Check console for details.');
+                    } else {
+                        $preview.html('PHP Error: Server returned HTML instead of JSON. Check console for details.');
+                    }
+                    return;
+                }
+                
                 if (response.success) {
                     // Validate that the response contains the expected data structure
                     if (!response.data) {
@@ -507,11 +573,34 @@ jQuery(document).ready(function ($) {
             },
             error: function(xhr, status, error) {
                 console.error('AJAX error:', error);
-                if (editor) {
-                    editor.setValue('Error loading user data: ' + error);
-                } else {
-                    $preview.html('Error loading user data: ' + error);
+                console.error('Response Text:', xhr.responseText);
+                
+                let errorMessage = error;
+                // Try to extract meaningful error from response if possible
+                if (xhr.responseText) {
+                    if (xhr.responseText.includes('Fatal error') || xhr.responseText.includes('Parse error')) {
+                        const errorMatch = xhr.responseText.match(/(Fatal error|Parse error).*?<\/b>:(.*?)(<br|<\/p>)/s);
+                        if (errorMatch && errorMatch[2]) {
+                            errorMessage = errorMatch[0];
+                        }
+                    }
                 }
+                
+                if (editor) {
+                    editor.setValue('Error loading user data: ' + errorMessage);
+                } else {
+                    $preview.html('Error loading user data: ' + errorMessage);
+                }
+            },
+            // Add extra settings to help with debugging
+            dataType: 'json',
+            timeout: 30000, // 30 second timeout
+            beforeSend: function() {
+                console.log('Sending AJAX request with data:', {
+                    action: 'idwiz_get_user_data',
+                    account_number: accountNumber,
+                    base_data_source: baseDataSource
+                });
             }
         });
     }
@@ -540,6 +629,141 @@ jQuery(document).ready(function ($) {
         }
     });
 
+    // Handle base data source change
+    $(document).on('change', '.endpoint-base-data-source', function() {
+        const baseDataSource = $(this).val();
+        const $container = $(this).closest('.endpoint-content');
+        const $testUserContainer = $container.find('.test-user-selector');
+        const $testUserSelect = $testUserContainer.find('.test-user-select');
+        const currentType = $testUserSelect.data('type');
+        
+        // Update labels based on data source
+        if (baseDataSource === 'user_profile') {
+            $testUserContainer.find('.test-user-label').text('Test Parent Account:');
+            $testUserContainer.find('.toggle-user-input').text('Enter Parent Account Number manually');
+            $testUserContainer.find('.user-id-input label').text('Or enter Parent Account Number:');
+            $testUserContainer.find('.manual-user-id').attr('placeholder', 'Enter Parent Account Number');
+            
+            // If dropdown type doesn't match the data source, reload options
+            if (currentType !== 'user_profile') {
+                loadParentAccountOptions($testUserSelect);
+            }
+        } else {
+            $testUserContainer.find('.test-user-label').text('Test User:');
+            $testUserContainer.find('.toggle-user-input').text('Enter Student Account Number manually');
+            $testUserContainer.find('.user-id-input label').text('Or enter Student Account Number:');
+            $testUserContainer.find('.manual-user-id').attr('placeholder', 'Enter Student Account Number');
+            
+            // If dropdown type doesn't match the data source, reload options
+            if (currentType !== 'user_feed') {
+                loadStudentAccountOptions($testUserSelect);
+            }
+        }
+        
+        // Update preset dropdowns based on new data source
+        updatePresetDropdowns($container, baseDataSource);
+        
+        // Clear any existing preview data
+        const $preview = $container.find('.payload-preview');
+        const editor = $preview.data('codemirror');
+        if (editor) {
+            editor.setValue('Select a test user to preview the payload');
+        } else {
+            $preview.html('Select a test user to preview the payload');
+        }
+        
+        // Clear the manual input field
+        $container.find('.manual-user-id').val('');
+    });
+    
+    // Function to update preset dropdowns based on data source
+    function updatePresetDropdowns($container, baseDataSource) {
+        // Find all preset dropdowns in the container
+        $container.find('.mapping-type').each(function() {
+            const $mappingType = $(this);
+            if ($mappingType.val() === 'preset') {
+                const $presetDropdown = $mappingType.next('.mapping-preset');
+                if ($presetDropdown.length) {
+                    // Save the currently selected value if possible
+                    const currentValue = $presetDropdown.val();
+                    
+                    // Replace with loading indicator
+                    $presetDropdown.html('<option>Loading presets...</option>');
+                    
+                    // Load and filter presets
+                    loadPresets()
+                        .then(presets => {
+                            // Filter presets by compatibility with base data source
+                            const compatiblePresets = getCompatiblePresets(baseDataSource, presets);
+                            $presetDropdown.html(generatePresetOptionsHtml(compatiblePresets));
+                            
+                            // Try to restore previously selected value if it's compatible
+                            if (currentValue && compatiblePresets[currentValue]) {
+                                $presetDropdown.val(currentValue);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error updating presets for data source change:', error);
+                            $presetDropdown.html('<option value="">Error loading presets</option>');
+                        });
+                }
+            }
+        });
+    }
+    
+    // Function to load parent account options via AJAX
+    function loadParentAccountOptions($select) {
+        $select.html('<option value="">Loading parent accounts...</option>');
+        
+        $.ajax({
+            url: idAjax_wiz_endpoints.ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'idwiz_get_test_accounts',
+                type: 'user_profile',
+                security: idAjax_wiz_endpoints.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    $select.html(response.data);
+                    $select.data('type', 'user_profile');
+                } else {
+                    $select.html('<option value="">Error loading accounts</option>');
+                }
+            },
+            error: function() {
+                $select.html('<option value="">Error loading accounts</option>');
+            }
+        });
+    }
+    
+    // Function to load student account options via AJAX
+    function loadStudentAccountOptions($select) {
+        $select.html('<option value="">Loading student accounts...</option>');
+        
+        $.ajax({
+            url: idAjax_wiz_endpoints.ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'idwiz_get_test_accounts',
+                type: 'user_feed',
+                security: idAjax_wiz_endpoints.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    $select.html(response.data);
+                    $select.data('type', 'user_feed');
+                } else {
+                    $select.html('<option value="">Error loading accounts</option>');
+                }
+            },
+            error: function() {
+                $select.html('<option value="">Error loading accounts</option>');
+            }
+        });
+    }
+
+    // Function to generate preview
     function generatePreview(userData, endpoint, $container) {
         const $preview = $container.find('.payload-preview');
         const baseDataSource = $container.find('.endpoint-base-data-source').val();
@@ -573,8 +797,8 @@ jQuery(document).ready(function ($) {
             data: {}
         };
 
-        // First, include the base data if using user_feed
-        if (baseDataSource === 'user_feed') {
+        // First, include the base data if using user_feed or user_profile
+        if (baseDataSource === 'user_feed' || baseDataSource === 'user_profile') {
             const cleanUserData = { ...userData };
             // Make a deep copy without the _presets property
             if (cleanUserData._presets) {

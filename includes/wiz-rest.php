@@ -440,6 +440,11 @@ function get_available_presets() {
             'group' => 'Location History',
             'description' => 'Returns locations within 30 miles of the student\'s last known location, sorted by distance. Uses Haversine formula for accurate distance calculation. Returns empty array if no coordinates found for student or no locations within range.'
         ],
+        'location_with_courses' => [
+            'name' => 'Location With Courses',
+            'group' => 'Location Details',
+            'description' => 'Returns location data and available courses for a specific location ID using the leadLocationId field. Includes location details, address, and courses information.'
+        ],
         'ipc_course_recs' => [
             'name' => 'IPC Course Recs',
             'group' => 'Course Recs',
@@ -495,6 +500,8 @@ function process_preset_value($preset_name, $student_data) {
             return get_last_location($student_data);
         case 'nearby_locations':
             return get_nearby_locations($student_data, 30); // 30 miles radius
+        case 'location_with_courses':
+            return get_location_with_courses($student_data);
         case 'ipc_course_recs':
             return get_division_course_recommendations($student_data, 'ipc');
         case 'idtc_course_recs':
@@ -983,7 +990,8 @@ function wiz_handle_user_data_feed($data)
     // Process presets
     $presets = [
         'most_recent_purchase' => process_preset_value('most_recent_purchase', $feed_data),
-        'last_location' => process_preset_value('last_location', $feed_data)
+        'last_location' => process_preset_value('last_location', $feed_data),
+        'location_with_courses' => process_preset_value('location_with_courses', $feed_data)
     ];
 
     // Add presets to the response
@@ -1226,7 +1234,7 @@ add_action('wp_ajax_idwiz_remove_endpoint', 'idwiz_remove_endpoint_callback');
 
 function idwiz_remove_endpoint_callback()
 {
-    if (!check_ajax_referer('id-general', 'security', false)) {
+    if (!check_ajax_referer('wiz-endpoints', 'security', false)) {
         wp_send_json_error('Nonce check failed');
         return;
     }
@@ -1245,7 +1253,7 @@ add_action('wp_ajax_idwiz_create_endpoint', 'idwiz_create_endpoint_callback');
 
 function idwiz_create_endpoint_callback()
 {
-    if (!check_ajax_referer('id-general', 'security', false)) {
+    if (!check_ajax_referer('wiz-endpoints', 'security', false)) {
         wp_send_json_error('Nonce check failed');
         return;
     }
@@ -1307,21 +1315,19 @@ function idwiz_track_request_rate() {
         // Calculate adaptive delay based on concurrency
         $delay_ms = min(200, $recent_count * 10); // Max 200ms, scales with concurrency
         
-        // Log the throttling
-        error_log("ID Email Wiz REST API: Throttling with {$delay_ms}ms delay due to concurrency ({$recent_count} requests in 5s)");
+        // Log the throttling only for significant throttling events
+        if ($recent_count > 10) {
+            error_log("ID Email Wiz REST API: Throttling with {$delay_ms}ms delay due to high concurrency ({$recent_count} requests in 5s)");
+        }
         
         // Apply the delay
         usleep($delay_ms * 1000);
     }
     
-    // Log rate information
-    if ($requests_per_minute > 1) {  // Only log if there's more than one request
-        error_log("ID Email Wiz REST API Rate: $requests_per_minute requests in the last minute");
-        
-        // Check if we're over typical WordPress REST API rate limits
-        if ($requests_per_minute > 40) {
-            error_log("ID Email Wiz REST API WARNING: High request rate detected ($requests_per_minute/min) - may hit WordPress rate limits");
-        }
+    // Only log rate information for higher rates that might be concerning
+    // Check if we're over typical WordPress REST API rate limits
+    if ($requests_per_minute > 40) {
+        error_log("ID Email Wiz REST API WARNING: High request rate detected ($requests_per_minute/min) - may hit WordPress rate limits");
     }
     
     return $requests_per_minute;
@@ -1477,20 +1483,32 @@ function batch_process_preset_values($presets_to_process, $student_data) {
     return $results;
 }
 
-// Optimized function to get all required presets at once
+/**
+ * Determine which presets are required for an endpoint based on its configuration
+ *
+ * @param array $endpoint_config The endpoint configuration
+ * @return array Array of required preset keys
+ */
 function get_required_presets($endpoint_config) {
-    if (empty($endpoint_config['data_mapping'])) {
-        return ['most_recent_purchase', 'last_location'];
-    }
-    
     $required_presets = [];
-    foreach ($endpoint_config['data_mapping'] as $mapping) {
-        if ($mapping['type'] === 'preset') {
-            $required_presets[] = $mapping['value'];
+    
+    // Check data mapping for preset references
+    if (!empty($endpoint_config['data_mapping'])) {
+        foreach ($endpoint_config['data_mapping'] as $mapping) {
+            if (isset($mapping['type']) && $mapping['type'] === 'preset' && 
+                isset($mapping['value']) && !empty($mapping['value'])) {
+                $required_presets[] = $mapping['value'];
+            }
         }
     }
     
-    return $required_presets;
+    // If no explicit mapping, consider all compatible presets for the data source as required
+    if (empty($required_presets)) {
+        $base_data_source = $endpoint_config['base_data_source'] ?? 'user_feed';
+        $required_presets = get_compatible_presets($base_data_source);
+    }
+    
+    return array_unique($required_presets);
 }
 
 function idwiz_endpoint_handler($request) {
@@ -1537,21 +1555,46 @@ function idwiz_endpoint_handler($request) {
 
     global $wpdb;
     
-    // Optimize database queries by selecting only needed fields
-    $needed_fields = ['studentAccountNumber', 'studentDOB'];
-    $fields_string = implode(', ', $needed_fields);
-    
-    // Get user data with optimized query
-    $feed_data = $wpdb->get_row(
-        $wpdb->prepare(
-            "SELECT $fields_string FROM {$wpdb->prefix}idemailwiz_userfeed WHERE studentAccountNumber = %s LIMIT 1",
-            $account_number
-        ),
-        ARRAY_A
-    );
+    // Get base data source
+    $base_data_source = $endpoint_config['base_data_source'] ?? 'user_feed';
+    $feed_data = [];
 
-    if (!$feed_data) {
-        return new WP_REST_Response(['error' => 'Student not found in feed'], 404);
+    // Handle different data sources
+    if ($base_data_source === 'user_profile') {
+        // Get data from users table (parent/lead account info)
+        $feed_data = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}idemailwiz_users WHERE accountNumber = %s OR userId = %s LIMIT 1",
+                $account_number, $account_number
+            ),
+            ARRAY_A
+        );
+
+        if (!$feed_data) {
+            return new WP_REST_Response(['error' => 'User not found in database'], 404);
+        }
+        
+        // Check if leadLocationId is empty or missing for user_profile endpoints
+        if (empty($feed_data['leadLocationId']) && in_array('location_with_courses', get_required_presets($endpoint_config))) {
+            return new WP_REST_Response(['error' => 'User does not have a lead location assigned'], 400);
+        }
+        
+    } else if ($base_data_source === 'user_feed') {
+        // Get data from userfeed table (student info)
+        $feed_data = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}idemailwiz_userfeed WHERE studentAccountNumber = %s LIMIT 1",
+                $account_number
+            ),
+            ARRAY_A
+        );
+
+        if (!$feed_data) {
+            return new WP_REST_Response(['error' => 'Student not found in feed'], 404);
+        }
+    } else {
+        // Custom data source - just create an empty container
+        $feed_data = ['accountNumber' => $account_number];
     }
 
     // Get all required presets at once
@@ -1565,6 +1608,29 @@ function idwiz_endpoint_handler($request) {
         foreach ($required_presets as $preset) {
             if (!isset($presets[$preset]) || $presets[$preset] === null || 
                 (is_array($presets[$preset]) && empty($presets[$preset]))) {
+                
+                // Skip non-essential presets
+                if ($preset !== 'most_recent_purchase' && 
+                    $preset !== 'last_location' && 
+                    $preset !== 'location_with_courses') {
+                    continue;
+                }
+                
+                // Specific error for location_with_courses preset
+                if ($preset === 'location_with_courses') {
+                    if (empty($feed_data['leadLocationId'])) {
+                        return new WP_REST_Response([
+                            'error' => 'Lead location ID is missing for this user',
+                            'elapsed_time' => round((microtime(true) - $start_time) * 1000)
+                        ], 400);
+                    } else {
+                        return new WP_REST_Response([
+                            'error' => 'Location is not active or does not exist',
+                            'elapsed_time' => round((microtime(true) - $start_time) * 1000)
+                        ], 400);
+                    }
+                }
+                
                 return new WP_REST_Response([
                     'error' => "Required preset '$preset' is null or empty",
                     'elapsed_time' => round((microtime(true) - $start_time) * 1000)
@@ -1725,59 +1791,79 @@ function idwiz_get_user_data_for_preview() {
     $account_number = isset($_POST['account_number']) ? sanitize_text_field($_POST['account_number']) : '';
     
     if (empty($account_number)) {
-        wp_send_json_error('No student account number provided');
+        wp_send_json_error('No account number provided');
         return;
     }
+    
+    // Check for base data source
+    $base_data_source = isset($_POST['base_data_source']) ? sanitize_text_field($_POST['base_data_source']) : 'user_feed';
 
     global $wpdb;
-    // Get user data from the user feed database
-    $feed_data = $wpdb->get_row(
-        $wpdb->prepare(
-            "SELECT * FROM {$wpdb->prefix}idemailwiz_userfeed WHERE studentAccountNumber = %s LIMIT 1",
-            $account_number
-        ),
-        ARRAY_A
-    );
+    
+    try {
+        // Get user data from the appropriate database table based on data source
+        if ($base_data_source === 'user_profile') {
+            $feed_data = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT * FROM {$wpdb->prefix}idemailwiz_users WHERE accountNumber = %s OR userId = %s LIMIT 1",
+                    $account_number, $account_number
+                ),
+                ARRAY_A
+            );
+            
+            if (!$feed_data) {
+                wp_send_json_error('User not found in database');
+                return;
+            }
+        } else {
+            // Default to user feed
+            $feed_data = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT * FROM {$wpdb->prefix}idemailwiz_userfeed WHERE studentAccountNumber = %s LIMIT 1",
+                    $account_number
+                ),
+                ARRAY_A
+            );
+            
+            if (!$feed_data) {
+                wp_send_json_error('Student not found in feed');
+                return;
+            }
+        }
 
-    if (!$feed_data) {
-        wp_send_json_error('Student not found in feed');
+        // Process presets
+        try {
+            $presets = [];
+            
+            // Get list of compatible presets for this data source
+            $compatible_presets = get_compatible_presets($base_data_source);
+            
+            // Process each compatible preset
+            foreach ($compatible_presets as $preset) {
+                try {
+                    $result = process_preset_value($preset, $feed_data);
+                    if ($result !== null) {
+                        $presets[$preset] = $result;
+                    }
+                } catch (Exception $e) {
+                    // Skip this preset but continue with others
+                }
+            }
+
+            // Add presets to the response
+            $feed_data['_presets'] = $presets;
+
+            wp_send_json_success($feed_data);
+            
+        } catch (Exception $e) {
+            wp_send_json_error('Error processing presets: ' . $e->getMessage());
+            return;
+        }
+        
+    } catch (Exception $e) {
+        wp_send_json_error('Error retrieving user data: ' . $e->getMessage());
         return;
     }
-
-    // Process presets
-    $presets = [];
-    
-    // Most recent purchase preset
-    $presets['most_recent_purchase'] = process_preset_value('most_recent_purchase', $feed_data);
-    
-    // Last location preset
-    $presets['last_location'] = process_preset_value('last_location', $feed_data);
-    
-    // Nearby locations preset
-    $presets['nearby_locations'] = process_preset_value('nearby_locations', $feed_data);
-    
-    // Process all course recommendation presets
-    $preset_types = [
-        'ipc_course_recs',
-        'idtc_course_recs',
-        'idta_course_recs',
-        'vtc_course_recs',
-        'ota_course_recs',
-        'opl_course_recs',
-        'nearby_locations_with_course_recs'
-    ];
-
-    foreach ($preset_types as $preset) {
-        $result = process_preset_value($preset, $feed_data);
-        if ($result !== null) {
-            $presets[$preset] = $result;
-        }
-    }
-
-    // Add presets to the response
-    $feed_data['_presets'] = $presets;
-
-    wp_send_json_success($feed_data);
 }
 
 /**
@@ -1882,6 +1968,11 @@ function get_division_course_recommendations($student_data, $division)
 add_action('wp_ajax_idwiz_get_available_presets', 'idwiz_get_available_presets_callback');
 
 function idwiz_get_available_presets_callback() {
+    if (!check_ajax_referer('wiz-endpoints', 'security', false)) {
+        wp_send_json_error('Nonce check failed');
+        return;
+    }
+    
     wp_send_json_success(get_available_presets());
 }
 
@@ -2093,4 +2184,176 @@ add_action('init', 'idwiz_optimize_wordpress_for_api', 1);
  * Detects and manages concurrent requests from the same IP
  * This helps prevent resource contention when external services hit the API
  */
+
+/**
+ * Retrieves location data and associated courses 
+ * 
+ * @param array $student_data The student data
+ * @return array|null Location data with courses or null if location is inactive or not found
+ */
+function get_location_with_courses($student_data) {
+    global $wpdb;
+    
+    // Check which data source we have
+    $is_user_profile = isset($student_data['accountType']) && $student_data['accountType'] === 'parent';
+    
+    // Get leadLocationId based on data source
+    $lead_location_id = null;
+    if ($is_user_profile) {
+        // For parent accounts, use leadLocationId from user profile
+        $lead_location_id = isset($student_data['leadLocationId']) ? $student_data['leadLocationId'] : null;
+    } else {
+        // For student data, use leadLocationId from student record
+        $lead_location_id = isset($student_data['leadLocationID']) ? $student_data['leadLocationID'] : null;
+    }
+    
+    // Return null if we don't have a lead location ID
+    if (empty($lead_location_id)) {
+        return null;
+    }
+    
+    // Get location data
+    $location = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT * FROM {$wpdb->prefix}idemailwiz_locations WHERE id = %d LIMIT 1",
+            $lead_location_id
+        ),
+        ARRAY_A
+    );
+    
+    // Return null if location is not found
+    if (!$location) {
+        return null;
+    }
+    
+    // Check if location is active and return null if not
+    if (isset($location['status']) && $location['status'] !== 'Active') {
+        return null;
+    }
+    
+    // Get courses for this location
+    $courses = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT id, title, abbreviation, division_id, minAge, maxAge, fiscal_years, courseUrl, wizStatus 
+            FROM {$wpdb->prefix}idemailwiz_courses 
+            WHERE locationId = %d AND wizStatus = 'Active'",
+            $lead_location_id
+        ),
+        ARRAY_A
+    );
+    
+    // Add courses to location data
+    $location['courses'] = $courses ?: [];
+    
+    return $location;
+}
+
+/**
+ * Get presets compatible with the given data source
+ * 
+ * @param string $data_source The data source ('user_feed' or 'user_profile')
+ * @return array Array of preset keys that are compatible with the data source
+ */
+function get_compatible_presets($data_source = 'user_feed') {
+    // Presets that work with student data (user_feed)
+    $student_presets = [
+        'most_recent_purchase',
+        'last_location',
+        'nearby_locations',
+        'nearby_locations_with_course_recs',
+        'ipc_course_recs',
+        'idtc_course_recs',
+        'idta_course_recs',
+        'vtc_course_recs',
+        'ota_course_recs',
+        'opl_course_recs'
+    ];
+    
+    // Presets that work with parent/user data (user_profile)
+    $parent_presets = [
+        'location_with_courses'
+    ];
+    
+    // Return appropriate presets based on data source
+    if ($data_source === 'user_profile') {
+        return $parent_presets;
+    } else {
+        return $student_presets;
+    }
+}
+
+/**
+ * Gets recent parent/user accounts for testing user profile-based endpoints
+ * 
+ * @return array Array of parent account data
+ */
+function idwiz_get_parent_accounts() {
+    global $wpdb;
+    
+    // Get recently active parent accounts
+    $users = $wpdb->get_results(
+        "SELECT DISTINCT u.accountNumber, u.userId, u.postalCode, p.purchaseDate  
+         FROM {$wpdb->prefix}idemailwiz_users u
+         LEFT JOIN {$wpdb->prefix}idemailwiz_purchases p ON u.accountNumber = p.accountNumber
+         WHERE u.accountNumber IS NOT NULL 
+         AND u.accountNumber != ''
+         GROUP BY u.accountNumber
+         ORDER BY p.purchaseDate DESC
+         LIMIT 100",
+        ARRAY_A
+    );
+    
+    return $users;
+}
+
+/**
+ * Generate HTML options for parent accounts
+ * 
+ * @param array $users Array of user data
+ * @return string HTML options for select element
+ */
+function generate_parent_options_html($users) {
+    $options = '<option value="">Select a parent account</option>';
+    
+    if (!empty($users)) {
+        foreach ($users as $user) {
+            if (empty($user['accountNumber'])) continue;
+            
+            $label = $user['accountNumber'];
+            if (!empty($user['postalCode'])) {
+                $label .= ' (' . $user['postalCode'] . ')';
+            }
+            
+            $options .= '<option value="' . esc_attr($user['accountNumber']) . '">' . esc_html($label) . '</option>';
+        }
+    }
+    
+    return $options;
+}
+
+add_action('wp_ajax_idwiz_get_test_accounts', 'idwiz_get_test_accounts_callback');
+
+/**
+ * AJAX handler to get test account options for endpoints UI
+ */
+function idwiz_get_test_accounts_callback() {
+    if (!check_ajax_referer('wiz-endpoints', 'security', false)) {
+        wp_send_json_error('Invalid nonce');
+        return;
+    }
+    
+    $type = isset($_POST['type']) ? sanitize_text_field($_POST['type']) : 'user_feed';
+    
+    if ($type === 'user_profile') {
+        // Get parent accounts for user profile data source
+        $users = idwiz_get_parent_accounts();
+        $options = generate_parent_options_html($users);
+    } else {
+        // Default to student accounts for user feed
+        $users = idwiz_get_previous_year_users();
+        $options = generate_user_options_html($users, true);
+    }
+    
+    wp_send_json_success($options);
+}
 

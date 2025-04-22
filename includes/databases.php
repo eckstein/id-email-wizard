@@ -189,6 +189,7 @@ function idemailwiz_create_databases()
 		studentGender VARCHAR(10),
 		studentLastUpdated DATETIME,
 		last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+		leadLocationId INT,
 		PRIMARY KEY (id),
 		UNIQUE KEY studentAccountNumber (studentAccountNumber),
 		INDEX userId (userId),
