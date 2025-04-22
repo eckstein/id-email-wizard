@@ -1315,19 +1315,21 @@ function idwiz_track_request_rate() {
         // Calculate adaptive delay based on concurrency
         $delay_ms = min(200, $recent_count * 10); // Max 200ms, scales with concurrency
         
-        // Log the throttling only for significant throttling events
-        if ($recent_count > 10) {
-            error_log("ID Email Wiz REST API: Throttling with {$delay_ms}ms delay due to high concurrency ({$recent_count} requests in 5s)");
-        }
+        // Log the throttling
+        error_log("ID Email Wiz REST API: Throttling with {$delay_ms}ms delay due to concurrency ({$recent_count} requests in 5s)");
         
         // Apply the delay
         usleep($delay_ms * 1000);
     }
     
-    // Only log rate information for higher rates that might be concerning
-    // Check if we're over typical WordPress REST API rate limits
-    if ($requests_per_minute > 40) {
-        error_log("ID Email Wiz REST API WARNING: High request rate detected ($requests_per_minute/min) - may hit WordPress rate limits");
+    // Log rate information
+    if ($requests_per_minute > 1) {  // Only log if there's more than one request
+        error_log("ID Email Wiz REST API Rate: $requests_per_minute requests in the last minute");
+        
+        // Check if we're over typical WordPress REST API rate limits
+        if ($requests_per_minute > 40) {
+            error_log("ID Email Wiz REST API WARNING: High request rate detected ($requests_per_minute/min) - may hit WordPress rate limits");
+        }
     }
     
     return $requests_per_minute;
@@ -1795,8 +1797,11 @@ function idwiz_get_user_data_for_preview() {
         return;
     }
     
+    error_log('Preview request for account number: ' . $account_number);
+    
     // Check for base data source
     $base_data_source = isset($_POST['base_data_source']) ? sanitize_text_field($_POST['base_data_source']) : 'user_feed';
+    error_log('Using base data source: ' . $base_data_source);
 
     global $wpdb;
     
@@ -1837,6 +1842,7 @@ function idwiz_get_user_data_for_preview() {
             
             // Get list of compatible presets for this data source
             $compatible_presets = get_compatible_presets($base_data_source);
+            error_log('Compatible presets for ' . $base_data_source . ': ' . implode(', ', $compatible_presets));
             
             // Process each compatible preset
             foreach ($compatible_presets as $preset) {
@@ -1846,6 +1852,7 @@ function idwiz_get_user_data_for_preview() {
                         $presets[$preset] = $result;
                     }
                 } catch (Exception $e) {
+                    error_log('Error processing preset ' . $preset . ': ' . $e->getMessage());
                     // Skip this preset but continue with others
                 }
             }
@@ -1856,11 +1863,13 @@ function idwiz_get_user_data_for_preview() {
             wp_send_json_success($feed_data);
             
         } catch (Exception $e) {
+            error_log('Error processing presets: ' . $e->getMessage());
             wp_send_json_error('Error processing presets: ' . $e->getMessage());
             return;
         }
         
     } catch (Exception $e) {
+        error_log('Error retrieving user data: ' . $e->getMessage());
         wp_send_json_error('Error retrieving user data: ' . $e->getMessage());
         return;
     }
@@ -2186,66 +2195,178 @@ add_action('init', 'idwiz_optimize_wordpress_for_api', 1);
  */
 
 /**
- * Retrieves location data and associated courses 
- * 
- * @param array $student_data The student data
- * @return array|null Location data with courses or null if location is inactive or not found
+ * Gets location data and available courses for a specific location ID
+ * Uses the leadLocationId field from parent account data
  */
-function get_location_with_courses($student_data) {
+function get_location_with_courses($user_data) {
     global $wpdb;
     
-    // Check which data source we have
-    $is_user_profile = isset($student_data['accountType']) && $student_data['accountType'] === 'parent';
+    // Debug output
+    error_log('Location data function called with data type: ' . (isset($user_data['studentAccountNumber']) ? 'student' : 'parent'));
     
-    // Get leadLocationId based on data source
-    $lead_location_id = null;
-    if ($is_user_profile) {
-        // For parent accounts, use leadLocationId from user profile
-        $lead_location_id = isset($student_data['leadLocationId']) ? $student_data['leadLocationId'] : null;
-    } else {
-        // For student data, use leadLocationId from student record
-        $lead_location_id = isset($student_data['leadLocationID']) ? $student_data['leadLocationID'] : null;
+    $location_id = null;
+    
+    // If this is student data, we need to get the parent account to find leadLocationId
+    if (isset($user_data['studentAccountNumber']) && !isset($user_data['leadLocationId'])) {
+        error_log('Student data detected, looking for parent account');
+        
+        // Get parent account info using accountNumber from student data
+        if (!empty($user_data['accountNumber'])) {
+            $parent = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT * FROM {$wpdb->prefix}idemailwiz_users WHERE accountNumber = %s LIMIT 1",
+                    $user_data['accountNumber']
+                ),
+                ARRAY_A
+            );
+            
+            if ($parent && isset($parent['leadLocationId'])) {
+                $location_id = intval($parent['leadLocationId']);
+                error_log('Found parent account with leadLocationId: ' . $location_id);
+            } else {
+                error_log('Parent account not found or missing leadLocationId');
+            }
+        } else {
+            error_log('No accountNumber found in student data to look up parent');
+        }
+    } 
+    // If this is parent data, get leadLocationId directly
+    else if (isset($user_data['leadLocationId'])) {
+        $location_id = intval($user_data['leadLocationId']);
+        error_log('Using leadLocationId directly from parent data: ' . $location_id);
     }
     
-    // Return null if we don't have a lead location ID
-    if (empty($lead_location_id)) {
+    // Check if we have a valid location ID
+    if (empty($location_id) || $location_id <= 0) {
+        error_log('No valid leadLocationId found: ' . ($location_id ?? 'null'));
         return null;
     }
     
-    // Get location data
-    $location = $wpdb->get_row(
+    error_log('Looking up location ID: ' . $location_id);
+    
+    // First check if the location exists at all, regardless of status
+    $location_exists = $wpdb->get_var(
         $wpdb->prepare(
-            "SELECT * FROM {$wpdb->prefix}idemailwiz_locations WHERE id = %d LIMIT 1",
-            $lead_location_id
-        ),
-        ARRAY_A
+            "SELECT COUNT(*) FROM {$wpdb->prefix}idemailwiz_locations WHERE id = %d",
+            $location_id
+        )
     );
     
-    // Return null if location is not found
-    if (!$location) {
+    if (!$location_exists) {
+        error_log("Location ID {$location_id} does not exist in the database");
         return null;
     }
     
-    // Check if location is active and return null if not
-    if (isset($location['status']) && $location['status'] !== 'Active') {
+    // Get location details from the database
+    try {
+        $query = $wpdb->prepare(
+            "SELECT id, name, abbreviation, locationStatus, address, locationUrl, courses, sessionWeeks, divisions 
+             FROM {$wpdb->prefix}idemailwiz_locations 
+             WHERE id = %d",
+            $location_id
+        );
+        
+        error_log('Location query: ' . $query);
+        $location = $wpdb->get_row($query, ARRAY_A);
+        
+        // Check if we found the location but it's not active
+        if ($location && !in_array($location['locationStatus'], ['Open', 'Registration opens soon'])) {
+            error_log("Location found but status '{$location['locationStatus']}' is not active");
+            // Return null for inactive locations - changed from previous version
+            return null;
+        }
+        
+        if (!$location) {
+            error_log('No matching location found for ID: ' . $location_id);
+            return null;
+        }
+        
+        // Return null if this is Online Campus (ID 324)
+        if ($location['id'] == 324) {
+            error_log('Online Campus detected, returning null');
+            return null;
+        }
+        
+        // Safer unserialize function that returns empty array/null on failure
+        $safe_unserialize = function($data, $default = null) {
+            if (empty($data)) return $default;
+            
+            // Check if data is already unserialized
+            if (!is_string($data) || !preg_match('/^[aOs]:[0-9]+:/', $data)) {
+                return $data;
+            }
+            
+            $result = @unserialize($data);
+            return ($result !== false) ? $result : $default;
+        };
+        
+        // Unserialize data with safer approach
+        $address = $safe_unserialize($location['address'], null);
+        $courses_ids = $safe_unserialize($location['courses'], []);
+        $session_weeks = $safe_unserialize($location['sessionWeeks'], null);
+        $divisions = $safe_unserialize($location['divisions'], []);
+        
+        // Log what we found
+        error_log('Unserialized data counts: ' . 
+                 'address=' . (is_array($address) ? count($address) : 'null') . ', ' . 
+                 'courses=' . count($courses_ids) . ', ' . 
+                 'divisions=' . count($divisions));
+        
+        // Get course details for all courses at this location
+        $courses_data = [];
+        if (!empty($courses_ids)) {
+            try {
+                // Make sure all course IDs are integers
+                $courses_ids = array_map('intval', $courses_ids);
+                $courses_ids = array_filter($courses_ids, function($id) { return $id > 0; });
+                
+                if (empty($courses_ids)) {
+                    error_log('No valid course IDs found after filtering');
+                } else {
+                    $placeholders = implode(',', array_fill(0, count($courses_ids), '%d'));
+                    $courses_query = $wpdb->prepare(
+                        "SELECT id, title, abbreviation, division_id, minAge, maxAge, fiscal_years, courseUrl, wizStatus
+                         FROM {$wpdb->prefix}idemailwiz_courses 
+                         WHERE id IN ($placeholders)
+                         AND wizStatus = 'Active'",  // Only active courses
+                        $courses_ids
+                    );
+                    
+                    error_log('Courses query: ' . $courses_query);
+                    $courses_data = $wpdb->get_results($courses_query, ARRAY_A);
+                    
+                    if (empty($courses_data)) {
+                        error_log('No active course data found for location');
+                    } else {
+                        error_log('Found ' . count($courses_data) . ' active courses for location');
+                    }
+                }
+            } catch (Exception $e) {
+                error_log('Error in courses query: ' . $e->getMessage());
+                $courses_data = [];
+            }
+        }
+        
+        // Prepare the result
+        $result = [
+            'id' => $location['id'],
+            'name' => $location['name'],
+            'abbreviation' => $location['abbreviation'],
+            'status' => $location['locationStatus'],
+            'url' => !empty($location['locationUrl']) ? $location['locationUrl'] : null,
+            'address' => $address,
+            'divisions' => $divisions,
+            'session_weeks' => $session_weeks,
+            'courses' => $courses_data
+        ];
+        
+        error_log('Successfully built location data');
+        return $result;
+        
+    } catch (Exception $e) {
+        error_log('Error in location data function: ' . $e->getMessage());
         return null;
     }
-    
-    // Get courses for this location
-    $courses = $wpdb->get_results(
-        $wpdb->prepare(
-            "SELECT id, title, abbreviation, division_id, minAge, maxAge, fiscal_years, courseUrl, wizStatus 
-            FROM {$wpdb->prefix}idemailwiz_courses 
-            WHERE locationId = %d AND wizStatus = 'Active'",
-            $lead_location_id
-        ),
-        ARRAY_A
-    );
-    
-    // Add courses to location data
-    $location['courses'] = $courses ?: [];
-    
-    return $location;
 }
 
 /**
