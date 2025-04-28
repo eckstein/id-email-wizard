@@ -6,7 +6,21 @@ function do_database_cleanups($campaignIds = [])
     update_missing_purchase_dates();
     remove_zero_campaign_ids();
     idemailwiz_backfill_campaign_start_dates();
-    update_opens_and_clicks_by_hour(get_idwiz_campaigns(['campaignIds'=>$campaignIds]));
+
+    // If no specific campaigns provided, get recent blast campaigns
+    if (empty($campaignIds)) {
+        $now = new DateTime();
+        $startAt = $now->sub(new DateInterval('P30D'))->format('Y-m-d');
+        $args = [
+            'type' => 'Blast',
+            'fields' => 'id',
+            'startAt_start' => $startAt
+        ];
+    } else {
+        $args = ['campaignIds' => $campaignIds];
+    }
+    
+    update_opens_and_clicks_by_hour(get_idwiz_campaigns($args));
 
     //idwiz_cleanup_users_database();
 }

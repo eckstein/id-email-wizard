@@ -37,7 +37,7 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 			// If this is a campaigns table sync
 			if ($table_name == $wpdb->prefix . 'idemailwiz_campaigns' && $operation !== 'delete') {
 				//update the campaigns table lastWizSync with the current datetime
-				$item['lastWizSync'] = date('Y-m-d H:i:s');
+				//$item['lastWizSync'] = date('Y-m-d H:i:s');
 			}
 
 			// Add 'name' to the metrics array
@@ -60,13 +60,27 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 			// Log any fields that were filtered out
 			$filtered_fields = array_diff_key($item, $filtered_item);
 			if (!empty($filtered_fields)) {
-				wiz_log("Notice: Filtered out non-existent fields for table {$table_name}: " . implode(', ', array_keys($filtered_fields)));
+				//wiz_log("Notice: Filtered out non-existent fields for table {$table_name}: " . implode(', ', array_keys($filtered_fields)));
 			}
 
 			if (($operation === "update" || $operation === "delete") && !isset($filtered_item[$id_field])) {
 				$result['errors'][] = "Failed to perform {$operation}: missing ID field '{$id_field}'";
 				continue;
 			}
+
+            // --- START: Handle potential array values ---
+            $prepared_values = [];
+            foreach ($filtered_item as $field_key => $field_value) {
+                if (is_array($field_value)) {
+                    // Serialize arrays before storing (e.g., for labels or other text fields)
+                    // You might need more specific handling based on the column type
+                    $prepared_values[] = serialize($field_value);
+                    // wiz_log("Notice: Serialized array value for field '{$field_key}' in table {$table_name}");
+                } else {
+                    $prepared_values[] = $field_value;
+                }
+            }
+            // --- END: Handle potential array values ---
 
 			// Prepare field data for SQL query
 			$fields = implode(",", array_map(function ($field) {
@@ -80,7 +94,7 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 
 			// Create correct number of placeholders for the values
 			$placeholders = implode(",", array_fill(0, count($filtered_item), "%s"));
-			$prepared_values = array_values($filtered_item);
+			// $prepared_values = array_values($filtered_item); // Use the already processed values
 
 			try {
 				if ($operation === "insert") {
@@ -120,10 +134,15 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 					$updates = implode(", ", array_map(function ($field) {
 						return "`$field` = %s";
 					}, array_keys($filtered_item)));
+                    
+                    // Ensure the ID field value is appended correctly for the WHERE clause
+                    $update_values = $prepared_values;
+                    $update_values[] = $filtered_item[$id_field];
+
 					$sql = "UPDATE `{$table_name}` SET {$updates} WHERE `{$id_field}` = %s";
-					$prepared_values[] = $filtered_item[$id_field]; // Add ID to the end for WHERE clause
+					// $prepared_values[] = $filtered_item[$id_field]; // Add ID to the end for WHERE clause - Now handled by $update_values
 					try {
-						$prepared_sql = $wpdb->prepare($sql, $prepared_values);
+						$prepared_sql = $wpdb->prepare($sql, $update_values); // Use $update_values
 					} catch (Exception $e) {
 						wiz_log("Error in update prepare statement: " . $e->getMessage() . " SQL: " . $sql);
 						$result['errors'][] = "Database prepare error: " . $e->getMessage();
@@ -1281,13 +1300,24 @@ function idemailwiz_sync_campaigns($passedCampaigns = null)
 		}
 
 		// Get all campaign IDs in one query for efficiency
-		$campaign_ids = array_column($campaigns, 'id');
+		$campaign_ids = array_filter(array_map(function($campaign) {
+			return isset($campaign['id']) && is_numeric($campaign['id']) ? (int)$campaign['id'] : null;
+		}, $campaigns));
 		
 		// Get all existing campaign records
 		try {
-			$placeholders = implode(',', array_fill(0, count($campaign_ids), '%d'));
-			$existing_campaigns_query = $wpdb->prepare("SELECT * FROM $table_name WHERE id IN ($placeholders)", $campaign_ids);
-			$existing_campaigns = $wpdb->get_results($existing_campaigns_query, ARRAY_A);
+			if (empty($campaign_ids)) {
+				$existing_campaigns = [];
+				wiz_log("No valid campaign IDs found to check against database.");
+			} else {
+				$placeholders = implode(',', array_fill(0, count($campaign_ids), '%d'));
+				$query_params = array_merge(["SELECT * FROM $table_name WHERE id IN ($placeholders)"], array_values($campaign_ids));
+				$existing_campaigns_query = call_user_func_array(
+					array($wpdb, 'prepare'),
+					$query_params
+				);
+				$existing_campaigns = $wpdb->get_results($existing_campaigns_query, ARRAY_A);
+			}
 			
 			if ($wpdb->last_error) {
 				throw new Exception("Database error fetching existing campaigns: " . $wpdb->last_error);
@@ -1412,7 +1442,10 @@ function idemailwiz_sync_templates($passedCampaigns = null)
 	
 	// Get all existing template IDs
 	$placeholders = implode(',', array_fill(0, count($template_ids), '%d'));
-	$existing_templates_query = $wpdb->prepare("SELECT templateId FROM $table_name WHERE templateId IN ($placeholders)", $template_ids);
+	$existing_templates_query = call_user_func_array(
+		array($wpdb, 'prepare'),
+		array_merge(array("SELECT templateId FROM $table_name WHERE templateId IN ($placeholders)"), $template_ids)
+	);
 	$existing_template_ids = $wpdb->get_col($existing_templates_query);
 	
 	// Create a lookup array for faster checking
@@ -1481,7 +1514,10 @@ function idemailwiz_sync_purchases($campaignIds = null, $startDate = null, $endD
 			$existing_purchase_ids = [];
 		} else {
 			$placeholders = implode(',', array_fill(0, count($purchase_ids), '%s'));
-			$existing_purchases_query = $wpdb->prepare("SELECT id FROM $purchases_table WHERE id IN ($placeholders)", $purchase_ids);
+			$existing_purchases_query = call_user_func_array(
+				array($wpdb, 'prepare'),
+				array_merge(array("SELECT id FROM $purchases_table WHERE id IN ($placeholders)"), $purchase_ids)
+			);
 			$existing_purchase_ids = $wpdb->get_col($existing_purchases_query);
 		}
 		
@@ -1496,7 +1532,10 @@ function idemailwiz_sync_purchases($campaignIds = null, $startDate = null, $endD
 			$campaigns_table = $wpdb->prefix . 'idemailwiz_campaigns';
 			$placeholders = implode(',', array_fill(0, count($campaign_ids_in_purchases), '%d'));
 			$campaign_results = $wpdb->get_results(
-				$wpdb->prepare("SELECT id, startAt FROM $campaigns_table WHERE id IN ($placeholders)", $campaign_ids_in_purchases),
+				call_user_func_array(
+					array($wpdb, 'prepare'),
+					array_merge(array("SELECT id, startAt FROM $campaigns_table WHERE id IN ($placeholders)"), $campaign_ids_in_purchases)
+				),
 				ARRAY_A
 			);
 			// Create the lookup array
@@ -2208,10 +2247,18 @@ function maybe_add_to_sync_queue($campaignIds, $metricTypes, $startAt = null, $e
 			return strtolower($campaign['type']) . '_' . $metricType . 's';
 		}, $metricTypes);
 
-		$existingJobs = $wpdb->get_results($wpdb->prepare(
-			"SELECT syncType FROM $sync_jobs_table_name WHERE campaignId = %d AND syncType IN ('" . implode("','", $syncTypes) . "') AND syncStatus = 'pending'",
-			(int)$campaignId
-		));
+		// Create placeholders for the IN clause
+		$placeholders = implode(',', array_fill(0, count($syncTypes), '%s'));
+		$existingJobs = $wpdb->get_results(
+			call_user_func_array(
+				array($wpdb, 'prepare'),
+				array_merge(
+					array("SELECT syncType FROM $sync_jobs_table_name WHERE campaignId = %d AND syncType IN ($placeholders) AND syncStatus = 'pending'"),
+					array($campaignId),
+					$syncTypes
+				)
+			)
+		);
 
 		$existingSyncTypes = array_column($existingJobs, 'syncType');
 		$newSyncTypes = array_diff($syncTypes, $existingSyncTypes);

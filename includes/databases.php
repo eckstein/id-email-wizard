@@ -695,18 +695,21 @@ function build_idwiz_query($args, $table_name)
 			}
 
 			if ($key === 'campaignIds') {
-				if (isset($args['campaignIds']) && !empty($args['campaignIds'])) {
-					$placeholders = rtrim(str_repeat('%d,', count($args['campaignIds'])), ',');
-					$sql .= $wpdb->prepare(" AND $campaignKey IN ($placeholders)", $args['campaignIds']);
-				} else {
-					return ['error' => 'No campaignIds were passed in the campaignIds array.'];
+				// Ensure campaignIds is an array and contains only integers
+				$campaignIds = array_map('intval', array_filter((array)$value));
+				if (!empty($campaignIds)) {
+					$placeholders = implode(',', array_fill(0, count($campaignIds), '%d'));
+					$sql .= call_user_func_array(
+						array($wpdb, 'prepare'),
+						array_merge(array(" AND $campaignKey IN ($placeholders)"), $campaignIds)
+					);
 				}
 			} elseif ($key === 'purchaseIds') {
 				$placeholders = implode(',', array_fill(0, count($value), '%s'));
-				$sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND id IN ($placeholders)"), $args['purchaseIds']));
+				$sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND id IN ($placeholders)"), $value));
 			} elseif ($key === 'userIds') {
 				$placeholders = implode(',', array_fill(0, count($value), '%s'));
-				$sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND userId IN ($placeholders)"), $args['userIds']));
+				$sql .= call_user_func_array(array($wpdb, 'prepare'), array_merge(array(" AND userId IN ($placeholders)"), $value));
 			} elseif ($key === 'startAt_start') {
 				$dt = DateTime::createFromFormat('Y-m-d', $value, new DateTimeZone('America/Los_Angeles'));
 				if ($dt) {
