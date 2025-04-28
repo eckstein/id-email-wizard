@@ -50,23 +50,24 @@ function idemailwiz_get_template_data_for_iterable()
 
 	// Get email type and set appropriate message type ID
 	$email_type = $messageSettings['email_type'] ?? 'promotional';
-	$message_type_id = $messageSettings['message_type_id'] ?? '';
 
-	// For backward compatibility, set default message type ID if not set
-	if (empty($message_type_id)) {
-		$message_type_id = $email_type === 'transactional' ? '52620' : '52634';
-	}
+	// Set message type ID based on email type
+	$message_type_id = $email_type === 'transactional' ? '52620' : '52634';
 
 	// Ensure message type ID is an integer for Iterable API
 	$message_type_id = intval($message_type_id);
+
+	// Define from/replyTo emails based on type
+	$from_email = $email_type === 'transactional' ? 'info@idtechnotifications.com' : ($messageSettings['from_email'] ?? 'info@idtechonline.com');
+	$reply_to_email = $email_type === 'transactional' ? 'info@idtechnotifications.com' : ($messageSettings['reply_to'] ?? 'hello@idtechonline.com');
 
 	$reqTemplateFields = array(
 		'templateName' => html_entity_decode(get_the_title($post_id), ENT_QUOTES, 'UTF-8'),
 		'emailSubject' =>  html_entity_decode($messageSettings['subject_line'], ENT_QUOTES, 'UTF-8')  ?? '',
 		'messageType' => $email_type,
 		'messageTypeId' => $message_type_id,
-		'fromEmail' => $messageSettings['from_email'] ?? 'info@idtechonline.com',
-		'replyToEmail' => $messageSettings['reply_to'] ?? 'hello@idtechonline.com',
+		'fromEmail' => $from_email,
+		'replyToEmail' => $reply_to_email,
 		'createdBy' => $current_user->user_email,
 		'postId' => $post_id,
 	);
