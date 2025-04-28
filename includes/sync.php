@@ -21,6 +21,13 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 		$id_field = 'wizId';
 	}
 
+	// Get table columns once before processing items
+	$table_columns = $wpdb->get_col("SHOW COLUMNS FROM `{$table_name}`");
+	if (empty($table_columns)) {
+		wiz_log("Error: Could not get columns for table {$table_name}");
+		return ['success' => [], 'errors' => ["Failed to get table columns for {$table_name}"]];
+	}
+
 	// Batch processing - process items in smaller batches to prevent timeouts
 	$batch_size = 250;
 	$item_batches = array_chunk($items, $batch_size);
@@ -41,172 +48,22 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 
 			// If this is a purchase sync, we do some database cleanup and field normalization
 			if ($table_name == $wpdb->prefix . 'idemailwiz_purchases') {
-				
 				// Exclude purchases with campaignIds that are negatives (like -12345)
 				if (isset($item['campaignId']) && $item['campaignId'] < 0) {
 					continue;
 				}
-				
-				// Get table columns
-				$table_columns = $wpdb->get_col("SHOW COLUMNS FROM `{$table_name}`");
-				
-				// Normalize field names for purchases
-				$normalized_item = [];
-				foreach ($item as $field => $value) {
-					// Convert lowercase field names to proper case for the database
-					$normalized_field = $field;
-					
-					// Special handling for common fields that need specific casing
-					if (strtolower($field) === 'campaignid') {
-						$normalized_field = 'campaignId';
-					} elseif (strtolower($field) === 'campaignstartat') {
-						$normalized_field = 'campaignStartAt';
-					} elseif (strtolower($field) === 'purchasedate') {
-						$normalized_field = 'purchaseDate';
-					} elseif (strtolower($field) === 'createdat') {
-						$normalized_field = 'createdAt';
-					} elseif (strtolower($field) === 'userid') {
-						$normalized_field = 'userId';
-					} elseif (strtolower($field) === 'accountnumber') {
-						$normalized_field = 'accountNumber';
-					} elseif (strtolower($field) === 'orderid') {
-						$normalized_field = 'orderId';
-					} elseif (strtolower($field) === 'templateid') {
-						$normalized_field = 'templateId';
-					} elseif (strpos(strtolower($field), 'shoppingcartitems_') === 0) {
-						// Handle shopping cart items fields
-						$parts = explode('_', $field);
-						if (count($parts) > 1) {
-							array_shift($parts); // Remove 'shoppingcartitems'
-							$normalized_field = 'shoppingCartItems_' . implode('_', $parts);
-						}
-					}
-					
-					// Only include fields that exist in the database table (case-insensitive comparison)
-					$field_exists = false;
-					foreach ($table_columns as $col) {
-						if (strcasecmp($col, $normalized_field) === 0) {
-							$field_exists = true;
-							$normalized_field = $col; // Use the exact case from the database
-							break;
-						}
-					}
-					// If the field exists, add it to the normalized item
-					if ($field_exists) {
-						$normalized_item[$normalized_field] = $value;
-					} 
-				}
-				$item = $normalized_item;
 			}
 
-			// If this is a user sync
-			if ($table_name == $wpdb->prefix . 'idemailwiz_users') {
-				foreach ($item as $field => $value) {
-					// Change blank values to NULL
-					if ($value === '') {
-						$item[$field] = NULL;
-						continue;
-					}
-
-					// Change string "[]" to NULL
-					if ($value === '[]') {
-						$item[$field] = NULL;
-						continue;
-					}
-
-					// Check if the value is a string representation of an array
-					if (is_string($value) && strpos($value, '[') === 0) {
-						// Attempt to decode it as JSON
-						$decoded = json_decode($value, true);
-
-						// If decoding is successful and the result is an array, serialize it
-						if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-							$item[$field] = serialize($decoded);
-						}
-					}
-				}
+			// Filter out fields that don't exist in the table schema
+			$filtered_item = array_intersect_key($item, array_flip($table_columns));
+			
+			// Log any fields that were filtered out
+			$filtered_fields = array_diff_key($item, $filtered_item);
+			if (!empty($filtered_fields)) {
+				wiz_log("Notice: Filtered out non-existent fields for table {$table_name}: " . implode(', ', array_keys($filtered_fields)));
 			}
 
-			// If this is a template record, we check if there's a wiz builder template with this template ID set as the sync-to
-			if ($table_name == $wpdb->prefix . 'idemailwiz_templates') {
-				$incomingTemplateId = $item['templateId'] ?? 0;
-				if ($incomingTemplateId) {
-					$wizDbTemplate = get_idwiz_template($incomingTemplateId);
-					$args = array(
-						'post_type' => 'idemailwiz_template',
-						'meta_key' => 'itTemplateId',
-						'meta_value' => $incomingTemplateId,
-						'posts_per_page' => 1
-					);
-
-					$builderTemplates = get_posts($args);
-
-					if ($wizDbTemplate && !empty($builderTemplates)) {
-						$sql = $wpdb->prepare(
-							"UPDATE `{$wpdb->prefix}idemailwiz_templates` SET clientTemplateId = %s WHERE templateId = %d",
-							$builderTemplates[0]->ID,
-							$wizDbTemplate['templateId']
-						);
-						$wpdb->query($sql);
-					} else {
-						$sql = $wpdb->prepare(
-							"UPDATE `{$wpdb->prefix}idemailwiz_templates` SET clientTemplateId = NULL WHERE templateId = %d",
-							$incomingTemplateId
-						);
-						$wpdb->query($sql);
-					}
-				}
-			}
-
-			//If this is an experiment record, we check if the corrosponding campaign in the campaign table has the experiment ID present. If not, add it.
-			if ($table_name == $wpdb->prefix . 'idemailwiz_experiments' && isset($item['experimentId']) && isset($item['campaignId'])) {
-				$experimentId = $item['experimentId'];
-				$experimentCampaign = get_idwiz_campaign($item['campaignId']);
-
-				if ($experimentCampaign) {
-					// Get the existing experimentIds, if any
-					$existingExperimentIds = $experimentCampaign['experimentIds'] ?? '';
-					$experimentIdsArray = $existingExperimentIds ? unserialize($existingExperimentIds) : array();
-
-					// Add the new experimentId if it doesn't already exist in the array
-					if (!in_array($experimentId, $experimentIdsArray)) {
-						$experimentIdsArray[] = $experimentId;
-					}
-
-					// Serialize the updated array
-					$serializedExperimentIds = serialize($experimentIdsArray);
-
-					// Using prepare to safely insert values into the query
-					$sql = $wpdb->prepare(
-						"UPDATE `{$wpdb->prefix}idemailwiz_campaigns` SET experimentIds = %s WHERE id = %d",
-						$serializedExperimentIds,
-						$item['campaignId']
-					);
-					$wpdb->query($sql);
-				}
-			}
-
-			// Serialize values that are arrays
-			foreach ($item as $childKey => $childValue) {
-				if (is_array($childValue)) {
-					if (empty($childValue)) {
-						$item[$childKey] = null; // Set to NULL if the array is empty
-					} else {
-						$serialized = serialize($childValue);
-						$item[$childKey] = $serialized;
-					}
-				}
-			}
-
-			// Convert key/header to camel case for db compatibility
-			$key = str_replace('.', '_', $key); // Replace periods with underscores
-			$words = explode(' ', $key); // Split the string into words
-			$words = array_map('ucwords', $words); // Capitalize the first letter of each word
-			$camelCaseString = implode('', $words); // Join the words back together
-			$key = lcfirst($camelCaseString); // Make the first letter lowercase and return
-
-			// Ensure item has proper values and id_field exists when needed
-			if (($operation === "update" || $operation === "delete") && !isset($item[$id_field])) {
+			if (($operation === "update" || $operation === "delete") && !isset($filtered_item[$id_field])) {
 				$result['errors'][] = "Failed to perform {$operation}: missing ID field '{$id_field}'";
 				continue;
 			}
@@ -214,7 +71,7 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 			// Prepare field data for SQL query
 			$fields = implode(",", array_map(function ($field) {
 				return "`" . esc_sql($field) . "`";
-			}, array_keys($item)));
+			}, array_keys($filtered_item)));
 			
 			if (empty($fields)) {
 				$result['errors'][] = "Failed to perform {$operation}: no valid fields found";
@@ -222,8 +79,8 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 			}
 
 			// Create correct number of placeholders for the values
-			$placeholders = implode(",", array_fill(0, count($item), "%s"));
-			$prepared_values = array_values($item);
+			$placeholders = implode(",", array_fill(0, count($filtered_item), "%s"));
+			$prepared_values = array_values($filtered_item);
 
 			try {
 				if ($operation === "insert") {
@@ -231,7 +88,7 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 						// For users table, use INSERT ... ON DUPLICATE KEY UPDATE
 						$updates = implode(", ", array_map(function ($field) {
 							return "`$field` = VALUES(`$field`)";
-						}, array_keys($item)));
+						}, array_keys($filtered_item)));
 						$sql = "INSERT INTO `{$table_name}` ({$fields}) VALUES ({$placeholders}) ON DUPLICATE KEY UPDATE {$updates}";
 						try {
 							$prepared_sql = $wpdb->prepare($sql, $prepared_values);
@@ -251,90 +108,56 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 							continue;
 						}
 					}
+
+					$insert_result = $wpdb->query($prepared_sql);
+					if ($insert_result === false) {
+						$result['errors'][] = "Failed to insert record: " . $wpdb->last_error;
+					} else {
+						$result['success'][] = "Inserted record successfully";
+						}
 				} elseif ($operation === "update") {
-					// Build update query with proper placeholders
-					$update_parts = [];
-					foreach (array_keys($item) as $field) {
-						if ($field !== $id_field) {
-							$update_parts[] = "`$field` = %s";
-						}
-					}
-					
-					// Remove ID field from values for the SET part
-					$update_values = array_values(array_filter($item, function($k) use ($id_field) {
-						return $k !== $id_field;
-					}, ARRAY_FILTER_USE_KEY));
-					
-					// Add ID value at the end for the WHERE clause
-					$update_values[] = $item[$id_field];
-					
-					$updates = implode(", ", $update_parts);
+					// For update operations
+					$updates = implode(", ", array_map(function ($field) {
+						return "`$field` = %s";
+					}, array_keys($filtered_item)));
 					$sql = "UPDATE `{$table_name}` SET {$updates} WHERE `{$id_field}` = %s";
-					
-					// Ensure $update_values array length matches placeholder count
-					$placeholders_needed = substr_count($sql, '%s');
-					if (count($update_values) !== $placeholders_needed) {
-						wiz_log("Warning: Placeholder count mismatch in UPDATE query. Need {$placeholders_needed}, have " . count($update_values));
-						// If we don't have enough values, log this as an error and skip
-						if (count($update_values) < $placeholders_needed) {
-							$result['errors'][] = "Failed to perform {$operation}: placeholder count mismatch";
-							continue;
-						}
-						// If we have too many values, truncate the array
-						if (count($update_values) > $placeholders_needed) {
-							$update_values = array_slice($update_values, 0, $placeholders_needed);
-						}
-					}
-					
+					$prepared_values[] = $filtered_item[$id_field]; // Add ID to the end for WHERE clause
 					try {
-						$prepared_sql = $wpdb->prepare($sql, $update_values);
+						$prepared_sql = $wpdb->prepare($sql, $prepared_values);
 					} catch (Exception $e) {
-						wiz_log("Error in prepare statement: " . $e->getMessage() . " SQL: " . $sql);
+						wiz_log("Error in update prepare statement: " . $e->getMessage() . " SQL: " . $sql);
 						$result['errors'][] = "Database prepare error: " . $e->getMessage();
 						continue;
 					}
+
+					$update_result = $wpdb->query($prepared_sql);
+					if ($update_result === false) {
+						$result['errors'][] = "Failed to update record: " . $wpdb->last_error;
+					} else {
+						$result['success'][] = "Updated record successfully";
+					}
 				} elseif ($operation === "delete") {
+					// For delete operations
 					$sql = "DELETE FROM `{$table_name}` WHERE `{$id_field}` = %s";
 					try {
-						$prepared_sql = $wpdb->prepare($sql, $item[$id_field]);
+						$prepared_sql = $wpdb->prepare($sql, $filtered_item[$id_field]);
 					} catch (Exception $e) {
 						wiz_log("Error in delete prepare statement: " . $e->getMessage() . " SQL: " . $sql);
 						$result['errors'][] = "Database prepare error: " . $e->getMessage();
 						continue;
 					}
-				}
 
-				// Do the insert/update
-				$query_result = $wpdb->query($prepared_sql);
-
-				// Extracting relevant details for logging
-				$item_name = isset($item[$name_field]) ? $item[$name_field] : ''; // Item name
-				if ($table_name == $wpdb->prefix . 'idemailwiz_metrics') {
-					$item_name = $metricName ?? '';
-				}
-				$item_id = $item[$id_field] ?? 'unknown'; // Item ID
-
-				if ($query_result !== false) {
-					if ($query_result > 0) {
-						// Success details
-						$result['success'][] = "Successfully performed {$operation} on '{$item_name}' (ID: {$item_id}).";
+					$delete_result = $wpdb->query($prepared_sql);
+					if ($delete_result === false) {
+						$result['errors'][] = "Failed to delete record: " . $wpdb->last_error;
 					} else {
-						// Success, but no rows were affected
-						//$result['success'][] = "Skipped '{$item_name}' (ID: {$item_id}); no updates needed.";
+						$result['success'][] = "Deleted record successfully";
 					}
-				} else {
-					// Error details
-					$result['errors'][] = "Failed to perform {$operation} on '{$item_name}' (ID: {$item_id}). Database Error: {$wpdb->last_error}.";
 				}
 			} catch (Exception $e) {
-				$result['errors'][] = "Exception during {$operation}: " . $e->getMessage();
-				wiz_log("Exception during database {$operation}: " . $e->getMessage());
+				wiz_log("Error in database operation: " . $e->getMessage());
+				$result['errors'][] = "Database error: " . $e->getMessage();
 			}
-		}
-		
-		// Add a small pause between batches to prevent server overload
-		if ($table_name == $wpdb->prefix . 'idemailwiz_templates') {
-			usleep(100000); // 100ms pause between template batches
 		}
 	}
 
@@ -1980,7 +1803,6 @@ add_action('wp_ajax_idemailwiz_ajax_sync', 'idemailwiz_ajax_sync');
 // Takes a row of metrics data from the api call
 function idemailwiz_calculate_metrics($metrics)
 {
-
 	$campaignIdKey = 'id';
 
 	if (isset($metrics['confidence'])) { // Only experiments have the 'confidence' key (since Iterable gives us no other way to check)
@@ -2009,6 +1831,12 @@ function idemailwiz_calculate_metrics($metrics)
 	// Update required fields if it's an SMS campaign
 	if ($medium == 'SMS') {
 		$requiredFields = ['uniqueSmsSent', 'uniqueSmsDelivered', 'uniqueSmsClicks', 'uniqueUnsubscribes', 'totalComplaints', 'uniquePurchases', 'revenue'];
+		
+		// Map SMS fields to email fields for consistency
+		$metrics['uniqueEmailSends'] = $metrics['uniqueSmsSent'] ?? 0;
+		$metrics['uniqueEmailsDelivered'] = $metrics['uniqueSmsDelivered'] ?? 0;
+		$metrics['uniqueEmailClicks'] = $metrics['uniqueSmsClicks'] ?? 0;
+		$metrics['uniqueEmailOpens'] = 0; // SMS doesn't have opens
 	}
 
 	// Ensure required fields are set
@@ -2019,13 +1847,10 @@ function idemailwiz_calculate_metrics($metrics)
 	}
 
 	// Calculate common metrics
-	$sendField = $medium == 'SMS' ? 'uniqueSmsSent' : 'uniqueEmailSends';
-	$deliveredField = $medium == 'SMS' ? 'uniqueSmsDelivered' : 'uniqueEmailsDelivered';
-	$clicksField = $medium == 'SMS' ? 'uniqueSmsClicks' : 'uniqueEmailClicks';
-
-	$sendValue = (float) $metrics[$sendField];
-	$deliveredValue = (float) $metrics[$deliveredField];
-	$clicksValue = (float) $metrics[$clicksField];
+	$sendValue = (float) $metrics['uniqueEmailSends'];
+	$deliveredValue = (float) $metrics['uniqueEmailsDelivered'];
+	$clicksValue = (float) $metrics['uniqueEmailClicks'];
+	$opensValue = $medium == 'Email' ? (float) $metrics['uniqueEmailOpens'] : 0;
 	$unsubscribesValue = (float) $metrics['uniqueUnsubscribes'];
 	$complaintsValue = (float) $metrics['totalComplaints'];
 	$purchasesValue = (float) $metrics['uniquePurchases'];
@@ -2051,22 +1876,23 @@ function idemailwiz_calculate_metrics($metrics)
 	}
 
 	// Open metrics (sms or no opens gets zero values)
-	$opensValue = $medium == 'Email' ? (float) $metrics['uniqueEmailOpens'] : 0;
-
-	if ($opensValue && $sendValue > 0) {
-		$metrics['wizOpenRate'] = $medium == 'Email' ? ($opensValue / $sendValue) * 100 : 0;
+	if ($medium == 'Email' && $sendValue > 0) {
+		$metrics['wizOpenRate'] = ($opensValue / $sendValue) * 100;
+		$metrics['wizCto'] = $opensValue > 0 ? ($clicksValue / $opensValue) * 100 : 0;
 	} else {
 		$metrics['wizOpenRate'] = 0;
-	}
-
-	if ($opensValue && $opensValue > 0) {
-		$metrics['wizCto'] = $medium == 'Email' ? ($clicksValue / $opensValue) * 100 : 0;
-	} else {
 		$metrics['wizCto'] = 0;
 	}
 
 	// Remove metrics we don't want to sync in
 	unset($metrics['uniqueSmsSentByMessage']);
+
+	// For SMS campaigns, store original SMS metrics as well
+	if ($medium == 'SMS') {
+		$metrics['uniqueSmsSent'] = $metrics['uniqueEmailSends'];
+		$metrics['uniqueSmsDelivered'] = $metrics['uniqueEmailsDelivered'];
+		$metrics['uniqueSmsClicks'] = $metrics['uniqueEmailClicks'];
+	}
 
 	return $metrics;
 }
