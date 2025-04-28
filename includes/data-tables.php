@@ -8,19 +8,54 @@ function idwiz_get_campaign_table_view() {
     // Bail early without valid nonce
     if (!check_ajax_referer('data-tables', 'security')) return;
 
-    $campaign_type = isset($_POST['campaign_type']) ? $_POST['campaign_type'] : 'Blast'; // Default to 'Blast'
+    $campaign_type = isset($_POST['campaign_type']) ? sanitize_text_field($_POST['campaign_type']) : 'Blast'; // Default to 'Blast'
+    $startDate = isset($_POST['startDate']) ? sanitize_text_field($_POST['startDate']) : null;
+    $endDate = isset($_POST['endDate']) ? sanitize_text_field($_POST['endDate']) : null;
 
     $sql = "SELECT * FROM idwiz_campaign_view";
     $prepare_args = [];
+    $where_clauses = [];
 
     if ($campaign_type == 'Triggered') {
-		$sql .= " WHERE campaign_type = %s AND campaign_state = 'Running'";
+		$where_clauses[] = "campaign_type = %s AND campaign_state = 'Running'";
         $prepare_args[] = 'Triggered';
     } elseif ($campaign_type == 'Blast') {
-        $sql .= " WHERE campaign_type = %s";
+		$where_clauses[] = "campaign_type = %s";
         $prepare_args[] = 'Blast';
     } elseif ($campaign_type == 'Archive') {
-		$sql .= " WHERE campaign_type = 'Triggered' AND campaign_state = 'Finished'";
+		$where_clauses[] = "campaign_type = 'Triggered' AND campaign_state = 'Finished'";
+    }
+
+    // Add date filtering if dates are provided
+    // Assuming campaign_start is a BIGINT representing milliseconds since epoch (UTC)
+    if ($startDate) {
+        // Convert YYYY-MM-DD from Los_Angeles timezone to UTC start of day timestamp (ms)
+        try {
+            $dtStart = new DateTime($startDate . ' 00:00:00', new DateTimeZone('America/Los_Angeles'));
+            $startTimestampMs = $dtStart->getTimestamp() * 1000;
+            $where_clauses[] = "campaign_start >= %d";
+            $prepare_args[] = $startTimestampMs;
+        } catch (Exception $e) {
+            // Handle invalid date format if necessary
+            error_log('Invalid start date format received: ' . $startDate);
+        }
+    }
+
+    if ($endDate) {
+         // Convert YYYY-MM-DD from Los_Angeles timezone to UTC end of day timestamp (ms)
+        try {
+            $dtEnd = new DateTime($endDate . ' 23:59:59', new DateTimeZone('America/Los_Angeles'));
+            $endTimestampMs = $dtEnd->getTimestamp() * 1000;
+            $where_clauses[] = "campaign_start <= %d";
+            $prepare_args[] = $endTimestampMs;
+        } catch (Exception $e) {
+             // Handle invalid date format if necessary
+            error_log('Invalid end date format received: ' . $endDate);
+        }
+    }
+
+    if (!empty($where_clauses)) {
+        $sql .= " WHERE " . implode(' AND ', $where_clauses);
     }
 
     // Prepare and execute the SQL query

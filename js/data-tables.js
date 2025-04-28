@@ -53,8 +53,11 @@ jQuery(document).ready(function ($) {
 		const urlParams = new URLSearchParams(window.location.search);
 		const campaignTypeFromUrl = urlParams.get("view") || "Blast"; // Default to 'Blast'
 
+		// Variable to store fetched filter options
+		var wizFilterOptions = { mediums: [], labels: [] };
+
 		// Initialize DataTables with the parsed data
-		table = $("#idemailwiz_campaign_table").DataTable({
+		var table = $("#idemailwiz_campaign_table").DataTable({
 			ajax: {
 				url: idAjax.ajaxurl,
 				type: "POST",
@@ -62,6 +65,9 @@ jQuery(document).ready(function ($) {
 					d.action = "idwiz_get_campaign_table_view";
 					d.security = idAjax_data_tables.nonce;
 					d.campaign_type = campaignTypeFromUrl;
+					// Send current date filters for server-side filtering
+					d.startDate = $('#wizStartDate').val(); 
+					d.endDate = $('#wizEndDate').val();
 				},
 				dataType: "json",
 			},
@@ -75,7 +81,7 @@ jQuery(document).ready(function ($) {
 			columns: get_wiz_campaign_columns(),
 			buttons: get_wiz_campaign_buttons(),
 			language: get_wiz_campaign_languages(),
-			dom: '<"#wiztable_top_wrapper"><"wiztable_toolbar" <"#wiztable_top_search" f><"#wiztable_top_dates">  B>rptp',
+			dom: '<"#wiztable_top_filters" > <"#wiztable_top_wrapper"><"wiztable_toolbar" <"#wiztable_top_search" f><"#wiztable_top_dates">  B>rptp',
 			fixedHeader: { header: false, footer: false },
 			colReorder: { realtime: false },
 			//scroller: true,
@@ -83,7 +89,7 @@ jQuery(document).ready(function ($) {
 			//scrollY: "650px",
 			paging: true,
 			lengthMenu: [
-				[25, 50, 100, 200, 350, 500, 1000 - 1],
+				[25, 50, 100, 200, 350, 500, 1000, -1],
 				[25, 50, 100, 200, 350, 500, 1000, "All"],
 			],
 			pageLength: 100,
@@ -97,32 +103,149 @@ jQuery(document).ready(function ($) {
 			},
 			stateSave: true,
 			stateDuration: 1,
-			drawCallback: idwiz_dt_draw_callback,
-			initComplete: idwiz_dt_init_callback,
-		});
-
-		// Handle state save and restore
-		setupStateHandling(table);
-
-		// Handle state save and restore
-		function setupStateHandling(table) {
-			table.on("stateSaveParams", function (e, settings, data) {
+			stateSaveParams: function (settings, data) {
 				// Save the current values of the date pickers
 				data.startDate = $("#wizStartDate").val();
 				data.endDate = $("#wizEndDate").val();
-			});
 
-			table.on("stateLoadParams", function (e, settings, data) {
+				// Save active filter buttons
+				data.activeMediums = [];
+				$('#wiztable-medium-filters .wiz-filter-button.active').each(function() {
+					data.activeMediums.push($(this).data('filter-value'));
+				});
+				data.activeLabels = [];
+				$('#wiztable-label-filters .wiz-filter-button.active').each(function() {
+					data.activeLabels.push($(this).data('filter-value'));
+				});
+			},
+			stateLoadParams: function (settings, data) {
 				// Restore the date picker values
 				$("#wizStartDate").val(data.startDate).trigger('change');
 				$("#wizEndDate").val(data.endDate).trigger('change');
+			},
+			drawCallback: idwiz_dt_draw_callback,
+			initComplete: function(settings, json) {
+				idwiz_dt_init_callback(settings, json);
+				// Restore filter button state after table and buttons are initialized
+				var state = table.state.loaded();
+				if (state) {
+					if (state.activeMediums && state.activeMediums.length > 0) {
+						state.activeMediums.forEach(function(medium) {
+							$('#wiztable-medium-filters .wiz-filter-button[data-filter-value="' + medium + '"]').addClass('active');
+						});
+					}
+					if (state.activeLabels && state.activeLabels.length > 0) {
+						state.activeLabels.forEach(function(label) {
+							$('#wiztable-label-filters .wiz-filter-button[data-filter-value="' + label + '"]').addClass('active');
+						});
+					}
+					// Trigger filter application based on restored state
+					applyDynamicFilters(); 
+				}
+			}
+		});
+
+		// Handle state save and restore - Moved state save/load directly into DT init options
+		// setupStateHandling(table);
+
+		// Function to apply filters based on active buttons
+		function applyDynamicFilters() {
+			let activeMediums = [];
+			$('#wiztable-medium-filters .wiz-filter-button.active').each(function() {
+				activeMediums.push($(this).data('filter-value'));
+			});
+
+			let activeLabels = [];
+			$('#wiztable-label-filters .wiz-filter-button.active').each(function() {
+				// Escape special regex characters in labels
+				let label = $(this).data('filter-value').replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+				activeLabels.push(label);
+			});
+
+			let mediumRegex = activeMediums.length ? '^(' + activeMediums.join('|') + ')$' : '';
+			// Search for labels within comma-separated values or as the sole value
+			// Ensures we match whole labels, e.g., "Prospects" not "Prospects, Global"
+			let labelRegex = activeLabels.length ? '\\b(' + activeLabels.join('|') + ')\\b' : ''; 
+
+
+			table.column('message_medium:name').search(mediumRegex, true, false);
+			table.column('campaign_labels:name').search(labelRegex, true, false);
+
+			// Only draw if filters changed
+			table.draw(); // Always redraw when filters might have changed
+		}
+
+		// Function to extract unique mediums and labels from the table data
+		function extractUniqueFiltersFromData(data) {
+			let uniqueMediums = new Set();
+			let uniqueLabels = new Set();
+
+			if (data && data.length) {
+				data.forEach(row => {
+					if (row.message_medium) {
+						uniqueMediums.add(row.message_medium);
+					}
+					if (row.campaign_labels) {
+						// Split comma-separated labels and add individually
+						row.campaign_labels.split(',').forEach(label => {
+							let trimmedLabel = label.trim();
+							if (trimmedLabel) {
+								uniqueLabels.add(trimmedLabel);
+							}
+						});
+					}
+				});
+			}
+
+			return {
+				mediums: Array.from(uniqueMediums).sort(),
+				labels: Array.from(uniqueLabels).sort()
+			};
+		}
+
+		// Function to create filter buttons
+		function createFilterButtons(filterOptions) {
+			var mediumFiltersHtml = '<div class="wiztable-filter-group" id="wiztable-medium-filters"><strong>Medium:</strong> ';
+			filterOptions.mediums.forEach(function(medium) {
+				mediumFiltersHtml += '<button class="wiz-filter-button" data-filter-type="medium" data-filter-value="' + medium + '">' + medium + '</button>';
+			});
+			mediumFiltersHtml += '</div>';
+
+			var labelFiltersHtml = '<div class="wiztable-filter-group" id="wiztable-label-filters"><strong>Cohorts:</strong> ';
+			filterOptions.labels.forEach(function(label) {
+				labelFiltersHtml += '<button class="wiz-filter-button" data-filter-type="label" data-filter-value="' + label + '">' + label + '</button>';
+			});
+			labelFiltersHtml += '</div>';
+
+			$('#wiztable_top_filters').html(mediumFiltersHtml + labelFiltersHtml);
+
+			// Add click handlers
+			$('.wiz-filter-button').on('click', function() {
+				$(this).toggleClass('active');
+				applyDynamicFilters();
 			});
 		}
 
 		// Main DT Initiation callback function
 		function idwiz_dt_init_callback(settings, json) {
-			addDateFilter();
 			addDateChangeListener();
+
+			// Extract filters from the initial data load
+			if (json && json.data) {
+				wizFilterOptions = extractUniqueFiltersFromData(json.data);
+				createFilterButtons(wizFilterOptions);
+
+				// Restore state for buttons *after* they are created
+				var state = table.state.loaded();
+				if (state) {
+					if (state.activeMediums) {
+						state.activeMediums.forEach(medium => $('#wiztable-medium-filters .wiz-filter-button[data-filter-value="' + medium + '"]').addClass('active'));
+					}
+					if (state.activeLabels) {
+						state.activeLabels.forEach(label => $('#wiztable-label-filters .wiz-filter-button[data-filter-value="' + label + '"]').addClass('active'));
+					}
+				}
+			}
 		}
 
 		// Main draw callback function
@@ -145,8 +268,8 @@ jQuery(document).ready(function ($) {
 
 			var campaignIds = [];
 			
-			api.rows({ search: "applied" }).every(function (rowIdx, tableLoop, rowLoop) {
-				var data = this.data();
+			// Get IDs from the *filtered and paged* view for the rollup
+			api.rows({ search: "applied" }).data().each(function(data) {
 				campaignIds.push(data.campaign_id);
 			});
 			
@@ -154,6 +277,7 @@ jQuery(document).ready(function ($) {
 			var endDate = $('.idemailwiz_table_wrapper').find("#wizEndDate").val();
 			
 			// Fetch rollup summary data
+			// Debounce or delay slightly to avoid rapid firing during redraws
 			setTimeout(() => fetchRollUpSummaryData(campaignIds, startDate, endDate, rollupSelector), 500);
 		}
 
@@ -263,26 +387,6 @@ jQuery(document).ready(function ($) {
 
 
 
-		// Add date filter search logic
-		function addDateFilter() {
-			$.fn.dataTable.ext.search.push(function (settings, data, dataIndex, rowData) {
-				var startDateInput = $("#wizStartDate").val();
-				var endDateInput = $("#wizEndDate").val();
-
-				// Check if the date filter is being used
-				if (startDateInput || endDateInput) {
-					// Exclude records with "N/A" date
-					if (!rowData.campaign_start) return false;
-
-					var campaignDate = new Date(parseInt(rowData.campaign_start)).toISOString().split("T")[0]; // UTC date string
-
-					if (startDateInput && campaignDate < startDateInput) return false;
-					if (endDateInput && campaignDate > endDateInput) return false;
-				}
-				return true;
-			});
-		}
-
 		// Refresh the table when the dates are changed
 		function addDateChangeListener() {
 			$("#wizStartDate, #wizEndDate").change(function () {
@@ -293,7 +397,7 @@ jQuery(document).ready(function ($) {
 				newUrl = updateUrlParameter(newUrl, "endDate", endDate);
 				history.pushState(null, null, newUrl);
 
-				table.draw();
+				table.ajax.reload(); // Reload data from server with new dates
 			});
 
 			// Check if the date pickers have values on page load and trigger the change event
@@ -400,7 +504,24 @@ jQuery(document).ready(function ($) {
 					searchBuilderType: "string",
 					visible: false
 				},
-				
+				{
+					data: "campaign_labels",
+					name: "campaign_labels",
+					title: "Labels",
+					className: "idwiz_searchBuilder_enabled ellipsis",
+					render: $.fn.dataTable.render.ellipsis(30, true),
+					searchBuilderType: "string",
+					searchBuilder: {
+						defaultCondition: 'contains',
+						preDefined: {
+							getOptions: function(callback) {
+								// Use the globally stored wizFilterOptions extracted from initial data
+								callback(wizFilterOptions.labels || []); 
+							}
+						}
+					},
+					// visible: false, // Initially hide? Or show truncated?
+				},
 				{
 					data: "experiment_ids",
 					name: "experiment_ids",

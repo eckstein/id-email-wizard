@@ -2810,6 +2810,55 @@ pre#generatedCode {
 	border-bottom: 4px solid #94c52a;
 }
 
+/* Filter Buttons for Campaign Table */
+/* Container for the filter button groups */
+#wiztable_top_filters {
+    padding: 10px 0; /* Add some vertical space */
+    display: flex; /* Arrange groups horizontally */
+	justify-content: center;
+    flex-wrap: wrap; /* Allow groups to wrap on smaller screens */
+    gap: 15px; /* Space between the Medium and Labels groups */
+}
+
+/* Styling for individual filter button groups (Medium, Labels) */
+.wiztable-filter-group {
+    display: flex; /* Align items nicely */
+    align-items: center; /* Vertically center items */
+    flex-wrap: wrap; /* Allow buttons to wrap within a group */
+    gap: 5px; /* Space between the title (e.g., "Medium:") and buttons, and between buttons */
+}
+
+/* Basic styling for the filter buttons */
+.wiz-filter-button {
+    background-color: #f0f0f0; /* Light grey background */
+    border: 1px solid #ccc;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Style for buttons when hovered */
+.wiz-filter-button:hover {
+    background-color: #e0e0e0;
+    border-color: #bbb;
+}
+
+/* Styling for ACTIVE filter buttons */
+.wiz-filter-button.active {
+    background-color: #0073aa; /* WordPress blue */
+    color: #fff; /* White text */
+    border-color: #005a87;
+    font-weight: bold;
+}
+
+/* Styling for the group titles (e.g., "Medium:", "Labels:") */
+.wiztable-filter-group strong {
+    margin-right: 5px; /* Space after the title */
+}
+/* End Filter Buttons */
+
 /* Experiment Variation templates */
 .experiment_var_wrapper {
 	border: 1px solid #eee;
