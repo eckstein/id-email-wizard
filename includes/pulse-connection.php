@@ -81,7 +81,7 @@ function wizPulse_sync_location_sessions()
     $table_name = $wpdb->prefix . 'idemailwiz_locations';
     
     // SheetDB API endpoint - updated to new URL
-    $api_url = 'https://sheetdb.io/api/v1/xnzsf9nxjttuj';
+    $api_url = 'https://sheetdb.io/api/v1/ov2axr4kssf94';
     
     // Get data from SheetDB
     $response = idemailwiz_iterable_curl_call($api_url, null, false, 3, 5);
