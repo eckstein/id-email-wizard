@@ -1624,6 +1624,7 @@ function idwiz_endpoint_handler($request) {
             }
         }
     } else {
+        // If no data mapping is defined, include the base data and presets
         $response_data = $feed_data;
         if (!empty($presets)) {
             $response_data['_presets'] = $presets;

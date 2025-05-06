@@ -809,35 +809,43 @@ jQuery(document).ready(function ($) {
             data: {}
         };
 
-        // First, include the base data if using user_feed or user_profile
-        if (baseDataSource === 'user_feed' || baseDataSource === 'user_profile') {
-            const cleanUserData = { ...userData };
-            // Make a deep copy without the _presets property
-            if (cleanUserData._presets) {
-                delete cleanUserData._presets;
-            }
-            Object.assign(payload.data, cleanUserData);
-        }
-
-        // Then apply any custom mappings, which will override base data if there are conflicts
-        mappings.forEach(mapping => {
-            if (!mapping.key) return; // Skip if no key defined
-            
-            if (mapping.type === 'static') {
-                payload.data[mapping.key] = mapping.value;
-            } else if (mapping.type === 'preset' && userData._presets) {
-                // Get the actual value from the preset
-                const presetValue = userData._presets[mapping.value];
+        // Apply mappings if configured
+        if (mappings.length > 0) {
+            // Apply custom mappings
+            mappings.forEach(mapping => {
+                if (!mapping.key) return; // Skip if no key defined
                 
-                // Only include the preset if it exists and is not null/undefined
-                if (presetValue !== undefined && presetValue !== null) {
-                    payload.data[mapping.key] = presetValue;
-                } else {
-                    // Return null instead of an error message when preset not found
-                    payload.data[mapping.key] = null;
+                if (mapping.type === 'static') {
+                    payload.data[mapping.key] = mapping.value;
+                } else if (mapping.type === 'preset' && userData._presets) {
+                    // Get the actual value from the preset
+                    const presetValue = userData._presets[mapping.value];
+                    
+                    // Only include the preset if it exists and is not null/undefined
+                    if (presetValue !== undefined && presetValue !== null) {
+                        payload.data[mapping.key] = presetValue;
+                    } else {
+                        // Return null instead of an error message when preset not found
+                        payload.data[mapping.key] = null;
+                    }
+                }
+            });
+        } else {
+            // If no custom mappings, include the base data if using user_feed or user_profile
+            if (baseDataSource === 'user_feed' || baseDataSource === 'user_profile') {
+                const cleanUserData = { ...userData };
+                // Make a deep copy without the _presets property
+                if (cleanUserData._presets) {
+                    delete cleanUserData._presets;
+                }
+                Object.assign(payload.data, cleanUserData);
+                
+                // Include presets in _presets property for compatibility
+                if (userData._presets) {
+                    payload.data._presets = userData._presets;
                 }
             }
-        });
+        }
 
         // Format JSON with proper indentation
         const formattedJson = JSON.stringify(payload, null, 2);
