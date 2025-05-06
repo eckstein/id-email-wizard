@@ -492,13 +492,35 @@ jQuery(document).ready(function ($) {
         const endpoint = $activeContainer.attr('id').replace('endpoint-', '');
         const baseDataSource = $activeContainer.find('.endpoint-base-data-source').val();
         
+        // Collect all mappings for the server as an object
+        const dataMappings = {}; // Initialize as an object
+        $activeContainer.find('.data-mapping-item').each(function() {
+            const $item = $(this);
+            const key = $item.find('.mapping-key').val();
+            const type = $item.find('.mapping-type').val();
+            let value;
+            
+            if (type === 'static') {
+                value = $item.find('.mapping-value').val();
+            } else {
+                value = $item.find('.mapping-preset').val();
+            }
+            
+            if (key) { // Only require key to be present
+                dataMappings[key] = { // Assign as object property
+                    type: type,
+                    value: value || '' // Include empty values
+                };
+            }
+        });
+        
         // Check cache first
-        const cacheKey = baseDataSource + '_' + accountNumber;
+        const cacheKey = baseDataSource + '_' + accountNumber + '_' + JSON.stringify(dataMappings); // Include mappings in cache key
         const now = Date.now();
         if (userDataCache.data[cacheKey] && 
             (now - userDataCache.timestamps[cacheKey]) < userDataCache.timeout) {
             console.log('Using cached data');
-            generatePreview(userDataCache.data[cacheKey], endpoint, $activeContainer);
+            handlePayloadData(userDataCache.data[cacheKey], $activeContainer);
             return;
         }
 
@@ -518,6 +540,8 @@ jQuery(document).ready(function ($) {
                 action: 'idwiz_get_user_data',
                 account_number: accountNumber,
                 base_data_source: baseDataSource,
+                endpoint: endpoint,
+                data_mapping: JSON.stringify(dataMappings),
                 security: idAjax_wiz_endpoints.nonce
             },
             success: function(response) {
@@ -546,21 +570,12 @@ jQuery(document).ready(function ($) {
                         return;
                     }
                     
-                    // Ensure _presets exists
-                    if (!response.data._presets) {
-                        console.warn('Response missing _presets property, creating empty object');
-                        response.data._presets = {};
-                    }
-                    
-                    // Log presets for debugging
-                    console.log('Presets in response:', response.data._presets);
-                    
                     // Cache the response
                     userDataCache.data[cacheKey] = response.data;
                     userDataCache.timestamps[cacheKey] = now;
                     
-                    // Generate the preview
-                    generatePreview(response.data, endpoint, $activeContainer);
+                    // Display the payload
+                    handlePayloadData(response.data, $activeContainer);
                 } else {
                     const errorMsg = response.data || 'Unknown error';
                     console.error('Error in AJAX response:', errorMsg);
@@ -599,10 +614,47 @@ jQuery(document).ready(function ($) {
                 console.log('Sending AJAX request with data:', {
                     action: 'idwiz_get_user_data',
                     account_number: accountNumber,
-                    base_data_source: baseDataSource
+                    base_data_source: baseDataSource,
+                    endpoint: endpoint,
+                    data_mapping: dataMappings
                 });
             }
         });
+    }
+    
+    // Function to handle payload data display
+    function handlePayloadData(payloadData, $container) {
+        const $preview = $container.find('.payload-preview');
+        
+        // Format JSON with proper indentation
+        const formattedJson = JSON.stringify(payloadData, null, 2);
+        
+        // Get existing CodeMirror instance or create new one
+        let editor = $preview.data('codemirror');
+        
+        if (!editor) {
+            // First time initialization
+            editor = CodeMirror(function(elt) {
+                $preview.empty().append(elt);
+            }, {
+                value: formattedJson,
+                mode: 'application/json',
+                theme: 'mbo',
+                lineNumbers: true,
+                readOnly: true,
+                matchBrackets: true,
+                autoCloseBrackets: true,
+                foldGutter: true,
+                gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
+                lint: true,
+                viewportMargin: Infinity
+            });
+            $preview.data('codemirror', editor);
+        } else {
+            // Update existing CodeMirror instance
+            editor.setValue(formattedJson);
+            editor.refresh();
+        }
     }
 
     // Debounce the preview updates
@@ -773,109 +825,6 @@ jQuery(document).ready(function ($) {
                 $select.html('<option value="">Error loading accounts</option>');
             }
         });
-    }
-
-    // Function to generate preview
-    function generatePreview(userData, endpoint, $container) {
-        const $preview = $container.find('.payload-preview');
-        const baseDataSource = $container.find('.endpoint-base-data-source').val();
-        const mappings = [];
-        
-        // Collect all mappings
-        $container.find('.data-mapping-item').each(function() {
-            const $item = $(this);
-            const key = $item.find('.mapping-key').val();
-            const type = $item.find('.mapping-type').val();
-            let value;
-            
-            if (type === 'static') {
-                value = $item.find('.mapping-value').val();
-            } else {
-                value = $item.find('.mapping-preset').val();
-            }
-            
-            if (key) { // Only require key to be present
-                mappings.push({
-                    key: key,
-                    type: type,
-                    value: value || '' // Include empty values
-                });
-            }
-        });
-
-        // Generate preview payload
-        const payload = {
-            endpoint: endpoint,
-            data: {}
-        };
-
-        // Apply mappings if configured
-        if (mappings.length > 0) {
-            // Apply custom mappings
-            mappings.forEach(mapping => {
-                if (!mapping.key) return; // Skip if no key defined
-                
-                if (mapping.type === 'static') {
-                    payload.data[mapping.key] = mapping.value;
-                } else if (mapping.type === 'preset' && userData._presets) {
-                    // Get the actual value from the preset
-                    const presetValue = userData._presets[mapping.value];
-                    
-                    // Only include the preset if it exists and is not null/undefined
-                    if (presetValue !== undefined && presetValue !== null) {
-                        payload.data[mapping.key] = presetValue;
-                    } else {
-                        // Return null instead of an error message when preset not found
-                        payload.data[mapping.key] = null;
-                    }
-                }
-            });
-        } else {
-            // If no custom mappings, include the base data if using user_feed or user_profile
-            if (baseDataSource === 'user_feed' || baseDataSource === 'user_profile') {
-                const cleanUserData = { ...userData };
-                // Make a deep copy without the _presets property
-                if (cleanUserData._presets) {
-                    delete cleanUserData._presets;
-                }
-                Object.assign(payload.data, cleanUserData);
-                
-                // Include presets in _presets property for compatibility
-                if (userData._presets) {
-                    payload.data._presets = userData._presets;
-                }
-            }
-        }
-
-        // Format JSON with proper indentation
-        const formattedJson = JSON.stringify(payload, null, 2);
-
-        // Get existing CodeMirror instance or create new one
-        let editor = $preview.data('codemirror');
-        
-        if (!editor) {
-            // First time initialization
-            editor = CodeMirror(function(elt) {
-                $preview.empty().append(elt);
-            }, {
-                value: formattedJson,
-                mode: 'application/json',
-                theme: 'mbo',
-                lineNumbers: true,
-                readOnly: true,
-                matchBrackets: true,
-                autoCloseBrackets: true,
-                foldGutter: true,
-                gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
-                lint: true,
-                viewportMargin: Infinity
-            });
-            $preview.data('codemirror', editor);
-        } else {
-            // Update existing CodeMirror instance
-            editor.setValue(formattedJson);
-            editor.refresh();
-        }
     }
 
     // Handle endpoint testing

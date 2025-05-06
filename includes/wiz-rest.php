@@ -1481,6 +1481,53 @@ function get_required_presets($endpoint_config) {
     return array_unique($required_presets);
 }
 
+/**
+ * Generate a consistent payload structure for endpoints
+ * This function is the single source of truth for endpoint payload structure
+ * 
+ * @param string $endpoint The endpoint name/route
+ * @param array $feed_data The user/student data
+ * @param array $presets Processed preset values
+ * @param array $endpoint_config Endpoint configuration
+ * @return array The structured payload
+ */
+function generate_endpoint_payload($endpoint, $feed_data, $presets, $endpoint_config) {
+    $payload = [
+        'endpoint' => $endpoint,
+        'data' => []
+    ];
+    
+    // Start with the base feed_data
+    $payload['data'] = $feed_data;
+    
+    // Apply data mappings if configured, potentially overwriting base data
+    if (!empty($endpoint_config['data_mapping'])) {
+        foreach ($endpoint_config['data_mapping'] as $key => $mapping) {
+            if ($mapping['type'] === 'static') {
+                $payload['data'][$key] = $mapping['value'];
+            } else if ($mapping['type'] === 'preset' && isset($presets[$mapping['value']])) {
+                $payload['data'][$key] = $presets[$mapping['value']];
+            } else if ($mapping['type'] === 'preset') {
+                // If a preset is mapped but not found/null, ensure the key exists with null value
+                $payload['data'][$key] = null;
+            }
+        }
+        // If data mapping IS defined, the _presets object should NOT be at the root of data.
+        // Presets are individually mapped to keys if data_mapping is used.
+        if (isset($payload['data']['_presets'])) {
+            unset($payload['data']['_presets']);
+        }
+    } else {
+        // If no mappings defined, include all base data (already done)
+        // and include presets in the _presets property.
+        if (!empty($presets)) {
+            $payload['data']['_presets'] = $presets;
+        }
+    }
+    
+    return $payload;
+}
+
 function idwiz_endpoint_handler($request) {
     // Track request start time
     $start_time = microtime(true);
@@ -1638,34 +1685,16 @@ function idwiz_endpoint_handler($request) {
         ], 500);
     }
 
-    // Build response data
-    $response_data = [];
-    if (!empty($endpoint_config['data_mapping'])) {
-        foreach ($endpoint_config['data_mapping'] as $key => $mapping) {
-            if ($mapping['type'] === 'static') {
-                $response_data[$key] = $mapping['value'];
-            } else if ($mapping['type'] === 'preset' && isset($presets[$mapping['value']])) {
-                $response_data[$key] = $presets[$mapping['value']];
-            }
-        }
-    } else {
-        // If no data mapping is defined, include the base data and presets
-        $response_data = $feed_data;
-        if (!empty($presets)) {
-            $response_data['_presets'] = $presets;
-        }
-    }
+    // Use the new function to generate a consistent payload structure
+    $payload = generate_endpoint_payload($endpoint, $feed_data, $presets, $endpoint_config);
 
     // Calculate execution time and return response
     $execution_time = round((microtime(true) - $start_time) * 1000);
-    $data_size = strlen(json_encode($response_data));
+    $data_size = strlen(json_encode($payload));
     
     error_log("ID Email Wiz REST API Success: Account Number=$account_number, Response Size=$data_size bytes, Execution Time={$execution_time}ms");
 
-    $response = new WP_REST_Response([
-        'endpoint' => $endpoint,
-        'data' => $response_data
-    ], 200);
+    $response = new WP_REST_Response($payload, 200);
     
     // Cache this response for 5 minutes
     wp_cache_set($cache_key, $response, '', 300);
@@ -1792,8 +1821,17 @@ function idwiz_get_user_data_for_preview() {
     
     error_log('Preview request for account number: ' . $account_number);
     
-    // Check for base data source
+    // Get endpoint name and other parameters
+    $endpoint = isset($_POST['endpoint']) ? sanitize_text_field($_POST['endpoint']) : '';
     $base_data_source = isset($_POST['base_data_source']) ? sanitize_text_field($_POST['base_data_source']) : 'user_feed';
+    $data_mapping = isset($_POST['data_mapping']) ? json_decode(stripslashes($_POST['data_mapping']), true) : [];
+    
+    // Create a temporary endpoint config for preview
+    $endpoint_config = [
+        'base_data_source' => $base_data_source,
+        'data_mapping' => $data_mapping
+    ];
+    
     error_log('Using base data source: ' . $base_data_source);
 
     global $wpdb;
@@ -1874,10 +1912,10 @@ function idwiz_get_user_data_for_preview() {
                 }
             }
 
-            // Add presets to the response
-            $feed_data['_presets'] = $presets;
-
-            wp_send_json_success($feed_data);
+            // Generate the payload using the same function as the real endpoint
+            $payload = generate_endpoint_payload($endpoint, $feed_data, $presets, $endpoint_config);
+            
+            wp_send_json_success($payload);
             
         } catch (Exception $e) {
             error_log('Error processing presets: ' . $e->getMessage());
