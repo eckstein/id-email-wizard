@@ -319,6 +319,7 @@ function get_last_location($student_data) {
     // Use locationUrl from database if available, otherwise fallback to generated URL
     $url = !empty($location->locationUrl) ? $location->locationUrl : null;
 
+    // Always include all properties to match preview
     return [
         'id' => $location->id,
         'name' => $location->name,
@@ -1560,6 +1561,30 @@ function idwiz_endpoint_handler($request) {
 
         if (!$feed_data) {
             return new WP_REST_Response(['error' => 'Student not found in feed'], 404);
+        }
+        
+        // Add age and birthday flags for consistency with preview
+        if (isset($feed_data['studentDOB'])) {
+            $student_dob = new DateTime($feed_data['studentDOB']);
+            $now = new DateTime();
+            $six_months_ago = (new DateTime())->modify('-6 months');
+            
+            // Calculate age
+            $feed_data['age'] = $student_dob->diff($now)->y;
+            
+            // Calculate 10th and 13th birthdays
+            $tenth_birthday = (clone $student_dob)->modify('+10 years');
+            $thirteenth_birthday = (clone $student_dob)->modify('+13 years');
+            
+            // Check if turned 10 in last 6 months
+            $feed_data['turned_10'] = ($tenth_birthday >= $six_months_ago && $tenth_birthday <= $now);
+            
+            // Check if turned 13 in last 6 months
+            $feed_data['turned_13'] = ($thirteenth_birthday >= $six_months_ago && $thirteenth_birthday <= $now);
+        } else {
+            $feed_data['age'] = null;
+            $feed_data['turned_10'] = false;
+            $feed_data['turned_13'] = false;
         }
     } else {
         // Custom data source - just create an empty container
