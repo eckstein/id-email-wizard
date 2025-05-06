@@ -171,6 +171,45 @@ function get_course_recommendations($course, $toDivision, $needsAgeUp)
             }
         }
         
+        // If no explicit IPC mappings, try to include both iDTA and iDTC recommendations
+        if (empty($recommendations)) {
+            // Add iDTA recommendations
+            if (isset($courseRecs['idta']) && is_array($courseRecs['idta']) && !empty($courseRecs['idta'])) {
+                foreach ($courseRecs['idta'] as $recCourseId) {
+                    $recCourse = get_course_details_by_id($recCourseId);
+                    if (!is_wp_error($recCourse)) {
+                        $recommendations[] = [
+                            'id' => $recCourse->id,
+                            'title' => $recCourse->title,
+                            'abbreviation' => $recCourse->abbreviation,
+                            'minAge' => $recCourse->minAge,
+                            'maxAge' => $recCourse->maxAge,
+                            'courseUrl' => $recCourse->courseUrl ?? '',
+                            'courseDesc' => $recCourse->courseDesc ?? null
+                        ];
+                    }
+                }
+            }
+            
+            // Add iDTC recommendations
+            if (isset($courseRecs['idtc']) && is_array($courseRecs['idtc']) && !empty($courseRecs['idtc'])) {
+                foreach ($courseRecs['idtc'] as $recCourseId) {
+                    $recCourse = get_course_details_by_id($recCourseId);
+                    if (!is_wp_error($recCourse)) {
+                        $recommendations[] = [
+                            'id' => $recCourse->id,
+                            'title' => $recCourse->title,
+                            'abbreviation' => $recCourse->abbreviation,
+                            'minAge' => $recCourse->minAge,
+                            'maxAge' => $recCourse->maxAge,
+                            'courseUrl' => $recCourse->courseUrl ?? '',
+                            'courseDesc' => $recCourse->courseDesc ?? null
+                        ];
+                    }
+                }
+            }
+        }
+        
         return $recommendations;
     }
     // If we're looking for iDTA or iDTC recommendations
