@@ -81,7 +81,7 @@ function wizPulse_sync_location_sessions()
     $table_name = $wpdb->prefix . 'idemailwiz_locations';
     
     // SheetDB API endpoint - updated to new URL
-    $api_url = 'https://sheetdb.io/api/v1/ov2axr4kssf94';
+    $api_url = 'https://sheetdb.io/api/v1/ov2axr4kssf94?sheet=raw';
     
     // Get data from SheetDB
     $response = idemailwiz_iterable_curl_call($api_url, null, false, 3, 5);
@@ -112,12 +112,15 @@ function wizPulse_sync_location_sessions()
     $processed_rows = 0;
     
     foreach ($sheet_data as $row) {
-        // Get location data from spreadsheet - fields have changed in new format
+        // Get location data from spreadsheet 
         $division_code = $row['Division'] ?? '';
         $location_code_with_suffix = $row['Shortcode'] ?? '';
         $location_name = $row['Location Name'] ?? '';
         $location_url = $row['Location URL'] ?? '';
-        
+        $overnightOffered = $row['ON Offered'] ?? 'No';
+        if ($overnightOffered == 'Division Included') {
+            $overnightOffered = 'Yes';
+        }
         // Skip rows without required location data
         if (empty($location_code_with_suffix) || empty($location_name)) {
             continue;
@@ -145,6 +148,7 @@ function wizPulse_sync_location_sessions()
             $location_data[$location_code] = [
                 'url' => '',
                 'name' => $location_name,
+                'overnightOffered' => $overnightOffered,
                 'weeks' => [
                     'camps' => [],
                     'academies' => []
@@ -188,7 +192,8 @@ function wizPulse_sync_location_sessions()
                 $table_name,
                 [
                     'sessionWeeks' => $session_weeks,
-                    'locationUrl' => $data['url']
+                    'locationUrl' => $data['url'],
+                    'overnightOffered' => $data['overnightOffered']
                 ],
                 [
                     'abbreviation' => $location_code
@@ -316,8 +321,8 @@ function wizPulse_map_courses_to_database()
     // Batch insert or update
     if (!empty($processed_courses)) {
         foreach ($processed_courses as $course) {
-            // Check if the course already exists and has course_recs or courseUrl
-            $existing_course = $wpdb->get_row($wpdb->prepare("SELECT course_recs, courseUrl FROM {$table_name} WHERE id = %d", $course['id']));
+            // Check if the course already exists and has course_recs, courseUrl, or courseDesc
+            $existing_course = $wpdb->get_row($wpdb->prepare("SELECT course_recs, courseUrl, courseDesc FROM {$table_name} WHERE id = %d", $course['id']));
             
             // If the course exists and has course_recs, preserve that data
             if ($existing_course && !empty($existing_course->course_recs)) {
@@ -327,6 +332,11 @@ function wizPulse_map_courses_to_database()
             // If the course exists and has a courseUrl, preserve that data
             if ($existing_course && !empty($existing_course->courseUrl)) {
                 $course['courseUrl'] = $existing_course->courseUrl;
+            }
+            
+            // If the course exists and has a courseDesc, preserve that data
+            if ($existing_course && !empty($existing_course->courseDesc)) {
+                $course['courseDesc'] = $existing_course->courseDesc;
             }
             
             // Create placeholders array with the correct number of placeholders

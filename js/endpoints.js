@@ -621,11 +621,23 @@ jQuery(document).ready(function ($) {
 
     $(document).on('click', '.load-user-data', function() {
         console.log('Manual load clicked');
-        const accountNumber = $('.manual-user-id').val();
+        // Find the active container first
+        const $activeContainer = $('.endpoint-content.active');
+        // Get the manual input value from within the active container
+        const accountNumber = $activeContainer.find('.manual-user-id').val();
         console.log('Manual account number:', accountNumber);
         if (accountNumber) {
-            $('.test-user-select').val(accountNumber);
+            // Also update the dropdown to reflect the manually entered value, if it exists as an option
+            const $select = $activeContainer.find('.test-user-select');
+            if ($select.find(`option[value="${accountNumber}"]`).length > 0) {
+                $select.val(accountNumber);
+            } else {
+                // Optionally, clear the select or add a temporary option
+                // $select.val('');
+            }
             debouncedLoadUserData(accountNumber);
+        } else {
+            alert('Please enter an account number.');
         }
     });
 

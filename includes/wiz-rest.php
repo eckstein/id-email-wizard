@@ -164,7 +164,8 @@ function get_course_recommendations($course, $toDivision, $needsAgeUp)
                         'abbreviation' => $recCourse->abbreviation,
                         'minAge' => $recCourse->minAge,
                         'maxAge' => $recCourse->maxAge,
-                        'courseUrl' => $recCourse->courseUrl ?? ''
+                        'courseUrl' => $recCourse->courseUrl ?? '',
+                        'courseDesc' => $recCourse->courseDesc ?? null // Add courseDesc
                     ];
                 }
             }
@@ -191,7 +192,8 @@ function get_course_recommendations($course, $toDivision, $needsAgeUp)
                         'abbreviation' => $recCourse->abbreviation,
                         'minAge' => $recCourse->minAge,
                         'maxAge' => $recCourse->maxAge,
-                        'courseUrl' => $recCourse->courseUrl ?? ''
+                        'courseUrl' => $recCourse->courseUrl ?? '',
+                        'courseDesc' => $recCourse->courseDesc ?? null // Add courseDesc
                     ];
                 }
             }
@@ -218,7 +220,8 @@ function get_course_recommendations($course, $toDivision, $needsAgeUp)
                     'abbreviation' => $recCourse->abbreviation,
                     'minAge' => $recCourse->minAge,
                     'maxAge' => $recCourse->maxAge,
-                    'courseUrl' => $recCourse->courseUrl ?? ''
+                    'courseUrl' => $recCourse->courseUrl ?? '',
+                    'courseDesc' => $recCourse->courseDesc ?? null // Add courseDesc
                 ];
             }
         }
@@ -240,14 +243,15 @@ function get_last_location($student_data) {
     // Get the student's most recent purchase with a location
     $purchase = $wpdb->get_row(
         $wpdb->prepare(
-            "SELECT shoppingCartItems_locationName 
+            "SELECT shoppingCartItems_locationName, purchaseDate 
             FROM {$wpdb->prefix}idemailwiz_purchases 
             WHERE shoppingCartItems_studentAccountNumber = %s 
             AND shoppingCartItems_locationName IS NOT NULL 
             AND shoppingCartItems_locationName != ''
+            AND shoppingCartItems_divisionId IN (22, 25) -- Only consider iDTA (22) and iDTC (25) divisions
             ORDER BY purchaseDate DESC 
             LIMIT 1",
-            $student_data['studentAccountNumber']
+            $student_data['studentAccountNumber'] ?? 'N/A' // Use student account number directly
         )
     );
 
@@ -258,26 +262,21 @@ function get_last_location($student_data) {
     // Get location details from locations table
     $location = $wpdb->get_row(
         $wpdb->prepare(
-            "SELECT id, name, locationStatus, address, locationUrl 
+            "SELECT id, name, locationStatus, address, locationUrl, locationDesc, overnightOffered 
             FROM {$wpdb->prefix}idemailwiz_locations 
             WHERE name = %s 
             AND locationStatus IN ('Open', 'Registration opens soon')",
-            $purchase->shoppingCartItems_locationName
+            $purchase->shoppingCartItems_locationName // Use location name from purchase directly
         )
     );
 
     if (!$location) {
         return null;
     }
-    
-    // Return null if this is Online Campus (ID 324)
-    if ($location->id == 324) {
-        return null;
-    }
 
     // Unserialize address if it exists
     $address = $location->address ? unserialize($location->address) : null;
-    
+
     // Use locationUrl from database if available, otherwise fallback to generated URL
     $url = !empty($location->locationUrl) ? $location->locationUrl : null;
 
@@ -286,7 +285,9 @@ function get_last_location($student_data) {
         'name' => $location->name,
         'status' => $location->locationStatus,
         'url' => $url,
-        'address' => $address
+        'address' => $address,
+        'locationDesc' => $location->locationDesc ?? null,
+        'overnightOffered' => $location->overnightOffered ?? 'No'
     ];
 }
 
@@ -332,13 +333,18 @@ function get_nearby_locations($student_data, $radius_miles = 30) {
     
     // Check if we have a last location with coordinates
     $last_location = get_last_location($student_data);
+
     if ($last_location && isset($last_location['address'])) {
         if (!empty($last_location['address']['latitude']) && !empty($last_location['address']['longitude'])) {
             $student_location = [
                 'latitude' => $last_location['address']['latitude'],
                 'longitude' => $last_location['address']['longitude']
             ];
+        } else {
+            // Address found but no coordinates, proceed to check student_data
         }
+    } else {
+        // No last location found, proceed to check student_data
     }
     
     // If no location found from last purchase, check if coordinates provided in student data
@@ -348,6 +354,8 @@ function get_nearby_locations($student_data, $radius_miles = 30) {
                 'latitude' => $student_data['latitude'],
                 'longitude' => $student_data['longitude']
             ];
+        } else {
+            // No coordinates found in student_data either
         }
     }
     
@@ -356,17 +364,20 @@ function get_nearby_locations($student_data, $radius_miles = 30) {
         return [];
     }
     
-    // Get all active locations
-    $locations = $wpdb->get_results(
-        "SELECT id, name, locationStatus, address, addressArea, locationUrl
-         FROM {$wpdb->prefix}idemailwiz_locations 
-         WHERE locationStatus IN ('Open', 'Registration opens soon')
-         AND addressArea IS NOT NULL 
-         AND addressArea != ''
-         AND divisions IS NOT NULL
-         AND id != 324", // Exclude Online Campus with ID 324
-        ARRAY_A
+    // Get all active locations that host iDTC or iDTA, including their courses list and session weeks
+    $locations_query = $wpdb->prepare(
+        "SELECT id, name, locationStatus, address, addressArea, locationUrl, courses, sessionWeeks, locationDesc, overnightOffered
+        FROM {$wpdb->prefix}idemailwiz_locations
+        WHERE locationStatus IN ('Open', 'Registration opens soon')
+        AND addressArea IS NOT NULL AND addressArea != ''
+        AND divisions IS NOT NULL
+        AND id != 324 -- Exclude Online Campus
+        AND (divisions LIKE %s OR divisions LIKE %s)", // Check for iDTA or iDTC in divisions
+        '%i:22;%', // Check for integer 22 (iDTA) in serialized array
+        '%i:25;%'  // Check for integer 25 (iDTC) in serialized array
     );
+    
+    $locations = $wpdb->get_results($locations_query, ARRAY_A);
     
     if (empty($locations)) {
         return [];
@@ -393,8 +404,17 @@ function get_nearby_locations($student_data, $radius_miles = 30) {
         
         // Add location if within radius
         if ($distance <= $radius_miles) {
-            // Use locationUrl from database if available, otherwise set to null
             $url = !empty($location['locationUrl']) ? $location['locationUrl'] : null;
+            
+            // Safer unserialize for courses
+            $safe_unserialize = function($data, $default = []) {
+                if (empty($data)) return $default;
+                if (!is_string($data) || !preg_match('/^[aOs]:[0-9]+:/', $data)) return $data;
+                $result = @unserialize($data);
+                return ($result !== false) ? $result : $default;
+            };
+            $location_courses = $safe_unserialize($location['courses']);
+            $location_session_weeks = $safe_unserialize($location['sessionWeeks'], null); // Unserialize session weeks
             
             $nearby_locations[] = [
                 'id' => $location['id'],
@@ -403,14 +423,13 @@ function get_nearby_locations($student_data, $radius_miles = 30) {
                 'url' => $url,
                 'address' => $address,
                 'distance' => round($distance, 1), // Round to 1 decimal place
+                'courses' => $location_courses, // Include the unserialized courses list
+                'sessionWeeks' => $location_session_weeks, // Include the unserialized session weeks
+                'locationDesc' => $location['locationDesc'] ?? null,
+                'overnightOffered' => $location['overnightOffered'] ?? 'No'
             ];
         }
     }
-    
-    // Sort by distance
-    usort($nearby_locations, function($a, $b) {
-        return $a['distance'] <=> $b['distance'];
-    });
     
     return [
         'total_count' => count($nearby_locations),
@@ -517,7 +536,7 @@ function process_preset_value($preset_name, $student_data) {
         case 'nearby_locations_with_course_recs':
             global $wpdb;
             
-            // Get nearby locations
+            // Get nearby locations (which now include course lists)
             $nearby_data = get_nearby_locations($student_data);
             
             // If no nearby locations, return null
@@ -540,131 +559,34 @@ function process_preset_value($preset_name, $student_data) {
             }
             
             // Get course data for all locations, including sessionWeeks
-            $location_courses = $wpdb->get_results(
-                $wpdb->prepare(
-                    "SELECT id, courses, sessionWeeks, locationUrl
-                     FROM {$wpdb->prefix}idemailwiz_locations 
-                     WHERE id IN (" . implode(',', array_fill(0, count($location_ids), '%d')) . ")
-                     AND id != 324", // Extra safeguard to exclude Online Campus
-                    $location_ids
-                ),
-                ARRAY_A
+            $location_courses_query = $wpdb->prepare( // Renamed for clarity
+                "SELECT id, courses, sessionWeeks, locationUrl, overnightOffered
+                 FROM {$wpdb->prefix}idemailwiz_locations 
+                 WHERE id IN (" . implode(',', array_fill(0, count($location_ids), '%d')) . ")
+                 AND id != 324", // Extra safeguard to exclude Online Campus
+                $location_ids
             );
+            $location_courses_results = $wpdb->get_results($location_courses_query, ARRAY_A); // Renamed for clarity
             
             // Create a map of location ID to courses and sessionWeeks
             $location_courses_map = [];
             $location_weeks_map = [];
-            foreach ($location_courses as $loc) {
-                $courses = maybe_unserialize($loc['courses']);
-                if (!empty($courses) && is_array($courses)) {
-                    $location_courses_map[$loc['id']] = $courses;
-                }
-                
-                $session_weeks = $loc['sessionWeeks'] ? maybe_unserialize($loc['sessionWeeks']) : null;
-                if ($session_weeks) {
-                    $location_weeks_map[$loc['id']] = $session_weeks;
-                }
-            }
             
             // Get student age
             $student_age = get_student_age($student_data);
             
-            // Get comprehensive course recommendations based on age
-            $all_recommendations = [];
-            $last_purchase = null;
-            $metadata = [
-                'student_age' => $student_age
-            ];
+            // Get course recommendations based on the student's most recent *in-person* purchase
+            $ipc_recommendations = get_division_course_recommendations($student_data, 'ipc');
             
-            // Get recommendations based on age appropriate divisions
-            if ($student_age >= 13) {
-                // For students 13+, get both IDTA and IDTC recommendations
-                
-                // First try iDTA recommendations
-                $idta_recs = get_division_course_recommendations($student_data, 'idta');
-                if (!empty($idta_recs['recs'])) {
-                    $all_recommendations = $idta_recs['recs'];
-                    $last_purchase = $idta_recs['last_purchase'];
-                    $metadata['idta_count'] = count($idta_recs['recs']);
-                }
-                
-                // Then get iDTC recommendations
-                $idtc_recs = get_division_course_recommendations($student_data, 'idtc');
-                if (!empty($idtc_recs['recs'])) {
-                    // Add unique recommendations from iDTC
-                    foreach ($idtc_recs['recs'] as $rec) {
-                        $exists = false;
-                        foreach ($all_recommendations as $existing) {
-                            if ($existing['id'] == $rec['id']) {
-                                $exists = true;
-                                break;
-                            }
-                        }
-                        if (!$exists) {
-                            $all_recommendations[] = $rec;
-                        }
-                    }
-                    
-                    // Use the iDTC purchase if no iDTA purchase
-                    if (!$last_purchase) {
-                        $last_purchase = $idtc_recs['last_purchase'];
-                    }
-                    
-                    $metadata['idtc_count'] = count($idtc_recs['recs']);
-                }
-                
-                // Check if student has a previous purchase and look for additional mappings
-                if (!empty($idta_recs['last_purchase']) && !empty($idta_recs['last_purchase']['course_id'])) {
-                    $previous_course_id = $idta_recs['last_purchase']['course_id'];
-                    
-                    $previous_course = get_course_details_by_id($previous_course_id);
-                    if (!is_wp_error($previous_course) && !empty($previous_course->course_recs)) {
-                        $mappings = unserialize($previous_course->course_recs);
-                        
-                        // Check all relevant mappings for a 13+ student who had an Academy course
-                        $additional_mapping_keys = ['idtc_ageup', 'idtc', 'ipc'];
-                        
-                        foreach ($additional_mapping_keys as $key) {
-                            if (isset($mappings[$key]) && is_array($mappings[$key]) && !empty($mappings[$key])) {
-                                // Add these courses to our recommendations if they don't already exist
-                                foreach ($mappings[$key] as $course_id) {
-                                    // Check if this course is already in recommendations
-                                    $already_exists = false;
-                                    foreach ($all_recommendations as $existing) {
-                                        if ($existing['id'] == $course_id) {
-                                            $already_exists = true;
-                                            break;
-                                        }
-                                    }
-                                    
-                                    if (!$already_exists) {
-                                        $additional_course = get_course_details_by_id($course_id);
-                                        if (!is_wp_error($additional_course)) {
-                                            $all_recommendations[] = [
-                                                'id' => $additional_course->id,
-                                                'title' => $additional_course->title,
-                                                'abbreviation' => $additional_course->abbreviation,
-                                                'minAge' => $additional_course->minAge,
-                                                'maxAge' => $additional_course->maxAge,
-                                                'age_range' => $additional_course->minAge . '-' . $additional_course->maxAge,
-                                                'url' => $additional_course->courseUrl ?? ''
-                                            ];
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                // For students under 13, just get iDTC recommendations
-                $idtc_recs = get_division_course_recommendations($student_data, 'idtc');
-                if (!empty($idtc_recs['recs'])) {
-                    $all_recommendations = $idtc_recs['recs'];
-                    $last_purchase = $idtc_recs['last_purchase'];
-                    $metadata['idtc_count'] = count($idtc_recs['recs']);
-                }
-            }
+            // Use the IPC recommendations and last purchase
+            $all_recommendations = $ipc_recommendations['recs'] ?? [];
+            $last_purchase = $ipc_recommendations['last_purchase'] ?? null;
+
+            $metadata = [
+                'student_age' => $student_age,
+                'ipc_count' => count($all_recommendations),
+                // Add other counts if needed, potentially from $ipc_recommendations metadata if available
+            ];
             
             // Check if we have any recommendations
             if (empty($all_recommendations)) {
@@ -717,29 +639,26 @@ function process_preset_value($preset_name, $student_data) {
                 $course_recs_with_locations[$course_id] = $course_with_locations;
             }
             
+            $matches_found = 0; // Counter for successful matches
+            
             // Now populate each course with its available locations
             foreach ($nearby_data['locations'] as $location) {
                 $loc_id = $location['id'];
+                $location_course_list = $location['courses'] ?? []; // Get course list directly from nearby_data
                 
                 // Skip locations without course data
-                if (!isset($location_courses_map[$loc_id]) || empty($location_courses_map[$loc_id])) {
+                if (empty($location_course_list)) {
                     continue;
                 }
                 
                 // For each recommended course, check if it's available at this location
                 foreach ($course_recs_with_locations as $course_id => &$course_rec) {
-                    if (in_array($course_id, $location_courses_map[$loc_id])) {
+                    if (in_array($course_id, $location_course_list)) { // Check against the direct list
                         // This course is available at this location
                         $course_type = $course_rec['course_type']; // 'academies' or 'camps'
                         
                         // Get the location URL from the database if available
-                        $locationUrl = null;
-                        foreach ($location_courses as $loc_data) {
-                            if ($loc_data['id'] == $loc_id && !empty($loc_data['locationUrl'])) {
-                                $locationUrl = $loc_data['locationUrl'];
-                                break;
-                            }
-                        }
+                        $locationUrl = $location['url'];
                         
                         // Create a simplified location object with just what we need
                         $location_data = [
@@ -747,16 +666,21 @@ function process_preset_value($preset_name, $student_data) {
                             'name' => $location['name'],
                             'status' => $location['status'],
                             'distance' => $location['distance'],
-                            'url' => !empty($locationUrl) ? $locationUrl : $location['url'],
+                            'url' => $locationUrl,
                             'address' => $location['address'],
+                            'locationDesc' => $location['locationDesc'] ?? null,
+                            'overnightOffered' => $location['overnightOffered'] ?? 'No'
                         ];
                         
-                        // Add session weeks if available
-                        if (isset($location_weeks_map[$loc_id]) && isset($location_weeks_map[$loc_id][$course_type])) {
-                            $location_data['sessionWeeks'] = $location_weeks_map[$loc_id][$course_type];
+                        // Retrieve session weeks directly from the $location object
+                        $sessionWeeksData = $location['sessionWeeks'] ?? null;
+                        if (isset($sessionWeeksData[$course_type])) {
+                            $location_data['sessionWeeks'] = $sessionWeeksData[$course_type];
                         } else {
-                            $location_data['sessionWeeks'] = [];
+                            $location_data['sessionWeeks'] = []; // Default to empty if not found for this course type
                         }
+                        
+                        $matches_found++;
                         
                         // Add this location to the course's locations array
                         $course_rec['locations'][] = $location_data;
@@ -782,9 +706,9 @@ function process_preset_value($preset_name, $student_data) {
                 'metadata' => [
                     'total_courses' => count($course_recs_with_locations),
                     'student_coordinates' => $nearby_data['student_coordinates'],
-                    'student_age' => $student_age,
-                    'from_fiscal_year' => $idta_recs['from_fiscal_year'] ?? ($idtc_recs['from_fiscal_year'] ?? null),
-                    'to_fiscal_year' => $idta_recs['to_fiscal_year'] ?? ($idtc_recs['to_fiscal_year'] ?? null),
+                    'student_age' => $ipc_recommendations['student_age'] ?? $student_age,
+                    'from_fiscal_year' => $ipc_recommendations['from_fiscal_year'] ?? null,
+                    'to_fiscal_year' => $ipc_recommendations['to_fiscal_year'] ?? null,
                     'recommendation_counts' => $metadata
                 ],
                 'last_purchase' => $last_purchase,
@@ -845,7 +769,12 @@ function get_course_recommendations_between_fiscal_years($student_data, $from_fi
     
     // Define division IDs based on division parameter
     $divisionIds = [];
-    if ($division === 'idtc') {
+    // --- START IPC FILTER ---
+    if ($division === 'ipc') {
+        $divisionIds = [22, 25]; // Specifically look for iDTA (22) and iDTC (25)
+    }
+    // --- END IPC FILTER ---    
+    else if ($division === 'idtc') {
         $divisionIds = [25]; // iD Tech Camps
     } else if ($division === 'idta') {
         $divisionIds = [22]; // iD Teen Academy
@@ -855,16 +784,14 @@ function get_course_recommendations_between_fiscal_years($student_data, $from_fi
         $divisionIds = [47]; // Online Teen Academy
     } else if ($division === 'opl') {
         $divisionIds = [41]; // Online Private Lessons
-    } else if ($division === 'ipc') {
-        $divisionIds = [22, 25]; // Both iDTA and iDTC for in-person courses
     } else {
-        // If no division specified, include all divisions
+        // If no division specified, or an unknown one, include all relevant divisions
         $divisionIds = [22, 25, 42, 47, 41];
     }
     
     $divisionString = implode(', ', $divisionIds);
     
-    // Get the student's most recent purchase within the FROM fiscal year
+    // Get the student's most recent purchase within the FROM fiscal year for the specified division(s)
     $latestPurchase = $wpdb->get_row(
         $wpdb->prepare(
             "SELECT p.*, uf.studentDOB 
@@ -949,6 +876,7 @@ function get_course_recommendations_between_fiscal_years($student_data, $from_fi
             'abbreviation' => $course->abbreviation,
             'age_range' => $course->minAge . '-' . $course->maxAge,
             'courseUrl' => $course->courseUrl ?? '',
+            'courseDesc' => $course->courseDesc ?? null, // Add courseDesc
             'division' => $latestPurchase['shoppingCartItems_divisionName'],
             'division_id' => $latestPurchase['shoppingCartItems_divisionId'],
             'location' => $latestPurchase['shoppingCartItems_locationName'] ?? null
@@ -1836,6 +1764,30 @@ function idwiz_get_user_data_for_preview() {
             }
         }
 
+        // Calculate and add age and recent birthday flags
+        if (isset($feed_data['studentDOB'])) {
+            $student_dob = new DateTime($feed_data['studentDOB']);
+            $now = new DateTime();
+            $six_months_ago = (new DateTime())->modify('-6 months');
+            
+            // Calculate age
+            $feed_data['age'] = $student_dob->diff($now)->y;
+            
+            // Calculate 10th and 13th birthdays
+            $tenth_birthday = (clone $student_dob)->modify('+10 years');
+            $thirteenth_birthday = (clone $student_dob)->modify('+13 years');
+            
+            // Check if turned 10 in last 6 months
+            $feed_data['turned_10'] = ($tenth_birthday >= $six_months_ago && $tenth_birthday <= $now);
+            
+            // Check if turned 13 in last 6 months
+            $feed_data['turned_13'] = ($thirteenth_birthday >= $six_months_ago && $thirteenth_birthday <= $now);
+        } else {
+            $feed_data['age'] = null;
+            $feed_data['turned_10'] = false;
+            $feed_data['turned_13'] = false;
+        }
+
         // Process presets
         try {
             $presets = [];
@@ -2260,7 +2212,7 @@ function get_location_with_courses($user_data) {
     // Get location details from the database
     try {
         $query = $wpdb->prepare(
-            "SELECT id, name, abbreviation, locationStatus, address, locationUrl, courses, sessionWeeks, divisions 
+            "SELECT id, name, abbreviation, locationStatus, address, locationUrl, courses, sessionWeeks, divisions, locationDesc, overnightOffered 
              FROM {$wpdb->prefix}idemailwiz_locations 
              WHERE id = %d",
             $location_id
@@ -2325,7 +2277,7 @@ function get_location_with_courses($user_data) {
                 } else {
                     $placeholders = implode(',', array_fill(0, count($courses_ids), '%d'));
                     $courses_query = $wpdb->prepare(
-                        "SELECT id, title, abbreviation, division_id, minAge, maxAge, fiscal_years, courseUrl, wizStatus
+                        "SELECT id, title, abbreviation, division_id, minAge, maxAge, fiscal_years, courseUrl, wizStatus, courseDesc
                          FROM {$wpdb->prefix}idemailwiz_courses 
                          WHERE id IN ($placeholders)
                          AND wizStatus = 'Active'",  // Only active courses
@@ -2355,6 +2307,8 @@ function get_location_with_courses($user_data) {
             'status' => $location['locationStatus'],
             'url' => !empty($location['locationUrl']) ? $location['locationUrl'] : null,
             'address' => $address,
+            'locationDesc' => $location['locationDesc'] ?? null,
+            'overnightOffered' => $location['overnightOffered'] ?? 'No',
             'divisions' => $divisions,
             'session_weeks' => $session_weeks,
             'courses' => $courses_data
@@ -2477,4 +2431,5 @@ function idwiz_get_test_accounts_callback() {
     
     wp_send_json_success($options);
 }
+
 

@@ -745,6 +745,11 @@ function wiz_encrypt_email($userData)
 		$salt = $userData['signupDate'];
 
 		// Hash the email with the signup date salt and the pepper
+		// WIZ_PEPPER should be defined globally, e.g., in wp-config.php
+        if (!defined('WIZ_PEPPER')) {
+            wiz_log('Error: WIZ_PEPPER constant is not defined.');
+            return false;
+        }
 		// WIZ_PEPPER is defined globally
 		$pepperedEmail = $userData['email'] . $salt . WIZ_PEPPER;
 		$userData['wizId'] = hash('sha256', $pepperedEmail);

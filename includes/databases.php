@@ -457,7 +457,9 @@ function idemailwiz_create_databases()
 		locationStatus TEXT,
 		address TEXT,
 		locationUrl VARCHAR(255),
+		overnightOffered VARCHAR(50),
 		sessionWeeks TEXT,
+		locationDesc TEXT,
 		PRIMARY KEY (id)
 	) ENGINE=InnoDB $charset_collate;";
 
@@ -481,6 +483,7 @@ function idemailwiz_create_databases()
 		course_recs TEXT,
 		fiscal_years TEXT,
 		courseUrl VARCHAR(255),
+		courseDesc TEXT,
 		PRIMARY KEY (id)
 	) ENGINE=InnoDB $charset_collate;";
 
