@@ -823,8 +823,6 @@ function execute_idwiz_query($sql, $args = [], $batch_size = 20000)
 		$sql .= " OFFSET $offset";
 	}
 
-	//error_log("Final SQL query: " . $sql);
-
 	do {
 		$current_batch = $wpdb->get_results($sql, ARRAY_A);
 

@@ -59,9 +59,6 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
 			
 			// Log any fields that were filtered out
 			$filtered_fields = array_diff_key($item, $filtered_item);
-			if (!empty($filtered_fields)) {
-				//wiz_log("Notice: Filtered out non-existent fields for table {$table_name}: " . implode(', ', array_keys($filtered_fields)));
-			}
 
 			if (($operation === "update" || $operation === "delete") && !isset($filtered_item[$id_field])) {
 				$result['errors'][] = "Failed to perform {$operation}: missing ID field '{$id_field}'";
@@ -747,8 +744,10 @@ function wiz_encrypt_email($userData)
 		// Hash the email with the signup date salt and the pepper
 		// WIZ_PEPPER should be defined globally, e.g., in wp-config.php
         if (!defined('WIZ_PEPPER')) {
-            wiz_log('Error: WIZ_PEPPER constant is not defined.');
-            return false;
+            wiz_log('Error: WIZ_PEPPER constant is not defined. This will prevent user email hashing.');
+            // Potentially return false or throw an exception if this is critical for user sync
+            // For now, we'll allow the sync to continue but wizId will not be generated for users processed in this state.
+            return false; // Or handle more gracefully depending on requirements
         }
 		// WIZ_PEPPER is defined globally
 		$pepperedEmail = $userData['email'] . $salt . WIZ_PEPPER;
@@ -1108,7 +1107,7 @@ function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDa
 	];
 
 	// Define the start and end date time for the API call
-	$startDateTime = $startDate ?? date('Y-m-d', strtotime('-3 days'));
+	$startDateTime = $startDate ?? date('Y-m-d', strtotime('-30 days'));
 	$endDateTime = $endDate ?? date('Y-m-d', strtotime('+1 day'));
 
 	// Handle the campaign IDs if provided
@@ -1192,15 +1191,73 @@ function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDa
 		
 		if (!$headers) {
 			wiz_log("Error: Could not parse CSV headers from API response");
+            // Remove logging
 			return [];
 		}
 
-		// Prepare the headers
-		$processedHeaders = array_map(function ($header) {
-			$headerWithoutUnderscores = str_replace('_', '', $header);
-			return strtolower(str_replace('.', '_', $headerWithoutUnderscores));
-		}, $headers);
+        // Remove logging
 
+		// NEW Processing with explicit mapping to match DB Schema
+        $processedHeaders = array_map(function ($header) {
+            // Direct mapping for known mismatches
+            $map = [
+                '_id' => 'id', // Special case from Iterable export?
+                'createdAt' => 'createdAt',
+                'purchaseDate' => 'purchaseDate',
+                'campaignId' => 'campaignId',
+                'templateId' => 'templateId',
+                'shoppingCartItems' => 'shoppingCartItems', // Ensure the main field is mapped
+                'shoppingCartItems.price' => 'shoppingCartItems_price',
+                'shoppingCartItems.quantity' => 'shoppingCartItems_quantity',
+                'shoppingCartItems.name' => 'shoppingCartItems_name',
+                'shoppingCartItems.discountAmount' => 'shoppingCartItems_discountAmount',
+                'shoppingCartItems.discountCode' => 'shoppingCartItems_discountCode',
+                'shoppingCartItems.divisionId' => 'shoppingCartItems_divisionId',
+                'shoppingCartItems.divisionName' => 'shoppingCartItems_divisionName',
+                'shoppingCartItems.isSubscription' => 'shoppingCartItems_isSubscription',
+                'shoppingCartItems.locationName' => 'shoppingCartItems_locationName',
+                'shoppingCartItems.productCategory' => 'shoppingCartItems_productCategory',
+                'shoppingCartItems.productSubcategory' => 'shoppingCartItems_productSubcategory',
+                'shoppingCartItems.studentAccountNumber' => 'shoppingCartItems_studentAccountNumber',
+                'shoppingCartItems.studentDob' => 'shoppingCartItems_studentDob',
+                'shoppingCartItems.studentGender' => 'shoppingCartItems_studentGender',
+                'shoppingCartItems.utmCampaign' => 'shoppingCartItems_utmCampaign',
+                'shoppingCartItems.utmContents' => 'shoppingCartItems_utmContents',
+                'shoppingCartItems.utmMedium' => 'shoppingCartItems_utmMedium',
+                'shoppingCartItems.utmSource' => 'shoppingCartItems_utmSource',
+                'shoppingCartItems.utmTerm' => 'shoppingCartItems_utmTerm',
+                'shoppingCartItems.categories' => 'shoppingCartItems_categories',
+                'shoppingCartItems.imageUrl' => 'shoppingCartItems_imageUrl',
+                 'shoppingCartItems.url' => 'shoppingCartItems_url',
+                 'shoppingCartItems.discounts' => 'shoppingCartItems_discounts',
+                // Add other direct mappings as needed based on CSV headers and DB schema
+                'accountNumber' => 'accountNumber',
+                'orderId' => 'orderId',
+                'userId' => 'userId',
+                'total' => 'total'
+            ];
+        
+            if (isset($map[$header])) {
+                return $map[$header];
+            }
+        
+            // Fallback for headers not explicitly mapped: replace '.' with '_'
+            $processed_key = str_replace('.', '_', $header);
+            
+            // Lowercase the character immediately after the underscore, preserving other casing
+            $processed_key = preg_replace_callback('/(_)([A-Z])/', function($matches) {
+                return $matches[1] . strtolower($matches[2]);
+            }, $processed_key);
+
+            // Ensure the final key is lowercase to match the DB schema - REMOVED this line as it was incorrect.
+            // return strtolower($processed_key); 
+            return $processed_key; // Return the key processed by the rule above
+        
+        }, $headers);
+
+        // Remove logging
+
+        // Remove logging flag
 		// Iterate over each line of the file
 		while (($values = fgetcsv($handle)) !== FALSE) {
 			$purchaseData = []; // Initialize as empty array
@@ -1224,6 +1281,7 @@ function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDa
 			}
 
 			if (!empty($purchaseData)) {
+                // Remove logging
 				$allPurchases[] = $purchaseData;
 			}
 		}
@@ -1503,31 +1561,38 @@ function idemailwiz_sync_purchases($campaignIds = null, $startDate = null, $endD
 		$records_to_insert = [];
 		$records_to_update = [];
 		
-		// Get all existing purchase IDs in one query for efficiency
-		$purchase_ids = array_column($purchases, 'id');
-		
+		// --- Get purchase IDs from the fetched data (for cleaning AND checking existence) ---
+		$fetched_purchase_ids = array_column($purchases, 'id');
 		// Clean purchase IDs from any 'purchase-' prefix
-		foreach ($purchase_ids as &$id) {
+		foreach ($fetched_purchase_ids as &$id) {
 			if (is_string($id) && strpos($id, 'purchase-') === 0) {
 				$id = str_replace('purchase-', '', $id);
 			}
 		}
 		unset($id); // Break the reference to the last element
-		
-		// Fix for wpdb::prepare error - handle empty arrays and properly prepare the query
-		if (empty($purchase_ids)) {
-			$existing_purchase_ids = [];
-		} else {
-			$placeholders = implode(',', array_fill(0, count($purchase_ids), '%s'));
-			$existing_purchases_query = call_user_func_array(
-				array($wpdb, 'prepare'),
-				array_merge(array("SELECT id FROM $purchases_table WHERE id IN ($placeholders)"), $purchase_ids)
-			);
-			$existing_purchase_ids = $wpdb->get_col($existing_purchases_query);
-		}
-		
-		// Create a lookup array for faster checking
-		$existing_purchase_lookup = array_flip($existing_purchase_ids);
+        // --- End cleaning --- 
+        
+        // Fetch ONLY existing purchase IDs that are ALSO in the fetched list
+        $existing_purchase_ids = [];
+        if (!empty($fetched_purchase_ids)) {
+            // Ensure IDs are appropriate for SQL (e.g., strings)
+            $safe_ids = array_map('strval', $fetched_purchase_ids);
+            $placeholders = implode(',', array_fill(0, count($safe_ids), '%s'));
+            $existing_purchases_query = $wpdb->prepare(
+                "SELECT id FROM $purchases_table WHERE id IN ($placeholders)",
+                $safe_ids // Pass the safe array directly
+            );
+            $existing_purchase_ids = $wpdb->get_col($existing_purchases_query);
+            if ($wpdb->last_error) {
+                wiz_log("Sync Purchases: Error fetching existing purchase IDs for comparison: " . $wpdb->last_error);
+                // Decide how to handle - maybe return error? For now, log and continue.
+                $existing_purchase_ids = []; // Prevent further errors
+            }
+        }
+        
+        // Create a lookup array from the INTERSECTION of fetched and existing IDs
+        $existing_purchase_lookup = array_flip($existing_purchase_ids);
+        wiz_log("Sync Purchases: Found " . count($existing_purchase_lookup) . " matching existing IDs locally for this fetch.");
 
 		// --- Prepare campaign start time lookup ---
 		wiz_log("Fetching campaign start times for purchase attribution...");
@@ -1550,13 +1615,17 @@ function idemailwiz_sync_purchases($campaignIds = null, $startDate = null, $endD
 		}
 		// --- End campaign start time lookup ---
 
+        if (defined('WP_DEBUG_LOG') && WP_DEBUG_LOG === true) {
+            error_log('Sync Purchases: Lookup array of existing IDs: ' . print_r(array_keys($existing_purchase_lookup), true)); // Log the keys (IDs) found in DB
+        }
+
 		foreach ($purchases as &$purchase) {
 			if (!isset($purchase['id'])) {
 				wiz_log('No ID found in the fetched purchase record!');
 				continue;
 			}
 
-			// Remove 'purchase-' prefix from ID if it exists
+			// Remove 'purchase-' prefix from ID if it exists (Do this BEFORE the lookup check)
 			if (is_string($purchase['id']) && strpos($purchase['id'], 'purchase-') === 0) {
 				$purchase['id'] = str_replace('purchase-', '', $purchase['id']);
 			}
@@ -1572,7 +1641,14 @@ function idemailwiz_sync_purchases($campaignIds = null, $startDate = null, $endD
 			}
 
 			// Check if purchase already exists using the lookup array
-			if (isset($existing_purchase_lookup[$purchase['id']])) {
+            $current_purchase_id = $purchase['id']; // Use the cleaned ID
+            $found_in_lookup = isset($existing_purchase_lookup[$current_purchase_id]);
+
+            if (defined('WP_DEBUG_LOG') && WP_DEBUG_LOG === true) {
+                error_log("Sync Purchases: Checking ID [{$current_purchase_id}]. Found in local DB lookup: " . ($found_in_lookup ? 'Yes' : 'No'));
+            }
+
+			if ($found_in_lookup) {
 				$records_to_update[] = $purchase;
 			} else {
 				$records_to_insert[] = $purchase;

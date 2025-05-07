@@ -809,8 +809,6 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
 	//print_r($blastMetrics);
 	$triggeredMetrics = !empty($triggeredCampaignIds) ? get_triggered_campaign_metrics($triggeredCampaignIds, $startDate, $endDate) : [];
 
-	
-
 	$purchaseArgs = [
 		'startAt_start' => $startDate,
 		'startAt_end' => $endDate,
@@ -825,7 +823,6 @@ function get_idwiz_metric_rates($campaignIds = [], $startDate = null, $endDate =
 
 	$purchases = get_idwiz_purchases($purchaseArgs);
 	
-
 	// Initialize variables for summable metrics
 	$totalSends = $totalOpens = $totalClicks = $totalUnsubscribes = $totalDeliveries = $totalPurchases = $totalComplaints = $totalRevenue = $gaRevenue = 0;
 
