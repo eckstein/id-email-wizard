@@ -618,6 +618,9 @@ function process_preset_value($preset_name, $student_data) {
             // Get course recommendations based on the student's most recent *in-person* purchase
             $ipc_recommendations = get_division_course_recommendations($student_data, 'ipc');
             
+            // Check if age-up is needed
+            $needs_age_up = $ipc_recommendations['age_up'] ?? false;
+            
             // Use the IPC recommendations and last purchase
             $all_recommendations = $ipc_recommendations['recs'] ?? [];
             $last_purchase = $ipc_recommendations['last_purchase'] ?? null;
@@ -625,12 +628,44 @@ function process_preset_value($preset_name, $student_data) {
             $metadata = [
                 'student_age' => $student_age,
                 'ipc_count' => count($all_recommendations),
-                // Add other counts if needed, potentially from $ipc_recommendations metadata if available
+                'age_up' => $needs_age_up // Include age_up flag in metadata
             ];
             
             // Check if we have any recommendations
             if (empty($all_recommendations)) {
                 return null;
+            }
+            
+            // Get the last course details to check age range
+            $last_course_min_age = null;
+            $last_course_max_age = null;
+            
+            if ($last_purchase && isset($last_purchase['age_range'])) {
+                $age_range_parts = explode('-', $last_purchase['age_range']);
+                if (count($age_range_parts) == 2) {
+                    $last_course_min_age = intval($age_range_parts[0]);
+                    $last_course_max_age = intval($age_range_parts[1]);
+                }
+            }
+            
+            // If student is 10+ but last course was for younger students, we should use age-up recommendations
+            if ($student_age >= 10 && $last_course_max_age && $last_course_max_age <= 9) {
+                $needs_age_up = true;
+                $metadata['age_up'] = true;
+                
+                // Let's try to get idtc_ageup recommendations specifically
+                $idtc_ageup_recs = get_division_course_recommendations($student_data, 'idtc');
+                if (!empty($idtc_ageup_recs['recs'])) {
+                    // Filter to include only courses with appropriate age ranges
+                    $filtered_recs = array_filter($idtc_ageup_recs['recs'], function($rec) use ($student_age) {
+                        return $rec['minAge'] <= $student_age && $rec['maxAge'] >= $student_age;
+                    });
+                    
+                    if (!empty($filtered_recs)) {
+                        $all_recommendations = array_values($filtered_recs);
+                        $metadata['ipc_count'] = count($all_recommendations);
+                    }
+                }
             }
             
             // Get all recommended course IDs to fetch their details
@@ -749,6 +784,7 @@ function process_preset_value($preset_name, $student_data) {
                     'student_age' => $ipc_recommendations['student_age'] ?? $student_age,
                     'from_fiscal_year' => $ipc_recommendations['from_fiscal_year'] ?? null,
                     'to_fiscal_year' => $ipc_recommendations['to_fiscal_year'] ?? null,
+                    'age_up' => $needs_age_up, // Add age_up flag to top-level metadata
                     'recommendation_counts' => $metadata
                 ],
                 'last_purchase' => $last_purchase,
@@ -1614,7 +1650,7 @@ function idwiz_endpoint_handler($request) {
         if (isset($feed_data['studentDOB'])) {
             $student_dob = new DateTime($feed_data['studentDOB']);
             $now = new DateTime();
-            $six_months_ago = (new DateTime())->modify('-6 months');
+            $six_months_ago = (new DateTime())->modify('-6 months')->setTime(0, 0, 0);
             
             // Calculate age
             $feed_data['age'] = $student_dob->diff($now)->y;
@@ -1871,7 +1907,7 @@ function idwiz_get_user_data_for_preview() {
         if (isset($feed_data['studentDOB'])) {
             $student_dob = new DateTime($feed_data['studentDOB']);
             $now = new DateTime();
-            $six_months_ago = (new DateTime())->modify('-6 months');
+            $six_months_ago = (new DateTime())->modify('-6 months')->setTime(0, 0, 0);
             
             // Calculate age
             $feed_data['age'] = $student_dob->diff($now)->y;
@@ -1949,7 +1985,7 @@ function get_division_course_recommendations($student_data, $division)
     $fiscal_year = 'fy' . substr($current_fy_year, -2);
     $from_fiscal_year = 'fy' . substr($current_fy_year - 1, -2);
     
-    // Check if student should receive age-up recommendation
+    // Default to no age-up needed
     $needs_age_up = false;
     
     // Division-specific logic
@@ -2011,17 +2047,40 @@ function get_division_course_recommendations($student_data, $division)
     }
     // For division-specific recommendations (idta, idtc, etc.)
     else {
-        // Division-specific age checks
-        if (($division === 'idta' || $division === 'ota') && $student_age < 13) {
-            $needs_age_up = true;
-        } else if ($division === 'idtc' && $student_age >= 18) {
-            $needs_age_up = true;
-        }
-        
+        // Get recommendations for this division
         $recommendations = get_course_recommendations_between_fiscal_years($student_data, $from_fiscal_year, $fiscal_year, $division);
         
-        // Add age-up flag
-        $recommendations['age_up'] = $needs_age_up;
+        // If recommendations found and age_up flag exists, use it
+        if (!empty($recommendations) && isset($recommendations['age_up'])) {
+            // Keep the age_up flag determined by determine_age_up_need() in get_course_recommendations_between_fiscal_years
+            // This properly handles cases like 10-year-olds aging up from 7-9 courses
+            
+            // Additional division-specific age checks (these supplement but don't override)
+            if (!$recommendations['age_up']) {
+                if (($division === 'idta' || $division === 'ota') && $student_age < 13) {
+                    $recommendations['age_up'] = true;
+                } else if ($division === 'idtc' && $student_age >= 18) {
+                    $recommendations['age_up'] = true;
+                }
+            }
+        } else {
+            // If no recommendations or no age_up flag, add default values
+            if (empty($recommendations)) {
+                $recommendations = [];
+            }
+            
+            // Apply division-specific age checks
+            $needs_age_up = false;
+            if (($division === 'idta' || $division === 'ota') && $student_age < 13) {
+                $needs_age_up = true;
+            } else if ($division === 'idtc' && $student_age >= 18) {
+                $needs_age_up = true;
+            }
+            
+            $recommendations['age_up'] = $needs_age_up;
+        }
+        
+        // Make sure student_age is set
         $recommendations['student_age'] = $student_age;
         
         return $recommendations;
