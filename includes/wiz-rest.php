@@ -667,6 +667,44 @@ function process_preset_value($preset_name, $student_data) {
                     }
                 }
             }
+            // Check for 13-year-olds who need to transition from iDTC to iDTA
+            else if ($student_age >= 13 && $last_course_max_age && $last_course_max_age < 13) {
+                $needs_age_up = true;
+                $metadata['age_up'] = true;
+                
+                // For 13-year-olds, we should consider both iDTC and iDTA options
+                $combined_recs = [];
+                
+                // First try to get age-appropriate iDTC recommendations
+                $idtc_recs = get_division_course_recommendations($student_data, 'idtc');
+                if (!empty($idtc_recs['recs'])) {
+                    $filtered_idtc = array_filter($idtc_recs['recs'], function($rec) use ($student_age) {
+                        return $rec['minAge'] <= $student_age && $rec['maxAge'] >= $student_age;
+                    });
+                    
+                    if (!empty($filtered_idtc)) {
+                        $combined_recs = array_merge($combined_recs, array_values($filtered_idtc));
+                    }
+                }
+                
+                // Then try to get iDTA recommendations
+                $idta_recs = get_division_course_recommendations($student_data, 'idta');
+                if (!empty($idta_recs['recs'])) {
+                    $filtered_idta = array_filter($idta_recs['recs'], function($rec) use ($student_age) {
+                        return $rec['minAge'] <= $student_age && $rec['maxAge'] >= $student_age;
+                    });
+                    
+                    if (!empty($filtered_idta)) {
+                        $combined_recs = array_merge($combined_recs, array_values($filtered_idta));
+                    }
+                }
+                
+                // If we found any suitable recommendations from either division, use them
+                if (!empty($combined_recs)) {
+                    $all_recommendations = $combined_recs;
+                    $metadata['ipc_count'] = count($all_recommendations);
+                }
+            }
             
             // Get all recommended course IDs to fetch their details
             $course_ids = array_map(function($rec) {
