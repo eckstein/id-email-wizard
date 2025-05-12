@@ -52,7 +52,8 @@ function idemailwiz_get_template_data_for_iterable()
 	$email_type = $messageSettings['email_type'] ?? 'promotional';
 
 	// Set message type ID based on email type
-	$message_type_id = $email_type === 'transactional' ? '52620' : '52634';
+	$default_message_type_id = $email_type === 'transactional' ? '52620' : '52634';
+	$message_type_id = $messageSettings['message_type_id'] ?? $default_message_type_id;
 
 	// Ensure message type ID is an integer for Iterable API
 	$message_type_id = intval($message_type_id);

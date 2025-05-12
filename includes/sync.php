@@ -72,7 +72,6 @@ function idemailwiz_update_insert_api_data($items, $operation, $table_name)
                     // Serialize arrays before storing (e.g., for labels or other text fields)
                     // You might need more specific handling based on the column type
                     $prepared_values[] = serialize($field_value);
-                    // wiz_log("Notice: Serialized array value for field '{$field_key}' in table {$table_name}");
                 } else {
                     $prepared_values[] = $field_value;
                 }
@@ -188,8 +187,6 @@ function idemailwiz_fetch_campaigns($campaignIds = null)
 	wiz_log("Fetching Campaigns from Iterable API..."); // Simplified log
 	try {
 		$response = idemailwiz_iterable_curl_call($url);
-		// $rawResponseSize = isset($response['response']) ? strlen(json_encode($response['response'])) : 0; // REMOVED response size log
-		// wiz_log("Fetch Campaigns: API call completed. HTTP Code: \" . ($response['http_code'] ?? 'N/A') . \". Approx response size: $rawResponseSize bytes."); // REMOVED completion log
 	} catch (Throwable $e) {  // Catching Throwable to handle both Error and Exception
 		// Log the error with more details
 		wiz_log("Fetch Campaigns: CAUGHT EXCEPTION during curl call to $url - " . $e->getMessage()); // Log inside catch
@@ -282,9 +279,6 @@ function idemailwiz_fetch_templates($campaignIds = null)
 	$batchSize = 200; // Increased from 100
 	$templateIdBatches = array_chunk($templateIds, $batchSize);
 	
-	// wiz_log("Processing templates in \" . count($templateIdBatches) . \" batches of \" . $batchSize);
-	// Optional: Add a simpler log if needed, like: wiz_log("Processing template details...");
-	
 	foreach ($templateIdBatches as $batchIndex => $templateIdBatch) {
 		// Fetch the detailed templates for this batch
 		$urlsToFetch = [];
@@ -311,8 +305,6 @@ function idemailwiz_fetch_templates($campaignIds = null)
 				}
 			}
 
-			// wiz_log("Processed batch \" . ($batchIndex + 1) . \" of \" . count($templateIdBatches) . \" with \" . count($fetchedTemplates) . \" templates"); // REMOVED per-batch log
-			
 			// Add a reasonable pause between batches to prevent API rate limiting, but not too long
 			if (count($templateIdBatches) > 1) {
 				usleep(25000); // 25ms pause (reduced from 50ms)
@@ -605,16 +597,6 @@ function idemailwiz_fetch_metrics($campaignIds = null)
 
 			// Calculate the additional percentage metrics
 			$metrics = idemailwiz_calculate_metrics($lineArray);
-
-			// --- Add Logging Here ---
-			// $logCampaignIdKey = isset($metrics['confidence']) ? 'campaignId' : 'id'; // REMOVED debug log
-			// if (isset($metrics[$logCampaignIdKey]) && $metrics[$logCampaignIdKey] == 11494140) { // REMOVED debug log
-			// 	wiz_log("Fetch Metrics: Processing data for Campaign ID 11494140. Calculated Metrics: " . print_r($metrics, true)); // REMOVED debug log
-			// } elseif (isset($lineArray['id']) && $lineArray['id'] == 11494140) { // REMOVED debug log
-			// 	// Log if calculate_metrics returned false or something unexpected for this ID
-			// 	wiz_log("Fetch Metrics: Found row for Campaign ID 11494140 in API response, but calculate_metrics result was: " . print_r($metrics, true)); // REMOVED debug log
-			// }
-			// --- End Logging ---
 
 			// Merge the metrics with the existing data
 			$allMetrics[] = $metrics;
@@ -2647,30 +2629,18 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 	$startAfter = $job['startAfter'] ? '?startAfter=' . $job['startAfter'] : '';
 	$table_name = $wpdb->prefix . 'idemailwiz_' . $job['syncType'];
 
-	// wiz_log("Job $jobId: Checking Iterable API for export status. URL: https://api.iterable.com/api/export/\" . $jobId . \"/files{$startAfter}"); // REMOVED - Too verbose
 	// Wrap the API call in a try-catch block
 	try {
 		$jobApiResponse = idemailwiz_iterable_curl_call("https://api.iterable.com/api/export/" . $jobId . "/files{$startAfter}");
-		// Log components separately instead of json_encode on the whole object
-		// if (isset($jobApiResponse['httpCode'])) { // REMOVED - Only log errors/state
-		// 	wiz_log("Job $jobId: Received HTTP Code: " . $jobApiResponse['httpCode']);
-		// } else {
-		// 	wiz_log("Job $jobId: HTTP Code not set in response.");
-		// }
 		if (isset($jobApiResponse['response'])) {
-			// wiz_log("Job $jobId: Received 'response' key. Type: " . gettype($jobApiResponse['response'])); // REMOVED - Too verbose
-			// Try logging jobState directly if 'response' is an array
 			if (is_array($jobApiResponse['response']) && isset($jobApiResponse['response']['jobState'])) {
 				 wiz_log("Job $jobId: Job State from API: " . $jobApiResponse['response']['jobState']); // Keep job state log
 			} elseif (is_array($jobApiResponse['response'])) {
 				 wiz_log("Job $jobId: 'jobState' key not found in response array.");
 			}
-			// Avoid logging potentially huge file lists for now
-			// wiz_log("Job $jobId: Raw 'response' content: " . print_r($jobApiResponse['response'], true));
 		} else {
 			wiz_log("Job $jobId: 'response' key not set in response.");
 		}
-		//wiz_log("Job $jobId: Received API response: \" . json_encode($jobApiResponse)); // Replaced this line
 	} catch (Exception $e) {
 		wiz_log("Job $jobId: Exception during API call: " . $e->getMessage() . ". Requeueing job.");
 		// Set job status back to pending and schedule retry
@@ -2761,7 +2731,6 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 	wiz_log("Job $jobId: Job state is 'completed'. Processing files..."); // Added Log
 
 	foreach ($jobApiResponse['response']['files'] as $file) {
-		// wiz_log("Job $jobId: Attempting to download file: \" . $file['url']); // REMOVED per-file log
 		$jsonResponse = @file_get_contents($file['url']);
 		if ($jsonResponse === false) {
 			wiz_log("Failed to retrieve file content for job $jobId. File URL: " . $file['url']);
@@ -2788,12 +2757,6 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 
 				$msTimestamp = (int) ($createdAt->format('U.u') * 1000);
 
-				// Log the extracted values before preparing for insert
-				//$logCampaignId = $record['campaignId'] ?? 'NULL'; // Keep logging minimal for performance
-				//$logTemplateId = $record['templateId'] ?? 'NULL';
-				//$logUserId = $record['userId'] ?? 'NULL';
-				//wiz_log("Job $jobId: Preparing record - MsgID: {$record['messageId']}, CampID: {$logCampaignId}, TmplID: {$logTemplateId}, UserID: {$logUserId}, Timestamp: {$msTimestamp}"); // REMOVED
-
 				// Prepare data for insertion
 				$query_args = array_merge(
 					["(%s, %s, %d, %d, %d)"],
@@ -2810,7 +2773,6 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 
 				// Insert batch if size limit reached
 				if ($recordsInCurrentBatch >= $insertBatchSize) {
-					// wiz_log("Job $jobId: Inserting batch of $recordsInCurrentBatch records..."); // REMOVED per-batch log
 					$columns = ['messageId', 'userId', 'campaignId', 'templateId', 'startAt'];
 					$placeholders = implode(", ", $batchInsertData);
 					$insertQuery = "INSERT IGNORE INTO $table_name (" . implode(", ", $columns) . ") VALUES " . $placeholders;
@@ -2856,7 +2818,6 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 
 	// Insert any remaining records in the last batch
 	if (!empty($batchInsertData)) {
-		// wiz_log("Job $jobId: Inserting final batch of $recordsInCurrentBatch records..."); // REMOVED final batch log
 		$columns = ['messageId', 'userId', 'campaignId', 'templateId', 'startAt'];
 		$placeholders = implode(", ", $batchInsertData);
 		$insertQuery = "INSERT IGNORE INTO $table_name (" . implode(", ", $columns) . ") VALUES " . $placeholders;

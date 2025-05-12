@@ -9,11 +9,12 @@ jQuery(document).ready(function ($) {
 	var existingTemplateId = $('#iterable_template_id').val();
 
 	// Handle channel type change
-	$(document).on('change', 'input[name="email_type"]', function() {
+	$(document).on('change', 'input[name=\"email_type\"]', function() {
 		const channelType = $(this).val();
 		$('.message-types').removeClass('active');
 		$('.message-type-select').prop('disabled', true);
 		
+
 		if (channelType === 'promotional') {
 			$('.promotional-types').addClass('active');
 			$('.promotional-types .message-type-select').prop('disabled', false);

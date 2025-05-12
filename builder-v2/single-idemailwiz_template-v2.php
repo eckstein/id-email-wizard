@@ -471,7 +471,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 									
 									<div class="message-types-wrapper">
 										<div class="message-types promotional-types <?php echo $email_type == 'promotional' ? 'active' : ''; ?>">
-											<select name="message_type" class="message-type-select" <?php echo $email_type != 'promotional' ? 'disabled' : ''; ?>>
+											<select class="message-type-select" <?php echo $email_type != 'promotional' ? 'disabled' : ''; ?>>
 												<option value="52634" <?php echo $message_type_id == '52634' ? 'selected' : ''; ?>>Program News & Offers</option>
 												<option value="52641" <?php echo $message_type_id == '52641' ? 'selected' : ''; ?>>Event Invites & Updates</option>
 												<option value="52635" <?php echo $message_type_id == '52635' ? 'selected' : ''; ?>>Referral Progress Reports</option>
@@ -479,7 +479,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 											</select>
 										</div>
 										<div class="message-types transactional-types <?php echo $email_type == 'transactional' ? 'active' : ''; ?>">
-											<select name="message_type" class="message-type-select" <?php echo $email_type != 'transactional' ? 'disabled' : ''; ?>>
+											<select class="message-type-select" <?php echo $email_type != 'transactional' ? 'disabled' : ''; ?>>
 												<option value="52620" <?php echo $message_type_id == '52620' ? 'selected' : ''; ?>>Transactional</option>
 											</select>
 										</div>
