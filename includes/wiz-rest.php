@@ -1666,9 +1666,10 @@ function idwiz_endpoint_handler($request) {
         }
         
         // Check if leadLocationId is empty or missing for user_profile endpoints
-        if (empty($feed_data['leadLocationId']) && in_array('location_with_courses', get_required_presets($endpoint_config))) {
-            return new WP_REST_Response(['error' => 'User does not have a lead location assigned'], 400);
-        }
+        // Commented out: location_with_courses preset now has fallback logic (previous location -> leadLocationId -> null)
+        // if (empty($feed_data['leadLocationId']) && in_array('location_with_courses', get_required_presets($endpoint_config))) {
+        //     return new WP_REST_Response(['error' => 'User does not have a lead location assigned'], 400);
+        // }
         
     } else if ($base_data_source === 'user_feed') {
         // Get data from userfeed table (student info)
@@ -1733,17 +1734,12 @@ function idwiz_endpoint_handler($request) {
                 
                 // Specific error for location_with_courses preset
                 if ($preset === 'location_with_courses') {
-                    if (empty($feed_data['leadLocationId'])) {
-                        return new WP_REST_Response([
-                            'error' => 'Lead location ID is missing for this user',
-                            'elapsed_time' => round((microtime(true) - $start_time) * 1000)
-                        ], 400);
-                    } else {
-                        return new WP_REST_Response([
-                            'error' => 'Location is not active or does not exist',
-                            'elapsed_time' => round((microtime(true) - $start_time) * 1000)
-                        ], 400);
-                    }
+                    // Since location_with_courses now has fallback logic (previous location -> leadLocationId -> null),
+                    // we only return an error if the preset truly failed to find any location
+                    return new WP_REST_Response([
+                        'error' => 'No location found: student has no previous location and no lead location assigned',
+                        'elapsed_time' => round((microtime(true) - $start_time) * 1000)
+                    ], 400);
                 }
                 
                 return new WP_REST_Response([
