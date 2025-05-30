@@ -5691,6 +5691,8 @@ color: #eee;
     grid-template-columns: 1fr 1fr;
     gap: 30px;
     margin-top: 20px;
+    max-width: 100%;
+    overflow: hidden; /* Prevent any overflow from breaking layout */
 }
 
 .endpoint-preview {
@@ -5698,6 +5700,9 @@ color: #eee;
     border-radius: 6px;
     padding: 20px;
     border: 1px solid #e2e4e7;
+    max-width: 100%;
+    min-width: 0; /* Important for flex/grid items to shrink properly */
+    overflow: hidden;
 }
 
 .endpoint-preview-header {
