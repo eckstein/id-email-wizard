@@ -5720,16 +5720,24 @@ color: #eee;
     border-radius: 4px;
     padding: 15px;
     border: 1px solid #e2e4e7;
+    overflow: hidden; /* Prevent container from expanding */
 }
 
 .endpoint-preview-content pre {
     margin: 0;
     white-space: pre-wrap;
     word-wrap: break-word;
+    word-break: break-all; /* Force break even on long unbroken strings */
+    overflow-wrap: break-word;
     font-family: monospace;
     font-size: 13px;
     line-height: 1.4;
     color: #fff;
+    max-width: 100%;
+    overflow-x: auto; /* Add horizontal scroll if needed */
+    background: #2d3748; /* Add dark background for better visibility */
+    padding: 12px;
+    border-radius: 4px;
 }
 
 .test-user-selector {
