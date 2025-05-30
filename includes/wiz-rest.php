@@ -502,7 +502,7 @@ function get_available_presets() {
         'location_with_courses' => [
             'name' => 'Location With Courses',
             'group' => 'Location Details',
-            'description' => 'Returns location data and available courses for a specific location ID using the leadLocationId field. Includes location details, address, and courses information.'
+            'description' => 'Returns location data and available courses. For students, prioritizes their most recent camp location; falls back to the parent account\'s leadLocationId if no previous location found. For parent accounts, uses the leadLocationId directly. Includes location details, address, and courses information.'
         ],
         'ipc_course_recs' => [
             'name' => 'IPC Course Recs',
@@ -2348,7 +2348,7 @@ add_action('init', 'idwiz_optimize_wordpress_for_api', 1);
 
 /**
  * Gets location data and available courses for a specific location ID
- * Uses the leadLocationId field from parent account data
+ * Prioritizes student's previous location, falls back to leadLocationId from parent account data
  */
 function get_location_with_courses($user_data) {
     global $wpdb;
@@ -2357,44 +2357,64 @@ function get_location_with_courses($user_data) {
     error_log('Location data function called with data type: ' . (isset($user_data['studentAccountNumber']) ? 'student' : 'parent'));
     
     $location_id = null;
+    $location_source = 'unknown';
     
-    // If this is student data, we need to get the parent account to find leadLocationId
-    if (isset($user_data['studentAccountNumber']) && !isset($user_data['leadLocationId'])) {
-        error_log('Student data detected, looking for parent account');
+    // First priority: Try to get the student's last location
+    if (isset($user_data['studentAccountNumber'])) {
+        error_log('Checking for student\'s previous location first');
+        $last_location = get_last_location($user_data);
         
-        // Get parent account info using accountNumber from student data
-        if (!empty($user_data['accountNumber'])) {
-            $parent = $wpdb->get_row(
-                $wpdb->prepare(
-                    "SELECT * FROM {$wpdb->prefix}idemailwiz_users WHERE accountNumber = %s LIMIT 1",
-                    $user_data['accountNumber']
-                ),
-                ARRAY_A
-            );
-            
-            if ($parent && isset($parent['leadLocationId'])) {
-                $location_id = intval($parent['leadLocationId']);
-                error_log('Found parent account with leadLocationId: ' . $location_id);
-            } else {
-                error_log('Parent account not found or missing leadLocationId');
-            }
+        if ($last_location && isset($last_location['id']) && $last_location['id'] > 0) {
+            $location_id = intval($last_location['id']);
+            $location_source = 'previous_location';
+            error_log('Using student\'s previous location ID: ' . $location_id);
         } else {
-            error_log('No accountNumber found in student data to look up parent');
+            error_log('No previous location found for student, will try leadLocationId');
         }
-    } 
-    // If this is parent data, get leadLocationId directly
-    else if (isset($user_data['leadLocationId'])) {
-        $location_id = intval($user_data['leadLocationId']);
-        error_log('Using leadLocationId directly from parent data: ' . $location_id);
+    }
+    
+    // Second priority: Fall back to leadLocationId logic if no previous location found
+    if (!$location_id) {
+        // If this is student data, we need to get the parent account to find leadLocationId
+        if (isset($user_data['studentAccountNumber']) && !isset($user_data['leadLocationId'])) {
+            error_log('Student data detected, looking for parent account leadLocationId');
+            
+            // Get parent account info using accountNumber from student data
+            if (!empty($user_data['accountNumber'])) {
+                $parent = $wpdb->get_row(
+                    $wpdb->prepare(
+                        "SELECT * FROM {$wpdb->prefix}idemailwiz_users WHERE accountNumber = %s LIMIT 1",
+                        $user_data['accountNumber']
+                    ),
+                    ARRAY_A
+                );
+                
+                if ($parent && isset($parent['leadLocationId'])) {
+                    $location_id = intval($parent['leadLocationId']);
+                    $location_source = 'parent_lead_location';
+                    error_log('Found parent account with leadLocationId: ' . $location_id);
+                } else {
+                    error_log('Parent account not found or missing leadLocationId');
+                }
+            } else {
+                error_log('No accountNumber found in student data to look up parent');
+            }
+        } 
+        // If this is parent data, get leadLocationId directly
+        else if (isset($user_data['leadLocationId'])) {
+            $location_id = intval($user_data['leadLocationId']);
+            $location_source = 'direct_lead_location';
+            error_log('Using leadLocationId directly from parent data: ' . $location_id);
+        }
     }
     
     // Check if we have a valid location ID
     if (empty($location_id) || $location_id <= 0) {
-        error_log('No valid leadLocationId found: ' . ($location_id ?? 'null'));
+        error_log('No valid location ID found: ' . ($location_id ?? 'null'));
         return null;
     }
     
-    error_log('Looking up location ID: ' . $location_id);
+    error_log('Looking up location ID: ' . $location_id . ' (source: ' . $location_source . ')');
     
     // First check if the location exists at all, regardless of status
     $location_exists = $wpdb->get_var(
@@ -2511,10 +2531,11 @@ function get_location_with_courses($user_data) {
             'overnightOffered' => $location['overnightOffered'] ?? 'No',
             'divisions' => $divisions,
             'session_weeks' => $session_weeks,
-            'courses' => $courses_data
+            'courses' => $courses_data,
+            'location_source' => $location_source // Add metadata about where we got the location from
         ];
         
-        error_log('Successfully built location data');
+        error_log('Successfully built location data from source: ' . $location_source);
         return $result;
         
     } catch (Exception $e) {
