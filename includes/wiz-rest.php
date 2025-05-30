@@ -279,6 +279,23 @@ function create_error_response($message, $code = 400)
 function get_last_location($student_data) {
     global $wpdb;
     
+    // Try to get student account number from different possible fields
+    $student_account_number = null;
+    if (isset($student_data['studentAccountNumber'])) {
+        $student_account_number = $student_data['studentAccountNumber'];
+    } elseif (isset($student_data['StudentAccountNumber'])) {
+        $student_account_number = $student_data['StudentAccountNumber'];
+    } elseif (isset($student_data['accountNumber'])) {
+        $student_account_number = $student_data['accountNumber'];
+    }
+    
+    if (empty($student_account_number)) {
+        error_log('get_last_location: No student account number found in data: ' . print_r(array_keys($student_data), true));
+        return null;
+    }
+    
+    error_log('get_last_location: Looking for purchases for student account number: ' . $student_account_number);
+    
     // Get the student's most recent purchase with a location
     $purchase = $wpdb->get_row(
         $wpdb->prepare(
@@ -290,13 +307,16 @@ function get_last_location($student_data) {
             AND shoppingCartItems_divisionId IN (22, 25) -- Only consider iDTA (22) and iDTC (25) divisions
             ORDER BY purchaseDate DESC 
             LIMIT 1",
-            $student_data['studentAccountNumber'] ?? 'N/A' // Use student account number directly
+            $student_account_number
         )
     );
 
     if (!$purchase || !$purchase->shoppingCartItems_locationName) {
+        error_log('get_last_location: No purchase with location found for student: ' . $student_account_number);
         return null;
     }
+    
+    error_log('get_last_location: Found purchase with location: ' . $purchase->shoppingCartItems_locationName . ' on ' . $purchase->purchaseDate);
 
     // Get location details from locations table
     $location = $wpdb->get_row(
@@ -310,8 +330,11 @@ function get_last_location($student_data) {
     );
 
     if (!$location) {
+        error_log('get_last_location: Location not found or not active: ' . $purchase->shoppingCartItems_locationName);
         return null;
     }
+    
+    error_log('get_last_location: Found active location with ID: ' . $location->id . ' (' . $location->name . ')');
 
     // Unserialize address if it exists
     $address = $location->address ? unserialize($location->address) : null;
@@ -2350,67 +2373,103 @@ function get_location_with_courses($user_data) {
     global $wpdb;
     
     // Debug output
-    error_log('Location data function called with data type: ' . (isset($user_data['studentAccountNumber']) ? 'student' : 'parent'));
+    error_log('get_location_with_courses: Called with data type: ' . (isset($user_data['studentAccountNumber']) || isset($user_data['StudentAccountNumber']) ? 'student' : 'parent'));
+    error_log('get_location_with_courses: Available data keys: ' . implode(', ', array_keys($user_data)));
     
     $location_id = null;
     $location_source = 'unknown';
     
     // First priority: Try to get the student's last location
-    if (isset($user_data['studentAccountNumber'])) {
-        error_log('Checking for student\'s previous location first');
+    if (isset($user_data['studentAccountNumber']) || isset($user_data['StudentAccountNumber'])) {
+        error_log('get_location_with_courses: Student data - checking for previous location');
         $last_location = get_last_location($user_data);
         
         if ($last_location && isset($last_location['id']) && $last_location['id'] > 0) {
             $location_id = intval($last_location['id']);
-            $location_source = 'previous_location';
-            error_log('Using student\'s previous location ID: ' . $location_id);
+            $location_source = 'student_previous_location';
+            error_log('get_location_with_courses: Using student\'s previous location ID: ' . $location_id);
         } else {
-            error_log('No previous location found for student, will try leadLocationId');
-        }
-    }
-    
-    // Second priority: Fall back to leadLocationId logic if no previous location found
-    if (!$location_id) {
-        // If this is student data, we need to get the parent account to find leadLocationId
-        if (isset($user_data['studentAccountNumber']) && !isset($user_data['leadLocationId'])) {
-            error_log('Student data detected, looking for parent account leadLocationId');
+            error_log('get_location_with_courses: No previous location found for student, will try parent leadLocationId');
             
-            // Get parent account info using accountNumber from student data
+            // Fall back to parent's leadLocationId if student has no previous location
             if (!empty($user_data['accountNumber'])) {
                 $parent = $wpdb->get_row(
                     $wpdb->prepare(
-                        "SELECT * FROM {$wpdb->prefix}idemailwiz_users WHERE accountNumber = %s LIMIT 1",
+                        "SELECT leadLocationId FROM {$wpdb->prefix}idemailwiz_users WHERE accountNumber = %s LIMIT 1",
                         $user_data['accountNumber']
                     ),
                     ARRAY_A
                 );
                 
-                if ($parent && isset($parent['leadLocationId'])) {
+                if ($parent && isset($parent['leadLocationId']) && $parent['leadLocationId'] > 0) {
                     $location_id = intval($parent['leadLocationId']);
                     $location_source = 'parent_lead_location';
-                    error_log('Found parent account with leadLocationId: ' . $location_id);
+                    error_log('get_location_with_courses: Using parent leadLocationId: ' . $location_id);
+                }
+            }
+        }
+    } 
+    // Handle parent account data
+    else {
+        error_log('get_location_with_courses: Parent data - checking leadLocationId first');
+        
+        // First try leadLocationId if it's valid
+        if (isset($user_data['leadLocationId']) && $user_data['leadLocationId'] > 0) {
+            $location_id = intval($user_data['leadLocationId']);
+            $location_source = 'parent_lead_location';
+            error_log('get_location_with_courses: Using parent leadLocationId: ' . $location_id);
+        } 
+        // If leadLocationId is 0 or missing, check students' previous locations
+        else {
+            error_log('get_location_with_courses: leadLocationId is invalid (' . ($user_data['leadLocationId'] ?? 'missing') . '), checking students\' previous locations');
+            
+            if (isset($user_data['studentArray']) && !empty($user_data['studentArray'])) {
+                $student_array = is_string($user_data['studentArray']) ? unserialize($user_data['studentArray']) : $user_data['studentArray'];
+                
+                if (is_array($student_array) && !empty($student_array)) {
+                    error_log('get_location_with_courses: Found ' . count($student_array) . ' students in parent account');
+                    
+                    // Check each student for previous locations
+                    foreach ($student_array as $student_info) {
+                        if (isset($student_info['StudentAccountNumber'])) {
+                            error_log('get_location_with_courses: Checking student ' . $student_info['StudentAccountNumber'] . ' for previous locations');
+                            
+                            // Create student data for get_last_location
+                            $temp_student_data = [
+                                'studentAccountNumber' => $student_info['StudentAccountNumber'],
+                                'StudentAccountNumber' => $student_info['StudentAccountNumber']
+                            ];
+                            
+                            $student_last_location = get_last_location($temp_student_data);
+                            
+                            if ($student_last_location && isset($student_last_location['id']) && $student_last_location['id'] > 0) {
+                                $location_id = intval($student_last_location['id']);
+                                $location_source = 'student_previous_location';
+                                error_log('get_location_with_courses: Using student\'s previous location ID: ' . $location_id . ' (student: ' . $student_info['StudentAccountNumber'] . ')');
+                                break; // Use the first valid location found
+                            }
+                        }
+                    }
+                    
+                    if (!$location_id) {
+                        error_log('get_location_with_courses: No valid previous locations found for any students');
+                    }
                 } else {
-                    error_log('Parent account not found or missing leadLocationId');
+                    error_log('get_location_with_courses: studentArray is empty or not an array');
                 }
             } else {
-                error_log('No accountNumber found in student data to look up parent');
+                error_log('get_location_with_courses: No studentArray found in parent data');
             }
-        } 
-        // If this is parent data, get leadLocationId directly
-        else if (isset($user_data['leadLocationId'])) {
-            $location_id = intval($user_data['leadLocationId']);
-            $location_source = 'direct_lead_location';
-            error_log('Using leadLocationId directly from parent data: ' . $location_id);
         }
     }
     
     // Check if we have a valid location ID
     if (empty($location_id) || $location_id <= 0) {
-        error_log('No valid location ID found: ' . ($location_id ?? 'null'));
+        error_log('get_location_with_courses: No valid location ID found: ' . ($location_id ?? 'null'));
         return null;
     }
     
-    error_log('Looking up location ID: ' . $location_id . ' (source: ' . $location_source . ')');
+    error_log('get_location_with_courses: Looking up location ID: ' . $location_id . ' (source: ' . $location_source . ')');
     
     // First check if the location exists at all, regardless of status
     $location_exists = $wpdb->get_var(
@@ -2421,7 +2480,7 @@ function get_location_with_courses($user_data) {
     );
     
     if (!$location_exists) {
-        error_log("Location ID {$location_id} does not exist in the database");
+        error_log("get_location_with_courses: Location ID {$location_id} does not exist in the database");
         return null;
     }
     
@@ -2434,24 +2493,23 @@ function get_location_with_courses($user_data) {
             $location_id
         );
         
-        error_log('Location query: ' . $query);
+        error_log('get_location_with_courses: Location query: ' . $query);
         $location = $wpdb->get_row($query, ARRAY_A);
         
         // Check if we found the location but it's not active
         if ($location && !in_array($location['locationStatus'], ['Open', 'Registration opens soon'])) {
-            error_log("Location found but status '{$location['locationStatus']}' is not active");
-            // Return null for inactive locations - changed from previous version
+            error_log("get_location_with_courses: Location found but status '{$location['locationStatus']}' is not active");
             return null;
         }
         
         if (!$location) {
-            error_log('No matching location found for ID: ' . $location_id);
+            error_log('get_location_with_courses: No matching location found for ID: ' . $location_id);
             return null;
         }
         
         // Return null if this is Online Campus (ID 324)
         if ($location['id'] == 324) {
-            error_log('Online Campus detected, returning null');
+            error_log('get_location_with_courses: Online Campus detected, returning null');
             return null;
         }
         
@@ -2475,7 +2533,7 @@ function get_location_with_courses($user_data) {
         $divisions = $safe_unserialize($location['divisions'], []);
         
         // Log what we found
-        error_log('Unserialized data counts: ' . 
+        error_log('get_location_with_courses: Unserialized data counts: ' . 
                  'address=' . (is_array($address) ? count($address) : 'null') . ', ' . 
                  'courses=' . count($courses_ids) . ', ' . 
                  'divisions=' . count($divisions));
@@ -2489,7 +2547,7 @@ function get_location_with_courses($user_data) {
                 $courses_ids = array_filter($courses_ids, function($id) { return $id > 0; });
                 
                 if (empty($courses_ids)) {
-                    error_log('No valid course IDs found after filtering');
+                    error_log('get_location_with_courses: No valid course IDs found after filtering');
                 } else {
                     $placeholders = implode(',', array_fill(0, count($courses_ids), '%d'));
                     $courses_query = $wpdb->prepare(
@@ -2500,17 +2558,17 @@ function get_location_with_courses($user_data) {
                         $courses_ids
                     );
                     
-                    error_log('Courses query: ' . $courses_query);
+                    error_log('get_location_with_courses: Courses query: ' . $courses_query);
                     $courses_data = $wpdb->get_results($courses_query, ARRAY_A);
                     
                     if (empty($courses_data)) {
-                        error_log('No active course data found for location');
+                        error_log('get_location_with_courses: No active course data found for location');
                     } else {
-                        error_log('Found ' . count($courses_data) . ' active courses for location');
+                        error_log('get_location_with_courses: Found ' . count($courses_data) . ' active courses for location');
                     }
                 }
             } catch (Exception $e) {
-                error_log('Error in courses query: ' . $e->getMessage());
+                error_log('get_location_with_courses: Error in courses query: ' . $e->getMessage());
                 $courses_data = [];
             }
         }
@@ -2531,11 +2589,11 @@ function get_location_with_courses($user_data) {
             'location_source' => $location_source // Add metadata about where we got the location from
         ];
         
-        error_log('Successfully built location data from source: ' . $location_source);
+        error_log('get_location_with_courses: Successfully built location data from source: ' . $location_source);
         return $result;
         
     } catch (Exception $e) {
-        error_log('Error in location data function: ' . $e->getMessage());
+        error_log('get_location_with_courses: Error in location data function: ' . $e->getMessage());
         return null;
     }
 }

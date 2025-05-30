@@ -1626,9 +1626,7 @@ function idemailwiz_sync_purchases($campaignIds = null, $startDate = null, $endD
             $current_purchase_id = $purchase['id']; // Use the cleaned ID
             $found_in_lookup = isset($existing_purchase_lookup[$current_purchase_id]);
 
-            if (defined('WP_DEBUG_LOG') && WP_DEBUG_LOG === true) {
-                error_log("Sync Purchases: Checking ID [{$current_purchase_id}]. Found in local DB lookup: " . ($found_in_lookup ? 'Yes' : 'No'));
-            }
+           
 
 			if ($found_in_lookup) {
 				$records_to_update[] = $purchase;
