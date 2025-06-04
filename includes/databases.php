@@ -641,9 +641,9 @@ function build_idwiz_query($args, $table_name)
 			}
 
 			if ($interval) {
-				// Apply attribution length logic
+				// Apply attribution length logic only when campaignStartAt is not NULL
 				$sql .= $wpdb->prepare(
-					" AND DATE(purchaseDate) <= DATE(FROM_UNIXTIME(campaignStartAt / 1000)) + INTERVAL %d DAY",
+					" AND (campaignStartAt IS NULL OR DATE(purchaseDate) <= DATE(FROM_UNIXTIME(campaignStartAt / 1000)) + INTERVAL %d DAY)",
 					$interval
 				);
 			}

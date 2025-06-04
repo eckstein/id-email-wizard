@@ -1578,7 +1578,7 @@ function idemailwiz_sync_purchases($campaignIds = null, $startDate = null, $endD
 
 		// --- Prepare campaign start time lookup ---
 		wiz_log("Fetching campaign start times for purchase attribution...");
-		$campaign_ids_in_purchases = array_unique(array_filter(array_column($purchases, 'campaignid')));
+		$campaign_ids_in_purchases = array_unique(array_filter(array_column($purchases, 'campaignId')));
 		$campaign_start_times = [];
 		if (!empty($campaign_ids_in_purchases)) {
 			$campaigns_table = $wpdb->prefix . 'idemailwiz_campaigns';
@@ -1598,7 +1598,7 @@ function idemailwiz_sync_purchases($campaignIds = null, $startDate = null, $endD
 		// --- End campaign start time lookup ---
 
         if (defined('WP_DEBUG_LOG') && WP_DEBUG_LOG === true) {
-            error_log('Sync Purchases: Lookup array of existing IDs: ' . print_r(array_keys($existing_purchase_lookup), true)); // Log the keys (IDs) found in DB
+            
         }
 
 		foreach ($purchases as &$purchase) {
@@ -1613,13 +1613,13 @@ function idemailwiz_sync_purchases($campaignIds = null, $startDate = null, $endD
 			}
 
 			// Convert campaignId to NULL if it's missing, empty, or zero
-			if (!isset($purchase['campaignid']) || empty($purchase['campaignid']) || $purchase['campaignid'] === 0 || $purchase['campaignid'] === '0') {
-				$purchase['campaignid'] = null;
+			if (!isset($purchase['campaignId']) || empty($purchase['campaignId']) || $purchase['campaignId'] === 0 || $purchase['campaignId'] === '0') {
+				$purchase['campaignId'] = null;
 			}
 
 			// Fetch the campaign's startAt using the lookup array if campaignId is set
-			if (isset($purchase['campaignid']) && isset($campaign_start_times[$purchase['campaignid']])) {
-				$purchase['campaignstartat'] = $campaign_start_times[$purchase['campaignid']];
+			if (isset($purchase['campaignId']) && isset($campaign_start_times[$purchase['campaignId']])) {
+				$purchase['campaignStartAt'] = $campaign_start_times[$purchase['campaignId']];
 			}
 
 			// Check if purchase already exists using the lookup array
