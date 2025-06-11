@@ -1094,7 +1094,7 @@ function get_current_year_continuity_recs($student_data) {
             'url' => $location_info['locationUrl'],
             'address' => $address,
             'locationDesc' => $location_info['locationDesc'],
-            'overnightOffered' => $location_info['overnightOffered'] ?? 'No'
+            'overnightOffered' => $location_info['overnightOffered'] ?? 'No' 
         ];
     }
     
