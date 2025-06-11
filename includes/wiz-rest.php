@@ -1669,7 +1669,8 @@ function batch_process_preset_values($presets_to_process, $student_data) {
     // Group related presets that can be processed together
     $location_presets = array_intersect(['last_location', 'nearby_locations'], $presets_to_process);
     $course_rec_presets = array_filter($presets_to_process, function($preset) {
-        return strpos($preset, 'course_recs') !== false;
+        // Exclude current_year_continuity_recs as it has its own dedicated function
+        return strpos($preset, 'course_recs') !== false && $preset !== 'current_year_continuity_recs';
     });
     $purchase_presets = array_intersect(['most_recent_purchase'], $presets_to_process);
     
@@ -2237,35 +2238,24 @@ function idwiz_get_user_data_for_preview() {
             $feed_data['turned_13'] = false;
         }
 
-        // Process presets - Use the same logic as the actual endpoint handler
+        // Process presets
         try {
-            // Get all required presets at once - SAME as actual endpoint
-            $required_presets = get_required_presets($endpoint_config);
-            error_log('Required presets for endpoint ' . $endpoint . ': ' . implode(', ', $required_presets));
+            $presets = [];
             
-            // Process all presets in optimized batches - SAME as actual endpoint
-            $presets = batch_process_preset_values($required_presets, $feed_data);
+            // Get list of compatible presets for this data source
+            $compatible_presets = get_compatible_presets($base_data_source);
+            error_log('Compatible presets for ' . $base_data_source . ': ' . implode(', ', $compatible_presets));
             
-            // Check for any missing or empty required presets - SAME as actual endpoint
-            foreach ($required_presets as $preset) {
-                if (!isset($presets[$preset]) || $presets[$preset] === null || 
-                    (is_array($presets[$preset]) && empty($presets[$preset]))) {
-                    
-                    // Skip non-essential presets
-                    if ($preset !== 'most_recent_purchase' && 
-                        $preset !== 'last_location' && 
-                        $preset !== 'location_with_courses') {
-                        continue;
+            // Process each compatible preset
+            foreach ($compatible_presets as $preset) {
+                try {
+                    $result = process_preset_value($preset, $feed_data);
+                    if ($result !== null) {
+                        $presets[$preset] = $result;
                     }
-                    
-                    // Specific error for location_with_courses preset
-                    if ($preset === 'location_with_courses') {
-                        wp_send_json_error('No location found: student has no previous location and no lead location assigned');
-                        return;
-                    }
-                    
-                    wp_send_json_error("Required preset '$preset' is null or empty");
-                    return;
+                } catch (Exception $e) {
+                    error_log('Error processing preset ' . $preset . ': ' . $e->getMessage());
+                    // Skip this preset but continue with others
                 }
             }
 
@@ -2582,9 +2572,9 @@ function idwiz_ensure_api_indexes() {
     // Only run this periodically, using a transient to limit frequency
     // Use try-catch to handle transient errors gracefully
     try {
-        $indexes_checked = get_transient('idwiz_api_indexes_checked');
-        if ($indexes_checked) {
-            return;
+    $indexes_checked = get_transient('idwiz_api_indexes_checked');
+    if ($indexes_checked) {
+        return;
         }
     } catch (Exception $e) {
         // If transient still fails after cleanup, just continue without transient check
