@@ -487,6 +487,42 @@ function idemailwiz_create_databases()
 		PRIMARY KEY (id)
 	) ENGINE=InnoDB $charset_collate;";
 
+	$course_capacity_table_name = $wpdb->prefix . 'idemailwiz_course_capacity';
+	$wizTablesSql[$course_capacity_table_name] = "CREATE TABLE IF NOT EXISTS $course_capacity_table_name (
+		id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+		divisionID INT,
+		divisionName VARCHAR(255),
+		locationID INT,
+		locationName VARCHAR(255),
+		locationShortName VARCHAR(50),
+		locationPageURL VARCHAR(500),
+		city VARCHAR(100),
+		state VARCHAR(10),
+		postalCode VARCHAR(20),
+		country VARCHAR(100),
+		termID INT,
+		termName VARCHAR(100),
+		productID INT,
+		productName VARCHAR(255),
+		coursePageURL VARCHAR(500),
+		sessionStartDate DATETIME,
+		courseStartDate DATETIME,
+		minimumAge INT,
+		maximumAge INT,
+		courseCapacityTotal INT,
+		courseSeatsLeft INT,
+		last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+		sync_date DATE,
+		PRIMARY KEY (id),
+		UNIQUE KEY unique_session (locationID, productID, sessionStartDate),
+		INDEX idx_location (locationID),
+		INDEX idx_product (productID),
+		INDEX idx_division (divisionID),
+		INDEX idx_session_date (sessionStartDate),
+		INDEX idx_sync_date (sync_date),
+		INDEX idx_capacity (courseCapacityTotal, courseSeatsLeft)
+	) ENGINE=InnoDB $charset_collate;";
+
 
 	require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 
@@ -666,7 +702,9 @@ function build_idwiz_query($args, $table_name)
 		$campaignKey = 'campaignId';
 	}
 
-	if (!isset($args['include_null_campaigns']) || $args['include_null_campaigns'] == false) {
+	// Skip campaign ID filtering for course capacity table (it doesn't have campaigns)
+	if ($table_name != $wpdb->prefix . 'idemailwiz_course_capacity' && 
+		(!isset($args['include_null_campaigns']) || $args['include_null_campaigns'] == false)) {
 		// Every purchase should have a campaignId
 		$sql .= " AND $campaignKey IS NOT NULL";
 	}
@@ -694,18 +732,24 @@ function build_idwiz_query($args, $table_name)
 			}
 
 			if ($key === 'campaignId') {
-				$sql .= $wpdb->prepare(" AND $campaignKey = %d", $value);
+				// Skip campaignId filtering for course capacity table
+				if ($table_name != $wpdb->prefix . 'idemailwiz_course_capacity') {
+					$sql .= $wpdb->prepare(" AND $campaignKey = %d", $value);
+				}
 			}
 
 			if ($key === 'campaignIds') {
-				// Ensure campaignIds is an array and contains only integers
-				$campaignIds = array_map('intval', array_filter((array)$value));
-				if (!empty($campaignIds)) {
-					$placeholders = implode(',', array_fill(0, count($campaignIds), '%d'));
-					$sql .= call_user_func_array(
-						array($wpdb, 'prepare'),
-						array_merge(array(" AND $campaignKey IN ($placeholders)"), $campaignIds)
-					);
+				// Skip campaignIds filtering for course capacity table
+				if ($table_name != $wpdb->prefix . 'idemailwiz_course_capacity') {
+					// Ensure campaignIds is an array and contains only integers
+					$campaignIds = array_map('intval', array_filter((array)$value));
+					if (!empty($campaignIds)) {
+						$placeholders = implode(',', array_fill(0, count($campaignIds), '%d'));
+						$sql .= call_user_func_array(
+							array($wpdb, 'prepare'),
+							array_merge(array(" AND $campaignKey IN ($placeholders)"), $campaignIds)
+						);
+					}
 				}
 			} elseif ($key === 'purchaseIds') {
 				$placeholders = implode(',', array_fill(0, count($value), '%s'));
@@ -775,8 +819,11 @@ function build_idwiz_query($args, $table_name)
 	}
 
 	if (isset($args['not-campaigns']) && is_array($args['not-campaigns'])) {
-		$placeholders = implode(',', array_fill(0, count($args['not-campaigns']), '%d'));
-		$sql .= $wpdb->prepare(" AND $campaignKey NOT IN ($placeholders)", $args['not-campaigns']);
+		// Skip not-campaigns filtering for course capacity table
+		if ($table_name != $wpdb->prefix . 'idemailwiz_course_capacity') {
+			$placeholders = implode(',', array_fill(0, count($args['not-campaigns']), '%d'));
+			$sql .= $wpdb->prepare(" AND $campaignKey NOT IN ($placeholders)", $args['not-campaigns']);
+		}
 	}
 
 	if (isset($args['sortBy'])) {
@@ -1000,7 +1047,17 @@ function get_idwiz_courses($division_ids = [], $fiscalYears = [])
 	return $courses;
 }
 
-
+function get_idwiz_course_capacity($args = [])
+{
+	global $wpdb;
+	$table_name = $wpdb->prefix . 'idemailwiz_course_capacity';
+	$sql = build_idwiz_query($args, $table_name);
+	// Check if build_idwiz_query returned an error array
+	if (is_array($sql) && isset($sql['error'])) {
+		return $sql; // Return the error array directly
+	}
+	return execute_idwiz_query($sql, $args);
+}
 
 function idwiz_is_serialized($value)
 {

@@ -1069,7 +1069,7 @@ function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDa
 		'shoppingCartItems.predecessorOrderDetailId',
 		'shoppingCartItems.financeUnitId',
 		'shoppingCartItems.numberOfLessonsPurchasedOpl',
-		'shoppingCartItems.sessionStartDateNonOpl',
+		//'shoppingCartItems.sessionStartDateNonOpl',
 		'shoppingCartItems.subscriptionAutoRenewDate',
 		'shoppingCartItems.totalDaysOfInstruction',
 		'currencyTypeId',
@@ -1212,6 +1212,7 @@ function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDa
                 'shoppingCartItems.imageUrl' => 'shoppingCartItems_imageUrl',
                  'shoppingCartItems.url' => 'shoppingCartItems_url',
                  'shoppingCartItems.discounts' => 'shoppingCartItems_discounts',
+				'shoppingCartItems.sessionStartDateNonOpl' => 'shoppingCartItems_sessionStartDateNonOpl',
                 // Add other direct mappings as needed based on CSV headers and DB schema
                 'accountNumber' => 'accountNumber',
                 'orderId' => 'orderId',
@@ -2129,6 +2130,10 @@ function idemailwiz_add_cron_intervals($schedules)
 	$schedules['every_two_hours'] = array(
 		'interval' => 60 * 60 * 2,
 		'display' => __('Every 2 Hours')
+	);
+	$schedules['every_six_hours'] = array(
+		'interval' => 60 * 60 * 6,
+		'display' => __('Every 6 Hours')
 	);
 	$schedules['weekly_monday_morning'] = array(
 		'interval' => 604800,

@@ -4,7 +4,7 @@ function sync_ga_campaign_revenue_data()
 {
     global $wpdb; 
 
-    wiz_log("Starting GA campaign revenue data sync.");
+    wiz_log("=== Starting GA campaign revenue data sync ===");
 
     $ga_campaign_rev_table_name = $wpdb->prefix . 'idemailwiz_ga_campaign_revenue';
 
@@ -12,108 +12,138 @@ function sync_ga_campaign_revenue_data()
     $countUpdates = 0;
     $countInserts = 0;
 
-    // Fetch GA data from SheetDB 
-    $settings = get_option('idemailwiz_settings', array());
-    $url = $settings['ga_rev_sheet_url'];
-    $result = idemailwiz_iterable_curl_call($url, null, false, 3, 5);
-
-    $ga_data = $result['response'];
-
-    if (isset($result['httpCode']) && $result['httpCode'] >= 400) {
-        wiz_log("Error fetching GA campaign revenue data: HTTP " . $result['httpCode']);
-        return "Error fetching GA campaign revenue data.";
-    }
-
-    
-    
-
-    if (is_string($ga_data)) {
-        return $ga_data; 
-    }
-
-    $campaignRevenueAccumulator = [];
-
-    // Loop GA data
-    foreach ($ga_data as $row) {
-        if (!isset($row['date']) || !isset($row['transactionId'])) {
-            continue;
-        }
-        $transactionId = (string) ($row['transactionId']);
-        $date = (string) ($row['date']);
-        $campaignId = (string) ($row['campaignId']);
-        $division = (string) ($row['division']);
-
+    try {
+        // Fetch GA data from SheetDB 
+        $url = get_ga_revenue_sheet_url();
         
-        // Remove commas from the revenue and purchases values
-        $revenue = (float) str_replace(',', '', $row['revenue']) ?? 0;
-        $purchases = (float) str_replace(',', '', $row['purchases']) ?? 0;
+        if (empty($url)) {
+            wiz_log("GA Revenue Sync Error: No GA revenue sheet URL configured in settings");
+            return "Error: No GA revenue sheet URL configured.";
+        }
+        
+        wiz_log("GA Revenue Sync: Using sheet URL: " . $url);
+        
+        $result = idemailwiz_iterable_curl_call($url, null, false, 3, 5);
+        $ga_data = $result['response'];
 
-        // Check if a record with the same transactionId exists in the table
-        $existing_record = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT * FROM $ga_campaign_rev_table_name WHERE transactionId = %s AND campaignId = %s AND division = %s",
-                $transactionId,
-                $campaignId,
-                $division
-            )
-        );
+        if (isset($result['httpCode']) && $result['httpCode'] >= 400) {
+            wiz_log("GA Revenue Sync Error: HTTP " . $result['httpCode'] . " - Failed to fetch data from Google Sheets");
+            return "Error fetching GA campaign revenue data.";
+        }
 
-        if ($existing_record) {
-            // Update the existing record
-            $wpdb->update(
-                $ga_campaign_rev_table_name,
-                [   
-                    'revenue' => $revenue,
-                    'purchases' => $purchases,
-                    'date' => date('Y-m-d', strtotime($date)),
-                ],
-                [
-                    'transactionId' => $transactionId,
-                    'campaignId' => $campaignId,
-                    'division' => $division,
-                    
-                ]
+        if (is_string($ga_data)) {
+            wiz_log("GA Revenue Sync Error: Invalid response format - " . $ga_data);
+            return $ga_data; 
+        }
+        
+        if (empty($ga_data) || !is_array($ga_data)) {
+            wiz_log("GA Revenue Sync Error: No valid data returned from Google Sheets");
+            return "No data returned from GA revenue sheet.";
+        }
+        
+        wiz_log("GA Revenue Sync: Retrieved " . count($ga_data) . " rows from Google Sheets");
+
+        $campaignRevenueAccumulator = [];
+        $processed_rows = 0;
+        $skipped_rows = 0;
+
+        // Loop GA data
+        foreach ($ga_data as $row) {
+            if (!isset($row['date']) || !isset($row['transactionId'])) {
+                $skipped_rows++;
+                continue;
+            }
+            
+            $processed_rows++;
+            $transactionId = (string) ($row['transactionId']);
+            $date = (string) ($row['date']);
+            $campaignId = (string) ($row['campaignId']);
+            $division = (string) ($row['division']);
+
+            
+            // Remove commas from the revenue and purchases values
+            $revenue = (float) str_replace(',', '', $row['revenue']) ?? 0;
+            $purchases = (float) str_replace(',', '', $row['purchases']) ?? 0;
+
+            // Check if a record with the same transactionId exists in the table
+            $existing_record = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT * FROM $ga_campaign_rev_table_name WHERE transactionId = %s AND campaignId = %s AND division = %s",
+                    $transactionId,
+                    $campaignId,
+                    $division
+                )
             );
-            $countUpdates++;
+
+            if ($existing_record) {
+                // Update the existing record
+                $wpdb->update(
+                    $ga_campaign_rev_table_name,
+                    [   
+                        'revenue' => $revenue,
+                        'purchases' => $purchases,
+                        'date' => date('Y-m-d', strtotime($date)),
+                    ],
+                    [
+                        'transactionId' => $transactionId,
+                        'campaignId' => $campaignId,
+                        'division' => $division,
+                        
+                    ]
+                );
+                $countUpdates++;
+            } else {
+                // Insert a new record
+                $wpdb->insert(
+                    $ga_campaign_rev_table_name,
+                    [
+                        'transactionId' => $transactionId,
+                        'date' => date('Y-m-d', strtotime($date)),
+                        'campaignId' => $campaignId,
+                        'division' => $division,
+                        'revenue' => $revenue,
+                        'purchases' => $purchases
+                    ]
+                );
+                $countInserts++;
+            }
+
+            // Accumulate the revenue for this campaign
+            if (isset($campaignRevenueAccumulator[$campaignId])) {
+                $campaignRevenueAccumulator[$campaignId] += $revenue;
+            } else {
+                $campaignRevenueAccumulator[$campaignId] = $revenue;
+            }
+
+        }
+        
+        if ($skipped_rows > 0) {
+            wiz_log("GA Revenue Sync: Processed $processed_rows rows, skipped $skipped_rows rows due to missing data");
         } else {
-            // Insert a new record
-            $wpdb->insert(
-                $ga_campaign_rev_table_name,
-                [
-                    'transactionId' => $transactionId,
-                    'date' => date('Y-m-d', strtotime($date)),
-                    'campaignId' => $campaignId,
-                    'division' => $division,
-                    'revenue' => $revenue,
-                    'purchases' => $purchases
-                ]
-            );
-            $countInserts++;
+            wiz_log("GA Revenue Sync: Processed $processed_rows rows successfully");
         }
 
-        // Accumulate the revenue for this campaign
-        if (isset($campaignRevenueAccumulator[$campaignId])) {
-            $campaignRevenueAccumulator[$campaignId] += $revenue;
-        } else {
-            $campaignRevenueAccumulator[$campaignId] = $revenue;
+        // Update the metrics database with the accumulated revenue for each campaign
+        $metrics_updated = 0;
+        foreach ($campaignRevenueAccumulator as $campaignId => $totalRevenue) {
+            $wizCampaign = get_idwiz_campaign($campaignId);
+            if ($wizCampaign) {
+                $wpdb->update(
+                    $wpdb->prefix . 'idemailwiz_metrics',
+                    ['gaRevenue' => $totalRevenue],
+                    ['id' => $campaignId]
+                );
+                $metrics_updated++;
+            }
         }
-
+        
+        wiz_log("GA Revenue Sync Complete: $countInserts inserts, $countUpdates updates, $metrics_updated campaign metrics updated");
+        return "GA campaign revenue data synced successfully.";
+        
+    } catch (Exception $e) {
+        wiz_log("GA Revenue Sync Error: " . $e->getMessage());
+        return "Error during GA revenue sync: " . $e->getMessage();
     }
-
-    // Update the metrics database with the accumulated revenue for each campaign
-    foreach ($campaignRevenueAccumulator as $campaignId => $totalRevenue) {
-        $wizCampaign = get_idwiz_campaign($campaignId);
-        if ($wizCampaign) {
-            $wpdb->update(
-                $wpdb->prefix . 'idemailwiz_metrics',
-                ['gaRevenue' => $totalRevenue],
-                ['id' => $campaignId]
-            );
-        }
-    }
-
-    wiz_log("GA campaign revenue data synced successfully. $countUpdates updates and $countInserts inserts performed");
-    return "GA campaign revenue data synced successfully.";
 }
 
 
@@ -122,8 +152,7 @@ function sync_ga_campaign_revenue_data()
 
 function idwiz_google_sheet_api_curl_call($url)
 {
-    $settings = get_option('idemailwiz_settings', array());
-    $bearer_token = $settings['ga_revenue_api_sheet_bearer_token'];
+    $bearer_token = get_sync_setting('ga_revenue_api_sheet_bearer_token');
 
     // Initialize cURL session
     $ch = curl_init();

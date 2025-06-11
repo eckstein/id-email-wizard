@@ -550,8 +550,13 @@ function get_available_presets() {
         ],
         'nearby_locations_with_course_recs' => [
             'name' => 'Course Recs with Nearby Locations',
-            'description' => 'Returns personalized course recommendations with nearby locations nested within each course. Each course includes available locations and their session weeks, making it easy to loop through course recommendations in templates.',
+            'description' => 'Returns personalized course recommendations with nearby locations nested within each course. Each course includes available locations, session weeks, and real-time availability data with capacity information.',
             'group' => 'Course & Location Data'
+        ],
+        'current_year_continuity_recs' => [
+            'name' => 'Current Year Continuity Recommendations',
+            'group' => 'Course Continuity',
+            'description' => 'For current clients who bought camp in current fiscal year. Gets course recommendations using FY24 mapping assumptions for their most recent course, includes current course continuation and recommendations with capacity data for Iterable dynamic content.'
         ],
     ];
 }
@@ -807,6 +812,57 @@ function process_preset_value($preset_name, $student_data) {
                             $location_data['sessionWeeks'] = []; // Default to empty if not found for this course type
                         }
                         
+                        // Get capacity data for this course at this location
+                        $capacity_data = get_idwiz_course_capacity([
+                            'locationID' => $location['id'],
+                            'productID' => $course_id,
+                            'sortBy' => 'sessionStartDate',
+                            'sort' => 'ASC'
+                        ]);
+                        
+                        // Add capacity information to the location
+                        if (!empty($capacity_data)) {
+                            $sessions = [];
+                            $low_availability_sessions = [];
+                            
+                            foreach ($capacity_data as $session) {
+                                $session_info = [
+                                    'sessionStartDate' => $session['sessionStartDate'],
+                                    'courseStartDate' => $session['courseStartDate'],
+                                    'minimumAge' => $session['minimumAge'],
+                                    'maximumAge' => $session['maximumAge'],
+                                    'courseCapacityTotal' => $session['courseCapacityTotal'],
+                                    'courseSeatsLeft' => $session['courseSeatsLeft'],
+                                    'availability_status' => get_availability_status($session['courseSeatsLeft'], $session['courseCapacityTotal'])
+                                ];
+                                
+                                $sessions[] = $session_info;
+                                
+                                // Track sessions with low availability (less than 25% or under 3 seats)
+                                $seats_left = intval($session['courseSeatsLeft']);
+                                $total_capacity = intval($session['courseCapacityTotal']);
+                                $availability_percentage = $total_capacity > 0 ? ($seats_left / $total_capacity) * 100 : 0;
+                                
+                                if ($seats_left <= 3 || $availability_percentage < 25) {
+                                    $low_availability_sessions[] = $session_info;
+                                }
+                            }
+                            
+                            $location_data['capacity'] = [
+                                'total_sessions' => count($sessions),
+                                'low_availability_count' => count($low_availability_sessions),
+                                'sessions' => $sessions,
+                                'low_availability_sessions' => $low_availability_sessions
+                            ];
+                        } else {
+                            $location_data['capacity'] = [
+                                'total_sessions' => 0,
+                                'low_availability_count' => 0,
+                                'sessions' => [],
+                                'low_availability_sessions' => []
+                            ];
+                        }
+                        
                         $matches_found++;
                         
                         // Add this location to the course's locations array
@@ -843,6 +899,9 @@ function process_preset_value($preset_name, $student_data) {
                 'courses' => $course_recs_with_locations
             ];
         
+        case 'current_year_continuity_recs':
+            return get_current_year_continuity_recs($student_data);
+        
         default:
             return null;
     }
@@ -867,6 +926,209 @@ function get_most_recent_purchase_date($student_data) {
     );
 
     return $purchase ? $purchase->purchaseDate : null;
+}
+
+/**
+ * Gets current year continuity recommendations for students who bought camp in current fiscal year
+ * Uses FY24 mapping assumptions to get recommendations for their most recent course
+ */
+function get_current_year_continuity_recs($student_data) {
+    global $wpdb;
+    
+    // Get student account number
+    $student_account_number = $student_data['studentAccountNumber'] ?? $student_data['StudentAccountNumber'] ?? null;
+    if (!$student_account_number) {
+        return null;
+    }
+    
+    // Calculate current fiscal year (FY25 runs from 2024-11-01 to 2025-10-31)
+    $current_date = new DateTime();
+    $year = intval($current_date->format('Y'));
+    $month = intval($current_date->format('n'));
+    $current_fy_year = ($month >= 11) ? $year + 1 : $year;
+    $fy_start = ($current_fy_year - 1) . '-11-01';
+    $fy_end = $current_fy_year . '-10-31';
+    
+    // Get the student's most recent in-person purchase in current fiscal year
+    $current_purchase = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT p.*, uf.studentDOB, uf.StudentFirstName, p.shoppingCartItems_sessionStartDateNonOpl
+            FROM {$wpdb->prefix}idemailwiz_purchases p
+            JOIN {$wpdb->prefix}idemailwiz_userfeed uf ON p.shoppingCartItems_studentAccountNumber = uf.studentAccountNumber
+            WHERE p.shoppingCartItems_studentAccountNumber = %s 
+            AND p.shoppingCartItems_divisionId IN (22, 25)
+            AND p.purchaseDate BETWEEN %s AND %s
+            ORDER BY p.purchaseDate DESC 
+            LIMIT 1",
+            $student_account_number,
+            $fy_start,
+            $fy_end
+        ),
+        ARRAY_A
+    );
+    
+    if (!$current_purchase) {
+        return null; // No current fiscal year in-person purchase found
+    }
+    
+    // Get the current course details
+    $current_course = get_course_details_by_id($current_purchase['shoppingCartItems_id']);
+    if (is_wp_error($current_course) || !isset($current_course->course_recs)) {
+        return null;
+    }
+    
+    // Calculate student age
+    $student_age = get_student_age($student_data);
+    
+    // Get location information
+    $location_name = $current_purchase['shoppingCartItems_locationName'];
+    $location_info = null;
+    
+    if ($location_name) {
+        $location_info = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id, name, locationStatus, address, locationUrl, locationDesc, overnightOffered
+                FROM {$wpdb->prefix}idemailwiz_locations 
+                WHERE name = %s 
+                AND locationStatus IN ('Open', 'Registration opens soon')",
+                $location_name
+            ),
+            ARRAY_A
+        );
+    }
+    
+    // Determine age-up logic - treat as if this was a FY24 purchase
+    $needs_age_up = determine_age_up_need($student_age, $student_age, $current_course);
+    
+    // Get recommendations using FY24 mapping logic
+    $division_key = ($current_purchase['shoppingCartItems_divisionId'] == 22) ? 'idta' : 'idtc';
+    $recommendations = get_course_recommendations($current_course, $division_key, $needs_age_up);
+    
+    // Get capacity data for current course (continuation)
+    $current_course_capacity = [];
+    if ($location_info) {
+        $capacity_data = get_idwiz_course_capacity([
+            'locationID' => $location_info['id'],
+            'productID' => $current_course->id,
+            'sortBy' => 'sessionStartDate',
+            'sort' => 'ASC'
+        ]);
+        
+        if (!empty($capacity_data)) {
+            foreach ($capacity_data as $session) {
+                if (!empty($session['sessionStartDate'])) {
+                    $session_start = new DateTime($session['sessionStartDate']);
+                    $monday_start = $session_start->format('Y-m-d');
+                    
+                    // Only include future sessions
+                    if ($session_start > $current_date) {
+                        $current_course_capacity[] = [
+                            'monday_start' => $monday_start,
+                            'seats_left' => intval($session['courseSeatsLeft']),
+                            'total_capacity' => intval($session['courseCapacityTotal']),
+                            'course_start_date' => $session['courseStartDate'],
+                            'availability_status' => get_availability_status($session['courseSeatsLeft'], $session['courseCapacityTotal'])
+                        ];
+                    }
+                }
+            }
+        }
+    }
+    
+    // Get capacity data for recommended courses
+    $recommendations_with_capacity = [];
+    if (!empty($recommendations) && $location_info) {
+        foreach ($recommendations as $rec_course) {
+            $rec_capacity_data = get_idwiz_course_capacity([
+                'locationID' => $location_info['id'],
+                'productID' => $rec_course['id'],
+                'sortBy' => 'sessionStartDate',
+                'sort' => 'ASC'
+            ]);
+            
+            $rec_capacity = [];
+            if (!empty($rec_capacity_data)) {
+                foreach ($rec_capacity_data as $session) {
+                    if (!empty($session['sessionStartDate'])) {
+                        $session_start = new DateTime($session['sessionStartDate']);
+                        $monday_start = $session_start->format('Y-m-d');
+                        
+                        // Only include future sessions
+                        if ($session_start > $current_date) {
+                            $rec_capacity[] = [
+                                'monday_start' => $monday_start,
+                                'seats_left' => intval($session['courseSeatsLeft']),
+                                'total_capacity' => intval($session['courseCapacityTotal']),
+                                'course_start_date' => $session['courseStartDate'],
+                                'availability_status' => get_availability_status($session['courseSeatsLeft'], $session['courseCapacityTotal'])
+                            ];
+                        }
+                    }
+                }
+            }
+            
+            $recommendations_with_capacity[] = [
+                'id' => $rec_course['id'],
+                'name' => $rec_course['title'],
+                'description' => $rec_course['courseDesc'],
+                'abbreviation' => $rec_course['abbreviation'],
+                'minAge' => $rec_course['minAge'],
+                'maxAge' => $rec_course['maxAge'],
+                'courseUrl' => $rec_course['courseUrl'],
+                'capacity' => [
+                    'available_sessions' => $rec_capacity,
+                    'total_sessions' => count($rec_capacity)
+                ]
+            ];
+        }
+    }
+    
+    // Prepare location data
+    $location_data = null;
+    if ($location_info) {
+        $address = !empty($location_info['address']) ? unserialize($location_info['address']) : null;
+        $location_data = [
+            'id' => $location_info['id'],
+            'name' => $location_info['name'],
+            'status' => $location_info['locationStatus'],
+            'url' => $location_info['locationUrl'],
+            'address' => $address,
+            'locationDesc' => $location_info['locationDesc'],
+            'overnightOffered' => $location_info['overnightOffered'] ?? 'No'
+        ];
+    }
+    
+    // Prepare response structure optimized for Iterable template
+    return [
+        'student_info' => [
+            'name' => $current_purchase['StudentFirstName'] ?? '',
+            'account_number' => $student_account_number,
+            'age' => $student_age
+        ],
+        'current_course' => [
+            'id' => $current_course->id,
+            'name' => $current_course->title,
+            'description' => $current_course->courseDesc,
+            'abbreviation' => $current_course->abbreviation,
+            'minAge' => $current_course->minAge,
+            'maxAge' => $current_course->maxAge,
+            'courseUrl' => $current_course->courseUrl,
+            'purchase_date' => $current_purchase['purchaseDate'],
+            'session_start_date' => $current_purchase['shoppingCartItems_sessionStartDateNonOpl'] ?? null,
+            'capacity' => [
+                'available_sessions' => $current_course_capacity,
+                'total_sessions' => count($current_course_capacity)
+            ]
+        ],
+        'location' => $location_data,
+        'recommendations' => $recommendations_with_capacity,
+        'metadata' => [
+            'total_recommendations' => count($recommendations_with_capacity),
+            'age_up' => $needs_age_up,
+            'fiscal_year' => 'fy' . substr($current_fy_year, -2),
+            'mapping_source' => 'fy24_assumptions'
+        ]
+    ];
 }
 
 /**
@@ -2232,6 +2494,74 @@ function get_student_age($student_data) {
 }
 
 /**
+ * Determine availability status based on seats left and total capacity
+ */
+function get_availability_status($seats_left, $total_capacity) {
+    $seats_left = intval($seats_left);
+    $total_capacity = intval($total_capacity);
+    
+    if ($total_capacity <= 0) {
+        return 'unknown';
+    }
+    
+    $availability_percentage = ($seats_left / $total_capacity) * 100;
+    
+    if ($seats_left <= 0) {
+        return 'sold_out';
+    } elseif ($seats_left <= 3 || $availability_percentage < 25) {
+        return 'low_availability';
+    } elseif ($availability_percentage < 50) {
+        return 'moderate_availability';
+    } else {
+        return 'high_availability';
+    }
+}
+
+/**
+ * Clean up corrupted transients that might cause database errors
+ */
+function idwiz_cleanup_corrupted_transients() {
+    global $wpdb;
+    
+    // List of transients that might cause issues
+    $problematic_transients = [
+        'idwiz_api_indexes_checked',
+        'idwiz_api_request_times'
+    ];
+    
+    foreach ($problematic_transients as $transient) {
+        // Use direct database queries to avoid WordPress transient functions that might be causing issues
+        try {
+            // Delete all variants of this transient (including _transient_ and _transient_timeout_ prefixes)
+            $patterns = [
+                '_transient_' . $transient,
+                '_transient_timeout_' . $transient
+            ];
+            
+            foreach ($patterns as $pattern) {
+                $wpdb->query($wpdb->prepare(
+                    "DELETE FROM {$wpdb->options} WHERE option_name = %s",
+                    $pattern
+                ));
+            }
+            
+            // Also clean up any potential wildcards
+            $wpdb->query($wpdb->prepare(
+                "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+                '%' . $transient . '%'
+            ));
+            
+        } catch (Exception $e) {
+            // Log but don't fail - this is a cleanup function
+            error_log('ID Email Wiz: Error cleaning transient ' . $transient . ': ' . $e->getMessage());
+        }
+    }
+    
+    // Clear any WordPress object cache for these transients
+    wp_cache_flush();
+}
+
+/**
  * Ensure necessary database indexes exist for API endpoints
  * This helps speed up commonly used queries
  */
@@ -2239,9 +2569,15 @@ function idwiz_ensure_api_indexes() {
     global $wpdb;
     
     // Only run this periodically, using a transient to limit frequency
-    $indexes_checked = get_transient('idwiz_api_indexes_checked');
-    if ($indexes_checked) {
-        return;
+    // Use try-catch to handle transient errors gracefully
+    try {
+        $indexes_checked = get_transient('idwiz_api_indexes_checked');
+        if ($indexes_checked) {
+            return;
+        }
+    } catch (Exception $e) {
+        // If transient still fails after cleanup, just continue without transient check
+        error_log('ID Email Wiz: Transient error in idwiz_ensure_api_indexes after cleanup: ' . $e->getMessage());
     }
     
     // List of indexes to check and create if missing
@@ -2299,12 +2635,28 @@ function idwiz_ensure_api_indexes() {
         }
     }
     
-    // Set transient to prevent frequent checking
-    set_transient('idwiz_api_indexes_checked', true, DAY_IN_SECONDS);
+    // Set transient to prevent frequent checking - only check once per week now
+    try {
+        set_transient('idwiz_api_indexes_checked', true, WEEK_IN_SECONDS);
+    } catch (Exception $e) {
+        // If setting transient fails, just log and continue
+        error_log('ID Email Wiz: Unable to set transient: ' . $e->getMessage());
+    }
 }
 
-// Add index checking with low priority (runs after tables are created)
-add_action('init', 'idwiz_ensure_api_indexes', 999);
+// Add index checking - much safer approach, only when really needed
+add_action('admin_init', function() {
+    // Only run in admin area, and only once per day maximum
+    if (current_user_can('manage_options')) {
+        idwiz_ensure_api_indexes();
+    }
+}, 999);
+
+// Also run when REST API endpoints are first registered (much less frequent)
+add_action('rest_api_init', function() {
+    // Only run during REST API initialization, with transient protection
+    idwiz_ensure_api_indexes();
+}, 999);
 
 /**
  * Disables unnecessary WordPress operations during API requests
@@ -2554,7 +2906,8 @@ function get_compatible_presets($data_source = 'user_feed') {
         'idta_course_recs',
         'vtc_course_recs',
         'ota_course_recs',
-        'opl_course_recs'
+        'opl_course_recs',
+        'current_year_continuity_recs'
     ];
     
     // Presets that work with parent/user data (user_profile)
@@ -2644,5 +2997,6 @@ function idwiz_get_test_accounts_callback() {
     
     wp_send_json_success($options);
 }
+
 
 
