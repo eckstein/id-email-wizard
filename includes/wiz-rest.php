@@ -1094,7 +1094,7 @@ function get_current_year_continuity_recs($student_data) {
             'url' => $location_info['locationUrl'],
             'address' => $address,
             'locationDesc' => $location_info['locationDesc'],
-            'overnightOffered' => $location_info['overnightOffered'] ?? 'No' 
+            'overnightOffered' => $location_info['overnightOffered'] ?? 'No'
         ];
     }
     
@@ -1669,8 +1669,7 @@ function batch_process_preset_values($presets_to_process, $student_data) {
     // Group related presets that can be processed together
     $location_presets = array_intersect(['last_location', 'nearby_locations'], $presets_to_process);
     $course_rec_presets = array_filter($presets_to_process, function($preset) {
-        // Exclude current_year_continuity_recs as it has its own dedicated function
-        return strpos($preset, 'course_recs') !== false && $preset !== 'current_year_continuity_recs';
+        return strpos($preset, 'course_recs') !== false;
     });
     $purchase_presets = array_intersect(['most_recent_purchase'], $presets_to_process);
     
@@ -1851,13 +1850,43 @@ function generate_endpoint_payload($endpoint, $feed_data, $presets, $endpoint_co
     // Start with the base feed_data
     $payload['data'] = $feed_data;
     
+    // Special handling for current_year_continuity_recs preset to ensure consistent structure
+    if (isset($presets['current_year_continuity_recs']) && $presets['current_year_continuity_recs'] !== null) {
+        $continuity_data = $presets['current_year_continuity_recs'];
+        
+        // Always ensure current_course is at the root level for this preset
+        if (isset($continuity_data['current_course'])) {
+            $payload['data']['current_course'] = $continuity_data['current_course'];
+        }
+        if (isset($continuity_data['location'])) {
+            $payload['data']['location'] = $continuity_data['location'];
+        }
+        if (isset($continuity_data['recommendations'])) {
+            $payload['data']['recommendations'] = $continuity_data['recommendations'];
+        }
+        if (isset($continuity_data['student_info'])) {
+            $payload['data']['student_info'] = $continuity_data['student_info'];
+        }
+        if (isset($continuity_data['metadata'])) {
+            $payload['data']['metadata'] = $continuity_data['metadata'];
+        }
+    }
+    
     // Apply data mappings if configured, potentially overwriting base data
     if (!empty($endpoint_config['data_mapping'])) {
         foreach ($endpoint_config['data_mapping'] as $key => $mapping) {
             if ($mapping['type'] === 'static') {
                 $payload['data'][$key] = $mapping['value'];
             } else if ($mapping['type'] === 'preset' && isset($presets[$mapping['value']])) {
-                $payload['data'][$key] = $presets[$mapping['value']];
+                // For current_year_continuity_recs preset, don't overwrite the structure we just set
+                if ($mapping['value'] === 'current_year_continuity_recs') {
+                    // If mapping to a specific key that's not the full preset structure, only map that key
+                    if (!in_array($key, ['current_course', 'location', 'recommendations', 'student_info', 'metadata'])) {
+                        $payload['data'][$key] = $presets[$mapping['value']];
+                    }
+                } else {
+                    $payload['data'][$key] = $presets[$mapping['value']];
+                }
             } else if ($mapping['type'] === 'preset') {
                 // If a preset is mapped but not found/null, ensure the key exists with null value
                 $payload['data'][$key] = null;
@@ -2166,7 +2195,7 @@ function idwiz_get_user_data_for_preview() {
         return;
     }
     
-    error_log('Preview request for account number: ' . $account_number);
+    
     
     // Get endpoint name and other parameters
     $endpoint = isset($_POST['endpoint']) ? sanitize_text_field($_POST['endpoint']) : '';
@@ -2179,7 +2208,7 @@ function idwiz_get_user_data_for_preview() {
         'data_mapping' => $data_mapping
     ];
     
-    error_log('Using base data source: ' . $base_data_source);
+   
 
     global $wpdb;
     
@@ -2244,7 +2273,7 @@ function idwiz_get_user_data_for_preview() {
             
             // Get list of compatible presets for this data source
             $compatible_presets = get_compatible_presets($base_data_source);
-            error_log('Compatible presets for ' . $base_data_source . ': ' . implode(', ', $compatible_presets));
+            
             
             // Process each compatible preset
             foreach ($compatible_presets as $preset) {
