@@ -1850,43 +1850,13 @@ function generate_endpoint_payload($endpoint, $feed_data, $presets, $endpoint_co
     // Start with the base feed_data
     $payload['data'] = $feed_data;
     
-    // Special handling for current_year_continuity_recs preset to ensure consistent structure
-    if (isset($presets['current_year_continuity_recs']) && $presets['current_year_continuity_recs'] !== null) {
-        $continuity_data = $presets['current_year_continuity_recs'];
-        
-        // Always ensure current_course is at the root level for this preset
-        if (isset($continuity_data['current_course'])) {
-            $payload['data']['current_course'] = $continuity_data['current_course'];
-        }
-        if (isset($continuity_data['location'])) {
-            $payload['data']['location'] = $continuity_data['location'];
-        }
-        if (isset($continuity_data['recommendations'])) {
-            $payload['data']['recommendations'] = $continuity_data['recommendations'];
-        }
-        if (isset($continuity_data['student_info'])) {
-            $payload['data']['student_info'] = $continuity_data['student_info'];
-        }
-        if (isset($continuity_data['metadata'])) {
-            $payload['data']['metadata'] = $continuity_data['metadata'];
-        }
-    }
-    
     // Apply data mappings if configured, potentially overwriting base data
     if (!empty($endpoint_config['data_mapping'])) {
         foreach ($endpoint_config['data_mapping'] as $key => $mapping) {
             if ($mapping['type'] === 'static') {
                 $payload['data'][$key] = $mapping['value'];
             } else if ($mapping['type'] === 'preset' && isset($presets[$mapping['value']])) {
-                // For current_year_continuity_recs preset, don't overwrite the structure we just set
-                if ($mapping['value'] === 'current_year_continuity_recs') {
-                    // If mapping to a specific key that's not the full preset structure, only map that key
-                    if (!in_array($key, ['current_course', 'location', 'recommendations', 'student_info', 'metadata'])) {
-                        $payload['data'][$key] = $presets[$mapping['value']];
-                    }
-                } else {
-                    $payload['data'][$key] = $presets[$mapping['value']];
-                }
+                $payload['data'][$key] = $presets[$mapping['value']];
             } else if ($mapping['type'] === 'preset') {
                 // If a preset is mapped but not found/null, ensure the key exists with null value
                 $payload['data'][$key] = null;
@@ -2208,7 +2178,7 @@ function idwiz_get_user_data_for_preview() {
         'data_mapping' => $data_mapping
     ];
     
-   
+    
 
     global $wpdb;
     
@@ -2273,7 +2243,7 @@ function idwiz_get_user_data_for_preview() {
             
             // Get list of compatible presets for this data source
             $compatible_presets = get_compatible_presets($base_data_source);
-            
+           
             
             // Process each compatible preset
             foreach ($compatible_presets as $preset) {
