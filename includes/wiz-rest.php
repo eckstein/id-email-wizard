@@ -550,7 +550,7 @@ function get_available_presets() {
         ],
         'nearby_locations_with_course_recs' => [
             'name' => 'Course Recs with Nearby Locations',
-            'description' => 'Returns personalized course recommendations with nearby locations nested within each course. Each course includes available locations, session weeks, and real-time availability data with capacity information.',
+            'description' => 'Returns personalized course recommendations with nearby locations nested within each course. Each course includes available locations, session weeks, and real-time availability data with capacity information. Uses fiscal year mapping for recent clients and direct course mapping for former clients.',
             'group' => 'Course & Location Data'
         ],
         'current_year_continuity_recs' => [
@@ -634,8 +634,68 @@ function process_preset_value($preset_name, $student_data) {
             // Get student age
             $student_age = get_student_age($student_data);
             
-            // Get course recommendations based on the student's most recent *in-person* purchase
+            // Get student account number
+            $student_account_number = $student_data['studentAccountNumber'] ?? $student_data['StudentAccountNumber'] ?? null;
+            if (!$student_account_number) {
+                return null;
+            }
+            
+            // First try fiscal year-based recommendations (for recent clients)
             $ipc_recommendations = get_division_course_recommendations($student_data, 'ipc');
+            
+            // If no fiscal year-based recommendations found, fall back to direct course lookup (for former clients)
+            if (empty($ipc_recommendations['recs'])) {
+                // Get the student's most recent in-person purchase (regardless of fiscal year)
+                $latest_purchase = $wpdb->get_row(
+                    $wpdb->prepare(
+                        "SELECT p.*, uf.studentDOB 
+                        FROM {$wpdb->prefix}idemailwiz_purchases p
+                        JOIN {$wpdb->prefix}idemailwiz_userfeed uf ON p.shoppingCartItems_studentAccountNumber = uf.studentAccountNumber
+                        WHERE p.shoppingCartItems_studentAccountNumber = %s 
+                        AND p.shoppingCartItems_divisionId IN (22, 25)
+                        ORDER BY p.purchaseDate DESC 
+                        LIMIT 1",
+                        $student_account_number
+                    ),
+                    ARRAY_A
+                );
+                
+                if ($latest_purchase) {
+                    // Get the course details
+                    $current_course = get_course_details_by_id($latest_purchase['shoppingCartItems_id']);
+                    
+                    if (!is_wp_error($current_course) && isset($current_course->course_recs)) {
+                        // Determine age-up logic
+                        $needs_age_up = determine_age_up_need($student_age, $student_age, $current_course);
+                        
+                        // Get recommendations using direct course mapping (ignoring fiscal year)
+                        $division_key = ($latest_purchase['shoppingCartItems_divisionId'] == 22) ? 'idta' : 'idtc';
+                        $direct_recommendations = get_course_recommendations($current_course, $division_key, $needs_age_up);
+                        
+                        // Create the recommendations structure similar to fiscal year version
+                        $ipc_recommendations = [
+                            'recs' => $direct_recommendations,
+                            'total_count' => count($direct_recommendations),
+                            'age_up' => $needs_age_up,
+                            'student_age' => $student_age,
+                            'from_fiscal_year' => 'legacy',
+                            'to_fiscal_year' => 'direct_mapping',
+                            'last_purchase' => [
+                                'date' => $latest_purchase['purchaseDate'],
+                                'course_id' => $latest_purchase['shoppingCartItems_id'],
+                                'course_name' => $current_course->title,
+                                'abbreviation' => $current_course->abbreviation,
+                                'age_range' => $current_course->minAge . '-' . $current_course->maxAge,
+                                'courseUrl' => $current_course->courseUrl ?? '',
+                                'courseDesc' => $current_course->courseDesc ?? null,
+                                'division' => $latest_purchase['shoppingCartItems_divisionName'],
+                                'division_id' => $latest_purchase['shoppingCartItems_divisionId'],
+                                'location' => $latest_purchase['shoppingCartItems_locationName'] ?? null
+                            ]
+                        ];
+                    }
+                }
+            }
             
             // Check if age-up is needed
             $needs_age_up = $ipc_recommendations['age_up'] ?? false;
@@ -892,6 +952,7 @@ function process_preset_value($preset_name, $student_data) {
                     'student_age' => $ipc_recommendations['student_age'] ?? $student_age,
                     'from_fiscal_year' => $ipc_recommendations['from_fiscal_year'] ?? null,
                     'to_fiscal_year' => $ipc_recommendations['to_fiscal_year'] ?? null,
+                    'mapping_method' => ($ipc_recommendations['from_fiscal_year'] ?? null) === 'legacy' ? 'direct_course_mapping' : 'fiscal_year_mapping',
                     'age_up' => $needs_age_up, // Add age_up flag to top-level metadata
                     'recommendation_counts' => $metadata
                 ],
