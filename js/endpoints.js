@@ -400,17 +400,20 @@ jQuery(document).ready(function ($) {
             'last_location',
             'nearby_locations',
             'nearby_locations_with_course_recs',
+            'sessions_at_location_by_date',
             'ipc_course_recs',
             'idtc_course_recs',
             'idta_course_recs',
             'vtc_course_recs',
             'ota_course_recs',
-            'opl_course_recs'
+            'opl_course_recs',
+            'current_year_continuity_recs'
         ];
         
         // Presets that work with parent/user data (user_profile)
         const parentPresets = [
-            'location_with_courses'
+            'location_with_courses',
+            'sessions_at_location_by_date'
         ];
         
         const compatiblePresetKeys = (baseDataSource === 'user_profile') ? parentPresets : studentPresets;

@@ -518,6 +518,11 @@ function get_available_presets() {
             'group' => 'Location Details',
             'description' => 'Returns location data and available courses. For students, prioritizes their most recent camp location; falls back to the parent account\'s leadLocationId if no previous location found. For parent accounts, uses the leadLocationId directly. Includes location details, address, and courses information.'
         ],
+        'sessions_at_location_by_date' => [
+            'name' => 'Sessions at Location by Date',
+            'group' => 'Location Details',
+            'description' => 'Returns session data organized by session weeks for a single location. Prioritizes student\'s previous location, falls back to lead location ID. Only returns future sessions for iDTC and iDTA divisions. Data is organized by session weeks rather than by courses.'
+        ],
         'ipc_course_recs' => [
             'name' => 'IPC Course Recs',
             'group' => 'Course Recs',
@@ -580,6 +585,8 @@ function process_preset_value($preset_name, $student_data) {
             return get_nearby_locations($student_data, 30); // 30 miles radius
         case 'location_with_courses':
             return get_location_with_courses($student_data);
+        case 'sessions_at_location_by_date':
+            return get_sessions_at_location_by_date($student_data);
         case 'ipc_course_recs':
             return get_division_course_recommendations($student_data, 'ipc');
         case 'idtc_course_recs':
@@ -1728,7 +1735,7 @@ function batch_process_preset_values($presets_to_process, $student_data) {
     $student_account_number = $student_data['studentAccountNumber'];
     
     // Group related presets that can be processed together
-    $location_presets = array_intersect(['last_location', 'nearby_locations'], $presets_to_process);
+    $location_presets = array_intersect(['last_location', 'nearby_locations', 'sessions_at_location_by_date'], $presets_to_process);
     $course_rec_presets = array_filter($presets_to_process, function($preset) {
         return strpos($preset, 'course_recs') !== false;
     });
@@ -1772,6 +1779,11 @@ function batch_process_preset_values($presets_to_process, $student_data) {
             if (in_array('nearby_locations', $presets_to_process)) {
                 $results['nearby_locations'] = get_nearby_locations($student_data, 30);
             }
+            
+            // Process sessions at location by date preset if requested
+            if (in_array('sessions_at_location_by_date', $presets_to_process)) {
+                $results['sessions_at_location_by_date'] = get_sessions_at_location_by_date($student_data);
+            }
         } else {
             // No location data found
             if (in_array('last_location', $presets_to_process)) {
@@ -1779,6 +1791,9 @@ function batch_process_preset_values($presets_to_process, $student_data) {
             }
             if (in_array('nearby_locations', $presets_to_process)) {
                 $results['nearby_locations'] = [];
+            }
+            if (in_array('sessions_at_location_by_date', $presets_to_process)) {
+                $results['sessions_at_location_by_date'] = null;
             }
         }
     }
@@ -2962,6 +2977,7 @@ function get_compatible_presets($data_source = 'user_feed') {
         'last_location',
         'nearby_locations',
         'nearby_locations_with_course_recs',
+        'sessions_at_location_by_date',
         'ipc_course_recs',
         'idtc_course_recs',
         'idta_course_recs',
@@ -2973,7 +2989,8 @@ function get_compatible_presets($data_source = 'user_feed') {
     
     // Presets that work with parent/user data (user_profile)
     $parent_presets = [
-        'location_with_courses'
+        'location_with_courses',
+        'sessions_at_location_by_date'
     ];
     
     // Return appropriate presets based on data source
@@ -3057,6 +3074,269 @@ function idwiz_get_test_accounts_callback() {
     }
     
     wp_send_json_success($options);
+}
+
+/**
+ * Gets session data organized by session weeks for a single location
+ * Prioritizes student's previous location, falls back to leadLocationId from parent account data
+ * Only returns future sessions for iDTC and iDTA divisions
+ */
+function get_sessions_at_location_by_date($user_data) {
+    global $wpdb;
+    
+    $location_id = null;
+    $location_source = 'unknown';
+    
+    // First priority: Try to get the student's last location
+    if (isset($user_data['studentAccountNumber']) || isset($user_data['StudentAccountNumber'])) {
+        $last_location = get_last_location($user_data);
+        
+        if ($last_location && isset($last_location['id']) && $last_location['id'] > 0) {
+            $location_id = intval($last_location['id']);
+            $location_source = 'student_previous_location';
+        } else {
+            // Fall back to parent's leadLocationId if student has no previous location
+            if (!empty($user_data['accountNumber'])) {
+                $parent = $wpdb->get_row(
+                    $wpdb->prepare(
+                        "SELECT leadLocationId FROM {$wpdb->prefix}idemailwiz_users WHERE accountNumber = %s LIMIT 1",
+                        $user_data['accountNumber']
+                    ),
+                    ARRAY_A
+                );
+                
+                if ($parent && isset($parent['leadLocationId']) && $parent['leadLocationId'] > 0) {
+                    $location_id = intval($parent['leadLocationId']);
+                    $location_source = 'parent_lead_location';
+                }
+            }
+        }
+    } 
+    // Handle parent account data
+    else {
+        // First try leadLocationId if it's valid
+        if (isset($user_data['leadLocationId']) && $user_data['leadLocationId'] > 0) {
+            $location_id = intval($user_data['leadLocationId']);
+            $location_source = 'parent_lead_location';
+        } 
+        // If leadLocationId is 0 or missing, check students' previous locations
+        else {
+            if (isset($user_data['studentArray']) && !empty($user_data['studentArray'])) {
+                $student_array = is_string($user_data['studentArray']) ? unserialize($user_data['studentArray']) : $user_data['studentArray'];
+                
+                if (is_array($student_array) && !empty($student_array)) {
+                    // Check each student for previous locations
+                    foreach ($student_array as $student_info) {
+                        if (isset($student_info['StudentAccountNumber'])) {
+                            // Create student data for get_last_location
+                            $temp_student_data = [
+                                'studentAccountNumber' => $student_info['StudentAccountNumber'],
+                                'StudentAccountNumber' => $student_info['StudentAccountNumber']
+                            ];
+                            
+                            $student_last_location = get_last_location($temp_student_data);
+                            
+                            if ($student_last_location && isset($student_last_location['id']) && $student_last_location['id'] > 0) {
+                                $location_id = intval($student_last_location['id']);
+                                $location_source = 'student_previous_location';
+                                break; // Use the first valid location found
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // Check if we have a valid location ID
+    if (empty($location_id) || $location_id <= 0) {
+        return null;
+    }
+    
+    // Get location details from the database
+    try {
+        $query = $wpdb->prepare(
+            "SELECT id, name, abbreviation, locationStatus, address, locationUrl, courses, sessionWeeks, divisions, locationDesc, overnightOffered 
+             FROM {$wpdb->prefix}idemailwiz_locations 
+             WHERE id = %d",
+            $location_id
+        );
+        
+        $location = $wpdb->get_row($query, ARRAY_A);
+        
+        // Check if we found the location but it's not active
+        if ($location && !in_array($location['locationStatus'], ['Open', 'Registration opens soon'])) {
+            return null;
+        }
+        
+        if (!$location) {
+            return null;
+        }
+        
+        // Return null if this is Online Campus (ID 324)
+        if ($location['id'] == 324) {
+            return null;
+        }
+        
+        // Safer unserialize function that returns empty array/null on failure
+        $safe_unserialize = function($data, $default = null) {
+            if (empty($data)) return $default;
+            
+            // Check if data is already unserialized
+            if (!is_string($data) || !preg_match('/^[aOs]:[0-9]+:/', $data)) {
+                return $data;
+            }
+            
+            $result = @unserialize($data);
+            return ($result !== false) ? $result : $default;
+        };
+        
+        // Unserialize location data
+        $address = $safe_unserialize($location['address'], null);
+        $courses_ids = $safe_unserialize($location['courses'], []);
+        $session_weeks = $safe_unserialize($location['sessionWeeks'], null);
+        $divisions = $safe_unserialize($location['divisions'], []);
+        
+        // Filter courses to only include iDTC (division_id = 25) and iDTA (division_id = 22)
+        $filtered_courses_ids = [];
+        if (!empty($courses_ids)) {
+            try {
+                // Make sure all course IDs are integers
+                $courses_ids = array_map('intval', $courses_ids);
+                $courses_ids = array_filter($courses_ids, function($id) { return $id > 0; });
+                
+                if (!empty($courses_ids)) {
+                    $placeholders = implode(',', array_fill(0, count($courses_ids), '%d'));
+                    $courses_query = $wpdb->prepare(
+                        "SELECT id, title, abbreviation, division_id, minAge, maxAge, courseUrl, courseDesc
+                         FROM {$wpdb->prefix}idemailwiz_courses 
+                         WHERE id IN ($placeholders)
+                         AND division_id IN (22, 25) -- Only iDTA (22) and iDTC (25)
+                         AND wizStatus = 'Active'",
+                        $courses_ids
+                    );
+                    
+                    $courses_data = $wpdb->get_results($courses_query, ARRAY_A);
+                    
+                    // Extract course IDs for capacity queries
+                    $filtered_courses_ids = array_column($courses_data, 'id');
+                }
+            } catch (Exception $e) {
+                $courses_data = [];
+            }
+        }
+        
+        // Get current date for filtering future sessions
+        $current_date = new DateTime();
+        $current_date_str = $current_date->format('Y-m-d');
+        
+        // Get capacity data for all courses at this location
+        $sessions_by_week = [];
+        $location_info = [
+            'id' => $location['id'],
+            'name' => $location['name'],
+            'abbreviation' => $location['abbreviation'],
+            'status' => $location['locationStatus'],
+            'url' => !empty($location['locationUrl']) ? $location['locationUrl'] : null,
+            'address' => $address,
+            'locationDesc' => $location['locationDesc'] ?? null,
+            'overnightOffered' => $location['overnightOffered'] ?? 'No',
+            'location_source' => $location_source
+        ];
+        
+        if (!empty($filtered_courses_ids)) {
+            // Get capacity data for all courses at once
+            $capacity_data = get_idwiz_course_capacity([
+                'locationID' => $location_id,
+                'productID' => $filtered_courses_ids,
+                'sortBy' => 'sessionStartDate',
+                'sort' => 'ASC'
+            ]);
+            
+            if (!empty($capacity_data)) {
+                // Create a map of course details for quick lookup
+                $course_details_map = [];
+                foreach ($courses_data as $course) {
+                    $course_details_map[$course['id']] = $course;
+                }
+                
+                // Organize sessions by week
+                foreach ($capacity_data as $session) {
+                    // Only include future sessions
+                    if (empty($session['sessionStartDate']) || $session['sessionStartDate'] < $current_date_str) {
+                        continue;
+                    }
+                    
+                    $course_id = $session['productID'];
+                    $course_details = $course_details_map[$course_id] ?? null;
+                    
+                    if (!$course_details) {
+                        continue;
+                    }
+                    
+                    // Determine course type (camps vs academies)
+                    $course_type = ($course_details['division_id'] == 22) ? 'academies' : 'camps';
+                    
+                    // Get session start date and create week key
+                    $session_start = new DateTime($session['sessionStartDate']);
+                    $week_key = $session_start->format('Y-m-d'); // Monday start date as key
+                    
+                    // Initialize week if it doesn't exist
+                    if (!isset($sessions_by_week[$week_key])) {
+                        $sessions_by_week[$week_key] = [
+                            'week_start' => $week_key,
+                            'week_start_formatted' => $session_start->format('F j, Y'),
+                            'camps' => [],
+                            'academies' => []
+                        ];
+                    }
+                    
+                    // Create session info
+                    $session_info = [
+                        'course_id' => $course_id,
+                        'course_name' => $course_details['title'],
+                        'course_abbreviation' => $course_details['abbreviation'],
+                        'course_url' => $course_details['courseUrl'] ?? '',
+                        'course_description' => $course_details['courseDesc'] ?? null,
+                        'min_age' => intval($course_details['minAge']),
+                        'max_age' => intval($course_details['maxAge']),
+                        'session_start_date' => $session['sessionStartDate'],
+                        'course_start_date' => $session['courseStartDate'],
+                        'seats_left' => intval($session['courseSeatsLeft']),
+                        'total_capacity' => intval($session['courseCapacityTotal']),
+                        'availability_status' => get_availability_status($session['courseSeatsLeft'], $session['courseCapacityTotal'])
+                    ];
+                    
+                    // Add to appropriate course type array
+                    $sessions_by_week[$week_key][$course_type][] = $session_info;
+                }
+            }
+        }
+        
+        // Sort weeks by date
+        ksort($sessions_by_week);
+        
+        // Convert to indexed array
+        $sessions_by_week = array_values($sessions_by_week);
+        
+        // Prepare the result
+        $result = [
+            'location' => $location_info,
+            'sessions_by_week' => $sessions_by_week,
+            'total_weeks' => count($sessions_by_week),
+            'metadata' => [
+                'location_source' => $location_source,
+                'courses_included' => count($filtered_courses_ids),
+                'future_sessions_only' => true,
+                'divisions_included' => ['iDTC', 'iDTA']
+            ]
+        ];
+        
+        return $result;
+        
+    } catch (Exception $e) {
+        return null;
+    }
 }
 
 
