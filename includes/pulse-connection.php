@@ -8,6 +8,19 @@ function wizPulse_get_all_locations()
     return $response['response']['results'];
 }
 
+// Helper function to log when manual values are preserved
+function wizPulse_log_preserved_manual_values($location_id, $field_name, $manual_value)
+{
+    wiz_log("Location Sync: Preserved manual $field_name value for location ID $location_id: " . substr($manual_value, 0, 50) . (strlen($manual_value) > 50 ? '...' : ''));
+}
+
+/**
+ * Sync locations from Pulse API to database
+ * 
+ * This function preserves manually set locationDesc values by only updating
+ * fields that have actually changed from the API data. It will not overwrite
+ * any manually entered locationDesc content.
+ */
 function wizPulse_map_locations_to_database()
 {
     wiz_log("Starting Pulse locations sync from API...");
@@ -25,52 +38,157 @@ function wizPulse_map_locations_to_database()
         
         wiz_log("Location Sync: Retrieved " . count($locations) . " locations from Pulse API");
         
-        $processed = 0;
-
-        foreach ($locations as $location) {
-            $id = $location['id'];
-            $name = $location['name'];
-            $abbreviation = $location['abbreviation'];
-            $addressArea = $location['addressArea'];
-            $firstSessionStartDate = date('Y-m-d', strtotime($location['firstSessionStartDate']));
-            $lastSessionEndDate = date('Y-m-d', strtotime($location['lastSessionEndDate']));
-
-            // Serialize courses and divisions
-            $courses = !empty($location['courses']) ? serialize($location['courses']) : null;
-            $divisions = !empty($location['divisions']) ? serialize($location['divisions']) : null;
-            $soldOutCourses = !empty($location['soldOutCourses']) ? serialize($location['soldOutCourses']) : null;
-
-            // Get locationStatus as text
-            $locationStatus = $location['locationStatus']['name'];
-
-            // Serialize address
-            $address = !empty($location['address']) ? serialize($location['address']) : null;
-
-            // Insert or update the data
-            $result = $wpdb->replace(
-                $table_name,
-                array(
-                    'id' => $id,
-                    'name' => $name,
-                    'abbreviation' => $abbreviation,
-                    'addressArea' => $addressArea,
-                    'firstSessionStartDate' => $firstSessionStartDate,
-                    'lastSessionEndDate' => $lastSessionEndDate,
-                    'courses' => $courses,
-                    'divisions' => $divisions,
-                    'soldOutCourses' => $soldOutCourses,
-                    'locationStatus' => $locationStatus,
-                    'address' => $address
-                ),
-                array('%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
-            );
-            
-            if ($result) {
-                $processed++;
-            }
+        // Get all existing locations in one query to avoid N+1 problem
+        $existing_locations = $wpdb->get_results("SELECT * FROM $table_name", ARRAY_A);
+        $existing_locations_by_id = array();
+        foreach ($existing_locations as $existing) {
+            $existing_locations_by_id[$existing['id']] = $existing;
         }
         
-        wiz_log("Location Sync: Successfully processed $processed locations from Pulse API");
+        $processed = 0;
+        $updated = 0;
+        $inserted = 0;
+        $preserved_manual_values = 0;
+        
+        // Start transaction for better performance
+        $wpdb->query('START TRANSACTION');
+
+        try {
+            foreach ($locations as $location) {
+                $id = $location['id'];
+                $name = $location['name'];
+                $abbreviation = $location['abbreviation'];
+                $addressArea = $location['addressArea'];
+                $firstSessionStartDate = date('Y-m-d', strtotime($location['firstSessionStartDate']));
+                $lastSessionEndDate = date('Y-m-d', strtotime($location['lastSessionEndDate']));
+
+                // Serialize courses and divisions
+                $courses = !empty($location['courses']) ? serialize($location['courses']) : null;
+                $divisions = !empty($location['divisions']) ? serialize($location['divisions']) : null;
+                $soldOutCourses = !empty($location['soldOutCourses']) ? serialize($location['soldOutCourses']) : null;
+
+                // Get locationStatus as text
+                $locationStatus = $location['locationStatus']['name'];
+
+                // Serialize address
+                $address = !empty($location['address']) ? serialize($location['address']) : null;
+
+                // Check if location already exists using the lookup array
+                if (isset($existing_locations_by_id[$id])) {
+                    $existing_location = $existing_locations_by_id[$id];
+                    
+                    // Log if we're preserving a manual locationDesc value
+                    if (!empty($existing_location['locationDesc'])) {
+                        wizPulse_log_preserved_manual_values($id, 'locationDesc', $existing_location['locationDesc']);
+                        $preserved_manual_values++;
+                    }
+                    
+                    // Only update fields that have actually changed
+                    $update_data = array();
+                    $update_formats = array();
+                    
+                    if ($existing_location['name'] !== $name) {
+                        $update_data['name'] = $name;
+                        $update_formats[] = '%s';
+                    }
+                    if ($existing_location['abbreviation'] !== $abbreviation) {
+                        $update_data['abbreviation'] = $abbreviation;
+                        $update_formats[] = '%s';
+                    }
+                    if ($existing_location['addressArea'] !== $addressArea) {
+                        $update_data['addressArea'] = $addressArea;
+                        $update_formats[] = '%s';
+                    }
+                    if ($existing_location['firstSessionStartDate'] !== $firstSessionStartDate) {
+                        $update_data['firstSessionStartDate'] = $firstSessionStartDate;
+                        $update_formats[] = '%s';
+                    }
+                    if ($existing_location['lastSessionEndDate'] !== $lastSessionEndDate) {
+                        $update_data['lastSessionEndDate'] = $lastSessionEndDate;
+                        $update_formats[] = '%s';
+                    }
+                    if ($existing_location['courses'] !== $courses) {
+                        $update_data['courses'] = $courses;
+                        $update_formats[] = '%s';
+                    }
+                    if ($existing_location['divisions'] !== $divisions) {
+                        $update_data['divisions'] = $divisions;
+                        $update_formats[] = '%s';
+                    }
+                    if ($existing_location['soldOutCourses'] !== $soldOutCourses) {
+                        $update_data['soldOutCourses'] = $soldOutCourses;
+                        $update_formats[] = '%s';
+                    }
+                    if ($existing_location['locationStatus'] !== $locationStatus) {
+                        $update_data['locationStatus'] = $locationStatus;
+                        $update_formats[] = '%s';
+                    }
+                    if ($existing_location['address'] !== $address) {
+                        $update_data['address'] = $address;
+                        $update_formats[] = '%s';
+                    }
+                    
+                    // Only perform update if there are changes
+                    if (!empty($update_data)) {
+                        $result = $wpdb->update(
+                            $table_name,
+                            $update_data,
+                            array('id' => $id),
+                            $update_formats,
+                            array('%d')
+                        );
+                        
+                        if ($result !== false) {
+                            $processed++;
+                            $updated++;
+                        }
+                    } else {
+                        // No changes needed, but still count as processed
+                        $processed++;
+                    }
+                } else {
+                    // Location doesn't exist - insert new record
+                    $result = $wpdb->insert(
+                        $table_name,
+                        array(
+                            'id' => $id,
+                            'name' => $name,
+                            'abbreviation' => $abbreviation,
+                            'addressArea' => $addressArea,
+                            'firstSessionStartDate' => $firstSessionStartDate,
+                            'lastSessionEndDate' => $lastSessionEndDate,
+                            'courses' => $courses,
+                            'divisions' => $divisions,
+                            'soldOutCourses' => $soldOutCourses,
+                            'locationStatus' => $locationStatus,
+                            'address' => $address
+                        ),
+                        array('%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
+                    );
+                    
+                    if ($result) {
+                        $processed++;
+                        $inserted++;
+                    }
+                }
+            }
+            
+            // Commit transaction
+            $wpdb->query('COMMIT');
+            
+        } catch (Exception $e) {
+            // Rollback transaction on error
+            $wpdb->query('ROLLBACK');
+            throw $e;
+        }
+        
+        $log_message = "Location Sync: Successfully processed $processed locations from Pulse API";
+        if ($updated > 0) $log_message .= " ($updated updated";
+        if ($inserted > 0) $log_message .= ($updated > 0 ? ", $inserted inserted" : " ($inserted inserted");
+        if ($updated > 0 || $inserted > 0) $log_message .= ")";
+        if ($preserved_manual_values > 0) $log_message .= " - Preserved $preserved_manual_values manual locationDesc values";
+        
+        wiz_log($log_message);
         return $processed;
         
     } catch (Exception $e) {
@@ -84,8 +202,20 @@ function wizPulse_refresh_locations()
 {
     wiz_log("=== Starting Complete Location Refresh Process ===");
     
+    // Set a reasonable timeout for the entire process
+    set_time_limit(300); // 5 minutes
+    
     try {
+        // Clear any existing database locks
+        global $wpdb;
+        $wpdb->query("SET SESSION wait_timeout = 300");
+        $wpdb->query("SET SESSION interactive_timeout = 300");
+        
         $pulse_locations = wizPulse_map_locations_to_database();
+        
+        // Add a small delay between operations to prevent overwhelming the database
+        usleep(100000); // 100ms delay
+        
         $session_result = wizPulse_sync_location_sessions();
         
         $success_message = "Location Refresh Complete: ";
@@ -217,20 +347,38 @@ function wizPulse_sync_location_sessions()
         
         wiz_log("Location Sessions Sync: Processed $processed_rows rows, found data for " . count($location_data) . " unique locations");
         
+        if (empty($location_data)) {
+            wiz_log("Location Sessions Sync: No location data to process");
+            return false;
+        }
+        
+        // Get all existing locations by abbreviation in one query
+        $location_codes = array_keys($location_data);
+        $placeholders = implode(',', array_fill(0, count($location_codes), '%s'));
+        $existing_locations = $wpdb->get_results(
+            $wpdb->prepare("SELECT abbreviation FROM $table_name WHERE abbreviation IN ($placeholders)", $location_codes),
+            ARRAY_A
+        );
+        $existing_abbreviations = array_column($existing_locations, 'abbreviation');
+        
         // Update database with session weeks data
         $updated_count = 0;
         $error_count = 0;
         
-        foreach ($location_data as $location_code => $data) {
-            // Serialize the weeks data
-            $session_weeks = serialize($data['weeks']);
-            
-            // Get the existing record to verify if it exists
-            $existing = $wpdb->get_var(
-                $wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE abbreviation = %s", $location_code)
-            );
-            
-            if ($existing) {
+        // Start transaction for better performance
+        $wpdb->query('START TRANSACTION');
+        
+        try {
+            foreach ($location_data as $location_code => $data) {
+                // Check if location exists using the lookup array
+                if (!in_array($location_code, $existing_abbreviations)) {
+                    wiz_log("Location Sessions Sync Warning: Location code '$location_code' not found in database");
+                    continue;
+                }
+                
+                // Serialize the weeks data
+                $session_weeks = serialize($data['weeks']);
+                
                 // Update the location record
                 $result = $wpdb->update(
                     $table_name,
@@ -249,9 +397,15 @@ function wizPulse_sync_location_sessions()
                 } else {
                     $error_count++;
                 }
-            } else {
-                wiz_log("Location Sessions Sync Warning: Location code '$location_code' not found in database");
             }
+            
+            // Commit transaction
+            $wpdb->query('COMMIT');
+            
+        } catch (Exception $e) {
+            // Rollback transaction on error
+            $wpdb->query('ROLLBACK');
+            throw $e;
         }
         
         if ($error_count > 0) {
@@ -285,6 +439,12 @@ function wizPulse_get_all_courses()
     return $response['response']['results'];
 }
 
+/**
+ * Sync courses from Pulse API to database
+ * 
+ * This function preserves manually set course_recs, courseUrl, and courseDesc values
+ * by only updating fields that have actually changed from the API data.
+ */
 function wizPulse_map_courses_to_database()
 {
     wiz_log("Starting Pulse courses sync from API...");
@@ -379,47 +539,98 @@ function wizPulse_map_courses_to_database()
 
         // Insert/update courses in database
         if (!empty($processed_courses)) {
-            $insert_count = 0;
-            $update_count = 0;
+            // Get all existing courses in one query to avoid N+1 problem
+            $course_ids = array_column($processed_courses, 'id');
+            $placeholders = implode(',', array_fill(0, count($course_ids), '%d'));
+            $existing_courses = $wpdb->get_results(
+                $wpdb->prepare("SELECT id, course_recs, courseUrl, courseDesc FROM {$table_name} WHERE id IN ($placeholders)", $course_ids),
+                ARRAY_A
+            );
             
-            foreach ($processed_courses as $course) {
-                // Check if the course already exists and has course_recs, courseUrl, or courseDesc
-                $existing_course = $wpdb->get_row($wpdb->prepare("SELECT course_recs, courseUrl, courseDesc FROM {$table_name} WHERE id = %d", $course['id']));
-                
-                // If the course exists and has course_recs, preserve that data
-                if ($existing_course && !empty($existing_course->course_recs)) {
-                    $course['course_recs'] = $existing_course->course_recs;
-                }
-                
-                // If the course exists and has a courseUrl, preserve that data
-                if ($existing_course && !empty($existing_course->courseUrl)) {
-                    $course['courseUrl'] = $existing_course->courseUrl;
-                }
-                
-                // If the course exists and has a courseDesc, preserve that data
-                if ($existing_course && !empty($existing_course->courseDesc)) {
-                    $course['courseDesc'] = $existing_course->courseDesc;
-                }
-                
-                // Create placeholders array with the correct number of placeholders
-                $placeholders = array_fill(0, count($course), '%s');
-                
-                $result = $wpdb->replace(
-                    $table_name,
-                    $course,
-                    $placeholders
-                );
-                
-                if ($result) {
-                    if ($existing_course) {
-                        $update_count++;
-                    } else {
-                        $insert_count++;
-                    }
-                }
+            // Create lookup array for existing courses
+            $existing_courses_by_id = array();
+            foreach ($existing_courses as $existing) {
+                $existing_courses_by_id[$existing['id']] = $existing;
             }
             
-            wiz_log("Course Sync: Successfully processed courses - $insert_count new, $update_count updated");
+            $insert_count = 0;
+            $update_count = 0;
+            $preserved_manual_values = 0;
+            
+            // Start transaction for better performance
+            $wpdb->query('START TRANSACTION');
+            
+            try {
+                foreach ($processed_courses as $course) {
+                    $course_id = $course['id'];
+                    
+                    // Check if the course already exists and preserve manual values
+                    if (isset($existing_courses_by_id[$course_id])) {
+                        $existing_course = $existing_courses_by_id[$course_id];
+                        
+                        // Preserve manually set values
+                        if (!empty($existing_course['course_recs'])) {
+                            $course['course_recs'] = $existing_course['course_recs'];
+                            $preserved_manual_values++;
+                        }
+                        
+                        if (!empty($existing_course['courseUrl'])) {
+                            $course['courseUrl'] = $existing_course['courseUrl'];
+                            $preserved_manual_values++;
+                        }
+                        
+                        if (!empty($existing_course['courseDesc'])) {
+                            $course['courseDesc'] = $existing_course['courseDesc'];
+                            $preserved_manual_values++;
+                        }
+                        
+                        // Use INSERT ... ON DUPLICATE KEY UPDATE for better performance
+                        $fields = array_keys($course);
+                        $placeholders = array_fill(0, count($course), '%s');
+                        $values = array_values($course);
+                        
+                        $sql = "INSERT INTO {$table_name} (" . implode(', ', $fields) . ") 
+                                VALUES (" . implode(', ', $placeholders) . ") 
+                                ON DUPLICATE KEY UPDATE ";
+                        
+                        $updates = array();
+                        foreach ($fields as $field) {
+                            if ($field !== 'id') { // Don't update the primary key
+                                $escaped_field = esc_sql($field);
+                                $updates[] = "`$escaped_field` = VALUES(`$escaped_field`)";
+                            }
+                        }
+                        $sql .= implode(', ', $updates);
+                        
+                        $result = $wpdb->query($wpdb->prepare($sql, $values));
+                        
+                        if ($result) {
+                            $update_count++;
+                        }
+                    } else {
+                        // New course - insert directly
+                        $result = $wpdb->insert($table_name, $course);
+                        
+                        if ($result) {
+                            $insert_count++;
+                        }
+                    }
+                }
+                
+                // Commit transaction
+                $wpdb->query('COMMIT');
+                
+            } catch (Exception $e) {
+                // Rollback transaction on error
+                $wpdb->query('ROLLBACK');
+                throw $e;
+            }
+            
+            $log_message = "Course Sync: Successfully processed courses - $insert_count new, $update_count updated";
+            if ($preserved_manual_values > 0) {
+                $log_message .= " - Preserved $preserved_manual_values manual values (course_recs, courseUrl, courseDesc)";
+            }
+            wiz_log($log_message);
         } else {
             wiz_log("Course Sync Warning: No courses to process after filtering");
         }
@@ -439,8 +650,20 @@ function wizPulse_refresh_courses()
 {
     wiz_log("=== Starting Course Refresh Process ===");
     
+    // Set a reasonable timeout for the entire process
+    set_time_limit(300); // 5 minutes
+    
     try {
+        // Clear any existing database locks
+        global $wpdb;
+        $wpdb->query("SET SESSION wait_timeout = 300");
+        $wpdb->query("SET SESSION interactive_timeout = 300");
+        
         wizPulse_map_courses_to_database();
+        
+        // Add a small delay between operations to prevent overwhelming the database
+        usleep(100000); // 100ms delay
+        
         updateCourseFiscalYears();
         wiz_log("Course Refresh Complete: Successfully updated courses and fiscal years");
     } catch (Exception $e) {
