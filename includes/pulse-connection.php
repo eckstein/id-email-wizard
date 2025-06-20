@@ -954,8 +954,14 @@ function wizPulse_sync_course_capacity($location_ids = [], $mic_start_date = nul
                 if (!empty($capacity_data) && is_array($capacity_data)) {
                     foreach ($capacity_data as $session) {
                         try {
+                            // Normalize the session start date for consistent key generation
+                            $normalized_session_date = null;
+                            if (!empty($session['sessionStartDate'])) {
+                                $normalized_session_date = date('Y-m-d H:i:s', strtotime($session['sessionStartDate']));
+                            }
+                            
                             // Create a unique key for this session to track what the API returned
-                            $session_key = $session['productID'] . '_' . $session['sessionStartDate'];
+                            $session_key = $session['productID'] . '_' . $normalized_session_date;
                             $api_session_keys[] = $session_key;
                             
                             // Prepare session data for database
@@ -975,7 +981,7 @@ function wizPulse_sync_course_capacity($location_ids = [], $mic_start_date = nul
                                 'productID' => $session['productID'] ?? null,
                                 'productName' => $session['productName'] ?? '',
                                 'coursePageURL' => $session['coursePageURL'] ?? '',
-                                'sessionStartDate' => !empty($session['sessionStartDate']) ? date('Y-m-d H:i:s', strtotime($session['sessionStartDate'])) : null,
+                                'sessionStartDate' => $normalized_session_date,
                                 'courseStartDate' => !empty($session['courseStartDate']) ? date('Y-m-d H:i:s', strtotime($session['courseStartDate'])) : null,
                                 'minimumAge' => $session['minimumAge'] ?? null,
                                 'maximumAge' => $session['maximumAge'] ?? null,
@@ -1012,6 +1018,7 @@ function wizPulse_sync_course_capacity($location_ids = [], $mic_start_date = nul
                 
                 // Delete sessions for this location that are not in the current API response
                 // This handles sold-out sessions that are no longer returned by the API
+                $location_deleted_count = 0;
                 if (!empty($api_session_keys)) {
                     // Get existing sessions for this location from the database
                     $existing_sessions = $wpdb->get_results(
@@ -1025,7 +1032,13 @@ function wizPulse_sync_course_capacity($location_ids = [], $mic_start_date = nul
                     
                     $sessions_to_delete = [];
                     foreach ($existing_sessions as $existing_session) {
-                        $existing_key = $existing_session['productID'] . '_' . $existing_session['sessionStartDate'];
+                        // Normalize the database date to match the API key format
+                        $normalized_db_date = null;
+                        if (!empty($existing_session['sessionStartDate'])) {
+                            $normalized_db_date = date('Y-m-d H:i:s', strtotime($existing_session['sessionStartDate']));
+                        }
+                        
+                        $existing_key = $existing_session['productID'] . '_' . $normalized_db_date;
                         if (!in_array($existing_key, $api_session_keys)) {
                             $sessions_to_delete[] = $existing_session;
                         }
@@ -1046,8 +1059,8 @@ function wizPulse_sync_course_capacity($location_ids = [], $mic_start_date = nul
                             );
                             
                             if ($delete_result !== false) {
+                                $location_deleted_count++;
                                 $total_deleted++;
-                                wiz_log("Course Capacity Sync: Deleted sold-out session for location $location_id, product {$session_to_delete['productID']}, date {$session_to_delete['sessionStartDate']}");
                             }
                         }
                     }
@@ -1063,9 +1076,24 @@ function wizPulse_sync_course_capacity($location_ids = [], $mic_start_date = nul
                     );
                     
                     if ($delete_result !== false && $delete_result > 0) {
+                        $location_deleted_count = $delete_result;
                         $total_deleted += $delete_result;
-                        wiz_log("Course Capacity Sync: Deleted $delete_result sessions for location $location_id (no sessions returned by API)");
                     }
+                }
+                
+                // Log summary for this location
+                if ($location_sessions > 0 || $location_deleted_count > 0) {
+                    $location_summary = "Location $location_id: ";
+                    if ($location_sessions > 0) {
+                        $location_summary .= "$location_sessions sessions synced";
+                    }
+                    if ($location_deleted_count > 0) {
+                        if ($location_sessions > 0) {
+                            $location_summary .= ", ";
+                        }
+                        $location_summary .= "$location_deleted_count sold-out sessions removed";
+                    }
+                    wiz_log("Course Capacity Sync: " . $location_summary);
                 }
                 
                 if ($location_sessions > 0) {
