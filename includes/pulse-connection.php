@@ -925,6 +925,17 @@ function wizPulse_sync_course_capacity($location_ids = [], $mic_start_date = nul
         $processed_locations = 0;
         $total_deleted = 0;
         
+        // Delete ALL existing course capacity data
+        // This ensures we start with a completely clean slate
+        $delete_result = $wpdb->query("DELETE FROM $table_name");
+        
+        if ($delete_result !== false) {
+            $total_deleted = $delete_result;
+            wiz_log("Course Capacity Sync: Deleted ALL $total_deleted existing sessions from the table");
+        } else {
+            wiz_log("Course Capacity Sync Warning: Delete operation failed - " . $wpdb->last_error);
+        }
+        
         foreach ($location_ids as $location_id) {
             try {
                 // Build API URL
@@ -948,7 +959,6 @@ function wizPulse_sync_course_capacity($location_ids = [], $mic_start_date = nul
                 $capacity_data = $response['response'];
                 
                 // Track which sessions are returned by the API for this location
-                $api_session_keys = [];
                 $location_sessions = 0;
                 
                 if (!empty($capacity_data) && is_array($capacity_data)) {
@@ -959,10 +969,6 @@ function wizPulse_sync_course_capacity($location_ids = [], $mic_start_date = nul
                             if (!empty($session['sessionStartDate'])) {
                                 $normalized_session_date = date('Y-m-d H:i:s', strtotime($session['sessionStartDate']));
                             }
-                            
-                            // Create a unique key for this session to track what the API returned
-                            $session_key = $session['productID'] . '_' . $normalized_session_date;
-                            $api_session_keys[] = $session_key;
                             
                             // Prepare session data for database
                             $session_data = [
@@ -990,7 +996,7 @@ function wizPulse_sync_course_capacity($location_ids = [], $mic_start_date = nul
                                 'sync_date' => date('Y-m-d')
                             ];
                             
-                            // Insert or update session data
+                            // Use REPLACE to handle unique constraint conflicts
                             $result = $wpdb->replace(
                                 $table_name,
                                 $session_data,
@@ -1016,107 +1022,15 @@ function wizPulse_sync_course_capacity($location_ids = [], $mic_start_date = nul
                     }
                 }
                 
-                // Delete sessions for this location that are not in the current API response
-                // This handles sold-out sessions that are no longer returned by the API
-                $location_deleted_count = 0;
-                if (!empty($api_session_keys)) {
-                    // Get existing sessions for this location from the database
-                    $existing_sessions = $wpdb->get_results(
-                        $wpdb->prepare(
-                            "SELECT productID, sessionStartDate FROM $table_name WHERE locationID = %d AND sync_date = %s",
-                            $location_id,
-                            date('Y-m-d')
-                        ),
-                        ARRAY_A
-                    );
-                    
-                    $sessions_to_delete = [];
-                    foreach ($existing_sessions as $existing_session) {
-                        // Normalize the database date to match the API key format
-                        $normalized_db_date = null;
-                        if (!empty($existing_session['sessionStartDate'])) {
-                            $normalized_db_date = date('Y-m-d H:i:s', strtotime($existing_session['sessionStartDate']));
-                        }
-                        
-                        $existing_key = $existing_session['productID'] . '_' . $normalized_db_date;
-                        if (!in_array($existing_key, $api_session_keys)) {
-                            $sessions_to_delete[] = $existing_session;
-                        }
-                    }
-                    
-                    // Delete sessions that are no longer returned by the API
-                    if (!empty($sessions_to_delete)) {
-                        foreach ($sessions_to_delete as $session_to_delete) {
-                            $delete_result = $wpdb->delete(
-                                $table_name,
-                                [
-                                    'locationID' => $location_id,
-                                    'productID' => $session_to_delete['productID'],
-                                    'sessionStartDate' => $session_to_delete['sessionStartDate'],
-                                    'sync_date' => date('Y-m-d')
-                                ],
-                                ['%d', '%d', '%s', '%s']
-                            );
-                            
-                            if ($delete_result !== false) {
-                                $location_deleted_count++;
-                                $total_deleted++;
-                            }
-                        }
-                    }
-                } else {
-                    // If API returned no sessions for this location, delete all existing sessions for this location
-                    $delete_result = $wpdb->delete(
-                        $table_name,
-                        [
-                            'locationID' => $location_id,
-                            'sync_date' => date('Y-m-d')
-                        ],
-                        ['%d', '%s']
-                    );
-                    
-                    if ($delete_result !== false && $delete_result > 0) {
-                        $location_deleted_count = $delete_result;
-                        $total_deleted += $delete_result;
-                    }
-                }
-                
                 // Log summary for this location
-                if ($location_sessions > 0 || $location_deleted_count > 0) {
-                    $location_summary = "Location $location_id: ";
-                    if ($location_sessions > 0) {
-                        $location_summary .= "$location_sessions sessions synced";
-                    }
-                    if ($location_deleted_count > 0) {
-                        if ($location_sessions > 0) {
-                            $location_summary .= ", ";
-                        }
-                        $location_summary .= "$location_deleted_count sold-out sessions removed";
-                    }
-                    wiz_log("Course Capacity Sync: " . $location_summary);
-                }
-                
                 if ($location_sessions > 0) {
+                    wiz_log("Course Capacity Sync: Location $location_id: $location_sessions sessions synced");
                     $processed_locations++;
                 }
                 
             } catch (Exception $e) {
                 wiz_log("Course Capacity Sync Error for location $location_id: " . $e->getMessage());
                 $total_errors++;
-            }
-        }
-        
-        // Clean up old data (older than 7 days) - only if table operations are working
-        if ($total_sessions > 0) {
-            $cleanup_date = date('Y-m-d', strtotime('-7 days'));
-            $cleaned = $wpdb->delete(
-                $table_name,
-                ['sync_date' => $cleanup_date],
-                ['%s']
-            );
-            
-            if ($cleaned === false && !empty($wpdb->last_error)) {
-                wiz_log("Course Capacity Sync Warning: Cleanup failed - " . $wpdb->last_error);
             }
         }
         
