@@ -702,8 +702,19 @@ function idemailwiz_fetch_users($startDate = null, $endDate = null)
 
 				$userData = wiz_encrypt_email($userData); // returns false when invalid userData is passed
 
-				// If there's data to add, yield the user data
+				// If there's data to add, process leadLocationID and yield the user data
 				if ($userData) {
+					// Process leadLocationID - convert from Iterable field name to our field name
+					if (isset($userData['leadLocationID']) && !empty($userData['leadLocationID']) && $userData['leadLocationID'] !== '0') {
+						// Convert to integer if it's a valid numeric value
+						$userData['leadLocationId'] = is_numeric($userData['leadLocationID']) ? (int)$userData['leadLocationID'] : $userData['leadLocationID'];
+					} else {
+						$userData['leadLocationId'] = null;
+					}
+					
+					// Remove the original field name to avoid confusion
+					unset($userData['leadLocationID']);
+					
 					yield $userData;
 				}
 			}
