@@ -2794,8 +2794,8 @@ function get_location_with_courses($user_data) {
     $location_id = null;
     $location_source = 'unknown';
     
-    // First priority: Try to get the student's last location
-    if (isset($user_data['studentAccountNumber']) || isset($user_data['StudentAccountNumber'])) {
+    // First priority: Try to get the student's last location (only if we have a valid student account number)
+    if ((!empty($user_data['studentAccountNumber']) || !empty($user_data['StudentAccountNumber']))) {
         $last_location = get_last_location($user_data);
         
         if ($last_location && isset($last_location['id']) && $last_location['id'] > 0) {
@@ -3087,8 +3087,8 @@ function get_sessions_at_location_by_date($user_data) {
     $location_id = null;
     $location_source = 'unknown';
     
-    // First priority: Try to get the student's last location
-    if (isset($user_data['studentAccountNumber']) || isset($user_data['StudentAccountNumber'])) {
+    // First priority: Try to get the student's last location (only if we have a valid student account number)
+    if ((!empty($user_data['studentAccountNumber']) || !empty($user_data['StudentAccountNumber']))) {
         $last_location = get_last_location($user_data);
         
         if ($last_location && isset($last_location['id']) && $last_location['id'] > 0) {
