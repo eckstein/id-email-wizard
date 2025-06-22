@@ -3245,9 +3245,9 @@ function get_sessions_at_location_by_date($user_data) {
             }
         }
         
-        // Get current date for filtering future sessions
-        $current_date = new DateTime();
-        $current_date_str = $current_date->format('Y-m-d');
+        // Sessions must start at least 2 days from now.
+        $min_start_date = (new DateTime('today'))->setTime(0, 0, 0)->modify('+2 days');
+        $min_start_date_str = $min_start_date->format('Y-m-d');
         
         // Get capacity data for all courses at this location
         $sessions_by_week = [];
@@ -3282,7 +3282,7 @@ function get_sessions_at_location_by_date($user_data) {
                 // Organize sessions by week
                 foreach ($capacity_data as $session) {
                     // Only include sessions starting at least 2 days from now
-                    if (empty($session['sessionStartDate']) || $session['sessionStartDate'] < $current_date_str) {
+                    if (empty($session['sessionStartDate']) || $session['sessionStartDate'] < $min_start_date_str) {
                         continue;
                     }
                     
