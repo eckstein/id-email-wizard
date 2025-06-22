@@ -1009,6 +1009,9 @@ function get_current_year_continuity_recs($student_data) {
         return null;
     }
     
+    // Set minimum start date for sessions to be 2 days from now
+    $min_start_date = new DateTimeImmutable('today +2 days');
+
     // Calculate current fiscal year (FY25 runs from 2024-11-01 to 2025-10-31)
     $current_date = new DateTime();
     $year = intval($current_date->format('Y'));
@@ -1088,8 +1091,8 @@ function get_current_year_continuity_recs($student_data) {
                     $session_start = new DateTime($session['sessionStartDate']);
                     $monday_start = $session_start->format('Y-m-d');
                     
-                    // Only include future sessions
-                    if ($session_start > $current_date) {
+                    // Only include sessions starting at least 2 days from now
+                    if ($session_start >= $min_start_date) {
                         $current_course_capacity[] = [
                             'monday_start' => $monday_start,
                             'seats_left' => intval($session['courseSeatsLeft']),
@@ -1121,8 +1124,8 @@ function get_current_year_continuity_recs($student_data) {
                         $session_start = new DateTime($session['sessionStartDate']);
                         $monday_start = $session_start->format('Y-m-d');
                         
-                        // Only include future sessions
-                        if ($session_start > $current_date) {
+                        // Only include sessions starting at least 2 days from now
+                        if ($session_start >= $min_start_date) {
                             $rec_capacity[] = [
                                 'monday_start' => $monday_start,
                                 'seats_left' => intval($session['courseSeatsLeft']),
@@ -3278,7 +3281,7 @@ function get_sessions_at_location_by_date($user_data) {
                 
                 // Organize sessions by week
                 foreach ($capacity_data as $session) {
-                    // Only include future sessions
+                    // Only include sessions starting at least 2 days from now
                     if (empty($session['sessionStartDate']) || $session['sessionStartDate'] < $current_date_str) {
                         continue;
                     }
