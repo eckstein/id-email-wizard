@@ -1009,8 +1009,8 @@ function get_current_year_continuity_recs($student_data) {
         return null;
     }
     
-    // Set minimum start date for sessions to be 2 days from now
-    $min_start_date = new DateTimeImmutable('today +2 days');
+    // Set minimum start date for sessions to be 2 days from now, ignoring time
+    $min_start_date = (new DateTimeImmutable('today'))->setTime(0, 0, 0)->modify('+2 days');
 
     // Calculate current fiscal year (FY25 runs from 2024-11-01 to 2025-10-31)
     $current_date = new DateTime();
