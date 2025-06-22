@@ -2794,8 +2794,16 @@ function get_location_with_courses($user_data) {
     $location_id = null;
     $location_source = 'unknown';
     
-    // First priority: Try to get the student's last location (only if we have a valid student account number)
-    if ((!empty($user_data['studentAccountNumber']) || !empty($user_data['StudentAccountNumber']))) {
+    // Determine if we are working with a parent/lead account
+    $is_parent_account = isset($user_data['userId']) && !isset($user_data['studentAccountNumber']);
+    
+    // First priority: Parent/lead account with a leadLocationId
+    if ($is_parent_account && isset($user_data['leadLocationId']) && $user_data['leadLocationId'] > 0) {
+        $location_id = intval($user_data['leadLocationId']);
+        $location_source = 'parent_lead_location';
+    } 
+    // Second priority: Student's last location
+    else if (isset($user_data['studentAccountNumber']) || isset($user_data['StudentAccountNumber'])) {
         $last_location = get_last_location($user_data);
         
         if ($last_location && isset($last_location['id']) && $last_location['id'] > 0) {
@@ -2819,7 +2827,7 @@ function get_location_with_courses($user_data) {
             }
         }
     } 
-    // Handle parent account data
+    // Handle other parent account scenarios (e.g., no leadLocationId, check students)
     else {
         // First try leadLocationId if it's valid
         if (isset($user_data['leadLocationId']) && $user_data['leadLocationId'] > 0) {
@@ -3087,8 +3095,16 @@ function get_sessions_at_location_by_date($user_data) {
     $location_id = null;
     $location_source = 'unknown';
     
-    // First priority: Try to get the student's last location (only if we have a valid student account number)
-    if ((!empty($user_data['studentAccountNumber']) || !empty($user_data['StudentAccountNumber']))) {
+    // Determine if we are working with a parent/lead account
+    $is_parent_account = isset($user_data['userId']) && !isset($user_data['studentAccountNumber']);
+    
+    // First priority: Parent/lead account with a leadLocationId
+    if ($is_parent_account && isset($user_data['leadLocationId']) && $user_data['leadLocationId'] > 0) {
+        $location_id = intval($user_data['leadLocationId']);
+        $location_source = 'parent_lead_location';
+    } 
+    // Second priority: Student's last location
+    else if (isset($user_data['studentAccountNumber']) || isset($user_data['StudentAccountNumber'])) {
         $last_location = get_last_location($user_data);
         
         if ($last_location && isset($last_location['id']) && $last_location['id'] > 0) {
@@ -3112,7 +3128,7 @@ function get_sessions_at_location_by_date($user_data) {
             }
         }
     } 
-    // Handle parent account data
+    // Handle other parent account scenarios (e.g., no leadLocationId, check students)
     else {
         // First try leadLocationId if it's valid
         if (isset($user_data['leadLocationId']) && $user_data['leadLocationId'] > 0) {
