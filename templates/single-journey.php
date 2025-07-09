@@ -126,7 +126,14 @@ if ($journeyId && get_idwiz_journey($journeyId)) {
 			<?php if (isset($_GET['view']) && $_GET['view'] == 'Timeline') { ?>
 				<?php
 				$months = ['November', 'December', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October'];
-				$fiscalYears = ['2021', '2022', '2023', '2024'];
+				
+				// Generate fiscal years dynamically based on current year
+				$currentYear = (int)date('Y');
+				$fiscalYears = [];
+				for ($year = 2021; $year <= $currentYear + 1; $year++) {
+					$fiscalYears[] = (string)$year;
+				}
+				
 				$metrics = ['Open Rate', 'CTR', 'CTO', 'CVR', 'Revenue'];
 
 				$selectedMetric = $_GET['metric'] ?? 'Open Rate';
@@ -258,16 +265,25 @@ if ($journeyId && get_idwiz_journey($journeyId)) {
 								});
 
 								// Define year colors for easy identification
-								$yearColors = [
-									'2021' => '#e3f2fd', // Light blue
-									'2022' => '#f3e5f5', // Light purple
-									'2023' => '#e8f5e8', // Light green
-									'2024' => '#fff3e0', // Light orange
-									'2025' => '#fce4ec', // Light pink
-									'2026' => '#f1f8e9', // Light lime
-									'2027' => '#e0f2f1', // Light teal
-									'2028' => '#fdf7e3', // Light yellow
+								$baseColors = [
+									'#e3f2fd', // Light blue
+									'#f3e5f5', // Light purple  
+									'#e8f5e8', // Light green
+									'#fff3e0', // Light orange
+									'#fce4ec', // Light pink
+									'#f1f8e9', // Light lime
+									'#e0f2f1', // Light teal
+									'#fdf7e3', // Light yellow
+									'#f0f4ff', // Light lavender
+									'#fff0f5', // Light rose
 								];
+								
+								$yearColors = [];
+								$colorIndex = 0;
+								for ($year = 2021; $year <= $currentYear + 5; $year++) {
+									$yearColors[(string)$year] = $baseColors[$colorIndex % count($baseColors)];
+									$colorIndex++;
+								}
 
 								foreach ($data as $rowData) {
 									$yearColor = $yearColors[$rowData['year']] ?? '#f8f9fa';
