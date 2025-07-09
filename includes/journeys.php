@@ -217,6 +217,7 @@ function display_workflow_campaigns_table($workflowId, $campaigns, $startDate = 
 			<thead>
 				<tr>
 					<th>Campaign</th>
+					<th>Last Sent</th>
 					<th>Sent</th>
 					<th>Delivered</th>
 					<th>Opens</th>
@@ -262,7 +263,25 @@ function display_workflow_campaigns_table($workflowId, $campaigns, $startDate = 
 									<?php echo $campaign['name']; ?>
 								</a>
 							</td>
-
+							<td>
+								<?php 
+								// Display last sent date with proper validation
+								$lastSentDate = $campaign['wizSentAt'] ?? $campaign['startAt'] ?? null;
+								
+								// Validate that we have a proper numeric timestamp and it's not zero
+								if ($lastSentDate && is_numeric($lastSentDate) && (int)$lastSentDate > 0) {
+									$timestamp = (int)($lastSentDate / 1000);
+									// Additional check to ensure reasonable timestamp (after year 2000)
+									if ($timestamp > 946684800) { // January 1, 2000
+										echo date('M j, Y', $timestamp);
+									} else {
+										echo 'N/A';
+									}
+								} else {
+									echo 'N/A';
+								}
+								?>
+							</td>
 							<td>
 								<?php echo number_format($totalSent); ?>
 							</td>

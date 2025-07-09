@@ -5,11 +5,10 @@ jQuery(document).ready(function ($) {
         updateDynamicJourneyRollup();
     }
 
-   
     function updateDynamicJourneyRollup() {
         var $rollupWrapper = $("#journey-rollup-wrapper");
         if ($rollupWrapper.length === 0) {
-         return;   
+            return;   
         }
         var campaignIds = $rollupWrapper.attr('data-campaign-ids');
         var campaignIdsArray = JSON.parse(campaignIds); // Parse JSON string to array
@@ -17,11 +16,45 @@ jQuery(document).ready(function ($) {
         var endDate = $rollupWrapper.attr('data-end-date');
 
         // Fetch rollup summary
-        console.log(campaignIdsArray);
+        console.log('Fetching rollup data for campaigns:', campaignIdsArray);
         fetchRollUpSummaryData(campaignIdsArray, startDate, endDate, "#journey-timeline-rollup-summary");
     }
-    
 
+    // Handle sync journey button
+    $('.sync-journey').on('click', function(e) {
+        e.preventDefault();
+        
+        const $button = $(this);
+        const originalText = $button.text();
+        const journeyIds = $button.data('journeyids');
+        
+        $button.prop('disabled', true).text('Syncing...');
+        
+        const data = {
+            action: 'idemailwiz_ajax_sync',
+            security: wizAjax.nonce,
+            campaignIds: journeyIds ? JSON.stringify(journeyIds) : JSON.stringify([])
+        };
+        
+        $.post(wizAjax.ajaxurl, data)
+            .done(function(response) {
+                if (response.success) {
+                    $button.text('Synced!').removeClass('green').addClass('blue');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    alert('Sync failed: ' + (response.data || 'Unknown error'));
+                    $button.prop('disabled', false).text(originalText);
+                }
+            })
+            .fail(function(xhr, status, error) {
+                alert('Sync failed: Network error');
+                $button.prop('disabled', false).text(originalText);
+            });
+    });
+
+    // Timeline controls
     var fiscalYearButtons = $('.journey-timeline-control-set button[data-fiscalyear]');
     var monthButtons = $('.journey-timeline-control-set button[data-month]');
     var metricDropdown = $('.journey-timeline-control-set select[name="metric"]');
@@ -68,6 +101,9 @@ jQuery(document).ready(function ($) {
         updateTimelineData();
     });
 
-
+    // Handle collapsible sections
+    $('.journey-description-section h3').on('click', function() {
+        $(this).parent().find('.journey-details').slideToggle();
+    });
 
 });

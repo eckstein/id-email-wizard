@@ -87,6 +87,30 @@ function idemailwiz_create_databases()
 		INDEX workflowId (workflowId)
 	) ENGINE=InnoDB $charset_collate;";
 
+	// Define Journeys table
+	$journeys_table_name = $wpdb->prefix . 'idemailwiz_journeys';
+	$wizTablesSql[$journeys_table_name] = "CREATE TABLE IF NOT EXISTS $journeys_table_name (
+		id INT,
+		createdAt BIGINT,
+		creatorUserId VARCHAR(255),
+		description TEXT,
+		enabled BOOLEAN DEFAULT TRUE,
+		isArchived BOOLEAN DEFAULT FALSE,
+		journeyType VARCHAR(100),
+		lifetimeLimit INT,
+		name VARCHAR(255),
+		simultaneousLimit INT,
+		startTileId INT,
+		triggerEventNames TEXT,
+		updatedAt BIGINT,
+		PRIMARY KEY (id),
+		INDEX enabled (enabled),
+		INDEX isArchived (isArchived),
+		INDEX journeyType (journeyType),
+		INDEX createdAt (createdAt),
+		INDEX updatedAt (updatedAt)
+	) ENGINE=InnoDB $charset_collate;";
+
 
 	$sendsByWeekTableName = $wpdb->prefix . 'idemailwiz_sends_by_week ';
 	$wizTablesSql[$sendsByWeekTableName] = "CREATE TABLE IF NOT EXISTS $sendsByWeekTableName (
@@ -702,8 +726,9 @@ function build_idwiz_query($args, $table_name)
 		$campaignKey = 'campaignId';
 	}
 
-	// Skip campaign ID filtering for course capacity table (it doesn't have campaigns)
+	// Skip campaign ID filtering for tables that don't have campaigns (course capacity, journeys)
 	if ($table_name != $wpdb->prefix . 'idemailwiz_course_capacity' && 
+		$table_name != $wpdb->prefix . 'idemailwiz_journeys' &&
 		(!isset($args['include_null_campaigns']) || $args['include_null_campaigns'] == false)) {
 		// Every purchase should have a campaignId
 		$sql .= " AND $campaignKey IS NOT NULL";
@@ -732,15 +757,17 @@ function build_idwiz_query($args, $table_name)
 			}
 
 			if ($key === 'campaignId') {
-				// Skip campaignId filtering for course capacity table
-				if ($table_name != $wpdb->prefix . 'idemailwiz_course_capacity') {
+				// Skip campaignId filtering for tables without campaigns
+				if ($table_name != $wpdb->prefix . 'idemailwiz_course_capacity' && 
+					$table_name != $wpdb->prefix . 'idemailwiz_journeys') {
 					$sql .= $wpdb->prepare(" AND $campaignKey = %d", $value);
 				}
 			}
 
 			if ($key === 'campaignIds') {
-				// Skip campaignIds filtering for course capacity table
-				if ($table_name != $wpdb->prefix . 'idemailwiz_course_capacity') {
+				// Skip campaignIds filtering for tables without campaigns
+				if ($table_name != $wpdb->prefix . 'idemailwiz_course_capacity' && 
+					$table_name != $wpdb->prefix . 'idemailwiz_journeys') {
 					// Ensure campaignIds is an array and contains only integers
 					$campaignIds = array_map('intval', array_filter((array)$value));
 					if (!empty($campaignIds)) {
@@ -819,8 +846,9 @@ function build_idwiz_query($args, $table_name)
 	}
 
 	if (isset($args['not-campaigns']) && is_array($args['not-campaigns'])) {
-		// Skip not-campaigns filtering for course capacity table
-		if ($table_name != $wpdb->prefix . 'idemailwiz_course_capacity') {
+		// Skip not-campaigns filtering for tables without campaigns
+		if ($table_name != $wpdb->prefix . 'idemailwiz_course_capacity' && 
+			$table_name != $wpdb->prefix . 'idemailwiz_journeys') {
 			$placeholders = implode(',', array_fill(0, count($args['not-campaigns']), '%d'));
 			$sql .= $wpdb->prepare(" AND $campaignKey NOT IN ($placeholders)", $args['not-campaigns']);
 		}
@@ -959,6 +987,18 @@ function get_idwiz_experiments($args = [])
 	return execute_idwiz_query($sql, $args);
 }
 
+function get_idwiz_journeys($args = [])
+{
+	global $wpdb;
+	$table_name = $wpdb->prefix . 'idemailwiz_journeys';
+	$sql = build_idwiz_query($args, $table_name);
+	// Check if build_idwiz_query returned an error array
+	if (is_array($sql) && isset($sql['error'])) {
+		return $sql; // Return the error array directly
+	}
+	return execute_idwiz_query($sql, $args);
+}
+
 function get_idwiz_campaign($campaignID)
 {
 	$campaigns = get_idwiz_campaigns(['id' => $campaignID]);
@@ -983,6 +1023,12 @@ function get_idwiz_experiment($templateId)
 {
 	$experiments = get_idwiz_experiments(['templateId' => $templateId]);
 	return $experiments ? $experiments[0] : false;
+}
+
+function get_idwiz_journey($journeyId)
+{
+	$journeys = get_idwiz_journeys(['id' => $journeyId]);
+	return $journeys ? $journeys[0] : false;
 }
 
 function get_idwiz_user($wizId)

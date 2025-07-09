@@ -15,7 +15,15 @@
         <?php
         // Create hidden fields for each parameter to retain
         foreach ($parametersToRetain as $key => $value) {
-            echo '<input type="hidden" name="' . esc_attr($key) . '" value="' . esc_attr($value) . '">';
+            if (is_array($value)) {
+                // Handle array values (like multiple years or months)
+                foreach ($value as $arrayValue) {
+                    echo '<input type="hidden" name="' . esc_attr($key) . '[]" value="' . esc_attr($arrayValue) . '">';
+                }
+            } else {
+                // Handle single string values
+                echo '<input type="hidden" name="' . esc_attr($key) . '" value="' . esc_attr($value) . '">';
+            }
         }
         ?>
         <input type="date" name="startDate" id="wizStartDate" value="<?php echo esc_attr($startDate); ?>">

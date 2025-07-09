@@ -470,6 +470,110 @@ function idemailwiz_fetch_experiments($campaignIds = null)
 	return $allExpMetrics;
 }
 
+function idemailwiz_fetch_journeys($journeyIds = null)
+{
+	$url = 'https://api.iterable.com/api/journeys';
+	$allJourneys = [];
+	$pageCount = 0;
+	$totalExpected = null;
+	
+	wiz_log("Fetching Journeys from Iterable API with pagination support...");
+	
+	do {
+		$pageCount++;
+		wiz_log("Fetching journeys page $pageCount from: $url");
+		
+		try {
+			$response = idemailwiz_iterable_curl_call($url);
+		} catch (Throwable $e) {
+			wiz_log("Fetch Journeys: CAUGHT EXCEPTION during curl call to $url - " . $e->getMessage());
+			
+			if ($e->getMessage() === "CONSECUTIVE_400_ERRORS") {
+				wiz_log("More than 5 consecutive 400 errors encountered. Skipping...");
+			}
+			
+			return "Error: Exception during API call - " . $e->getMessage();
+		}
+
+		// Check if journeys exist in the API response
+		if (!isset($response['response']['journeys'])) {
+			wiz_log("Fetch Journeys: Key ['response']['journeys'] not found in API response structure.");
+			return "Error: No journeys found in the API response.";
+		}
+
+		$pageJourneys = $response['response']['journeys'];
+		$allJourneys = array_merge($allJourneys, $pageJourneys);
+		
+		// Log total count from first page
+		if ($pageCount === 1 && isset($response['response']['totalJourneysCount'])) {
+			$totalExpected = $response['response']['totalJourneysCount'];
+			wiz_log("Total journeys expected: $totalExpected");
+		}
+		
+		wiz_log("Fetched " . count($pageJourneys) . " journeys from page $pageCount (total so far: " . count($allJourneys) . ")");
+		
+		// Check for next page
+		$nextPageUrl = isset($response['response']['nextPageUrl']) ? $response['response']['nextPageUrl'] : null;
+		
+		// Handle relative URLs by prepending the base domain
+		if ($nextPageUrl) {
+			if (strpos($nextPageUrl, 'http') !== 0) {
+				// It's a relative URL, prepend the base URL
+				$nextPageUrl = 'https://api.iterable.com' . $nextPageUrl;
+			}
+		}
+		
+		$url = $nextPageUrl;
+		
+		// Safety check to prevent infinite loops
+		if ($pageCount > 100) {
+			wiz_log("Warning: Stopped after 100 pages to prevent infinite loop. This may indicate an API issue.");
+			break;
+		}
+		
+		// Add a small delay between requests to be respectful to the API
+		if ($url) {
+			usleep(100000); // 100ms delay
+		}
+		
+	} while ($url);
+	
+	wiz_log("Pagination complete. Fetched $pageCount pages with " . count($allJourneys) . " total journeys" . ($totalExpected ? " (expected: $totalExpected)" : ""));
+
+	// Filter journeys if specific IDs are requested
+	if ($journeyIds) {
+		$filteredJourneys = [];
+		foreach ($allJourneys as $journey) {
+			if (in_array($journey['id'], $journeyIds)) {
+				$filteredJourneys[] = $journey;
+			}
+		}
+		$allJourneys = $filteredJourneys;
+		wiz_log("Filtered to " . count($allJourneys) . " journeys matching requested IDs.");
+	}
+
+	// Process journeys to match our database schema
+	$processedJourneys = [];
+	foreach ($allJourneys as $journey) {
+		// Skip the draft object as requested
+		unset($journey['draft']);
+		
+		// Convert triggerEventNames array to serialized string for database storage
+		if (isset($journey['triggerEventNames']) && is_array($journey['triggerEventNames'])) {
+			$journey['triggerEventNames'] = serialize($journey['triggerEventNames']);
+		}
+		
+		// Ensure boolean fields are properly handled
+		$journey['enabled'] = isset($journey['enabled']) ? (bool)$journey['enabled'] : true;
+		$journey['isArchived'] = isset($journey['isArchived']) ? (bool)$journey['isArchived'] : false;
+		
+		$processedJourneys[] = $journey;
+	}
+
+	wiz_log("Successfully processed " . count($processedJourneys) . " journeys from API.");
+	return $processedJourneys;
+}
+
 
 
 function idemailwiz_fetch_metrics($campaignIds = null)
@@ -1699,6 +1803,105 @@ function idemailwiz_sync_experiments($passedCampaigns = null)
 	return idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update);
 }
 
+function idemailwiz_sync_journeys($passedJourneys = null)
+{
+	wiz_log("Starting journeys sync process...");
+	
+	// Fetch journeys from the API
+	$journeys = idemailwiz_fetch_journeys($passedJourneys);
+	
+	if (empty($journeys) || is_string($journeys)) {
+		wiz_log("Sync Journeys: No journeys found to sync or error occurred: " . (is_string($journeys) ? $journeys : "Empty result"));
+		return "No journeys found to sync or error occurred.";
+	}
+
+	global $wpdb;
+	$table_name = $wpdb->prefix . 'idemailwiz_journeys';
+
+	// Prepare arrays for comparison
+	$records_to_update = [];
+	$records_to_insert = [];
+	$records_to_delete = [];
+
+	try {
+		// Get all journey IDs in one query for efficiency
+		$journey_ids = array_filter(array_map(function($journey) {
+			return isset($journey['id']) && is_numeric($journey['id']) ? (int)$journey['id'] : null;
+		}, $journeys));
+		
+		// Get all existing journey records
+		$existing_journeys = [];
+		if (!empty($journey_ids)) {
+			$placeholders = implode(',', array_fill(0, count($journey_ids), '%d'));
+			$query_params = array_merge(["SELECT * FROM $table_name WHERE id IN ($placeholders)"], array_values($journey_ids));
+			$existing_journeys_query = call_user_func_array(
+				array($wpdb, 'prepare'),
+				$query_params
+			);
+			$existing_journeys = $wpdb->get_results($existing_journeys_query, ARRAY_A);
+		}
+		
+		if ($wpdb->last_error) {
+			throw new Exception("Database error fetching existing journeys: " . $wpdb->last_error);
+		}
+		
+		// Create a lookup array for faster checking
+		$existing_journey_lookup = [];
+		foreach ($existing_journeys as $existing_journey) {
+			$existing_journey_lookup[$existing_journey['id']] = $existing_journey;
+		}
+
+		foreach ($journeys as $journey) {
+			if (!isset($journey['id'])) {
+				wiz_log('No ID found in the fetched journey record!');
+				continue;
+			}
+			
+			// Check for archived journeys and mark for deletion if needed
+			if (isset($journey['isArchived']) && $journey['isArchived'] === true) {
+				$records_to_delete[] = $journey;
+				continue;
+			}
+			
+			// Check if journey already exists using the lookup array
+			if (isset($existing_journey_lookup[$journey['id']])) {
+				// Perform deep comparison to decide if update is needed
+				$wizJourney = $existing_journey_lookup[$journey['id']];
+				$fieldsDifferent = false;
+				
+				if ($passedJourneys) {
+					// If journeys are passed, update them all
+					$records_to_update[] = $journey;
+				} else {
+					// Otherwise, check if fields are different
+					foreach ($journey as $key => $value) {
+						if (!isset($wizJourney[$key]) || $wizJourney[$key] != $value) {
+							$fieldsDifferent = true;
+							break;
+						}
+					}
+					
+					// Update the row if any field is different
+					if ($fieldsDifferent) {
+						$records_to_update[] = $journey;
+					}
+				}
+			} else {
+				// Journey not in DB, add it
+				$records_to_insert[] = $journey;
+			}
+		}
+		
+		wiz_log("Journeys to process: Total " . count($journeys) . " (Insert: " . count($records_to_insert) . ", Update: " . count($records_to_update) . ", Delete: " . count($records_to_delete) . ")");
+
+		// Process the insert/update and log the result
+		return idemailwiz_process_and_log_sync($table_name, $records_to_insert, $records_to_update, $records_to_delete);
+	} catch (Exception $e) {
+		wiz_log("Error in journeys sync process: " . $e->getMessage());
+		return "Error in journeys sync process: " . $e->getMessage();
+	}
+}
+
 
 
 
@@ -2078,7 +2281,7 @@ function idemailwiz_sync_non_triggered_metrics($campaignIds = [], $sync_dbs = nu
 	set_transient('idemailwiz_blast_sync_in_progress', true, (5 * MINUTE_IN_SECONDS));
 	wiz_log("Starting metrics sync process...");
 
-	$sync_dbs = $sync_dbs ?? ['campaigns', 'templates', 'metrics', 'purchases', 'experiments'];
+	$sync_dbs = $sync_dbs ?? ['campaigns', 'templates', 'metrics', 'purchases', 'experiments', 'journeys'];
 	
 	foreach ($sync_dbs as $db) {
 		wiz_log("Syncing " . $db . "...");
