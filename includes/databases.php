@@ -1144,17 +1144,27 @@ function get_idemailwiz_triggered_data($database, $args = [], $batchSize = 20000
 	$query_params = [];
 
 	// Determine which fields (columns) to select
-	$fields = '*'; // Default is to select all columns
+	$fields = 'main.*'; // Default is to select all columns from main table
 	if (isset($args['fields']) && !empty($args['fields'])) {
 		if (is_array($args['fields'])) {
-			// If fields are provided as an array, convert to a comma-separated string
-			$fields = implode(', ', array_map('sanitize_text_field', $args['fields']));
+			// If fields are provided as an array, convert to a comma-separated string with main. prefix
+			$prefixed_fields = array_map(function($field) {
+				$field = sanitize_text_field($field);
+				return strpos($field, '.') !== false ? $field : "main.$field";
+			}, $args['fields']);
+			$fields = implode(', ', $prefixed_fields);
 		} else if (is_string($args['fields'])) {
-			// If fields are provided as a string, use directly after sanitization
-			$fields = sanitize_text_field($args['fields']);
+			// If fields are provided as a string, use directly after sanitization and prefix
+			$field = sanitize_text_field($args['fields']);
+			$fields = strpos($field, '.') !== false ? $field : "main.$field";
 		}
-		// Add messageId to the fields, always, for use below
-		$fields .= ', messageId, startAt';
+		// Add messageId and startAt to the fields, always, for use below
+		if (strpos($fields, 'messageId') === false) {
+			$fields .= ', main.messageId';
+		}
+		if (strpos($fields, 'startAt') === false) {
+			$fields .= ', main.startAt';
+		}
 	}
 
 	// Check if messageIds are provided
@@ -1192,66 +1202,59 @@ function get_idemailwiz_triggered_data($database, $args = [], $batchSize = 20000
 		$query_params[] = $timestampEnd;
 	}
 
-	// Initialize results array
-	$allResults = [];
-	$seenMessageIds = []; // To keep track of unique messageIds
+	// Create separate where clauses for main table (with alias prefix)
+	$main_where_clauses = [];
+	foreach ($where_clauses as $clause) {
+		// Add main. prefix to column names that don't already have a table prefix
+		$main_clause = preg_replace('/\b(messageId|campaignId|userId|startAt)\b/', 'main.$1', $clause);
+		$main_where_clauses[] = $main_clause;
+	}
 
-	// Iterate through the data in batches
-	do {
-		// Construct the SQL query with limit and offset
+	// Use SQL to handle deduplication efficiently instead of PHP loops
+	if ($uniqueMessageIds) {
+		// Let the database handle deduplication with a subquery - much faster than PHP
 		$sql = "SELECT $fields FROM " . $wpdb->prefix . $database . " AS main";
-
+		$sql .= " INNER JOIN (";
+		$sql .= "   SELECT messageId, MIN(startAt) as min_startAt";
+		$sql .= "   FROM " . $wpdb->prefix . $database;
+		
 		if (!empty($where_clauses)) {
-			$sql .= " WHERE " . implode(" AND ", $where_clauses);
+			$sql .= "   WHERE " . implode(" AND ", $where_clauses);
 		}
-
-		$sql .= " ORDER BY startAt ASC"; // Add this line to ensure consistent results
-		$sql .= " LIMIT %d OFFSET %d";
-
-		// Add batch size and offset to query parameters
-		$prepared_sql = $wpdb->prepare($sql, array_merge($query_params, [$batchSize, $offset]));
-		//error_log($prepared_sql);
-
-		// Execute the query and fetch results
-		$results = $wpdb->get_results($prepared_sql, ARRAY_A);
-
-		// Debug: Print SQL error (if any)
-		if ($wpdb->last_error) {
-			echo "SQL Error: " . $wpdb->last_error . "<br>";
-			break;
+		
+		$sql .= "   GROUP BY messageId";
+		$sql .= " ) AS earliest ON main.messageId = earliest.messageId AND main.startAt = earliest.min_startAt";
+		
+		if (!empty($main_where_clauses)) {
+			$sql .= " WHERE " . implode(" AND ", $main_where_clauses);
 		}
-
-		$earliestStartAt = []; // To track the earliest startAt for each messageId
-
-		// Process results, including limiting to unique messageIds with earliest startAt
-		foreach ($results as $result) {
-			if ($uniqueMessageIds) {
-				$messageId = $result['messageId'];
-				$startAt = $result['startAt'];
-				
-				if (!isset($seenMessageIds[$messageId])) {
-					// First time seeing this messageId
-					$allResults[] = $result;
-					$seenMessageIds[$messageId] = true;
-					$earliestStartAt[$messageId] = $startAt;
-				} elseif (isset($earliestStartAt[$messageId]) && $startAt < $earliestStartAt[$messageId]) {
-					// We've seen this messageId before, but this is an earlier startAt
-					// Remove the old result
-					$allResults = array_filter($allResults, function ($item) use ($messageId) {
-						return $item['messageId'] !== $messageId;
-					});
-					// Add the new, earlier result
-					$allResults[] = $result;
-					$earliestStartAt[$messageId] = $startAt;
-				}
-			} else {
-				$allResults[] = $result;
-			}
+		
+		// For the subquery, we need the parameters twice (once for subquery, once for main query)
+		$final_query_params = array_merge($query_params, $query_params);
+	} else {
+		// Simple query without deduplication
+		$sql = "SELECT $fields FROM " . $wpdb->prefix . $database . " AS main";
+		
+		if (!empty($main_where_clauses)) {
+			$sql .= " WHERE " . implode(" AND ", $main_where_clauses);
 		}
+		
+		$final_query_params = $query_params;
+	}
 
-		// Update offset
-		$offset += $batchSize;
-	} while (count($results) == $batchSize);
+	$sql .= " ORDER BY main.startAt ASC";
+
+	// Prepare and execute the single optimized query
+	$prepared_sql = $wpdb->prepare($sql, $final_query_params);
+	
+	// Execute the query and fetch all results at once
+	$allResults = $wpdb->get_results($prepared_sql, ARRAY_A);
+
+	// Debug: Print SQL error (if any)
+	if ($wpdb->last_error) {
+		error_log("SQL Error in get_idemailwiz_triggered_data: " . $wpdb->last_error);
+		return [];
+	}
 
 	return $allResults;
 }

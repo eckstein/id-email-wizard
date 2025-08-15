@@ -963,19 +963,98 @@ function get_triggered_campaign_metrics($campaignIds = [], $startDate = null, $e
 		$endDate = date('Y-m-d');
 	}
 
-	$combinedMetrics = [];
+	if (empty($campaignIds)) {
+		return [];
+	}
 
-	foreach ($campaignIds as $campaignId) {
-		$metrics = get_triggered_campaign_metrics_single($campaignId, $startDate, $endDate);
+	// Convert single campaign ID to array for consistency
+	if (!is_array($campaignIds)) {
+		$campaignIds = [$campaignIds];
+	}
 
-		foreach ($metrics as $metricKey => $metricValue) {
-			if (!isset($combinedMetrics[$metricKey])) {
-				$combinedMetrics[$metricKey] = 0;
-			}
-			$combinedMetrics[$metricKey] += $metricValue;
-			
+	// Get all campaigns and their connected campaigns in batch
+	$allCampaigns = get_idwiz_campaigns(['campaignIds' => $campaignIds, 'fields' => ['id', 'connectedCampaigns']]);
+	
+	// Build comprehensive list of all campaign IDs including connected ones
+	$allCampaignIds = [];
+	foreach ($allCampaigns as $campaign) {
+		$allCampaignIds[] = $campaign['id'];
+		$connectedCampaigns = unserialize($campaign['connectedCampaigns']);
+		if ($connectedCampaigns && is_array($connectedCampaigns)) {
+			$allCampaignIds = array_merge($allCampaignIds, $connectedCampaigns);
 		}
 	}
+	$allCampaignIds = array_unique($allCampaignIds);
+
+	// Batch fetch all purchases for all campaigns at once
+	$purchasesOptions = [
+		'startAt_start' => $startDate,
+		'startAt_end' => $endDate,
+		'campaignIds' => $allCampaignIds,
+	];
+	$allPurchases = get_idwiz_purchases($purchasesOptions);
+
+	// Batch fetch all GA data for all campaigns at once
+	$allGaEmailPurchases = get_idwiz_ga_data(['startDate' => $startDate, 'endDate' => $endDate, 'campaignIds' => $allCampaignIds]);
+
+	// Batch query arguments for all triggered data
+	$campaignDataArgs = [
+		'campaignIds' => $allCampaignIds,
+		'startAt_start' => $startDate,
+		'startAt_end' => $endDate,
+		'fields' => 'campaignId',
+	];
+
+	// Batch fetch all metrics data at once
+	$databases = [
+		'uniqueEmailSends' => 'idemailwiz_triggered_sends',
+		'uniqueEmailOpens' => 'idemailwiz_triggered_opens',
+		'uniqueEmailClicks' => 'idemailwiz_triggered_clicks',
+		'uniqueUnsubscribes' => 'idemailwiz_triggered_unsubscribes',
+		'totalComplaints' => 'idemailwiz_triggered_complaints',
+		'emailSendSkips' => 'idemailwiz_triggered_sendskips',
+		'emailBounces' => 'idemailwiz_triggered_bounces',
+	];
+
+	$batchedMetricsData = [];
+	foreach ($databases as $metricKey => $database) {
+		$batchedMetricsData[$metricKey] = get_idemailwiz_triggered_data($database, $campaignDataArgs) ?? [];
+	}
+
+	// Initialize combined metrics
+	$combinedMetrics = [
+		'uniqueEmailSends' => 0,
+		'uniqueEmailOpens' => 0,
+		'uniqueEmailClicks' => 0,
+		'uniqueUnsubscribes' => 0,
+		'totalComplaints' => 0,
+		'emailSendSkips' => 0,
+		'emailBounces' => 0,
+		'uniqueEmailsDelivered' => 0,
+		'uniquePurchases' => 0,
+		'revenue' => 0,
+		'gaRevenue' => 0,
+	];
+
+	// Count metrics from batched data
+	foreach ($databases as $metricKey => $database) {
+		$combinedMetrics[$metricKey] = count($batchedMetricsData[$metricKey]);
+	}
+
+	// Calculate derived metrics
+	$combinedMetrics['uniqueEmailsDelivered'] = $combinedMetrics['uniqueEmailSends'] - $combinedMetrics['emailSendSkips'] - $combinedMetrics['emailBounces'];
+	$combinedMetrics['uniquePurchases'] = count($allPurchases);
+	$combinedMetrics['revenue'] = array_sum(array_column($allPurchases, 'total'));
+	$combinedMetrics['gaRevenue'] = array_sum(array_column($allGaEmailPurchases, 'revenue'));
+
+	// Calculate percentage metrics
+	$combinedMetrics['wizDeliveryRate'] = $combinedMetrics['uniqueEmailSends'] > 0 ? ($combinedMetrics['uniqueEmailsDelivered'] / $combinedMetrics['uniqueEmailSends']) * 100 : 0;
+	$combinedMetrics['wizOpenRate'] = $combinedMetrics['uniqueEmailSends'] > 0 ? ($combinedMetrics['uniqueEmailOpens'] / $combinedMetrics['uniqueEmailSends']) * 100 : 0;
+	$combinedMetrics['wizCtr'] = $combinedMetrics['uniqueEmailSends'] > 0 ? ($combinedMetrics['uniqueEmailClicks'] / $combinedMetrics['uniqueEmailSends']) * 100 : 0;
+	$combinedMetrics['wizCto'] = $combinedMetrics['uniqueEmailOpens'] > 0 ? ($combinedMetrics['uniqueEmailClicks'] / $combinedMetrics['uniqueEmailOpens']) * 100 : 0;
+	$combinedMetrics['wizUnsubRate'] = $combinedMetrics['uniqueEmailSends'] > 0 ? ($combinedMetrics['uniqueUnsubscribes'] / $combinedMetrics['uniqueEmailSends']) * 100 : 0;
+	$combinedMetrics['wizCvr'] = $combinedMetrics['uniqueEmailsDelivered'] > 0 ? ($combinedMetrics['uniquePurchases'] / $combinedMetrics['uniqueEmailsDelivered']) * 100 : 0;
+	$combinedMetrics['wizAov'] = $combinedMetrics['uniquePurchases'] > 0 ? ($combinedMetrics['revenue'] / $combinedMetrics['uniquePurchases']) : 0;
 
 	return $combinedMetrics;
 }

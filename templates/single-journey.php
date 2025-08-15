@@ -226,6 +226,7 @@ if ($journeyId && get_idwiz_journey($journeyId)) {
 											$startDate = $fiscalYear . '-' . $monthNumber . '-01';
 											$endDate = date('Y-m-t', strtotime($startDate));
 
+											// Now using the optimized batch function
 											$campaignMetrics = get_triggered_campaign_metrics([$campaignId], $startDate, $endDate);
 											switch ($selectedMetric) {
 												case 'Open Rate':
