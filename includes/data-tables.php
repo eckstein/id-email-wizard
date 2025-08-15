@@ -80,13 +80,18 @@ function idwiz_get_campaign_table_view() {
         // Unserialize specific columns
         $checkSerialized = ['campaign_labels', 'experiment_ids'];  // Add more column names as needed
         foreach ($checkSerialized as $columnName) {
-            if (isset($row[$columnName]) && idwiz_is_serialized($row[$columnName])) {
-                $unserializedData = maybe_unserialize($row[$columnName]);
-                if (is_array($unserializedData)) {
-                    if (empty($unserializedData)) {
-                        $row[$columnName] = '';  // Set to an empty string if the array is empty
-                    } else {
-                        $row[$columnName] = implode(', ', $unserializedData);
+            if (isset($row[$columnName])) {
+                // Check if the data is the serialized empty array pattern
+                if ($row[$columnName] === 'a:0:{}') {
+                    $row[$columnName] = '';  // Set to empty string for empty serialized arrays
+                } elseif (idwiz_is_serialized($row[$columnName])) {
+                    $unserializedData = maybe_unserialize($row[$columnName]);
+                    if (is_array($unserializedData)) {
+                        if (empty($unserializedData)) {
+                            $row[$columnName] = '';  // Set to an empty string if the array is empty
+                        } else {
+                            $row[$columnName] = implode(', ', $unserializedData);
+                        }
                     }
                 }
             }

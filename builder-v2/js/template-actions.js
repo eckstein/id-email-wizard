@@ -63,6 +63,8 @@ jQuery(document).ready(function ($) {
 								$("#iDoverlay, #iDspinner").hide();
 							}
 						}
+						// Close any remaining Swal overlay
+						Swal.close();
 					});
 				};
 
@@ -235,7 +237,7 @@ async function id_delete_templates(post_ids) {
 				jQuery.refreshUIelement(".folderList");
 				jQuery.refreshUIelement("#bulkActionsSelect");
 			} else {
-				const redirectUrl = `jQuery{window.location.origin}/templates/all-templates`;
+				const redirectUrl = `${window.location.origin}/templates/all`;
 				window.location.href = redirectUrl;
 			}
 		});
