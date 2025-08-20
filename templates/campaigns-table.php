@@ -42,10 +42,7 @@ if (isset($_GET['startDate']) && $_GET['startDate'] !== '' && isset($_GET['endDa
     </h1>
     <div class="wizHeaderInnerWrap">
         <div class="wizHeader-left">
-
-
             <div id="header-tabs">
-
                 <a href="<?php echo add_query_arg(['view' => 'Blast']); ?>" class="campaign-tab <?php if ($activeTab == 'Blast') {
                                                                                                     echo 'active';
                                                                                                 } ?>">
@@ -64,6 +61,12 @@ if (isset($_GET['startDate']) && $_GET['startDate'] !== '' && isset($_GET['endDa
             </div>
         </div>
         <div class="wizHeader-right">
+            <div id="global-campaign-search">
+                <div class="global-search-container">
+                    <input type="text" id="global-search-input" placeholder="Search all campaigns..." />
+                    <div id="global-search-results" class="global-search-results-dropdown"></div>
+                </div>
+            </div>
             <div class="wizHeader-actions">
                 <button class="wiz-button green new-initiative"><i class="fa-regular fa-plus"></i>&nbsp;Create
                     Initiative</button>

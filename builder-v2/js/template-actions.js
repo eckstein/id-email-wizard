@@ -47,26 +47,13 @@ jQuery(document).ready(function ($) {
 				const templateDuplicateSuccess = function (response) {
 					console.log(response);
 					Swal.fire({
-						title: "Template created!",
-						input: "checkbox",
-						inputValue: 1,
-						inputPlaceholder: "Go to new template now (uncheck to stay here).",
-						confirmButtonText: 'Continue <i class="fa fa-arrow-right"></i>',
-					}).then((whereToGo) => {
-						if (whereToGo.value == 1) {
-							window.open(response.data.newURL, '_blank');
-							// Hide overlay when opening new tab since user stays on current page
-							$("#iDoverlay, #iDspinner").hide();
-						} else {
-							const isTemplateArchive = window.location.href.indexOf("/templates/") > -1;
-							if (isTemplateArchive) {
-								window.location.href = window.location.href;
-							} else {
-								$("#iDoverlay, #iDspinner").hide();
-							}
-						}
-						// Close any remaining Swal overlay in both cases
-						Swal.close();
+						title: "Template duplicated!",
+						html: `Your new template is ready: <br><br><a href="${response.data.newURL}" target="_blank" style="color: #007cba; text-decoration: underline;">${response.data.newURL}</a>`,
+						icon: "success",
+						confirmButtonText: 'Continue',
+					}).then(() => {
+						// Always hide overlay and close SWAL when user clicks Continue
+						$("#iDoverlay, #iDspinner").hide();
 					});
 				};
 

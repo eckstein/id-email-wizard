@@ -249,6 +249,7 @@ function idemailwiz_enqueue_assets()
         'bulk-actions' => array('/js/bulk-actions.js', array('jquery', 'id-general', 'folder-actions', 'template-actions')),
         'iterable-actions' => array('/js/iterable-actions.js', array('jquery', 'id-general', 'bulk-actions', 'template-editor')),
         'data-tables' => array('/js/data-tables.js', array('jquery', 'id-general')),
+        'global-campaign-search' => array('/js/global-campaign-search.js', array('jquery', 'id-general', 'data-tables')),
         'wiz-charts' => array('/js/wiz-charts.js', array('jquery', 'id-general', 'charts-js')),
         'wiz-metrics' => array('/js/metrics.js', array('jquery', 'id-general', 'wiz-charts', 'data-tables')),
         'initiatives' => array('/js/initiatives.js', array('jquery', 'id-general', 'wiz-charts', 'data-tables')),

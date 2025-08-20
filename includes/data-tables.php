@@ -129,3 +129,65 @@ function idwiz_get_campaign_table_view() {
 
 
 add_action('wp_ajax_idwiz_get_campaign_table_view', 'idwiz_get_campaign_table_view');
+
+
+// Ajax handler for global campaign search
+function idwiz_global_campaign_search() {
+    global $wpdb;
+
+    // Bail early without valid nonce
+    if (!check_ajax_referer('data-tables', 'security')) return;
+
+    $search_term = isset($_POST['search_term']) ? sanitize_text_field($_POST['search_term']) : '';
+    $campaign_type = isset($_POST['campaign_type']) ? sanitize_text_field($_POST['campaign_type']) : 'Blast';
+
+    if (empty($search_term)) {
+        wp_send_json_error('Search term is required');
+        return;
+    }
+
+    $sql = "SELECT campaign_id, campaign_name, campaign_start, campaign_type, campaign_state, template_subject 
+            FROM idwiz_campaign_view";
+    $prepare_args = [];
+    $where_clauses = [];
+
+    // Filter by campaign type
+    if ($campaign_type == 'Triggered') {
+        $where_clauses[] = "campaign_type = %s AND campaign_state = 'Running'";
+        $prepare_args[] = 'Triggered';
+    } elseif ($campaign_type == 'Blast') {
+        $where_clauses[] = "campaign_type = %s";
+        $prepare_args[] = 'Blast';
+    } elseif ($campaign_type == 'Archive') {
+        $where_clauses[] = "campaign_type = 'Triggered' AND campaign_state = 'Finished'";
+    }
+
+    // Add search term filtering - search in campaign name and subject line
+    $where_clauses[] = "(campaign_name LIKE %s OR template_subject LIKE %s)";
+    $search_term_wildcard = '%' . $wpdb->esc_like($search_term) . '%';
+    $prepare_args[] = $search_term_wildcard;
+    $prepare_args[] = $search_term_wildcard;
+
+    if (!empty($where_clauses)) {
+        $sql .= " WHERE " . implode(' AND ', $where_clauses);
+    }
+
+    // Order by campaign start date (newest first) and limit results
+    $sql .= " ORDER BY campaign_start DESC LIMIT 50";
+
+    // Prepare and execute the SQL query
+    if (!empty($prepare_args)) {
+        $sql = $wpdb->prepare($sql, $prepare_args);
+    }
+    $results = $wpdb->get_results($sql, ARRAY_A);
+
+    // Format the results for the frontend
+    foreach ($results as &$row) {
+        $row['campaign_start_formatted'] = date('m/d/Y g:i A', intval($row['campaign_start']) / 1000);
+        $row['campaign_url'] = get_site_url() . "/metrics/campaign/?id=" . $row['campaign_id'];
+    }
+
+    wp_send_json_success(['campaigns' => $results]);
+}
+
+add_action('wp_ajax_idwiz_global_campaign_search', 'idwiz_global_campaign_search');

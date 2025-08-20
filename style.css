@@ -2810,6 +2810,176 @@ pre#generatedCode {
 	border-bottom: 4px solid #94c52a;
 }
 
+/* Global Campaign Search */
+#global-campaign-search {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+}
+
+.global-search-container {
+	position: relative;
+	display: inline-block;
+	width: 280px;
+}
+
+#global-search-input {
+	width: 100%;
+	padding: 8px 12px;
+	border: 2px solid #ddd;
+	border-radius: 4px;
+	font-size: 14px;
+	transition: border-color 0.3s ease;
+	background-color: #fff;
+}
+
+#global-search-input:focus {
+	outline: none;
+	border-color: #94c52a;
+	box-shadow: 0 0 5px rgba(148, 197, 42, 0.3);
+}
+
+.global-search-results-dropdown {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	background: #fff;
+	border: 1px solid #ddd;
+	border-top: none;
+	border-radius: 0 0 4px 4px;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	z-index: 1000;
+	max-height: 400px;
+	overflow-y: auto;
+	display: none;
+}
+
+.global-search-results-list {
+	padding: 0;
+	margin: 0;
+}
+
+.global-search-result-item {
+	padding: 10px 15px;
+	border-bottom: 1px solid #f0f0f0;
+	cursor: pointer;
+	transition: background-color 0.2s ease;
+}
+
+.global-search-result-item:hover,
+.global-search-result-item.active {
+	background-color: #f8f9fa;
+}
+
+.global-search-result-item:last-child {
+	border-bottom: none;
+}
+
+.search-result-date {
+	color: #999;
+	font-size: 11px;
+	margin-bottom: 3px;
+	font-weight: normal;
+}
+
+.search-result-name {
+	color: #333;
+	text-decoration: none;
+	font-weight: 500;
+	display: block;
+	line-height: 1.3;
+}
+
+.search-result-name:hover {
+	color: #94c52a;
+	text-decoration: none;
+}
+
+.global-search-loading,
+.global-search-no-results,
+.global-search-error,
+.global-search-more {
+	padding: 15px;
+	text-align: center;
+	color: #666;
+	font-style: italic;
+}
+
+.global-search-loading .fa-spinner {
+	margin-right: 8px;
+}
+
+.global-search-error {
+	color: #dc3545;
+}
+
+.global-search-more {
+	background-color: #f8f9fa;
+	border-top: 1px solid #e9ecef;
+	font-size: 12px;
+}
+
+/* Highlighting search terms */
+.global-search-result-item mark {
+	background-color: #fff3cd;
+	color: #856404;
+	padding: 1px 2px;
+	border-radius: 2px;
+}
+
+/* Mobile responsiveness */
+@media screen and (max-width: 900px) {
+	.wizHeaderInnerWrap {
+		flex-direction: column;
+		gap: 15px;
+	}
+	
+	.wizHeader-left {
+		align-self: flex-start;
+	}
+	
+	.wizHeader-right {
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: 15px;
+	}
+	
+	#global-campaign-search {
+		order: -1; /* Put search box first on mobile */
+	}
+	
+	.global-search-container {
+		width: 100%;
+		min-width: 250px;
+	}
+	
+	.wizHeader-actions {
+		width: 100%;
+		justify-content: flex-start;
+	}
+}
+
+@media screen and (max-width: 600px) {
+	#header-tabs {
+		flex-wrap: wrap;
+		gap: 5px;
+	}
+	
+	.global-search-container {
+		min-width: 200px;
+	}
+	
+	.wizHeader-actions {
+		flex-direction: column;
+		align-items: stretch;
+	}
+	
+	.wizHeader-actions .wiz-button {
+		text-align: center;
+	}
+}
+
 /* Filter Buttons for Campaign Table */
 /* Container for the filter button groups */
 #wiztable_top_filters {
@@ -2997,9 +3167,18 @@ div.dt-button-collection .dt-button:hover {
 }
 
 
-.wizHeader-left,
+.wizHeader-left {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: flex-end;
+}
+
 .wizHeader-right {
-	flex: 1 0 400px;
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 20px;
 }
 @media screen and (max-width: 900px) {
 	.wizHeader-left {
@@ -3016,8 +3195,8 @@ div.dt-button-collection .dt-button:hover {
 	display: flex;
 	gap: 10px;
 	align-items: center;
-	margin-top: auto;
 	justify-content: flex-end;
+	flex-wrap: wrap;
 }
 .wizHeader .wizHeader-actions-meta {
 	padding-top: 10px;
