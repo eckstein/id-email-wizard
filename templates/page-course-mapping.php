@@ -28,13 +28,13 @@ updateCourseFiscalYears();
     }
     
     /* Styling for course elements */
-    .course-blob.wrong-fiscal-year {
-        background-color: #ff9e9e !important;
-        border: 1px solid #ff5252 !important;
+    .course-blob.not-current-fy {
+        background-color: #fff3cd !important;
+        border: 1px solid #ffeaa7 !important;
     }
     
-    .course-blob.wrong-fiscal-year:after {
-        content: '⚠️';
+    .course-blob.not-current-fy:after {
+        content: '📅';
         position: absolute;
         top: 2px;
         right: 2px;
@@ -73,9 +73,9 @@ updateCourseFiscalYears();
         border: 1px solid #ccc;
     }
     
-    .color-sample.wrong-fiscal-year {
-        background-color: #ff9e9e;
-        border: 1px solid #ff5252;
+    .color-sample.not-current-fy {
+        background-color: #fff3cd;
+        border: 1px solid #ffeaa7;
     }
 </style>
 
@@ -105,19 +105,7 @@ updateCourseFiscalYears();
                         ?>
                     </select>
                 </fieldset>
-                <fieldset>
-                    <label for="target-fy-select">Target fiscal years:</label>
-                    <select id="target-fy-select" name="target-fy-select[]" multiple onchange="this.form.submit()">
-                        <?php
-                        $nextFiscalYear = date('Y') - 1 . '/' . date('Y');
-                        $selectedTargetFiscals = isset($_GET['target-fy-select']) ? $_GET['target-fy-select'] : [$nextFiscalYear];
-                        foreach ($fiscalYears as $fiscalYear) {
-                            $fiscalsSelected = in_array($fiscalYear, $selectedTargetFiscals) ? 'selected' : '';
-                            echo "<option value='$fiscalYear' $fiscalsSelected>" . strtoupper($fiscalYear) . "</option>";
-                        }
-                        ?>
-                    </select>
-                </fieldset>
+
                 <fieldset>
                     <label for="division-select">Source divisions:</label>
                     <select id="division-select" name="division-select[]" multiple onchange="this.form.submit()">
@@ -161,8 +149,8 @@ updateCourseFiscalYears();
                 // Get the selected source fiscal years from the form submission
                 $selectedSourceFiscalYears = isset($_GET['source-fy-select']) ? $_GET['source-fy-select'] : [date('Y') - 2 . '/' . (date('Y') - 1)];
 
-                // Get the selected target fiscal years from the form submission
-                $selectedTargetFiscalYears = isset($_GET['target-fy-select']) ? $_GET['target-fy-select'] : [date('Y') - 1 . '/' . date('Y')];
+                // Set current fiscal year for availability checking (not for mapping requirements)
+                $currentFiscalYear = date('Y') . '/' . (date('Y') + 1);
 
                 // Use these selections to fetch the source courses
                 $courses = get_idwiz_courses($selectedDivisions, $selectedSourceFiscalYears);
@@ -178,7 +166,7 @@ updateCourseFiscalYears();
                     echo '<td colspan="11" class="legend-row">';
                     echo '<div class="mapping-legend">';
                     echo '<span class="legend-item"><span class="color-sample inactive"></span> Inactive course</span>';
-                    echo '<span class="legend-item"><span class="color-sample wrong-fiscal-year"></span> Course not offered in target fiscal year(s)</span>';
+                    echo '<span class="legend-item"><span class="color-sample not-current-fy"></span> Course not offered in current fiscal year (' . $currentFiscalYear . ')</span>';
                     echo '</div>';
                     echo '</td>';
                     echo '</tr>';
@@ -210,33 +198,28 @@ updateCourseFiscalYears();
                             $courseRecs = maybe_unserialize($course->course_recs);
                             $courseRecIds = isset($courseRecs[$recType]) ? $courseRecs[$recType] : [];
 
-                            echo "<td class='course-recs $recType' data-course-id='{$course->id}' data-rec-type='$recType' data-division='$division' data-target-fiscals='" . esc_attr(json_encode($selectedTargetFiscalYears)) . "'>";
+                            echo "<td class='course-recs $recType' data-course-id='{$course->id}' data-rec-type='$recType' data-division='$division' data-current-fiscal='" . esc_attr($currentFiscalYear) . "'>";
                             echo "<div class='course-recs-wrap'>";
                             foreach ($courseRecIds as $courseRecId) {
                                 $recdCourse = get_course_details_by_id($courseRecId);
                                 if ($recdCourse) {
                                     $activeClass = $recdCourse->wizStatus == 'active' ? 'active' : 'inactive';
                                     
-                                    // Check if course is in target fiscal years
+                                    // Check if course is offered in current fiscal year
                                     $courseFiscalYears = maybe_unserialize($recdCourse->fiscal_years);
-                                    $inTargetFiscalYear = false;
+                                    $inCurrentFiscalYear = false;
                                     
                                     if (is_array($courseFiscalYears)) {
-                                        foreach ($selectedTargetFiscalYears as $targetFY) {
-                                            if (in_array($targetFY, $courseFiscalYears)) {
-                                                $inTargetFiscalYear = true;
-                                                break;
-                                            }
-                                        }
+                                        $inCurrentFiscalYear = in_array($currentFiscalYear, $courseFiscalYears);
                                     }
                                     
-                                    $fiscalYearClass = $inTargetFiscalYear ? '' : 'wrong-fiscal-year';
+                                    $fiscalYearClass = $inCurrentFiscalYear ? '' : 'not-current-fy';
                                     
                                     $warningTitle = '';
-                                    if (!$inTargetFiscalYear) {
+                                    if (!$inCurrentFiscalYear) {
                                         $availableFY = is_array($courseFiscalYears) ? implode(', ', $courseFiscalYears) : 'N/A';
-                                        $warningTitle = 'This course is not offered in the selected target fiscal year(s): ' . implode(', ', $selectedTargetFiscalYears) . 
-                                                       '. It is available in: ' . $availableFY;
+                                        $warningTitle = 'This course is not offered in the current fiscal year (' . $currentFiscalYear . '). ' .
+                                                       'It is available in: ' . $availableFY;
                                     }
                                     
                                     echo "<span class='course-blob $activeClass $fiscalYearClass' data-recd-course-id='{$recdCourse->id}' title='" . esc_attr($warningTitle) . "'>";

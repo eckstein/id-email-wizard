@@ -55,6 +55,8 @@ jQuery(document).ready(function ($) {
 					}).then((whereToGo) => {
 						if (whereToGo.value == 1) {
 							window.open(response.data.newURL, '_blank');
+							// Hide overlay when opening new tab since user stays on current page
+							$("#iDoverlay, #iDspinner").hide();
 						} else {
 							const isTemplateArchive = window.location.href.indexOf("/templates/") > -1;
 							if (isTemplateArchive) {
@@ -63,7 +65,7 @@ jQuery(document).ready(function ($) {
 								$("#iDoverlay, #iDspinner").hide();
 							}
 						}
-						// Close any remaining Swal overlay
+						// Close any remaining Swal overlay in both cases
 						Swal.close();
 					});
 				};

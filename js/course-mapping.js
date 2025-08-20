@@ -2,7 +2,7 @@ jQuery(document).on("click", ".add-course", function () {
     var courseId = jQuery(this).closest(".course-recs").data("course-id");
     var recType = jQuery(this).closest(".course-recs").data("rec-type");
     var division = jQuery(this).closest(".course-recs").data("division");
-    var targetFiscals = jQuery(this).closest(".course-recs").data("target-fiscals");
+    // Note: Target fiscal years removed - mapping is now course-to-course without FY restriction
 
     // Capture the current scroll position
     var scrollPosition = jQuery(window).scrollTop();
@@ -27,8 +27,8 @@ jQuery(document).on("click", ".add-course", function () {
                             idAjax_id_general.nonce,
                             {
                                 term: params.data.term, // Pass the search term for filtering courses
-                                division: division,
-                                target_fiscals: targetFiscals
+                                division: division
+                                // Note: target_fiscals parameter removed since mapping is now course-to-course
                             },
                             function (response) {
                                 success(response);
@@ -130,8 +130,8 @@ jQuery(document).on("click", ".remove-course", function () {
 });
 
 jQuery(document).ready(function() {
-    // Initialize select2 for dropdown menus
-    jQuery('#division-select, #source-fy-select, #target-fy-select').select2({
+    // Initialize select2 for dropdown menus (removed target-fy-select since it's no longer needed)
+    jQuery('#division-select, #source-fy-select').select2({
         width: '100%',
         dropdownAutoWidth: true,
         closeOnSelect: false,
