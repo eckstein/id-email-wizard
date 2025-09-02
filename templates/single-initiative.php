@@ -7,17 +7,25 @@
 
 		// Get the list of campaign IDs associated with the current initiative
 		$associated_campaign_ids = idemailwiz_get_campaign_ids_for_initiative(get_the_ID()) ?? array();
+		
+		// Safety check: Limit the number of campaigns to prevent memory issues
+		if (count($associated_campaign_ids) > 100) {
+			echo '<div class="notice notice-warning"><p>This initiative has ' . count($associated_campaign_ids) . ' campaigns. Showing the most recent 100 campaigns to prevent performance issues.</p></div>';
+			$associated_campaign_ids = array_slice($associated_campaign_ids, 0, 100);
+		}
+		
 		if (!empty($associated_campaign_ids)) {
-			$purchases = get_idwiz_purchases(['campaignIds' => $associated_campaign_ids]);
+			$purchases = get_idwiz_purchases(['campaignIds' => $associated_campaign_ids, 'limit' => 10000]);
 		}
 
-		// If IDs exist, fetch campaigns
+		// If IDs exist, fetch campaigns with optimized query
 		if (!empty($associated_campaign_ids)) {
 			$initCampaigns = get_idwiz_campaigns(
 				array(
 					'campaignIds' => $associated_campaign_ids,
 					'sortBy' => 'startAt',
-					'sort' => 'DESC'
+					'sort' => 'DESC',
+					'limit' => 100  // Prevent memory issues with very large initiatives
 				)
 			);
 		}
@@ -62,10 +70,13 @@
 
 				<?php
 				if (!empty($associated_campaign_ids)) {
-
-					$metricRates = get_idwiz_metric_rates($associated_campaign_ids);
-
-					echo get_idwiz_rollup_row($metricRates);
+					// Only calculate metric rates if we have a reasonable number of campaigns
+					if (count($associated_campaign_ids) <= 50) {
+						$metricRates = get_idwiz_metric_rates($associated_campaign_ids);
+						echo get_idwiz_rollup_row($metricRates);
+					} else {
+						echo '<div class="notice notice-info"><p>Rollup metrics are disabled for initiatives with more than 50 campaigns to improve performance.</p></div>';
+					}
 				} else {
 					echo '<p>This initiative is not associated with any campaigns yet.</p>';
 				}
@@ -79,8 +90,21 @@
 							<?php
 							if (!empty($initCampaigns)) {
 								$campaignsAsc = array_reverse($initCampaigns);
+								
+								// Optimize: Batch fetch all templates instead of individual queries
+								$templateIds = array_unique(array_column($campaignsAsc, 'templateId'));
+								// Since templateIds array isn't supported, we'll fetch all templates and filter
+								$allTemplates = get_idwiz_templates(['limit' => 1000]);
+								$templatesById = [];
+								foreach ($allTemplates as $template) {
+									if (in_array($template['templateId'], $templateIds)) {
+										$templatesById[$template['templateId']] = $template;
+									}
+								}
+								
 								foreach ($campaignsAsc as $campaign) {
-									$template = get_idwiz_template($campaign['templateId']);
+									$template = $templatesById[$campaign['templateId']] ?? null;
+									if (!$template) continue; // Skip if template not found
 							?>
 									<div class="template-timeline-card">
 										<div class="template-timeline-card-title">
@@ -170,12 +194,22 @@
 							<tbody>
 								<?php
 
-
-
 								if (!empty($associated_campaign_ids)) {
+									// Optimize: Batch fetch all metrics instead of individual queries
+									$allMetrics = get_idwiz_metrics(['campaignIds' => $associated_campaign_ids]);
+									$metricsById = [];
+									if (is_array($allMetrics)) {
+										foreach ($allMetrics as $metric) {
+											if (isset($metric['id'])) {
+												$metricsById[$metric['id']] = $metric;
+											}
+										}
+									}
+
 									foreach ($initCampaigns as $campaign) {
-										$wizCampaign = get_idwiz_campaign($campaign['id']);
-										$campaignMetrics = get_idwiz_metric($campaign['id']);
+										// Use already fetched campaign data instead of additional query
+										$wizCampaign = $campaign;
+										$campaignMetrics = $metricsById[$campaign['id']] ?? [];
 										$campaignStartStamp = (int) ($campaign['startAt'] / 1000);
 										$readableStartAt = date('m/d/Y', $campaignStartStamp);
 								?>
@@ -193,38 +227,38 @@
 													<?php echo $campaign['name']; ?>
 												</a></td>
 											<td class="uniqueSends dtNumVal">
-												<?php echo number_format((float)$campaignMetrics['uniqueEmailSends'], 0); ?>
+												<?php echo number_format((float)($campaignMetrics['uniqueEmailSends'] ?? 0), 0); ?>
 											</td>
 											<td class="uniqueOpens dtNumVal">
-												<?php echo number_format((float)$campaignMetrics['uniqueEmailOpens'], 0); ?>
+												<?php echo number_format((float)($campaignMetrics['uniqueEmailOpens'] ?? 0), 0); ?>
 											</td>
 
 											<td class="openRate">
-												<?php echo number_format((float)$campaignMetrics['wizOpenRate'] * 1, 2); ?>%
+												<?php echo number_format((float)($campaignMetrics['wizOpenRate'] ?? 0) * 1, 2); ?>%
 											</td>
 											<td class="uniqueClicks dtNumVal">
-												<?php echo number_format((float)$campaignMetrics['uniqueEmailClicks'], 0); ?>
+												<?php echo number_format((float)($campaignMetrics['uniqueEmailClicks'] ?? 0), 0); ?>
 											</td>
 											<td class="ctr">
-												<?php echo number_format((float)$campaignMetrics['wizCtr'] * 1, 2); ?>%
+												<?php echo number_format((float)($campaignMetrics['wizCtr'] ?? 0) * 1, 2); ?>%
 											</td>
 											<td class="cto">
-												<?php echo isset($campaignMetrics['wizCto']) ? number_format((float)$campaignMetrics['wizCto'] * 1, 2) : '0.00'; ?>%
+												<?php echo number_format((float)($campaignMetrics['wizCto'] ?? 0) * 1, 2); ?>%
 											</td>
 											<td class="uniquePurchases dtNumVal">
-												<?php echo isset($campaignMetrics['uniquePurchases']) ? number_format((float)$campaignMetrics['uniquePurchases'], 0) : '0'; ?>
+												<?php echo number_format((float)($campaignMetrics['uniquePurchases'] ?? 0), 0); ?>
 											</td>
 											<td class="campaignRevenue dtNumVal">
-												<?php echo number_format((float)$campaignMetrics['revenue'] * 1, 2); ?>
+												<?php echo number_format((float)($campaignMetrics['revenue'] ?? 0) * 1, 2); ?>
 											</td>
 											<td class="cvr">
-												<?php echo number_format((float)$campaignMetrics['wizCvr'] * 1, 2); ?>%
+												<?php echo number_format((float)($campaignMetrics['wizCvr'] ?? 0) * 1, 2); ?>%
 											</td>
 											<td class="uniqueUnsubs dtNumVal">
-												<?php echo number_format((float)$campaignMetrics['uniqueUnsubscribes'], 0); ?>
+												<?php echo number_format((float)($campaignMetrics['uniqueUnsubscribes'] ?? 0), 0); ?>
 											</td>
 											<td class="unsubRate">
-												<?php echo number_format((float)$campaignMetrics['wizUnsubRate'] * 1, 2); ?>%
+												<?php echo number_format((float)($campaignMetrics['wizUnsubRate'] ?? 0) * 1, 2); ?>%
 											</td>
 											<td class="campaignId">
 												<?php echo $campaign['id'] ?>
