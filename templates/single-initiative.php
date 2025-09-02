@@ -19,6 +19,7 @@
 		}
 
 		// If IDs exist, fetch campaigns with optimized query
+		$initCampaigns = [];
 		if (!empty($associated_campaign_ids)) {
 			$initCampaigns = get_idwiz_campaigns(
 				array(
@@ -28,6 +29,12 @@
 					'limit' => 100  // Prevent memory issues with very large initiatives
 				)
 			);
+			
+			// Handle database query failures
+			if (!is_array($initCampaigns)) {
+				$initCampaigns = [];
+				echo '<div class="notice notice-error"><p>Error loading campaign data. Please try refreshing the page.</p></div>';
+			}
 		}
 
 ?>
@@ -41,7 +48,10 @@
 					<div class="wizHeader-left">
 
 						<div class="wizEntry-meta"><strong>Initiative</strong>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Send dates:
-							<?php echo display_init_date_range($associated_campaign_ids); ?>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Includes
+							<?php 
+							$dateRange = display_init_date_range($associated_campaign_ids);
+							echo $dateRange ? $dateRange : 'No dates available';
+							?>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;Includes
 							<?php echo count($associated_campaign_ids); ?> campaigns
 						</div>
 
@@ -72,8 +82,16 @@
 				if (!empty($associated_campaign_ids)) {
 					// Only calculate metric rates if we have a reasonable number of campaigns
 					if (count($associated_campaign_ids) <= 50) {
-						$metricRates = get_idwiz_metric_rates($associated_campaign_ids);
-						echo get_idwiz_rollup_row($metricRates);
+						try {
+							$metricRates = get_idwiz_metric_rates($associated_campaign_ids);
+							if (is_array($metricRates) && !empty($metricRates)) {
+								echo get_idwiz_rollup_row($metricRates);
+							} else {
+								echo '<div class="notice notice-warning"><p>Unable to calculate rollup metrics for this initiative.</p></div>';
+							}
+						} catch (Exception $e) {
+							echo '<div class="notice notice-error"><p>Error calculating metrics. Please try refreshing the page.</p></div>';
+						}
 					} else {
 						echo '<div class="notice notice-info"><p>Rollup metrics are disabled for initiatives with more than 50 campaigns to improve performance.</p></div>';
 					}
@@ -92,17 +110,30 @@
 								$campaignsAsc = array_reverse($initCampaigns);
 								
 								// Optimize: Batch fetch all templates instead of individual queries
-								$templateIds = array_unique(array_column($campaignsAsc, 'templateId'));
-								// Since templateIds array isn't supported, we'll fetch all templates and filter
-								$allTemplates = get_idwiz_templates(['limit' => 1000]);
+								// Safely get template IDs - filter out null/empty values
+								$templateIds = array_filter(array_unique(array_column($campaignsAsc, 'templateId')), function($id) {
+									return !empty($id) && is_numeric($id);
+								});
+								
 								$templatesById = [];
-								foreach ($allTemplates as $template) {
-									if (in_array($template['templateId'], $templateIds)) {
-										$templatesById[$template['templateId']] = $template;
+								if (!empty($templateIds)) {
+									// Since templateIds array isn't supported, we'll fetch all templates and filter
+									$allTemplates = get_idwiz_templates(['limit' => 1000]);
+									if (is_array($allTemplates)) {
+										foreach ($allTemplates as $template) {
+											if (isset($template['templateId']) && in_array($template['templateId'], $templateIds)) {
+												$templatesById[$template['templateId']] = $template;
+											}
+										}
 									}
 								}
 								
 								foreach ($campaignsAsc as $campaign) {
+									// Validate campaign data before processing
+									if (!isset($campaign['templateId']) || !isset($campaign['startAt']) || !isset($campaign['name'])) {
+										continue; // Skip campaigns with missing essential data
+									}
+									
 									$template = $templatesById[$campaign['templateId']] ?? null;
 									if (!$template) continue; // Skip if template not found
 							?>
@@ -110,8 +141,9 @@
 										<div class="template-timeline-card-title">
 											<?php
 											$startStamp = intval($campaign['startAt'] / 1000);
-											echo date('m/d/Y', $startStamp) . '<br/>';
-											echo $campaign['name'];
+											echo $startStamp > 0 ? date('m/d/Y', $startStamp) : 'Date unknown';
+											echo '<br/>';
+											echo htmlspecialchars($campaign['name']);
 											?>
 										</div>
 										<div class="template-timeline-card-image">
@@ -153,17 +185,24 @@
 
 
 				<?php
-				if (!empty($associated_campaign_ids)) {
+				if (!empty($associated_campaign_ids) && !empty($initCampaigns)) {
 					// Setup standard chart variables
 					$standardChartCampaignIds = $associated_campaign_ids;
-					$standardChartPurchases = $purchases;
+					$standardChartPurchases = $purchases ?? [];
 
-					$startAts = array_column($initCampaigns, 'startAt');
-					$earliestDate = min($startAts);
-					$startDate = date('Y-m-d', intval($earliestDate / 1000));
-
-					$endDate = date('Y-m-d');
-					include plugin_dir_path(__FILE__) . 'parts/standard-charts.php';
+					// Safely get start dates - filter out null/empty values
+					$startAts = array_filter(array_column($initCampaigns, 'startAt'), function($startAt) {
+						return !empty($startAt) && is_numeric($startAt);
+					});
+					
+					if (!empty($startAts)) {
+						$earliestDate = min($startAts);
+						$startDate = date('Y-m-d', intval($earliestDate / 1000));
+						$endDate = date('Y-m-d');
+						include plugin_dir_path(__FILE__) . 'parts/standard-charts.php';
+					} else {
+						echo '<div class="notice notice-warning"><p>Cannot display charts: Campaign dates are missing or invalid.</p></div>';
+					}
 				}
 				?>
 
@@ -207,24 +246,29 @@
 									}
 
 									foreach ($initCampaigns as $campaign) {
+										// Validate essential campaign data before processing
+										if (!isset($campaign['id']) || !isset($campaign['startAt']) || !isset($campaign['name'])) {
+											continue; // Skip campaigns with missing essential data
+										}
+										
 										// Use already fetched campaign data instead of additional query
 										$wizCampaign = $campaign;
 										$campaignMetrics = $metricsById[$campaign['id']] ?? [];
 										$campaignStartStamp = (int) ($campaign['startAt'] / 1000);
-										$readableStartAt = date('m/d/Y', $campaignStartStamp);
+										$readableStartAt = $campaignStartStamp > 0 ? date('m/d/Y', $campaignStartStamp) : 'Date unknown';
 								?>
 										<tr data-campaignid="<?php echo $campaign['id']; ?>">
 											<td class="campaignDate" data-sort="<?php echo $campaignStartStamp; ?>">
 												<?php echo $readableStartAt; ?>
 											</td>
 											<td class="campaignType">
-												<?php echo $wizCampaign['type']; ?>
+												<?php echo htmlspecialchars($wizCampaign['type'] ?? 'Unknown'); ?>
 											</td>
 											<td class="messageMedium">
-												<?php echo $wizCampaign['messageMedium']; ?>
+												<?php echo htmlspecialchars($wizCampaign['messageMedium'] ?? 'Unknown'); ?>
 											</td>
 											<td class="campaignName"><a href="<?php echo get_bloginfo('wpurl'); ?>/metrics/campaign/?id=<?php echo $campaign['id']; ?>">
-													<?php echo $campaign['name']; ?>
+													<?php echo htmlspecialchars($campaign['name']); ?>
 												</a></td>
 											<td class="uniqueSends dtNumVal">
 												<?php echo number_format((float)($campaignMetrics['uniqueEmailSends'] ?? 0), 0); ?>
