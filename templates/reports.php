@@ -63,6 +63,11 @@ $reportType = $_GET['reportType'] ?? 'home';
                                 <div class="nav-desc">See frequency of campaign sends by cohort or by send count.</div>
                                 <a href="<?php echo get_bloginfo('url'); ?>/reports/?reportType=frequency<?php echo (isset($_GET['startDate']) && isset($_GET['endDate'])) ? '&startDate=' . $_GET['startDate'] . '&endDate=' . $_GET['endDate'] : ''; ?>"></a>
                             </li>
+                            <li class="<?php echo $reportType == 'marketing-monthly-recaps' ? 'current' : ''; ?>">
+                                <div class="nav-item"><i class="fa-solid fa-calendar-month"></i>&nbsp;&nbsp;Marketing Monthly Recaps (triggered)</div>
+                                <div class="nav-desc">Generate monthly performance recaps for selected triggered campaigns.</div>
+                                <a href="<?php echo get_bloginfo('url'); ?>/reports/?reportType=marketing-monthly-recaps<?php echo (isset($_GET['startDate']) && isset($_GET['endDate'])) ? '&startDate=' . $_GET['startDate'] . '&endDate=' . $_GET['endDate'] : ''; ?>"></a>
+                            </li>
                         </ul>
                     </div>
                 </div>
@@ -87,6 +92,8 @@ $reportType = $_GET['reportType'] ?? 'home';
                     include plugin_dir_path(__FILE__) . 'parts/reports/signup-to-purchase.php';
                 } else if ($reportType == 'engagement-tails') {
                     include plugin_dir_path(__FILE__) . 'parts/reports/engagement-tails.php';
+                } else if ($reportType == 'marketing-monthly-recaps') {
+                    include plugin_dir_path(__FILE__) . 'parts/reports/marketing-monthly-recaps.php';
                 }
                 ?>
             </div>
