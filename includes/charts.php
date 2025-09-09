@@ -126,32 +126,63 @@ function idwiz_get_report_chartdata($chartOptions)
     switch ($chartId) {
         case 'opensReport':
             $dbMetric = 'wizOpenRate';
-            $minMetric = $chartOptions['minMetric'] ?? 0;
-            $maxMetric = $chartOptions['maxMetric'] ?? 100;
+            // Use new filter parameters if available, fallback to legacy
+            $minMetric = $chartOptions['minFilter'] ?? $chartOptions['minMetric'] ?? 0;
+            $maxMetric = $chartOptions['maxFilter'] ?? $chartOptions['maxMetric'] ?? 100;
+            $minScale = $chartOptions['minScale'] ?? $minMetric;
+            $maxScale = $chartOptions['maxScale'] ?? $maxMetric;
             $dataType = 'percent';
             break;
         case 'ctrReport':
             $dbMetric = 'wizCtr';
-            $minMetric = isset($chartOptions['minMetric']) ? $chartOptions['minMetric'] * .001 : 0;
-            $maxMetric = isset($chartOptions['maxMetric']) ? $chartOptions['maxMetric'] * .001 : 2;
+            // For click rates, handle the new percentage-based system vs old decimal system
+            if (isset($chartOptions['minFilter']) || isset($chartOptions['maxFilter'])) {
+                // New percentage-based system (30 = 30%)
+                $minMetric = ($chartOptions['minFilter'] ?? 0) / 100;
+                $maxMetric = ($chartOptions['maxFilter'] ?? 30) / 100;
+                $minScale = ($chartOptions['minScale'] ?? $chartOptions['minFilter'] ?? 0) / 100;
+                $maxScale = ($chartOptions['maxScale'] ?? $chartOptions['maxFilter'] ?? 30) / 100;
+            } else {
+                // Legacy system (30 = 3%)
+                $minMetric = isset($chartOptions['minMetric']) ? $chartOptions['minMetric'] * .001 : 0;
+                $maxMetric = isset($chartOptions['maxMetric']) ? $chartOptions['maxMetric'] * .001 : 2;
+                $minScale = $minMetric;
+                $maxScale = $maxMetric;
+            }
             $dataType = 'percent';
             break;
         case 'ctoReport':
             $dbMetric = 'wizCto';
-            $minMetric = isset($chartOptions['minMetric']) ? $chartOptions['minMetric'] * .001 : 0;
-            $maxMetric = isset($chartOptions['maxMetric']) ? $chartOptions['maxMetric'] * .001 : 4;
+            // For CTO rates, handle the new percentage-based system vs old decimal system
+            if (isset($chartOptions['minFilter']) || isset($chartOptions['maxFilter'])) {
+                // New percentage-based system (100 = 100%)
+                $minMetric = ($chartOptions['minFilter'] ?? 0) / 100;
+                $maxMetric = ($chartOptions['maxFilter'] ?? 100) / 100;
+                $minScale = ($chartOptions['minScale'] ?? $chartOptions['minFilter'] ?? 0) / 100;
+                $maxScale = ($chartOptions['maxScale'] ?? $chartOptions['maxFilter'] ?? 100) / 100;
+            } else {
+                // Legacy system (40 = 4%)
+                $minMetric = isset($chartOptions['minMetric']) ? $chartOptions['minMetric'] * .001 : 0;
+                $maxMetric = isset($chartOptions['maxMetric']) ? $chartOptions['maxMetric'] * .001 : 4;
+                $minScale = $minMetric;
+                $maxScale = $maxMetric;
+            }
             $dataType = 'percent';
             break;
         case 'unsubReport':
             $dbMetric = 'wizUnsubRate';
-            $minMetric = $chartOptions['minMetric'] ?? 0;
-            $maxMetric = $chartOptions['maxMetric'] ?? 5;
+            $minMetric = $chartOptions['minFilter'] ?? $chartOptions['minMetric'] ?? 0;
+            $maxMetric = $chartOptions['maxFilter'] ?? $chartOptions['maxMetric'] ?? 5;
+            $minScale = $chartOptions['minScale'] ?? $minMetric;
+            $maxScale = $chartOptions['maxScale'] ?? $maxMetric;
             $dataType = 'percent';
             break;
         case 'revReport':
             $dbMetric = 'revenue';
-            $minMetric = $chartOptions['minMetric'] ?? 0;
-            $maxMetric = $chartOptions['maxMetric'] ?? 100000;
+            $minMetric = $chartOptions['minFilter'] ?? $chartOptions['minMetric'] ?? 0;
+            $maxMetric = $chartOptions['maxFilter'] ?? $chartOptions['maxMetric'] ?? 100000;
+            $minScale = $chartOptions['minScale'] ?? $minMetric;
+            $maxScale = $chartOptions['maxScale'] ?? $maxMetric;
             $dataType = 'money';
             break;
     }
@@ -288,8 +319,8 @@ function idwiz_get_report_chartdata($chartOptions)
                     'type' => 'linear',
                     'position' => 'left',
                     'beginAtZero' => true,
-                    'min' => $minMetric,
-                    'max' => $maxMetric,
+                    'min' => $minScale,
+                    'max' => $maxScale,
                     'stepSize' => 1,
                     'grid' => [
                         'drawOnChartArea' => true,

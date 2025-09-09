@@ -75,19 +75,55 @@ $("#reports-filter-form").on("submit", function(e) {
             .attr('data-startdate', formDataObject.startDate ? formDataObject.startDate : defaultStartDate)
             .attr('data-enddate', formDataObject.endDate ? formDataObject.endDate : defaultEndDate);
 
-        if ($(canvas).attr('data-chartid') == 'opensReport') {
+        // Handle both legacy and new parameter structure
+        var chartId = $(canvas).attr('data-chartid');
+        
+        // Legacy parameter support
+        if (chartId == 'opensReport') {
+            var minFilter = formDataObject.minOpenRate || formDataObject.opensReport_minFilter || 0;
+            var maxFilter = formDataObject.maxOpenRate || formDataObject.opensReport_maxFilter || 100;
             $(canvas)
-                .attr('data-minmetric', formDataObject.minOpenRate || 0)
-                .attr('data-maxmetric', formDataObject.maxOpenRate  || 100);
-        } else if ($(canvas).attr('data-chartid') == 'ctrReport') {
+                .attr('data-minmetric', minFilter)
+                .attr('data-maxmetric', maxFilter)
+                .attr('data-minfilter', minFilter)
+                .attr('data-maxfilter', maxFilter);
+        } else if (chartId == 'ctrReport') {
+            var minFilter = formDataObject.minClickRate || formDataObject.ctrReport_minFilter || 0;
+            var maxFilter = formDataObject.maxClickRate || formDataObject.ctrReport_maxFilter || 30;
             $(canvas)
-                .attr('data-minmetric', formDataObject.minClickRate ? formDataObject.minClickRate * 100 : 0)
-                .attr('data-maxmetric', formDataObject.maxClickRate ? formDataObject.maxClickRate * 100 : 100);
-        } else if ($(canvas).attr('data-chartid') == 'ctoReport') {
+                .attr('data-minmetric', minFilter)
+                .attr('data-maxmetric', maxFilter)
+                .attr('data-minfilter', minFilter)
+                .attr('data-maxfilter', maxFilter);
+        } else if (chartId == 'ctoReport') {
+            var minFilter = formDataObject.minCtoRate || formDataObject.ctoReport_minFilter || 0;
+            var maxFilter = formDataObject.maxCtoRate || formDataObject.ctoReport_maxFilter || 100;
             $(canvas)
-                .attr('data-minmetric', formDataObject.minCtoRate ? formDataObject.minCtoRate * 100 : 0)
-                .attr('data-maxmetric', formDataObject.maxCtoRate ? formDataObject.maxCtoRate * 100 : 100);
+                .attr('data-minmetric', minFilter)
+                .attr('data-maxmetric', maxFilter)
+                .attr('data-minfilter', minFilter)
+                .attr('data-maxfilter', maxFilter);
         }
+        
+        // Handle new module-specific parameters
+        ['opensReport', 'ctrReport', 'ctoReport', 'unsubReport', 'revReport'].forEach(function(moduleId) {
+            if (chartId == moduleId) {
+                if (formDataObject[moduleId + '_minFilter'] !== undefined) {
+                    $(canvas).attr('data-minfilter', formDataObject[moduleId + '_minFilter']);
+                    $(canvas).attr('data-minmetric', formDataObject[moduleId + '_minFilter']);
+                }
+                if (formDataObject[moduleId + '_maxFilter'] !== undefined) {
+                    $(canvas).attr('data-maxfilter', formDataObject[moduleId + '_maxFilter']);
+                    $(canvas).attr('data-maxmetric', formDataObject[moduleId + '_maxFilter']);
+                }
+                if (formDataObject[moduleId + '_minScale'] !== undefined) {
+                    $(canvas).attr('data-minscale', formDataObject[moduleId + '_minScale']);
+                }
+                if (formDataObject[moduleId + '_maxScale'] !== undefined) {
+                    $(canvas).attr('data-maxscale', formDataObject[moduleId + '_maxScale']);
+                }
+            }
+        });
 
         idwiz_fill_chart_canvas(canvas);
     });

@@ -3619,79 +3619,168 @@ h2.wizArticle-title {
 }
 
 
-/* Report Filter Form */
-
+/* Report Filter Form - Clean Horizontal Layout */
 
 #wiz-report-filterbar {
-	position: sticky;
-	top: 40px;
-	z-index: 99;
+	position: static;
+	margin-bottom: 20px;
 }
-#reports-filter-form  {
-	display: flex;
-	align-items: flex-end;
-	background-color: #f8f9fa;
-	padding: 12px 16px;
-	border-radius: 8px;
-	box-shadow: 0 1px 2px rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
-	overflow-x: auto;
-	gap: 16px;
 
-	flex-wrap: wrap;
-	justify-content: space-between;
-}
-#wiz-report-date-controls .wiz-report-controlset-field {
+#reports-filter-form {
+	width: 100%;
 	display: flex;
-	flex-direction: row;
-	align-items: center;
+	background-color: #fff;
+	padding: 16px 20px;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+	gap: 24px;
+	flex-wrap: wrap;
+	justify-content: space-between
 }
+/* Global control group styling */
 .wiz-report-controlset {
 	display: flex;
-	align-items: flex-start;
+	flex-direction: column;
+	gap: 6px;
 	margin: 0;
 	padding: 0;
 	border: none;
-	gap: 12px;
+	background: transparent;
 }
+
+.wiz-report-controlset legend {
+	font-weight: 600;
+	color: #555;
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.3px;
+	padding: 0;
+	margin-bottom: 4px;
+}
+
 .wiz-report-controlset .select2 {
-	width: 300px!important;
+	width: 200px!important;
 }
+
 .wiz-report-controlset-field {
 	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	position: relative;
+	align-items: center;
+	gap: 6px;
+	margin: 0;
+}
+
+/* Date range specific styling */
+#wiz-report-date-controls .wiz-report-controlset-field {
+	justify-content: center;
 }
 
 .wiz-report-controlset-field label {
-	font-size: 10px;
+	font-size: 12px;
 	font-weight: 500;
-	color: #5f6368;
-	margin-bottom: 4px;
-	transition: all 0.2s ease;
+	color: #666;
+	white-space: nowrap;
 }
 
 .wiz-report-controlset-field input[type="number"],
-select {
-	width: 85px;
-	height: 36px;
-	padding: 8px 12px;
-	font-size: 14px;
-	border: 1px solid #dadce0;
+.wiz-report-controlset-field input[type="date"],
+.wiz-report-controlset-field select {
+	padding: 8px 10px;
+	border: 1px solid #ccc;
 	border-radius: 4px;
+	font-size: 14px;
 	background-color: #fff;
-	transition: all 0.2s ease;
+	transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-input[type="number"]:focus,
-select:focus {
+.wiz-report-controlset-field input[type="number"] {
+	width: 85px;
+}
+
+.wiz-report-controlset-field input[type="date"] {
+	width: 140px;
+}
+
+.wiz-report-controlset-field select {
+	min-width: 120px;
+}
+
+.wiz-report-controlset-field input[type="number"]:focus,
+.wiz-report-controlset-field input[type="date"]:focus,
+.wiz-report-controlset-field select:focus {
 	outline: none;
-	border-color: #1a73e8;
-	box-shadow: 0 0 0 2px rgba(26,115,232,0.2);
+	border-color: #007cba;
+	box-shadow: 0 0 0 3px rgba(0, 124, 186, 0.1);
 }
 
-.wiz-report-controlset-field:hover label {
-	color: #1a73e8;
+/* Date separator styling */
+.date-separator {
+	color: #666;
+	font-weight: 500;
+	margin: 0 4px;
+	font-size: 12px;
+}
+
+/* Send volume controls */
+#wiz-report-sendsize-controls {
+	display: flex;
+	flex-direction: row;
+	gap: 12px;
+}
+
+#wiz-report-sendsize-controls legend {
+	margin-right: 8px;
+	margin-bottom: 0;
+	align-self: center;
+}
+
+#wiz-report-sendsize-controls .wiz-report-controlset-field {
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 3px;
+}
+
+#wiz-report-sendsize-controls input {
+	width: 80px;
+}
+
+/* Campaign labels controls */
+#wiz-report-cohort-controls .wiz-report-controlset-field {
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 3px;
+}
+#wiz-report-global-update {
+	align-items: center;
+}
+
+#wiz-report-cohort-controls .wiz-report-controlset-field select {
+	min-width: 140px;
+	max-width: 180px;
+}
+
+/* Engagement tails controls */
+#wiz-report-maxhours-controls {
+	display: flex;
+	flex-direction: row;
+	gap: 12px;
+	align-items: flex-end;
+}
+
+#wiz-report-maxhours-controls legend {
+	margin-right: 8px;
+	margin-bottom: 0;
+	align-self: center;
+}
+
+#wiz-report-maxhours-controls .wiz-report-controlset-field {
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 3px;
+}
+
+#wiz-report-maxhours-controls input {
+	width: 80px;
 }
 
 /* Styling for Select2 dropdown */
@@ -3728,13 +3817,66 @@ select:focus {
 }
 
 /* Responsive adjustments */
-@media (max-width: 1200px) {
+@media (max-width: 1024px) {
 	#reports-filter-form {
-		flex-wrap: wrap;
+		gap: 16px;
 	}
-    
+	
+	#wiz-report-sendsize-controls {
+		flex-direction: column;
+		gap: 8px;
+	}
+	
+	#wiz-report-sendsize-controls legend {
+		align-self: flex-start;
+		margin-right: 0;
+		margin-bottom: 4px;
+	}
+	
+	#wiz-report-cohort-controls .wiz-report-controlset-field select {
+		min-width: 120px;
+		max-width: 150px;
+	}
+	
+	#wiz-report-maxhours-controls {
+		flex-direction: column;
+		gap: 8px;
+	}
+	
+	#wiz-report-maxhours-controls legend {
+		align-self: flex-start;
+		margin-right: 0;
+		margin-bottom: 4px;
+	}
+}
+
+@media (max-width: 768px) {
+	#reports-filter-form {
+		flex-direction: column;
+		gap: 12px;
+		align-items: stretch;
+	}
+	
 	.wiz-report-controlset {
-		margin-bottom: 12px;
+		flex-direction: row;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 12px;
+	}
+	
+	.wiz-report-controlset legend {
+		margin-right: 12px;
+		margin-bottom: 0;
+	}
+	
+	#wiz-report-sendsize-controls {
+		flex-direction: row;
+		gap: 12px;
+	}
+	
+	#wiz-report-maxhours-controls {
+		flex-direction: row;
+		gap: 12px;
 	}
 }
 

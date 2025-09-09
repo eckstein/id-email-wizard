@@ -44,8 +44,8 @@ $reportType = $_GET['reportType'] ?? 'home';
                                 <a href="<?php echo esc_url(get_permalink()); ?>?reportType=home"></a>
                             </li>
                             <li class="<?php echo $reportType == 'open-click-trends' ? 'current' : ''; ?>">
-                                <div class="nav-item"><i class="fa-solid fa-chart-line"></i>&nbsp;&nbsp;Open & Click Trends</div>
-                                <div class="nav-desc">See comparitive trends for open and click rates over time</div>
+                                <div class="nav-item"><i class="fa-solid fa-chart-line"></i>&nbsp;&nbsp;Engagement Report</div>
+                                <div class="nav-desc">Comprehensive engagement metrics with individual module controls and scaling options</div>
                                 <a href="<?php echo get_bloginfo('url'); ?>/reports/?reportType=open-click-trends<?php echo (isset($_GET['startDate']) && isset($_GET['endDate'])) ? '&startDate=' . $_GET['startDate'] . '&endDate=' . $_GET['endDate'] : ''; ?>"></a>
                             </li>
                             <li class="<?php echo $reportType == 'engagement-tails' ? 'current' : ''; ?>">

@@ -181,6 +181,18 @@ function idwiz_fill_chart_canvas(canvas) {
 	if (jQuery(canvas).attr("data-maxmetric")) {
 		additionalData.maxMetric = jQuery(canvas).attr("data-maxmetric");
 	}
+	if (jQuery(canvas).attr("data-minfilter")) {
+		additionalData.minFilter = jQuery(canvas).attr("data-minfilter");
+	}
+	if (jQuery(canvas).attr("data-maxfilter")) {
+		additionalData.maxFilter = jQuery(canvas).attr("data-maxfilter");
+	}
+	if (jQuery(canvas).attr("data-minscale")) {
+		additionalData.minScale = jQuery(canvas).attr("data-minscale");
+	}
+	if (jQuery(canvas).attr("data-maxscale")) {
+		additionalData.maxScale = jQuery(canvas).attr("data-maxscale");
+	}
 	
 	if (jQuery(canvas).attr("data-year-over-year")) {
 		additionalData.yearOverYear = jQuery(canvas).attr("data-year-over-year");

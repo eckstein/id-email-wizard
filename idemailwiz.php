@@ -316,6 +316,10 @@ function idemailwiz_enqueue_assets()
 
     wp_enqueue_script('highlighterjs', '//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js', array('jquery'), '11.7.0', true);
     wp_enqueue_style('highlighter-agate', plugins_url('/styles/agate.css', __FILE__), array(), '11.7.0');
+    
+    // Engagement Report styles and scripts
+    wp_enqueue_style('engagement-report', plugins_url('/styles/engagement-report.css', __FILE__), array(), '1.0.0');
+    wp_enqueue_script('engagement-report', plugins_url('/js/engagement-report.js', __FILE__), array('jquery'), '1.0.0', true);
 }
 
 
