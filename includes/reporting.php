@@ -4,7 +4,7 @@ function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $return
 {
     global $wpdb;
 
-    // Convert the start and end dates to timestamps
+    // Convert the start and end dates to timestamps for proper filtering
     $startTimestamp = strtotime($startDate);
     $endTimestamp = strtotime($endDate);
 
@@ -12,7 +12,6 @@ function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $return
     $sendCountGroups = [];
     $totalUsers = 0;
     $userTotalSends = [];
-    $userMaxSends = [];
 
     // Get year and week parts for start and end dates
     $startYear = date('Y', $startTimestamp);
@@ -24,14 +23,14 @@ function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $return
     $hasMoreRecords = true;
 
     while ($hasMoreRecords) {
-        // Adjust the SQL query to handle date ranges spanning multiple years
+        // Query to get all weekly send data within the date range
         $query = $wpdb->prepare(
-            "SELECT sends, userIds, year, week 
+            "SELECT sends, userIds, year, week, total_users
              FROM {$wpdb->prefix}idemailwiz_sends_by_week 
              WHERE (year = %d AND week >= %d) 
                 OR (year > %d AND year < %d)
                 OR (year = %d AND week <= %d)
-             ORDER BY year, week
+             ORDER BY year, week, sends
              LIMIT %d, %d",
             $startYear,
             $startWeek,
@@ -51,24 +50,32 @@ function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $return
         }
 
         foreach ($results as $row) {
-            $rowTimestamp = strtotime("{$row->year}-W" . str_pad($row->week, 2, '0', STR_PAD_LEFT));
+            // Double-check date range with proper week calculation
+            $rowTimestamp = strtotime("{$row->year}-W" . str_pad($row->week, 2, '0', STR_PAD_LEFT) . "-1");
 
-            // Skip rows outside the date range
+            // Skip rows outside the actual date range
             if ($rowTimestamp < $startTimestamp || $rowTimestamp > $endTimestamp) {
                 continue;
             }
 
-            $sends = $row->sends;
+            $sends = (int)$row->sends;
             $userIds = unserialize($row->userIds);
+            
+            // Validate that userIds was properly unserialized
+            if (!is_array($userIds)) {
+                continue;
+            }
 
-            // Initialize and increment send count groups for weekly data
+            // Initialize send count groups for weekly data
             if (!isset($sendCountGroups[$sends])) {
                 $sendCountGroups[$sends] = ['count' => 0];
             }
             $sendCountGroups[$sends]['count'] += count($userIds);
             
+            // Accumulate total sends per user across all weeks in the date range
             foreach ($userIds as $userId) {
-                // Store user total sends for monthly data calculation
+                if (empty($userId)) continue; // Skip empty user IDs
+                
                 if (!isset($userTotalSends[$userId])) {
                     $userTotalSends[$userId] = 0;
                 }
@@ -76,26 +83,29 @@ function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $return
                 $userTotalSends[$userId] += $sends;
             }
             
-            // Count total users (for weekly data) - this counts user-week combinations
+            // Count total user-week combinations for weekly metrics
             $totalUsers += count($userIds);
         }
-
 
         $offset += $batchSize;
     }
 
     // Prepare the return data based on the requested timeframe
     if ($return === 'all') {
+        // Group users by their total send count across the entire date range
         $allSendCountGroups = [];
-        foreach ($userTotalSends as $totalSends) {
+        foreach ($userTotalSends as $userId => $totalSends) {
             if (!isset($allSendCountGroups[$totalSends])) {
                 $allSendCountGroups[$totalSends] = 0;
             }
             $allSendCountGroups[$totalSends]++;
         }
-        ksort($allSendCountGroups); // Sort the array by key (number of sends)
+        ksort($allSendCountGroups);
 
-        return ['allData' => $allSendCountGroups, 'totalUsers' => count($userTotalSends)];
+        return [
+            'allData' => $allSendCountGroups, 
+            'totalUsers' => count($userTotalSends)
+        ];
     } elseif ($return === 'weekly') {
         $weeklyData = [];
         foreach ($sendCountGroups as $sendCount => $data) {
@@ -105,18 +115,20 @@ function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $return
         }
         return ['weeklyData' => $weeklyData, 'totalUsers' => $totalUsers];
     } elseif ($return === 'monthly') {
-        // Calculate the overall send count groups based on user total sends
+        // Same as 'all' - group users by total sends in the date range
         $monthlySendCountGroups = [];
-        foreach ($userTotalSends as $totalSends) {
+        foreach ($userTotalSends as $userId => $totalSends) {
             if (!isset($monthlySendCountGroups[$totalSends])) {
                 $monthlySendCountGroups[$totalSends] = 0;
             }
             $monthlySendCountGroups[$totalSends]++;
         }
-        ksort($monthlySendCountGroups); // Sort the array by key (number of sends)
-        $monthlyTotalUsers = count($userTotalSends);
+        ksort($monthlySendCountGroups);
 
-        return ['monthlyData' => $monthlySendCountGroups, 'totalUsers' => $monthlyTotalUsers];
+        return [
+            'monthlyData' => $monthlySendCountGroups, 
+            'totalUsers' => count($userTotalSends)
+        ];
     }
 }
 
