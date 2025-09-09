@@ -61,19 +61,23 @@ function get_sends_by_week_data($startDate, $endDate, $batchSize = 1000, $return
             $sends = $row->sends;
             $userIds = unserialize($row->userIds);
 
+            // Initialize and increment send count groups for weekly data
+            if (!isset($sendCountGroups[$sends])) {
+                $sendCountGroups[$sends] = ['count' => 0];
+            }
+            $sendCountGroups[$sends]['count'] += count($userIds);
+            
             foreach ($userIds as $userId) {
-                $totalUsers++;
-                if ($sends && isset($sendCountGroups[$sends])) {
-                    // Increment the send count group directly
-                    $sendCountGroups[$sends]['count']++;
+                // Store user total sends for monthly data calculation
+                if (!isset($userTotalSends[$userId])) {
+                    $userTotalSends[$userId] = 0;
                 }
-                    // Store user total sends for monthly data calculation
-                    if (!isset($userTotalSends[$userId])) {
-                        $userTotalSends[$userId] = 0;
-                    }
                 
                 $userTotalSends[$userId] += $sends;
             }
+            
+            // Count total users (for weekly data) - this counts user-week combinations
+            $totalUsers += count($userIds);
         }
 
 

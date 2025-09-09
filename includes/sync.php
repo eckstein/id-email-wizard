@@ -3408,7 +3408,7 @@ function idemailwiz_sync_sends_by_week($year, $week)
 	// Insert or update the records in the sends_by_week table
 	foreach ($userIdsBySendCount as $sends => $userIds) {
 		// Skip cohorts with more than 25 sends (should exclude seed list people)
-		if ($sends > 25) {
+		if ($sends > 30) {
 			continue;
 		}
 
