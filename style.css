@@ -2462,8 +2462,7 @@ pre#generatedCode {
 	height: 600px;
 	text-align: left;
 }
-.code-popup .swal2-html-container pre {
-}
+
 .code-popup .swal2-html-container code {
 	white-space: pre-wrap;
 	font-size: 14px;
@@ -3217,9 +3216,7 @@ div.dt-button-collection .dt-button:hover {
 	margin-top: 20px;
 	justify-content: flex-end;
 }
-.interactive-meta-group {
 
-}
 .interactive-meta-group-title {
 	font-size: 12px;
 	
@@ -4336,8 +4333,7 @@ h2.wizArticle-title {
 	max-height: 300px;
 	margin-top: 20px;
 }
-.init-template-mock-ups .init-template-mock-up {
-}
+
 .init-template-mock-ups .init-template-mock-up img {
 	max-width: 100%;
 	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
@@ -4887,9 +4883,7 @@ color: #eee;
 .comparison-column-settings .wizcampaign-section-title-area h4 {
 	margin-bottom: 0;
 }
-.comparison-column-settings h4 {
-	
-}
+
 .comparison-column-settings h4 .editable-set-title {
 	border: 0;
 	font-size: 16px;
@@ -4979,9 +4973,7 @@ color: #eee;
 .compare-campaigns-comments-actions i:hover {
 	color: #94c52a;
 }
-.compare-campaign-comments .new-comment-input {
 
-}
 .compare-campaign-comments .new-comment-input textarea {
 	width: 100%;
 	padding: 15px;
@@ -5227,16 +5219,11 @@ color: #eee;
 	display: flex;
 	gap: 30px;
 }
-#subjectLinePanel, #previewTextPanel {
-	
-}
 
 
 /* Wizcampaign standard tabs */
 
-.wizcampaign-section-tabs {
-  
-}
+
 
 .wizcampaign-section-tabs ul {
   list-style-type: none;

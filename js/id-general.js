@@ -717,7 +717,7 @@ function do_wiz_notif(notifData) {
 
 // Fetch and fill the rollup summary
 function fetchRollUpSummaryData(campaignIds, startDate, endDate, rollupSelector, includeMetrics=[], excludeMetrics=[]) {
-	console.log('Fetching rollup data');
+	console.log('Fetching rollup data for', campaignIds.length, 'campaigns');
 	var $rollupElement = jQuery(document).find(rollupSelector);
 
 	var rollupElementId;
@@ -736,17 +736,43 @@ function fetchRollUpSummaryData(campaignIds, startDate, endDate, rollupSelector,
 		excludeMetrics
 	};
 	
-	idemailwiz_do_ajax("idwiz_generate_dynamic_rollup", idAjax_id_general.nonce, rollupData, getRollupSuccess, getRollupError, "html");
-
-	function getRollupSuccess(response) {
-		console.log("Rollup metrics success");
-		if (response != 0) {
-			$rollupElement.replaceWith(response);
+	// Enhanced AJAX call with timeout and better error handling
+	jQuery.ajax({
+		url: idAjax_id_general.ajaxurl,
+		type: 'POST',
+		data: {
+			action: 'idwiz_generate_dynamic_rollup',
+			security: idAjax_id_general.nonce,
+			...rollupData
+		},
+		timeout: 120000, // 2 minutes timeout for large datasets
+		beforeSend: function() {
+			// Show enhanced loading state with campaign count
+			$rollupElement.html('<div class="rollup_summary_loader"><i class="fa-solid fa-spinner fa-spin"></i>&nbsp;&nbsp;Loading rollup summary for ' + campaignIds.length + ' campaigns... This may take a moment for large datasets.</div>');
+		},
+		success: function(response) {
+			console.log("Rollup metrics success");
+			if (response && response !== '0') {
+				$rollupElement.replaceWith(response);
+			} else {
+				getRollupError('Empty response received');
+			}
+		},
+		error: function(xhr, status, error) {
+			console.error("Rollup AJAX error:", status, error);
+			if (status === 'timeout') {
+				getRollupError('Request timed out - dataset too large. Try selecting a smaller date range.');
+			} else if (xhr.status === 500) {
+				getRollupError('Server error - possibly out of memory. Try reducing the date range or number of campaigns.');
+			} else {
+				getRollupError('Error loading rollup data: ' + error);
+			}
 		}
-	}
+	});
 
-	function getRollupError(response) {
-		console.log("Rollup metrics error: " + response);
+	function getRollupError(errorMessage) {
+		console.log("Rollup metrics error: " + errorMessage);
+		$rollupElement.html('<div class="rollup_summary_wrapper"><div class="metric-item error-state"><span class="metric-label">Error</span><span class="metric-value">' + errorMessage + '</span></div></div>');
 	}
 }
 

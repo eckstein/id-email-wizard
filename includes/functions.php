@@ -972,6 +972,60 @@ function get_triggered_campaign_metrics($campaignIds = [], $startDate = null, $e
 		$campaignIds = [$campaignIds];
 	}
 
+	// For large datasets, implement chunking to prevent memory issues
+	$chunkSize = 50; // Process campaigns in chunks of 50
+	$totalCampaigns = count($campaignIds);
+	
+	if ($totalCampaigns > $chunkSize) {
+		error_log("Processing large campaign dataset: {$totalCampaigns} campaigns in chunks of {$chunkSize}");
+		
+		// Initialize combined metrics
+		$combinedMetrics = [
+			'uniqueEmailSends' => 0,
+			'uniqueEmailOpens' => 0,
+			'uniqueEmailClicks' => 0,
+			'uniqueUnsubscribes' => 0,
+			'totalComplaints' => 0,
+			'emailSendSkips' => 0,
+			'emailBounces' => 0,
+			'uniqueEmailsDelivered' => 0,
+			'uniquePurchases' => 0,
+			'revenue' => 0,
+			'gaRevenue' => 0,
+		];
+		
+		// Process in chunks
+		$chunks = array_chunk($campaignIds, $chunkSize);
+		foreach ($chunks as $chunkIndex => $chunk) {
+			error_log("Processing chunk " . ($chunkIndex + 1) . " of " . count($chunks));
+			$chunkMetrics = get_triggered_campaign_metrics_chunk($chunk, $startDate, $endDate);
+			
+			// Aggregate metrics from each chunk
+			foreach ($combinedMetrics as $key => $value) {
+				if (isset($chunkMetrics[$key])) {
+					$combinedMetrics[$key] += $chunkMetrics[$key];
+				}
+			}
+		}
+		
+		// Calculate final percentage metrics
+		$combinedMetrics['wizDeliveryRate'] = $combinedMetrics['uniqueEmailSends'] > 0 ? ($combinedMetrics['uniqueEmailsDelivered'] / $combinedMetrics['uniqueEmailSends']) * 100 : 0;
+		$combinedMetrics['wizOpenRate'] = $combinedMetrics['uniqueEmailSends'] > 0 ? ($combinedMetrics['uniqueEmailOpens'] / $combinedMetrics['uniqueEmailSends']) * 100 : 0;
+		$combinedMetrics['wizCtr'] = $combinedMetrics['uniqueEmailSends'] > 0 ? ($combinedMetrics['uniqueEmailClicks'] / $combinedMetrics['uniqueEmailSends']) * 100 : 0;
+		$combinedMetrics['wizCto'] = $combinedMetrics['uniqueEmailOpens'] > 0 ? ($combinedMetrics['uniqueEmailClicks'] / $combinedMetrics['uniqueEmailOpens']) * 100 : 0;
+		$combinedMetrics['wizUnsubRate'] = $combinedMetrics['uniqueEmailSends'] > 0 ? ($combinedMetrics['uniqueUnsubscribes'] / $combinedMetrics['uniqueEmailSends']) * 100 : 0;
+		$combinedMetrics['wizCvr'] = $combinedMetrics['uniqueEmailsDelivered'] > 0 ? ($combinedMetrics['uniquePurchases'] / $combinedMetrics['uniqueEmailsDelivered']) * 100 : 0;
+		$combinedMetrics['wizAov'] = $combinedMetrics['uniquePurchases'] > 0 ? ($combinedMetrics['revenue'] / $combinedMetrics['uniquePurchases']) : 0;
+		
+		return $combinedMetrics;
+	}
+	
+	// For smaller datasets, use the original optimized approach
+	return get_triggered_campaign_metrics_chunk($campaignIds, $startDate, $endDate);
+}
+
+function get_triggered_campaign_metrics_chunk($campaignIds, $startDate, $endDate)
+{
 	// Get all campaigns and their connected campaigns in batch
 	$allCampaigns = get_idwiz_campaigns(['campaignIds' => $campaignIds, 'fields' => ['id', 'connectedCampaigns']]);
 	
@@ -1140,6 +1194,9 @@ add_action('wp_ajax_idemailwiz_update_user_attribution_setting', 'idemailwiz_upd
 
 function idwiz_generate_dynamic_rollup()
 {
+	// Set execution time and memory limits for large datasets
+	ini_set('max_execution_time', 120); // 2 minutes
+	ini_set('memory_limit', '512M'); // Increase memory limit
 
 	//error_log(print_r($_POST, true));
 
@@ -1152,16 +1209,40 @@ function idwiz_generate_dynamic_rollup()
 	}
 
 	if (isset($_POST['campaignIds'])) {
+		$campaignIds = $_POST['campaignIds'];
 		$startDate = isset($_POST['startDate']) ? $_POST['startDate'] : '2021-11-01';
 		$endDate = isset($_POST['endDate']) ? $_POST['endDate'] : date('Y-m-d');
-		$metricRates = get_idwiz_metric_rates($_POST['campaignIds'], $startDate, $endDate);
+		
+		// Add validation for large datasets
+		if (is_array($campaignIds) && count($campaignIds) > 100) {
+			error_log('Large dataset detected: ' . count($campaignIds) . ' campaigns');
+		}
+		
+		// Calculate date range to warn about large periods
+		$start = new DateTime($startDate);
+		$end = new DateTime($endDate);
+		$daysDiff = $start->diff($end)->days;
+		
+		if ($daysDiff > 365) {
+			error_log('Large date range detected: ' . $daysDiff . ' days');
+		}
 
-		$rollupElementId = isset($_POST['rollupElementId']) ? $_POST['rollupElementId'] : '';
+		try {
+			$metricRates = get_idwiz_metric_rates($campaignIds, $startDate, $endDate);
 
-		$include = isset($_POST['includeMetrics']) ? $_POST['includeMetrics'] : [];
-		$exclude = isset($_POST['excludeMetrics']) ? $_POST['excludeMetrics'] : [];
+			$rollupElementId = isset($_POST['rollupElementId']) ? $_POST['rollupElementId'] : '';
+			$include = isset($_POST['includeMetrics']) ? $_POST['includeMetrics'] : [];
+			$exclude = isset($_POST['excludeMetrics']) ? $_POST['excludeMetrics'] : [];
 
-		echo get_idwiz_rollup_row($metricRates, $rollupElementId, $include, $exclude);
+			echo get_idwiz_rollup_row($metricRates, $rollupElementId, $include, $exclude);
+			
+		} catch (Exception $e) {
+			error_log('Rollup generation failed: ' . $e->getMessage());
+			echo '<div class="rollup_summary_wrapper"><div class="metric-item error-state"><span class="metric-label">Error</span><span class="metric-value">Unable to load rollup data. Dataset may be too large.</span></div></div>';
+		} catch (Error $e) {
+			error_log('Rollup generation error: ' . $e->getMessage());
+			echo '<div class="rollup_summary_wrapper"><div class="metric-item error-state"><span class="metric-label">Error</span><span class="metric-value">Server error processing rollup data.</span></div></div>';
+		}
 	}
 	wp_die();
 }

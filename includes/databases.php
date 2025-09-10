@@ -1243,6 +1243,18 @@ function get_idemailwiz_triggered_data($database, $args = [], $batchSize = 20000
 	}
 
 	$sql .= " ORDER BY main.startAt ASC";
+	
+	// Add memory protection for large datasets
+	$memoryLimit = ini_get('memory_limit');
+	$memoryLimitBytes = wp_convert_hr_to_bytes($memoryLimit);
+	$currentMemoryUsage = memory_get_usage(true);
+	$availableMemory = $memoryLimitBytes - $currentMemoryUsage;
+	
+	// If we're running low on memory (less than 64MB available), add a LIMIT
+	if ($availableMemory < 67108864) { // 64MB in bytes
+		$sql .= " LIMIT 50000"; // Limit to 50k records for memory protection
+		error_log("Memory protection activated: Limited query to 50,000 records. Available memory: " . round($availableMemory / 1048576, 2) . "MB");
+	}
 
 	// Prepare and execute the single optimized query
 	$prepared_sql = $wpdb->prepare($sql, $final_query_params);

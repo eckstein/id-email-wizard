@@ -592,4 +592,28 @@
 .filter-tab.loading {
 	opacity: 0.7;
 	pointer-events: none;
+}
+
+/* Error state styling for rollup */
+.metric-item.error-state {
+	background-color: #f8d7da;
+	border: 1px solid #f5c6cb;
+	border-radius: 6px;
+	padding: 15px;
+	margin: 10px 0;
+	flex-direction: column;
+	align-items: flex-start;
+}
+
+.metric-item.error-state .metric-label {
+	color: #721c24;
+	font-weight: 600;
+	margin-bottom: 5px;
+}
+
+.metric-item.error-state .metric-value {
+	color: #721c24;
+	font-size: 14px;
+	line-height: 1.4;
+	font-weight: normal;
 } 
