@@ -208,17 +208,31 @@ function idwiz_get_report_chartdata($chartOptions)
 
     $startDate = $chartOptions['startDate'] ?? false;
     $endDate = $chartOptions['endDate'] ?? false;
+    
+    // Get campaign type and message medium filters
+    $campaignType = $chartOptions['campaignType'] ?? 'all';
+    $messageMedium = $chartOptions['messageMedium'] ?? 'all';
 
     // Calculate the start date for the previous year
     $prevYearStartDate = date('Y-m-d', strtotime('-1 year', strtotime($startDate)));
 
     $campaignArgs = [
-        'type' => ['Blast'],
         'startAt_start' => $prevYearStartDate, // Start from previous year
         'startAt_end' => $endDate,
         'sortBy' => 'startAt',
         'sort' => 'ASC',
     ];
+    
+    // Add campaign type filter if not 'all'
+    if ($campaignType !== 'all') {
+        $campaignArgs['type'] = ucfirst($campaignType);
+    }
+    // If 'all' is selected, don't add type filter to include both Blast and Triggered
+    
+    // Add message medium filter if not 'all'
+    if ($messageMedium !== 'all') {
+        $campaignArgs['messageMedium'] = $messageMedium;
+    }
 
     $allCampaigns = get_idwiz_campaigns($campaignArgs);
 

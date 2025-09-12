@@ -208,6 +208,10 @@ function idwiz_fill_chart_canvas(canvas) {
 	if (jQuery(canvas).attr("data-campaigntype")) {
 		additionalData.campaignType = jQuery(canvas).attr("data-campaigntype");
 	}
+	
+	if (jQuery(canvas).attr("data-messagemedium")) {
+		additionalData.messageMedium = jQuery(canvas).attr("data-messagemedium");
+	}
 
 	if (jQuery(canvas).attr("data-promocode")) {
 		additionalData.promoCode = jQuery(canvas).attr("data-promocode");

@@ -22,6 +22,28 @@
                 </fieldset>
 
                 <?php if ($reportType == 'open-click-trends') { ?>
+                    <fieldset class="wiz-report-controlset" id="wiz-report-campaign-filters">
+                        <legend>Campaign Filters</legend>
+                        <div class="wiz-report-controlset-field">
+                            <?php $selectedCampaignType = isset($_GET['campaignType']) ? $_GET['campaignType'] : 'all'; ?>
+                            <label for="wiz-report-campaign-type">Campaign Type</label>
+                            <select name="campaignType" id="wiz-report-campaign-type">
+                                <option value="all" <?php echo $selectedCampaignType == 'all' ? 'selected' : ''; ?>>All Types</option>
+                                <option value="Blast" <?php echo $selectedCampaignType == 'Blast' ? 'selected' : ''; ?>>Blast</option>
+                                <option value="Triggered" <?php echo $selectedCampaignType == 'Triggered' ? 'selected' : ''; ?>>Triggered</option>
+                            </select>
+                        </div>
+                        <div class="wiz-report-controlset-field">
+                            <?php $selectedMessageMedium = isset($_GET['messageMedium']) ? $_GET['messageMedium'] : 'all'; ?>
+                            <label for="wiz-report-message-medium">Message Medium</label>
+                            <select name="messageMedium" id="wiz-report-message-medium">
+                                <option value="all" <?php echo $selectedMessageMedium == 'all' ? 'selected' : ''; ?>>All Mediums</option>
+                                <option value="Email" <?php echo $selectedMessageMedium == 'Email' ? 'selected' : ''; ?>>Email</option>
+                                <option value="Sms" <?php echo $selectedMessageMedium == 'Sms' ? 'selected' : ''; ?>>SMS</option>
+                            </select>
+                        </div>
+                    </fieldset>
+
                     <fieldset class="wiz-report-controlset" id="wiz-report-sendsize-controls">
                         <legend>Send Volume</legend>
                         <div class="wiz-report-controlset-field">

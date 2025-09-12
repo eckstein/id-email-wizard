@@ -73,7 +73,9 @@ $("#reports-filter-form").on("submit", function(e) {
             .attr('data-minsends', formDataObject.minSendSize || 1)
             .attr('data-maxsends', formDataObject.maxSendSize || 500000)
             .attr('data-startdate', formDataObject.startDate ? formDataObject.startDate : defaultStartDate)
-            .attr('data-enddate', formDataObject.endDate ? formDataObject.endDate : defaultEndDate);
+            .attr('data-enddate', formDataObject.endDate ? formDataObject.endDate : defaultEndDate)
+            .attr('data-campaigntype', formDataObject.campaignType ? formDataObject.campaignType.toLowerCase() : 'all')
+            .attr('data-messagemedium', formDataObject.messageMedium || 'all');
 
         // Handle both legacy and new parameter structure
         var chartId = $(canvas).attr('data-chartid');

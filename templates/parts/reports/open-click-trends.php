@@ -3,19 +3,46 @@
 $selectedCohorts = isset($_GET['cohorts']) ? explode(',', $_GET['cohorts']) : ['all'];
 $excludedCohorts = isset($_GET['exclude_cohorts']) ? explode(',', $_GET['exclude_cohorts']) : [];
 
+// Get campaign type and message medium filters
+$selectedCampaignType = isset($_GET['campaignType']) ? $_GET['campaignType'] : 'all';
+$selectedMessageMedium = isset($_GET['messageMedium']) ? $_GET['messageMedium'] : 'all';
+
+// Build campaign filter arguments
+$campaignFilters = [
+    'startAt_start' => $startDate, 
+    'startAt_end' => $endDate, 
+    'sortBy' => 'startAt', 
+    'sort' => 'ASC'
+];
+
+// Add campaign type filter if not 'all'
+if ($selectedCampaignType !== 'all') {
+    $campaignFilters['type'] = $selectedCampaignType;
+}
+
+// Add message medium filter if not 'all'
+if ($selectedMessageMedium !== 'all') {
+    $campaignFilters['messageMedium'] = $selectedMessageMedium;
+}
+// If 'all' is selected, don't add a messageMedium filter to show all mediums
+
 // Get campaigns for the current year range
-$campaignsInRange = get_idwiz_campaigns(['startAt_start' => $startDate, 'startAt_end' => $endDate, 'messageMedium' => 'Email', 'sortBy' => 'startAt', 'sort' => 'ASC']);
+$campaignsInRange = get_idwiz_campaigns($campaignFilters);
 
 // Get campaigns for the previous year range
 $lastYearStart = date('Y-m-d', strtotime('-1 year', strtotime($startDate)));
 $lastYearEnd = date('Y-m-d', strtotime('-1 year', strtotime($endDate)));
 
-$lastYearCampaigns = get_idwiz_campaigns(['startAt_start' => $lastYearStart, 'startAt_end' => $lastYearEnd, 'messageMedium' => 'Email', 'sortBy' => 'startAt', 'sort' => 'ASC']);
+$lastYearFilters = $campaignFilters;
+$lastYearFilters['startAt_start'] = $lastYearStart;
+$lastYearFilters['startAt_end'] = $lastYearEnd;
+
+$lastYearCampaigns = get_idwiz_campaigns($lastYearFilters);
 
 $engagementModules = [
     'opensReport' => [
         'title' => 'Open Rate per Campaign (YoY)',
-        'description' => 'Year-over-year comparison of email open rates',
+        'description' => 'Year-over-year comparison of campaign open rates',
         'defaultMinFilter' => 0,
         'defaultMaxFilter' => 100,
         'defaultMinScale' => 0,
@@ -25,7 +52,7 @@ $engagementModules = [
     ],
     'ctrReport' => [
         'title' => 'Click Rate per Campaign (YoY)',
-        'description' => 'Year-over-year comparison of email click rates',
+        'description' => 'Year-over-year comparison of campaign click rates',
         'defaultMinFilter' => 0,
         'defaultMaxFilter' => 30,
         'defaultMinScale' => 0,
@@ -171,7 +198,8 @@ foreach ($engagementModules as $moduleId => $moduleConfig) {
                     data-campaignids='<?php echo json_encode(array_column($campaignsInRange, 'id')); ?>' 
                     data-lastYearCampaignIds='<?php echo json_encode(array_column($lastYearCampaigns, 'id')); ?>' 
                     data-charttype="line" 
-                    data-campaignType="blast" 
+                    data-campaigntype="<?php echo strtolower($selectedCampaignType); ?>" 
+                    data-messagemedium="<?php echo $selectedMessageMedium; ?>"
                     data-startdate="<?php echo $startDate; ?>" 
                     data-enddate="<?php echo $endDate; ?>" 
                     data-cohorts='<?php echo json_encode($selectedCohorts); ?>' 
