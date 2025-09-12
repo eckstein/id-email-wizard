@@ -98,6 +98,7 @@ foreach ($engagementModules as $moduleId => $moduleConfig) {
     $currentMaxFilter = $_GET[$moduleId . '_maxFilter'] ?? $moduleConfig['defaultMaxFilter'];
     $currentMinScale = $_GET[$moduleId . '_minScale'] ?? $moduleConfig['defaultMinScale'];
     $currentMaxScale = $_GET[$moduleId . '_maxScale'] ?? $moduleConfig['defaultMaxScale'];
+    $currentChartMode = $_GET[$moduleId . '_chartMode'] ?? 'standard';
     
     // For backward compatibility with old parameter names
     if ($moduleId == 'opensReport') {
@@ -130,6 +131,28 @@ foreach ($engagementModules as $moduleId => $moduleConfig) {
         <!-- Module Controls -->
         <div class="engagement-module-controls" style="display: none;">
                     <div class="engagement-controls-layout">
+                        <?php if ($moduleId === 'revReport') { ?>
+                        <div class="engagement-control-group">
+                            <h4>Chart Mode</h4>
+                            <div class="engagement-control-row">
+                                <div class="engagement-field-group">
+                                    <label>
+                                        <input type="radio" name="<?php echo $moduleId; ?>_chartMode" value="standard" 
+                                               <?php echo (!isset($_GET[$moduleId . '_chartMode']) || $_GET[$moduleId . '_chartMode'] === 'standard') ? 'checked' : ''; ?>>
+                                        Standard (Individual Campaign Revenue)
+                                    </label>
+                                </div>
+                                <div class="engagement-field-group">
+                                    <label>
+                                        <input type="radio" name="<?php echo $moduleId; ?>_chartMode" value="cumulative"
+                                               <?php echo (isset($_GET[$moduleId . '_chartMode']) && $_GET[$moduleId . '_chartMode'] === 'cumulative') ? 'checked' : ''; ?>>
+                                        Cumulative Race (Running Total YoY)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <?php } ?>
+                        
                         <div class="engagement-control-group">
                             <h4>Filter Settings (campaigns to include)</h4>
                             <div class="engagement-control-row">
@@ -211,7 +234,8 @@ foreach ($engagementModules as $moduleId => $moduleConfig) {
                     data-minscale="<?php echo $currentMinScale; ?>"
                     data-maxscale="<?php echo $currentMaxScale; ?>"
                     data-minmetric="<?php echo $currentMinFilter; ?>" 
-                    data-maxmetric="<?php echo $currentMaxFilter; ?>">
+                    data-maxmetric="<?php echo $currentMaxFilter; ?>"
+                    data-chartmode="<?php echo $currentChartMode; ?>">
             </canvas>
         </div>
     </div>

@@ -80,6 +80,11 @@ $("#reports-filter-form").on("submit", function(e) {
         // Handle both legacy and new parameter structure
         var chartId = $(canvas).attr('data-chartid');
         
+        // Handle chart mode for revenue charts
+        if (chartId === 'revReport' && formDataObject[chartId + '_chartMode']) {
+            $(canvas).attr('data-chartmode', formDataObject[chartId + '_chartMode']);
+        }
+        
         // Legacy parameter support
         if (chartId == 'opensReport') {
             var minFilter = formDataObject.minOpenRate || formDataObject.opensReport_minFilter || 0;
@@ -124,6 +129,9 @@ $("#reports-filter-form").on("submit", function(e) {
                 if (formDataObject[moduleId + '_maxScale'] !== undefined) {
                     $(canvas).attr('data-maxscale', formDataObject[moduleId + '_maxScale']);
                 }
+                if (formDataObject[moduleId + '_chartMode'] !== undefined) {
+                    $(canvas).attr('data-chartmode', formDataObject[moduleId + '_chartMode']);
+                }
             }
         });
 
@@ -143,6 +151,29 @@ $(".cohort-select, .cohort-exclude").on("change", function() {
         selectedValues = selectedValues.filter(value => value !== "all");
         $select.val(selectedValues).trigger('change.select2');
     }
+});
+
+// Handle chart mode radio button changes for revenue module
+$(document).on("change", "input[name$='_chartMode']", function() {
+    var moduleId = $(this).attr('name').replace('_chartMode', '');
+    var chartMode = $(this).val();
+    var $canvas = $('#' + moduleId + '-module canvas');
+    
+    // Update the canvas data attribute
+    $canvas.attr('data-chartmode', chartMode);
+    
+    // Destroy and recreate the chart
+    if ($canvas[0].chartInstance) {
+        $canvas[0].chartInstance.destroy();
+    }
+    
+    // Update URL parameters
+    var url = new URL(window.location);
+    url.searchParams.set(moduleId + '_chartMode', chartMode);
+    window.history.pushState({path: url.href}, '', url.href);
+    
+    // Recreate the chart
+    idwiz_fill_chart_canvas($canvas[0]);
 });
 
 });

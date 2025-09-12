@@ -212,6 +212,10 @@ function idwiz_fill_chart_canvas(canvas) {
 	if (jQuery(canvas).attr("data-messagemedium")) {
 		additionalData.messageMedium = jQuery(canvas).attr("data-messagemedium");
 	}
+	
+	if (jQuery(canvas).attr("data-chartmode")) {
+		additionalData.chartMode = jQuery(canvas).attr("data-chartmode");
+	}
 
 	if (jQuery(canvas).attr("data-promocode")) {
 		additionalData.promoCode = jQuery(canvas).attr("data-promocode");

@@ -212,6 +212,9 @@ function idwiz_get_report_chartdata($chartOptions)
     // Get campaign type and message medium filters
     $campaignType = $chartOptions['campaignType'] ?? 'all';
     $messageMedium = $chartOptions['messageMedium'] ?? 'all';
+    
+    // Get chart mode (standard or cumulative)
+    $chartMode = $chartOptions['chartMode'] ?? 'standard';
 
     // Calculate the start date for the previous year
     $prevYearStartDate = date('Y-m-d', strtotime('-1 year', strtotime($startDate)));
@@ -280,6 +283,21 @@ function idwiz_get_report_chartdata($chartOptions)
         $prevYearFinalData[$index] = isset($prevYearData[$date]) ? $prevYearData[$date] : null;
     }
 
+    // Convert to cumulative if requested
+    if ($chartMode === 'cumulative') {
+        $currentYearFinalData = calculate_cumulative_data($currentYearFinalData);
+        $prevYearFinalData = calculate_cumulative_data($prevYearFinalData);
+    }
+
+    // Adjust labels and styling for cumulative mode
+    $currentYearLabel = $chartMode === 'cumulative' ? 'Current Year (Cumulative)' : 'Current Year';
+    $prevYearLabel = $chartMode === 'cumulative' ? 'Previous Year (Cumulative)' : 'Previous Year';
+    
+    // For cumulative mode, use different colors and styling to emphasize the race
+    $currentYearColor = $chartMode === 'cumulative' ? 'rgba(34, 139, 34, 1)' : 'rgba(75, 192, 192, 1)'; // Forest Green for current year
+    $prevYearColor = $chartMode === 'cumulative' ? 'rgba(220, 20, 60, 1)' : 'rgba(255, 99, 132, 1)'; // Crimson for previous year
+    $lineWidth = $chartMode === 'cumulative' ? 3 : 2;
+
     // Structuring data for a line chart
     return [
         'type' => $chartType,
@@ -287,24 +305,28 @@ function idwiz_get_report_chartdata($chartOptions)
             'labels' => $labels,
             'datasets' => [
                 [
-                    'label' => 'Current Year',
+                    'label' => $currentYearLabel,
                     'data' => $currentYearFinalData,
                     'tooltipData' => $currentYearTooltips, // Pass tooltip data
                     'yAxisID' => 'y-axis-1',
-                    'borderColor' => 'rgba(75, 192, 192, 1)',
-                    'backgroundColor' => 'rgba(75, 192, 192, 0.2)',
+                    'borderColor' => $currentYearColor,
+                    'backgroundColor' => str_replace(', 1)', ', 0.2)', $currentYearColor),
                     'fill' => false,
-                    'spanGaps' => true
+                    'spanGaps' => true,
+                    'borderWidth' => $lineWidth,
+                    'tension' => $chartMode === 'cumulative' ? 0.1 : 0
                 ],
                 [
-                    'label' => 'Previous Year',
+                    'label' => $prevYearLabel,
                     'data' => $prevYearFinalData,
                     'tooltipData' => $prevYearTooltips, // Pass tooltip data
                     'yAxisID' => 'y-axis-1',
-                    'borderColor' => 'rgba(255, 99, 132, 1)',
-                    'backgroundColor' => 'rgba(255, 99, 132, 0.2)',
+                    'borderColor' => $prevYearColor,
+                    'backgroundColor' => str_replace(', 1)', ', 0.2)', $prevYearColor),
                     'fill' => false,
-                    'spanGaps' => true
+                    'spanGaps' => true,
+                    'borderWidth' => $lineWidth,
+                    'tension' => $chartMode === 'cumulative' ? 0.1 : 0
                 ]
             ]
         ],
@@ -1030,4 +1052,22 @@ function prepare_chart_data($metric_data, $max_hours, $label)
         ]
     ];
 
+}
+
+/**
+ * Calculate cumulative data for revenue race charts
+ * Converts individual campaign values to running totals
+ */
+function calculate_cumulative_data($data) {
+    $cumulative = [];
+    $runningTotal = 0;
+    
+    foreach ($data as $value) {
+        if ($value !== null) {
+            $runningTotal += $value;
+        }
+        $cumulative[] = $runningTotal;
+    }
+    
+    return $cumulative;
 }
