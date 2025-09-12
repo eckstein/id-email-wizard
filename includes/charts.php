@@ -426,10 +426,18 @@ function get_campaigns_data_for_report($campaigns, $dbMetric, $minSends, $maxSen
         }
 
         // Check campaign metrics against thresholds
+        // Handle both Email and SMS campaigns for send volume
+        $sendVolume = 0;
+        if (isset($campaignMetrics['uniqueEmailSends']) && $campaignMetrics['uniqueEmailSends'] > 0) {
+            $sendVolume = $campaignMetrics['uniqueEmailSends'];
+        } elseif (isset($campaignMetrics['uniqueSmsSent']) && $campaignMetrics['uniqueSmsSent'] > 0) {
+            $sendVolume = $campaignMetrics['uniqueSmsSent'];
+        }
+        
         if (
             $campaignMetrics &&
-            $campaignMetrics['uniqueEmailSends'] >= $minSends
-            && $campaignMetrics['uniqueEmailSends'] <= $maxSends
+            $sendVolume >= $minSends
+            && $sendVolume <= $maxSends
             && $campaignMetrics[$dbMetric] > 0
             && $campaignMetrics[$dbMetric] >= $minMetric
             && $campaignMetrics[$dbMetric] <= $maxMetric

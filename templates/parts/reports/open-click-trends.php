@@ -82,7 +82,7 @@ $engagementModules = [
     ],
     'revReport' => [
         'title' => 'Revenue per Campaign (YoY)',
-        'description' => 'Year-over-year comparison of campaign revenue',
+        'description' => 'Year-over-year comparison of campaign revenue (includes Email & SMS campaigns)',
         'defaultMinFilter' => 0,
         'defaultMaxFilter' => 100000,
         'defaultMinScale' => 0,
