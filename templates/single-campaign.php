@@ -202,8 +202,28 @@ $linkedExperimentIds = array_map(function ($id) {
 
 			</div>
 			<div class="wizHeader-right">
-				<div class="wizHeader-actions">
 
+				<div class="wizHeader-actions">
+					<div class="wizHeader-actions-meta">
+						<?php
+						$lastSyncedOn = $campaign['lastWizSync'] ?? 'never';
+						// Display a default message if lastWizSync is not set
+						if ($lastSyncedOn === 'never') {
+							$displayDate = 'never';
+						} else {
+							// Create a DateTime object from the UTC date/time
+							$utcTime = new DateTime($lastSyncedOn, new DateTimeZone('UTC'));
+
+							// Convert UTC time to Pacific Time
+							//$utcTime->setTimeZone(new DateTimeZone('America/Los_Angeles'));
+
+							// Format the date/time in the desired format
+							$displayDate = $utcTime->format('m/d/Y, g:ia');
+						}
+						?>
+						Last synced: <?php echo $displayDate; ?>
+
+					</div>
 					<button class="wiz-button green doWizSync" data-campaignIds="<?php echo esc_attr(json_encode(array($campaign['id']))); ?>" data-metricTypes="<?php echo esc_attr(json_encode(array('blast'))); ?>"><i class="fa-solid fa-arrows-rotate"></i>&nbsp;&nbsp;Sync Metrics</button>
 
 
@@ -214,34 +234,17 @@ $linkedExperimentIds = array_map(function ($id) {
 
 					<?php include plugin_dir_path(__FILE__) . 'parts/module-user-settings-form.php'; ?>
 				</div>
-				<div class="wizHeader-actions-meta">
-					<?php
-					$lastSyncedOn = $campaign['lastWizSync'] ?? 'never';
-					// Display a default message if lastWizSync is not set
-					if ($lastSyncedOn === 'never') {
-						$displayDate = 'never';
-					} else {
-						// Create a DateTime object from the UTC date/time
-						$utcTime = new DateTime($lastSyncedOn, new DateTimeZone('UTC'));
+				<div class="wizHeader-meta-row">
 
-						// Convert UTC time to Pacific Time
-						//$utcTime->setTimeZone(new DateTimeZone('America/Los_Angeles'));
-
-						// Format the date/time in the desired format
-						$displayDate = $utcTime->format('m/d/Y, g:ia');
-					}
-					?>
-					Last synced: <?php echo $displayDate; ?>
-
-				</div>
-				<div class="campaign-interactive-meta">
-					<div class="interactive-meta-group">
-						<span class="interactive-meta-group-title">Initiatives:</span>
-						<?php echo generate_initiative_flags($campaign['id']); ?>
-					</div>
-					<div class="interactive-meta-group">
-						<span class="interactive-meta-group-title">Promo Codes:</span>
-						<?php echo generate_promo_code_flags($campaign['id']); ?>
+					<div class="campaign-interactive-meta">
+						<div class="interactive-meta-group">
+							<span class="interactive-meta-group-title">Initiatives:</span>
+							<?php echo generate_initiative_flags($campaign['id']); ?>
+						</div>
+						<div class="interactive-meta-group">
+							<span class="interactive-meta-group-title">Promo Codes:</span>
+							<?php echo generate_promo_code_flags($campaign['id']); ?>
+						</div>
 					</div>
 				</div>
 			</div>

@@ -16,18 +16,18 @@ jQuery(document).ready(function ($) {
 		
 
 		if (channelType === 'promotional') {
-			$('.promotional-types').addClass('active');
-			$('.promotional-types .message-type-select').prop('disabled', false);
+			$('.message-types.promotional-types').addClass('active');
+			$('.message-types.promotional-types .message-type-select').prop('disabled', false);
 			// Set default message type if none selected
-			if (!$('.promotional-types .message-type-select').val()) {
-				$('.promotional-types .message-type-select').val('52634').trigger('change');
+			if (!$('.message-types.promotional-types .message-type-select').val()) {
+				$('.message-types.promotional-types .message-type-select').val('52634').trigger('change');
 			}
 		} else {
-			$('.transactional-types').addClass('active');
-			$('.transactional-types .message-type-select').prop('disabled', false);
+			$('.message-types.transactional-types').addClass('active');
+			$('.message-types.transactional-types .message-type-select').prop('disabled', false);
 			// Set default message type if none selected
-			if (!$('.transactional-types .message-type-select').val()) {
-				$('.transactional-types .message-type-select').val('52620').trigger('change');
+			if (!$('.message-types.transactional-types .message-type-select').val()) {
+				$('.message-types.transactional-types .message-type-select').val('52620').trigger('change');
 			}
 		}
 	});
