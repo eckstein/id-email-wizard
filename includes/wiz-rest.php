@@ -1471,10 +1471,10 @@ function idwiz_get_all_endpoints()
  * @param string $description Optional description for the endpoint
  * @param array $config Optional configuration for the endpoint
  * @param array $data_mapping Optional data mapping configuration
- * @param string $base_data_source Optional base data source (defaults to user_feed)
+ * @param string $base_data_source Optional base data source (defaults to student)
  * @return bool True if successful, false otherwise
  */
-function idwiz_add_endpoint($endpoint, $name = '', $description = '', $config = array(), $data_mapping = array(), $base_data_source = 'user_feed')
+function idwiz_add_endpoint($endpoint, $name = '', $description = '', $config = array(), $data_mapping = array(), $base_data_source = 'student')
 {
     global $wpdb;
     $table_name = $wpdb->prefix . 'idemailwiz_endpoints';
@@ -1903,7 +1903,7 @@ function get_required_presets($endpoint_config) {
     
     // If no explicit mapping, consider all compatible presets for the data source as required
     if (empty($required_presets)) {
-        $base_data_source = $endpoint_config['base_data_source'] ?? 'user_feed';
+        $base_data_source = $endpoint_config['base_data_source'] ?? 'student';
         $required_presets = get_compatible_presets($base_data_source);
     }
     
@@ -2002,11 +2002,11 @@ function idwiz_endpoint_handler($request) {
     global $wpdb;
     
     // Get base data source
-    $base_data_source = $endpoint_config['base_data_source'] ?? 'user_feed';
+    $base_data_source = $endpoint_config['base_data_source'] ?? 'student';
     $feed_data = [];
 
     // Handle different data sources
-    if ($base_data_source === 'user_profile') {
+    if ($base_data_source === 'parent') {
         // Get data from users table (parent/lead account info)
         $feed_data = $wpdb->get_row(
             $wpdb->prepare(
@@ -2020,13 +2020,13 @@ function idwiz_endpoint_handler($request) {
             return new WP_REST_Response(['error' => 'User not found in database'], 404);
         }
         
-        // Check if leadLocationId is empty or missing for user_profile endpoints
+        // Check if leadLocationId is empty or missing for parent endpoints
         // Commented out: location_with_courses preset now has fallback logic (previous location -> leadLocationId -> null)
         // if (empty($feed_data['leadLocationId']) && in_array('location_with_courses', get_required_presets($endpoint_config))) {
         //     return new WP_REST_Response(['error' => 'User does not have a lead location assigned'], 400);
         // }
         
-    } else if ($base_data_source === 'user_feed') {
+    } else if ($base_data_source === 'student') {
         // Get data from userfeed table (student info)
         $feed_data = $wpdb->get_row(
             $wpdb->prepare(
@@ -2198,6 +2198,44 @@ function idwiz_detect_request_bursts() {
 // Hook the burst detection to WordPress init action
 add_action('init', 'idwiz_detect_request_bursts', 1);
 
+/**
+ * Migrate existing endpoints from old data source names to new ones
+ * This function should be called once to update existing endpoints
+ */
+function idwiz_migrate_data_source_names() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_endpoints';
+    
+    // Update user_feed to student
+    $wpdb->update(
+        $table_name,
+        array('base_data_source' => 'student'),
+        array('base_data_source' => 'user_feed'),
+        array('%s'),
+        array('%s')
+    );
+    
+    // Update user_profile to parent
+    $wpdb->update(
+        $table_name,
+        array('base_data_source' => 'parent'),
+        array('base_data_source' => 'user_profile'),
+        array('%s'),
+        array('%s')
+    );
+    
+    error_log('ID Email Wiz: Migrated data source names from user_feed/user_profile to student/parent');
+}
+
+// Run migration on admin init to update existing endpoints
+add_action('admin_init', function() {
+    // Only run once by checking if migration has been done
+    if (!get_option('idwiz_data_source_migration_done')) {
+        idwiz_migrate_data_source_names();
+        update_option('idwiz_data_source_migration_done', true);
+    }
+});
+
 add_action('wp_ajax_idwiz_update_endpoint', 'idwiz_update_endpoint_callback');
 
 function idwiz_update_endpoint_callback()
@@ -2248,7 +2286,7 @@ function idwiz_get_user_data_for_preview() {
     
     // Get endpoint name and other parameters
     $endpoint = isset($_POST['endpoint']) ? sanitize_text_field($_POST['endpoint']) : '';
-    $base_data_source = isset($_POST['base_data_source']) ? sanitize_text_field($_POST['base_data_source']) : 'user_feed';
+    $base_data_source = isset($_POST['base_data_source']) ? sanitize_text_field($_POST['base_data_source']) : 'student';
     $data_mapping = isset($_POST['data_mapping']) ? json_decode(stripslashes($_POST['data_mapping']), true) : [];
     
     // Create a temporary endpoint config for preview
@@ -2263,7 +2301,7 @@ function idwiz_get_user_data_for_preview() {
     
     try {
         // Get user data from the appropriate database table based on data source
-        if ($base_data_source === 'user_profile') {
+        if ($base_data_source === 'parent') {
             $feed_data = $wpdb->get_row(
                 $wpdb->prepare(
                     "SELECT * FROM {$wpdb->prefix}idemailwiz_users WHERE accountNumber = %s OR userId = %s LIMIT 1",
@@ -2978,11 +3016,11 @@ function get_location_with_courses($user_data) {
 /**
  * Get presets compatible with the given data source
  * 
- * @param string $data_source The data source ('user_feed' or 'user_profile')
+ * @param string $data_source The data source ('student' or 'parent')
  * @return array Array of preset keys that are compatible with the data source
  */
-function get_compatible_presets($data_source = 'user_feed') {
-    // Presets that work with student data (user_feed)
+function get_compatible_presets($data_source = 'student') {
+    // Presets that work with student data
     $student_presets = [
         'most_recent_purchase',
         'last_location',
@@ -2998,14 +3036,14 @@ function get_compatible_presets($data_source = 'user_feed') {
         'current_year_continuity_recs'
     ];
     
-    // Presets that work with parent/user data (user_profile)
+    // Presets that work with parent data
     $parent_presets = [
         'location_with_courses',
         'sessions_at_location_by_date'
     ];
     
     // Return appropriate presets based on data source
-    if ($data_source === 'user_profile') {
+    if ($data_source === 'parent') {
         return $parent_presets;
     } else {
         return $student_presets;
@@ -3072,9 +3110,9 @@ function idwiz_get_test_accounts_callback() {
         return;
     }
     
-    $type = isset($_POST['type']) ? sanitize_text_field($_POST['type']) : 'user_feed';
+    $type = isset($_POST['type']) ? sanitize_text_field($_POST['type']) : 'student';
     
-    if ($type === 'user_profile') {
+    if ($type === 'parent') {
         // Get parent accounts for user profile data source
         $users = idwiz_get_parent_accounts();
         $options = generate_parent_options_html($users);

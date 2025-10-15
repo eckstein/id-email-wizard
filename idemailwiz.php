@@ -117,6 +117,7 @@ add_filter('body_class', 'idemailwiz_body_classes');
 
 //Options pages
 include(plugin_dir_path(__FILE__) . 'includes/wiz-options.php');
+include(plugin_dir_path(__FILE__) . 'includes/location-sessions-mapping.php');
 
 
 

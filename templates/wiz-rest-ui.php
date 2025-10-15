@@ -99,16 +99,16 @@ global $wpdb;
                                                     <label>Base Data Source:</label>
                                                     <select class="endpoint-base-data-source wiz-select" 
                                                             data-endpoint="<?php echo esc_attr($endpoint); ?>">
-                                                        <option value="user_feed" <?php selected($endpoint_details['base_data_source'], 'user_feed'); ?>>User Feed</option>
-                                                        <option value="user_profile" <?php selected($endpoint_details['base_data_source'], 'user_profile'); ?>>User Profile</option>
+                                                        <option value="student" <?php selected($endpoint_details['base_data_source'], 'student'); ?>>Student</option>
+                                                        <option value="parent" <?php selected($endpoint_details['base_data_source'], 'parent'); ?>>Parent</option>
                                                         <option value="custom" <?php selected($endpoint_details['base_data_source'], 'custom'); ?>>Custom</option>
                                                     </select>
                                                 </div>
                                                 
                                                 <div class="test-user-selector">
                                                     <label class="test-user-label">Test User:</label>
-                                                    <?php if ($endpoint_details['base_data_source'] === 'user_profile'): ?>
-                                                    <select class="test-user-select wiz-select" data-type="user_profile">
+                                                    <?php if ($endpoint_details['base_data_source'] === 'parent'): ?>
+                                                    <select class="test-user-select wiz-select" data-type="parent">
                                                         <?php
                                                         // Get parent accounts for user profile data source
                                                         $users = idwiz_get_parent_accounts();
@@ -122,7 +122,7 @@ global $wpdb;
                                                     </div>
                                                     <a href="#" class="toggle-user-input">Enter Parent Account Number manually</a>
                                                     <?php else: ?>
-                                                    <select class="test-user-select wiz-select" data-type="user_feed">
+                                                    <select class="test-user-select wiz-select" data-type="student">
                                                         <?php
                                                         // Get users from previous fiscal year with at least one from each division
                                                         $users = idwiz_get_previous_year_users();

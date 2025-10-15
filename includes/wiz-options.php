@@ -86,29 +86,48 @@ function idemailwiz_register_settings()
 
     // Data Sync Settings Section
     // API Keys and Credentials
-    add_settings_field('iterable_api_key', 'Iterable API Key', 'idemailwiz_render_text_field', 'idemailwiz_settings', 'idemailwiz_sync_section', array(
+    add_settings_field('iterable_api_key', 'Iterable API Key', 'idemailwiz_render_text_field_with_link', 'idemailwiz_settings', 'idemailwiz_sync_section', array(
         'option_name' => 'iterable_api_key',
         'description' => 'Enter your Iterable API key for campaign and engagement data sync'
     ));
-    add_settings_field('pulse_marketing_api_key', 'Pulse Marketing API Key', 'idemailwiz_render_text_field', 'idemailwiz_settings', 'idemailwiz_sync_section', array(
+    add_settings_field('pulse_marketing_api_key', 'Pulse Marketing API Key', 'idemailwiz_render_text_field_with_link', 'idemailwiz_settings', 'idemailwiz_sync_section', array(
         'option_name' => 'pulse_marketing_api_key',
         'description' => 'API key for Pulse course capacity endpoint (currently: ZacZac)',
         'default' => 'ZacZac'
     ));
     
+    // Pulse API Endpoints
+    add_settings_field('pulse_locations_api_url', 'Pulse Locations API URL', 'idemailwiz_render_text_field_with_link', 'idemailwiz_settings', 'idemailwiz_sync_section', array(
+        'option_name' => 'pulse_locations_api_url',
+        'description' => 'Pulse API endpoint for locations data',
+        'default' => 'https://pulseapi.idtech.com/Locations/GetAll?companyID=1&api-version=2016-11-01.1.0'
+    ));
+    add_settings_field('pulse_courses_api_url', 'Pulse Courses API URL', 'idemailwiz_render_text_field_with_link', 'idemailwiz_settings', 'idemailwiz_sync_section', array(
+        'option_name' => 'pulse_courses_api_url',
+        'description' => 'Pulse API endpoint for courses data',
+        'default' => 'https://pulseapi.idtech.com/Courses/GetAll?companyID=1&limit=1000&api-version=2016-11-01.1.0'
+    ));
+    add_settings_field('pulse_course_capacity_api_url', 'Pulse Course Capacity API URL', 'idemailwiz_render_text_field_with_link', 'idemailwiz_settings', 'idemailwiz_sync_section', array(
+        'option_name' => 'pulse_course_capacity_api_url',
+        'description' => 'Pulse Marketing API endpoint for course capacity data',
+        'default' => 'https://pwapidev.idtech.com/Marketing/GetCourseCapacityByLocation'
+    ));
+    
     // Google Sheets URLs
-    add_settings_field('ga_rev_sheet_url', 'GA Revenue Sheet URL', 'idemailwiz_render_text_field', 'idemailwiz_settings', 'idemailwiz_sync_section', array(
+    add_settings_field('ga_rev_sheet_url', 'GA Revenue Sheet URL', 'idemailwiz_render_text_field_with_link', 'idemailwiz_settings', 'idemailwiz_sync_section', array(
         'option_name' => 'ga_rev_sheet_url',
         'description' => 'SheetDB URL for Google Analytics revenue data'
     ));
-    add_settings_field('ga_revenue_api_sheet_bearer_token', 'GA Revenue Bearer Token', 'idemailwiz_render_text_field', 'idemailwiz_settings', 'idemailwiz_sync_section', array(
+    add_settings_field('ga_revenue_api_sheet_bearer_token', 'GA Revenue Bearer Token', 'idemailwiz_render_text_field_with_link', 'idemailwiz_settings', 'idemailwiz_sync_section', array(
         'option_name' => 'ga_revenue_api_sheet_bearer_token',
         'description' => 'Bearer token for GA revenue API authentication'
     ));
-    add_settings_field('location_sessions_sheet_url', 'Location Sessions Sheet URL', 'idemailwiz_render_text_field', 'idemailwiz_settings', 'idemailwiz_sync_section', array(
+    add_settings_field('location_sessions_sheet_url', 'Location Sessions Sheet URL', 'idemailwiz_render_text_field_with_link', 'idemailwiz_settings', 'idemailwiz_sync_section', array(
         'option_name' => 'location_sessions_sheet_url',
         'description' => 'SheetDB URL for location session weeks and metadata (currently: https://sheetdb.io/api/v1/ov2axr4kssf94?sheet=raw)',
-        'default' => 'https://sheetdb.io/api/v1/ov2axr4kssf94?sheet=raw'
+        'default' => 'https://sheetdb.io/api/v1/ov2axr4kssf94?sheet=raw',
+        'link_text' => 'Configure Field Mapping →',
+        'link_page' => 'idemailwiz_sessions_mapping'
     ));
     
     // Sync Toggles
@@ -272,6 +291,35 @@ function idemailwiz_render_text_field($args)
 <?php
 }
 
+function idemailwiz_render_text_field_with_link($args)
+{
+    $options = get_option('idemailwiz_settings', array());
+    $value = isset($options[$args['option_name']]) ? $options[$args['option_name']] : '';
+    
+    // Set default value for specific fields if empty
+    if (empty($value) && isset($args['default'])) {
+        $value = $args['default'];
+    }
+    
+    ?>
+    <input type="text" name="idemailwiz_settings[<?php echo esc_attr($args['option_name']); ?>]"
+        value="<?php echo esc_attr($value); ?>" style="width: 600px;" />
+    <?php if (!empty($value) && isset($args['link_page']) && isset($args['link_text'])): ?>
+        <br />
+        <a href="<?php echo admin_url('admin.php?page=' . $args['link_page']); ?>" 
+           class="button button-secondary" 
+           style="margin-top: 10px;">
+            <?php echo esc_html($args['link_text']); ?>
+        </a>
+    <?php endif; ?>
+    <?php if (isset($args['description'])): ?>
+        <p class="description">
+            <?php echo esc_html($args['description']); ?>
+        </p>
+    <?php endif; ?>
+<?php
+}
+
 
 
 function idemailwiz_settings_sanitize($input)
@@ -307,6 +355,21 @@ function get_ga_revenue_sheet_url()
 function get_location_sessions_sheet_url()
 {
     return get_sync_setting('location_sessions_sheet_url', 'https://sheetdb.io/api/v1/ov2axr4kssf94?sheet=raw');
+}
+
+function get_pulse_locations_api_url()
+{
+    return get_sync_setting('pulse_locations_api_url', 'https://pulseapi.idtech.com/Locations/GetAll?companyID=1&api-version=2016-11-01.1.0');
+}
+
+function get_pulse_courses_api_url()
+{
+    return get_sync_setting('pulse_courses_api_url', 'https://pulseapi.idtech.com/Courses/GetAll?companyID=1&limit=1000&api-version=2016-11-01.1.0');
+}
+
+function get_pulse_course_capacity_api_url()
+{
+    return get_sync_setting('pulse_course_capacity_api_url', 'https://pwapidev.idtech.com/Marketing/GetCourseCapacityByLocation');
 }
 
 function is_sync_enabled($sync_type)

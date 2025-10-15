@@ -2,8 +2,7 @@
 function wizPulse_get_all_locations()
 {
     // Gets Pulse location data for iD Tech Camps and iD Tech Academies
-    //$apiURL = 'https://pulseapi.idtech.com/Locations/GetAll?companyID=1&experienceTypeIDs=357002&experienceTypeIDs=357005&api-version=2016-11-01.1.0';
-    $apiURL = 'https://pulseapi.idtech.com/Locations/GetAll?companyID=1&api-version=2016-11-01.1.0';
+    $apiURL = get_pulse_locations_api_url();
     $response = idemailwiz_iterable_curl_call($apiURL);
     return $response['response']['results'];
 }
@@ -238,6 +237,60 @@ function wizPulse_refresh_locations()
     }
 }
 
+/**
+ * Helper functions to get mapping configuration
+ * These need to be available in all contexts (admin and cron)
+ */
+function wizPulse_get_column_mapping($column_key)
+{
+    $options = get_option('wizPulse_sessions_mapping', array());
+    
+    $defaults = [
+        'division_column' => 'Division',
+        'shortcode_column' => 'Shortcode',
+        'location_name_column' => 'Location Name',
+        'location_url_column' => 'Location URL',
+        'overnight_offered_column' => 'ON Offered'
+    ];
+    
+    return isset($options[$column_key]) && !empty($options[$column_key]) 
+        ? $options[$column_key] 
+        : ($defaults[$column_key] ?? '');
+}
+
+function wizPulse_get_week_dates()
+{
+    $options = get_option('wizPulse_sessions_mapping', array());
+    
+    $default_dates = [
+        '2025-05-25',
+        '2025-06-01',
+        '2025-06-08',
+        '2025-06-15',
+        '2025-06-22',
+        '2025-06-29',
+        '2025-07-06',
+        '2025-07-13',
+        '2025-07-20',
+        '2025-07-27',
+        '2025-08-03',
+        '2025-08-10'
+    ];
+    
+    $week_dates = [];
+    
+    for ($i = 1; $i <= 12; $i++) {
+        $option_key = "week_{$i}_date";
+        $date = isset($options[$option_key]) && !empty($options[$option_key]) 
+            ? $options[$option_key] 
+            : $default_dates[$i - 1];
+        
+        $week_dates["Cap Week $i"] = $date;
+    }
+    
+    return $week_dates;
+}
+
 // Function to sync session weeks and location URLs from SheetDB
 function wizPulse_sync_location_sessions()
 {
@@ -262,33 +315,30 @@ function wizPulse_sync_location_sessions()
         
         wiz_log("Location Sessions Sync: Retrieved " . count($sheet_data) . " rows from Google Sheets");
         
-        // Define week dates mapping with start dates in YYYY-MM-DD format
-        $week_dates = [
-            'Cap Week 1' => '2025-05-25',
-            'Cap Week 2' => '2025-06-01',
-            'Cap Week 3' => '2025-06-08',
-            'Cap Week 4' => '2025-06-15',
-            'Cap Week 5' => '2025-06-22',
-            'Cap Week 6' => '2025-06-29',
-            'Cap Week 7' => '2025-07-06',
-            'Cap Week 8' => '2025-07-13',
-            'Cap Week 9' => '2025-07-20',
-            'Cap Week 10' => '2025-07-27',
-            'Cap Week 11' => '2025-08-03',
-            'Cap Week 12' => '2025-08-10'
-        ];
+        // Get week dates from configuration (dynamically set in admin)
+        $week_dates = wizPulse_get_week_dates();
+        wiz_log("Location Sessions Sync: Using " . count($week_dates) . " configured week dates");
+        
+        // Get column name mappings from configuration
+        $division_col = wizPulse_get_column_mapping('division_column');
+        $shortcode_col = wizPulse_get_column_mapping('shortcode_column');
+        $location_name_col = wizPulse_get_column_mapping('location_name_column');
+        $location_url_col = wizPulse_get_column_mapping('location_url_column');
+        $overnight_col = wizPulse_get_column_mapping('overnight_offered_column');
+        
+        wiz_log("Location Sessions Sync: Using column mappings - Division: '$division_col', Shortcode: '$shortcode_col', Name: '$location_name_col'");
         
         // Process data by location
         $location_data = [];
         $processed_rows = 0;
         
         foreach ($sheet_data as $row) {
-            // Get location data from spreadsheet 
-            $division_code = $row['Division'] ?? '';
-            $location_code_with_suffix = $row['Shortcode'] ?? '';
-            $location_name = $row['Location Name'] ?? '';
-            $location_url = $row['Location URL'] ?? '';
-            $overnightOffered = $row['ON Offered'] ?? 'No';
+            // Get location data from spreadsheet using configured column names
+            $division_code = $row[$division_col] ?? '';
+            $location_code_with_suffix = $row[$shortcode_col] ?? '';
+            $location_name = $row[$location_name_col] ?? '';
+            $location_url = $row[$location_url_col] ?? '';
+            $overnightOffered = $row[$overnight_col] ?? 'No';
             if ($overnightOffered == 'Division Included') {
                 $overnightOffered = 'Yes';
             }
@@ -365,7 +415,7 @@ function wizPulse_sync_location_sessions()
         $updated_count = 0;
         $error_count = 0;
         
-        // Start transaction for better performance
+        // Start transaction
         $wpdb->query('START TRANSACTION');
         
         try {
@@ -433,8 +483,8 @@ add_action('wizPulse_refresh_locations_cron', 'wizPulse_refresh_locations');
 
 function wizPulse_get_all_courses()
 {
-    // Gets Pulse location data for iD Tech Camps and iD Tech Academies
-    $apiURL = 'https://pulseapi.idtech.com/Courses/GetAll?companyID=1&limit=1000&api-version=2016-11-01.1.0';
+    // Gets Pulse course data for iD Tech Camps and iD Tech Academies
+    $apiURL = get_pulse_courses_api_url();
     $response = idemailwiz_iterable_curl_call($apiURL);
     return $response['response']['results'];
 }
@@ -939,7 +989,7 @@ function wizPulse_sync_course_capacity($location_ids = [], $mic_start_date = nul
         foreach ($location_ids as $location_id) {
             try {
                 // Build API URL
-                $api_url = "https://pwapidev.idtech.com/Marketing/GetCourseCapacityByLocation";
+                $api_url = get_pulse_course_capacity_api_url();
                 $params = [
                     'marketingApiKey' => $api_key,
                     'locationID' => $location_id,

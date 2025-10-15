@@ -275,9 +275,9 @@ jQuery(document).ready(function ($) {
         const currentType = $testUserSelect.data('type');
         
         // If dropdown type doesn't match the data source, reload options
-        if (baseDataSource === 'user_profile' && currentType !== 'user_profile') {
+        if (baseDataSource === 'parent' && currentType !== 'parent') {
             loadParentAccountOptions($testUserSelect);
-        } else if (baseDataSource === 'user_feed' && currentType !== 'user_feed') {
+        } else if (baseDataSource === 'student' && currentType !== 'student') {
             loadStudentAccountOptions($testUserSelect);
         }
     });
@@ -394,7 +394,7 @@ jQuery(document).ready(function ($) {
 
     // Function to get presets compatible with the base data source
     function getCompatiblePresets(baseDataSource, allPresets) {
-        // Presets that work with student data (user_feed)
+        // Presets that work with student data
         const studentPresets = [
             'most_recent_purchase',
             'last_location',
@@ -410,13 +410,13 @@ jQuery(document).ready(function ($) {
             'current_year_continuity_recs'
         ];
         
-        // Presets that work with parent/user data (user_profile)
+        // Presets that work with parent data
         const parentPresets = [
             'location_with_courses',
             'sessions_at_location_by_date'
         ];
         
-        const compatiblePresetKeys = (baseDataSource === 'user_profile') ? parentPresets : studentPresets;
+        const compatiblePresetKeys = (baseDataSource === 'parent') ? parentPresets : studentPresets;
         
         // Filter the allPresets object to only include compatible presets
         const compatiblePresets = {};
@@ -705,14 +705,14 @@ jQuery(document).ready(function ($) {
         const currentType = $testUserSelect.data('type');
         
         // Update labels based on data source
-        if (baseDataSource === 'user_profile') {
+        if (baseDataSource === 'parent') {
             $testUserContainer.find('.test-user-label').text('Test Parent Account:');
             $testUserContainer.find('.toggle-user-input').text('Enter Parent Account Number manually');
             $testUserContainer.find('.user-id-input label').text('Or enter Parent Account Number:');
             $testUserContainer.find('.manual-user-id').attr('placeholder', 'Enter Parent Account Number');
             
             // If dropdown type doesn't match the data source, reload options
-            if (currentType !== 'user_profile') {
+            if (currentType !== 'parent') {
                 loadParentAccountOptions($testUserSelect);
             }
         } else {
@@ -722,7 +722,7 @@ jQuery(document).ready(function ($) {
             $testUserContainer.find('.manual-user-id').attr('placeholder', 'Enter Student Account Number');
             
             // If dropdown type doesn't match the data source, reload options
-            if (currentType !== 'user_feed') {
+            if (currentType !== 'student') {
                 loadStudentAccountOptions($testUserSelect);
             }
         }
@@ -787,13 +787,13 @@ jQuery(document).ready(function ($) {
             type: 'POST',
             data: {
                 action: 'idwiz_get_test_accounts',
-                type: 'user_profile',
+                type: 'parent',
                 security: idAjax_wiz_endpoints.nonce
             },
             success: function(response) {
                 if (response.success) {
                     $select.html(response.data);
-                    $select.data('type', 'user_profile');
+                    $select.data('type', 'parent');
                 } else {
                     $select.html('<option value="">Error loading accounts</option>');
                 }
@@ -813,13 +813,13 @@ jQuery(document).ready(function ($) {
             type: 'POST',
             data: {
                 action: 'idwiz_get_test_accounts',
-                type: 'user_feed',
+                type: 'student',
                 security: idAjax_wiz_endpoints.nonce
             },
             success: function(response) {
                 if (response.success) {
                     $select.html(response.data);
-                    $select.data('type', 'user_feed');
+                    $select.data('type', 'student');
                 } else {
                     $select.html('<option value="">Error loading accounts</option>');
                 }

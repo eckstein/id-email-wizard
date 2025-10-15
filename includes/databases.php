@@ -460,7 +460,7 @@ function idemailwiz_create_databases()
 		description TEXT,
 		config LONGTEXT,
 		data_mapping LONGTEXT,
-		base_data_source VARCHAR(50) DEFAULT 'user_feed',
+		base_data_source VARCHAR(50) DEFAULT 'student',
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 		PRIMARY KEY (id),
