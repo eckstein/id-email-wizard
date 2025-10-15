@@ -491,6 +491,8 @@ function backfill_blast_engagment_data($campaignIds = [])
 function updateCourseFiscalYears()
 {
     global $wpdb;
+    
+    wiz_log("Starting updateCourseFiscalYears - preserving Pulse-assigned fiscal years");
 
     // Get all courses
     $courses = $wpdb->get_results("SELECT id FROM wp_idemailwiz_courses");
@@ -544,15 +546,37 @@ function updateCourseFiscalYears()
         );
     }
 
-    // Add updates for courses with no purchases (N/A)
+    // Add updates for courses with no purchases (N/A) - but preserve existing fiscal years
     $courses_with_purchases = array_column($results, 'course_id');
     foreach ($courses as $course) {
         if (!in_array($course->id, $courses_with_purchases)) {
-            $update_queries[] = $wpdb->prepare(
-                "UPDATE wp_idemailwiz_courses SET fiscal_years = %s WHERE id = %d",
-                serialize(['N/A']),
+            // Check if course already has fiscal years set (e.g., from Pulse sync)
+            $existing_fiscal_years = $wpdb->get_var($wpdb->prepare(
+                "SELECT fiscal_years FROM wp_idemailwiz_courses WHERE id = %d",
                 $course->id
-            );
+            ));
+            
+            // Only set to N/A if no fiscal years exist or if it's already N/A
+            if (empty($existing_fiscal_years)) {
+                $update_queries[] = $wpdb->prepare(
+                    "UPDATE wp_idemailwiz_courses SET fiscal_years = %s WHERE id = %d",
+                    serialize(['N/A']),
+                    $course->id
+                );
+            } else {
+                // Check if existing fiscal years contain actual fiscal year data (not just N/A)
+                $unserialized = unserialize($existing_fiscal_years);
+                if (is_array($unserialized) && in_array('N/A', $unserialized) && count($unserialized) === 1) {
+                    // Only update if it's just N/A
+                    $update_queries[] = $wpdb->prepare(
+                        "UPDATE wp_idemailwiz_courses SET fiscal_years = %s WHERE id = %d",
+                        serialize(['N/A']),
+                        $course->id
+                    );
+                }
+                // If it contains actual fiscal years, preserve them
+                wiz_log("updateCourseFiscalYears: Preserving existing fiscal years for course ID {$course->id}");
+            }
         }
     }
 
@@ -561,5 +585,8 @@ function updateCourseFiscalYears()
         foreach ($update_queries as $query) {
             $wpdb->query($query);
         }
+        wiz_log("updateCourseFiscalYears: Updated " . count($update_queries) . " courses with fiscal year data");
+    } else {
+        wiz_log("updateCourseFiscalYears: No courses needed fiscal year updates");
     }
 }
