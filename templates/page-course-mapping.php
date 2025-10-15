@@ -91,9 +91,9 @@ updateCourseFiscalYears();
                     <label for="source-fy-select">Source fiscal years:</label>
                     <select id="source-fy-select" name="source-fy-select[]" multiple onchange="this.form.submit()">
                         <?php
-                        $currentFiscalYear = date('Y') - 2 . '/' . (date('Y') - 1);
+                        $currentFiscalYear = date('Y') . '/' . (date('Y') + 1);
                         $fiscalYears = [];
-                        for ($year = 2021; $year <= date('Y'); $year++) {
+                        for ($year = 2021; $year <= date('Y') + 1; $year++) {
                             $fiscalYears[] = $year . '/' . ($year + 1);
                         }
 
@@ -147,7 +147,9 @@ updateCourseFiscalYears();
                 $selectedDivisions = isset($_GET['division-select']) ? array_map('intval', $_GET['division-select']) : [25];
 
                 // Get the selected source fiscal years from the form submission
-                $selectedSourceFiscalYears = isset($_GET['source-fy-select']) ? $_GET['source-fy-select'] : [date('Y') - 2 . '/' . (date('Y') - 1)];
+                // Default to current fiscal year to include new Pulse courses
+                $currentFiscalYearForMapping = date('Y') . '/' . (date('Y') + 1);
+                $selectedSourceFiscalYears = isset($_GET['source-fy-select']) ? $_GET['source-fy-select'] : [$currentFiscalYearForMapping];
 
                 // Set current fiscal year for availability checking (not for mapping requirements)
                 $currentFiscalYear = date('Y') . '/' . (date('Y') + 1);

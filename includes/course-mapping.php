@@ -56,8 +56,11 @@ function id_get_courses_options_handler()
     }
 
     // Add condition to check if 'locations' column is not empty/null (if not online)
+    // Only apply location filtering for in-person divisions that require locations
     if (!empty($division) && $division != 41 && $division != 42 && $division != 47) {
-        $query .= " AND locations IS NOT NULL AND locations != ''";
+        // For in-person courses, they should have locations, but don't exclude if locations is empty
+        // as new courses from Pulse might not have location data populated yet
+        // $query .= " AND locations IS NOT NULL AND locations != ''";
     }
 
     // Add status filter if provided
@@ -73,6 +76,13 @@ function id_get_courses_options_handler()
 
 
     $courses = $wpdb->get_results($wpdb->prepare($query, $params));
+    
+    // Debug logging
+    wiz_log("Course Selection Query: Division=$division, Term='$term', Found " . count($courses) . " courses");
+    if (count($courses) > 0) {
+        $sample_course = $courses[0];
+        wiz_log("Sample course: ID={$sample_course->id}, Title={$sample_course->title}, Division={$sample_course->division_id}");
+    }
 
     $results = array();
     foreach ($courses as $course) {
