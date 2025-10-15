@@ -490,6 +490,22 @@ function wizPulse_get_all_courses()
 }
 
 /**
+ * Calculate the current fiscal year
+ * Fiscal year runs from November to October (e.g., FY25 = Nov 2024 - Oct 2025)
+ */
+function wizPulse_get_current_fiscal_year()
+{
+    $current_date = new DateTime();
+    $year = intval($current_date->format('Y'));
+    $month = intval($current_date->format('n'));
+    
+    // For any date from November through October, the fiscal year is the next calendar year
+    // So November 2024 - October 2025 is FY2025
+    $current_fy_year = ($month >= 11) ? $year + 1 : $year;
+    return $year . '/' . ($year + 1);
+}
+
+/**
  * Sync courses from Pulse API to database
  * 
  * This function preserves manually set course_recs, courseUrl, and courseDesc values
@@ -563,6 +579,9 @@ function wizPulse_map_courses_to_database()
                 // Serialize genres, or set to NULL if empty
                 $genres = !empty($course['genres']) ? serialize($course['genres']) : null;
 
+                // Get current fiscal year for new courses
+                $current_fiscal_year = wizPulse_get_current_fiscal_year();
+
                 $processed_courses[] = [
                     'id' => $id,
                     'title' => $clean_title,
@@ -578,7 +597,8 @@ function wizPulse_map_courses_to_database()
                     'maxAge' => $course['maxAge'],
                     'isNew' => $course['isNew'] ? 1 : 0,
                     'isMostPopular' => $course['isMostPopular'] ? 1 : 0,
-                    'wizStatus' => 'Active'
+                    'wizStatus' => 'Active',
+                    'fiscal_years' => serialize([$current_fiscal_year])
                 ];
 
                 $seen_abbreviations[$clean_abbreviation] = true;
@@ -586,6 +606,7 @@ function wizPulse_map_courses_to_database()
         }
         
         wiz_log("Course Sync: Processed " . count($processed_courses) . " unique courses, skipped $skipped_count OLT courses");
+        wiz_log("Course Sync: Assigning current fiscal year: " . wizPulse_get_current_fiscal_year());
 
         // Insert/update courses in database
         if (!empty($processed_courses)) {
@@ -593,7 +614,7 @@ function wizPulse_map_courses_to_database()
             $course_ids = array_column($processed_courses, 'id');
             $placeholders = implode(',', array_fill(0, count($course_ids), '%d'));
             $existing_courses = $wpdb->get_results(
-                $wpdb->prepare("SELECT id, course_recs, courseUrl, courseDesc FROM {$table_name} WHERE id IN ($placeholders)", $course_ids),
+                $wpdb->prepare("SELECT id, course_recs, courseUrl, courseDesc, fiscal_years FROM {$table_name} WHERE id IN ($placeholders)", $course_ids),
                 ARRAY_A
             );
             
@@ -632,6 +653,18 @@ function wizPulse_map_courses_to_database()
                         if (!empty($existing_course['courseDesc'])) {
                             $course['courseDesc'] = $existing_course['courseDesc'];
                             $preserved_manual_values++;
+                        }
+                        
+                        // Handle fiscal years - preserve existing and add current if not present
+                        if (!empty($existing_course['fiscal_years'])) {
+                            $existing_fiscal_years = unserialize($existing_course['fiscal_years']);
+                            if (is_array($existing_fiscal_years) && !in_array($current_fiscal_year, $existing_fiscal_years)) {
+                                $existing_fiscal_years[] = $current_fiscal_year;
+                                $course['fiscal_years'] = serialize($existing_fiscal_years);
+                                wiz_log("Course Sync: Added current fiscal year to existing course ID $course_id");
+                            } else {
+                                $course['fiscal_years'] = $existing_course['fiscal_years'];
+                            }
                         }
                         
                         // Use INSERT ... ON DUPLICATE KEY UPDATE for better performance
