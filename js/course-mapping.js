@@ -140,3 +140,54 @@ jQuery(document).ready(function() {
     });
 });
 
+jQuery(document).on("click", "#clear-non-current-mappings", function () {
+    Swal.fire({
+        title: "Clear Non-Current FY Mappings?",
+        text: "This will remove all course recommendations that are not offered in the current fiscal year. This action cannot be undone.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Yes, clear them!",
+        cancelButtonText: "Cancel",
+        confirmButtonColor: "#d33",
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Show loading state
+            Swal.fire({
+                title: "Processing...",
+                text: "Clearing non-current fiscal year mappings...",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // AJAX call to clear non-current FY mappings
+            idemailwiz_do_ajax(
+                "id_clear_non_current_fy_mappings",
+                idAjax_id_general.nonce,
+                {},
+                function (response) {
+                    Swal.fire({
+                        title: "Success!",
+                        text: response.message || "Non-current FY mappings cleared successfully",
+                        icon: "success",
+                        confirmButtonText: "OK"
+                    }).then(() => {
+                        location.reload();
+                    });
+                },
+                function (error) {
+                    Swal.fire({
+                        title: "Error",
+                        text: "Failed to clear mappings: " + (error.message || "Unknown error"),
+                        icon: "error",
+                        confirmButtonText: "OK"
+                    });
+                    console.log("Error: ", error);
+                }
+            );
+        }
+    });
+});
+

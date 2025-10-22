@@ -198,3 +198,85 @@ function id_remove_course_from_rec_handler()
         wp_send_json_success('Course removed successfully');
     }
 }
+
+add_action('wp_ajax_id_clear_non_current_fy_mappings', 'id_clear_non_current_fy_mappings_handler');
+function id_clear_non_current_fy_mappings_handler()
+{
+    // Check nonce
+    if (!check_ajax_referer('id-general', 'security', false)) {
+        error_log('Nonce check failed');
+        wp_send_json_error('Nonce check failed');
+        return;
+    }
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_courses';
+
+    // Get current fiscal year
+    $currentFiscalYear = date('Y') . '/' . (date('Y') + 1);
+
+    // Get all courses with recommendations
+    $courses = $wpdb->get_results("SELECT id, course_recs FROM {$table_name} WHERE course_recs IS NOT NULL AND course_recs != ''");
+
+    $total_removed = 0;
+    $courses_updated = 0;
+
+    foreach ($courses as $course) {
+        $course_recs = maybe_unserialize($course->course_recs);
+        
+        if (!is_array($course_recs)) {
+            continue;
+        }
+
+        $has_changes = false;
+        
+        // Loop through each recommendation type
+        foreach ($course_recs as $rec_type => $rec_ids) {
+            if (!is_array($rec_ids)) {
+                continue;
+            }
+
+            $filtered_recs = [];
+            
+            // Check each recommended course
+            foreach ($rec_ids as $rec_id) {
+                $recd_course = $wpdb->get_row($wpdb->prepare("SELECT fiscal_years FROM {$table_name} WHERE id = %s", $rec_id));
+                
+                if ($recd_course) {
+                    $courseFiscalYears = maybe_unserialize($recd_course->fiscal_years);
+                    $inCurrentFiscalYear = false;
+                    
+                    if (is_array($courseFiscalYears)) {
+                        $inCurrentFiscalYear = in_array($currentFiscalYear, $courseFiscalYears);
+                    }
+                    
+                    // Keep only courses that are in the current fiscal year
+                    if ($inCurrentFiscalYear) {
+                        $filtered_recs[] = $rec_id;
+                    } else {
+                        $total_removed++;
+                        $has_changes = true;
+                    }
+                } else {
+                    // If course doesn't exist, remove it
+                    $total_removed++;
+                    $has_changes = true;
+                }
+            }
+            
+            $course_recs[$rec_type] = $filtered_recs;
+        }
+
+        // Update the course if there were changes
+        if ($has_changes) {
+            $wpdb->update($table_name, ['course_recs' => maybe_serialize($course_recs)], ['id' => $course->id]);
+            $courses_updated++;
+        }
+    }
+
+    wp_send_json_success([
+        'message' => "Removed {$total_removed} non-current FY mappings from {$courses_updated} courses",
+        'total_removed' => $total_removed,
+        'courses_updated' => $courses_updated
+    ]);
+}

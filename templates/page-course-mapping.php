@@ -133,7 +133,9 @@ updateCourseFiscalYears();
         <div class="wizHeader-right">
 
             <div class="wizHeader-actions">
-
+                <button id="clear-non-current-mappings" class="button button-secondary" type="button">
+                    <i class="fa-solid fa-broom"></i> Clear Non-Current FY Mappings
+                </button>
             </div>
         </div>
     </div>
