@@ -260,6 +260,57 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 										</fieldset>
 									</div>
 								</div>
+
+								<h5>Social Media Icons</h5>
+								<div class="builder-field-group social-media-icons-group">
+									<?php
+									// Define social media icon slots (5 slots for flexibility)
+									for ($i = 1; $i <= 5; $i++) {
+										$iconImage = $templateHeaderFooterStyles["social_icon_{$i}_image"] ?? '';
+										$iconLink = $templateHeaderFooterStyles["social_icon_{$i}_link"] ?? '';
+										
+										// Set default values for all 5 icons if empty (backward compatibility)
+										if ($i === 1 && empty($iconImage)) {
+											$iconImage = 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/iD%20Tech_Social%20Icon%20Updates__fb.png';
+											$iconLink = 'https://www.facebook.com/computercamps';
+										} elseif ($i === 2 && empty($iconImage)) {
+											$iconImage = 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/iD%20Tech_Social%20Icon%20Updates__tt.png';
+											$iconLink = 'https://www.tiktok.com/@idtechcamps';
+										} elseif ($i === 3 && empty($iconImage)) {
+											$iconImage = 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/iD%20Tech_Social%20Icon%20Updates__ig.png';
+											$iconLink = 'https://www.instagram.com/idtech/';
+										} elseif ($i === 4 && empty($iconImage)) {
+											$iconImage = 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/iD%20Tech_Social%20Icon%20Updates__in.png';
+											$iconLink = 'https://www.linkedin.com/company/id-tech-camps';
+										} elseif ($i === 5 && empty($iconImage)) {
+											$iconImage = 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/iD%20Tech_Social%20Icon%20Updates__yt.png';
+											$iconLink = 'https://www.youtube.com/@idtechcamps';
+										}
+									?>
+									<div class="social-icon-pair">
+										<h6>Social Icon <?php echo $i; ?></h6>
+										<div class="builder-field-wrapper">
+											<label for="social_icon_<?php echo $i; ?>_image">Icon Image URL</label>
+											<input type="text" 
+												   id="social_icon_<?php echo $i; ?>_image" 
+												   name="social_icon_<?php echo $i; ?>_image" 
+												   value="<?php echo esc_attr($iconImage); ?>"
+												   data-preview-part="standard_footer"
+												   placeholder="Image URL">
+										</div>
+										<div class="builder-field-wrapper">
+											<label for="social_icon_<?php echo $i; ?>_link">Icon Link URL</label>
+											<input type="text" 
+												   id="social_icon_<?php echo $i; ?>_link" 
+												   name="social_icon_<?php echo $i; ?>_link" 
+												   value="<?php echo esc_attr($iconLink); ?>"
+												   data-preview-part="standard_footer"
+												   placeholder="https://...">
+										</div>
+									</div>
+									<?php } ?>
+								</div>
+
 							</fieldset>
 							<fieldset name="body-and-background" class="template-settings-tab-content"
 								id="template-styles-tab-body-and-background">

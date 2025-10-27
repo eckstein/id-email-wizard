@@ -1539,6 +1539,38 @@ textarea.custom-background-css-input {
 	margin-bottom: 10px;
 }
 
+/* Social Media Icons Styles */
+.social-media-icons-group {
+	display: flex;
+	flex-direction: column;
+	gap: 15px;
+}
+
+.social-icon-pair {
+	padding: 15px;
+	border: 1px solid #e0e0e0;
+	border-radius: 4px;
+	background-color: #fafafa;
+}
+
+.social-icon-pair h6 {
+	margin: 0 0 10px 0;
+	padding: 0;
+	font-size: 13px;
+	font-weight: 600;
+	color: #343434;
+	border-bottom: 1px solid #e0e0e0;
+	padding-bottom: 8px;
+}
+
+.social-icon-pair .builder-field-wrapper {
+	margin-bottom: 10px;
+}
+
+.social-icon-pair .builder-field-wrapper:last-child {
+	margin-bottom: 0;
+}
+
 .variations-ui .variation-wrapper {
 	display: flex;
 	gap: 15px;

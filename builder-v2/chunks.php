@@ -708,7 +708,7 @@ function idwiz_get_standard_footer($templateStyles, $isEditor = false)
 	<![endif]-->';
 
 	// Social media icons
-	$output .= idwiz_get_social_media_icons($isEditor);
+	$output .= idwiz_get_social_media_icons($templateStyles, $isEditor);
 
 	if ($gmailBlendDesktop || $gmailBlendMobile) {
 		$output .= '<div class="gmail-blend-screen ' . $gmailBlendDesktopClass . ' ' . $gmailBlendMobileClass . '">';
@@ -791,26 +791,44 @@ function idwiz_get_fine_print_disclaimer($templateOptions)
 
 // Helper functions
 
-function idwiz_get_social_media_icons($isEditor = false)
+function idwiz_get_social_media_icons($templateStyles, $isEditor = false)
 {
-
-	$icons = [
-		[
-			'url' => 'https://www.facebook.com/computercamps',
-			'title' => 'iD Tech on Facebook',
-			'src' => 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/e1322b55-a0f4-4246-b530-3a0790a4c361.png',
-		],
-		[
-			'url' => 'https://twitter.com/idtechcamps',
-			'title' => 'iD Tech on Twitter',
-			'src' => 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/94d22bf5-cc89-43f6-a4d8-8567c4e81d9d.png',
-		],
-		[
-			'url' => 'https://www.instagram.com/idtech/',
-			'title' => 'iD Tech on Instagram',
-			'src' => 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/6b969394-7c4c-45c1-9079-7e98dddcbbb2.png',
-		]
-	];
+	// Get header and footer styles
+	$headerFooterStyles = $templateStyles['header-and-footer'] ?? [];
+	
+	// Build icons array from template settings
+	$icons = [];
+	for ($i = 1; $i <= 5; $i++) {
+		$iconImage = $headerFooterStyles["social_icon_{$i}_image"] ?? '';
+		$iconLink = $headerFooterStyles["social_icon_{$i}_link"] ?? '';
+		
+		// Set default values for all 5 icons if empty (backward compatibility)
+		if ($i === 1 && empty($iconImage)) {
+			$iconImage = 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/iD%20Tech_Social%20Icon%20Updates__fb.png';
+			$iconLink = 'https://www.facebook.com/computercamps';
+		} elseif ($i === 2 && empty($iconImage)) {
+			$iconImage = 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/iD%20Tech_Social%20Icon%20Updates__tt.png';
+			$iconLink = 'https://www.tiktok.com/@idtechcamps';
+		} elseif ($i === 3 && empty($iconImage)) {
+			$iconImage = 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/iD%20Tech_Social%20Icon%20Updates__ig.png';
+			$iconLink = 'https://www.instagram.com/idtech/';
+		} elseif ($i === 4 && empty($iconImage)) {
+			$iconImage = 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/iD%20Tech_Social%20Icon%20Updates__in.png';
+			$iconLink = 'https://www.linkedin.com/company/id-tech-camps';
+		} elseif ($i === 5 && empty($iconImage)) {
+			$iconImage = 'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/d290cbad793f433198aa08e5b69a0a3d/editor_images/iD%20Tech_Social%20Icon%20Updates__yt.png';
+			$iconLink = 'https://www.youtube.com/@idtechcamps';
+		}
+		
+		// Only add icon if both image and link are provided
+		if (!empty($iconImage) && !empty($iconLink)) {
+			$icons[] = [
+				'url' => $iconLink,
+				'src' => $iconImage,
+				'title' => 'Social Media Link ' . $i
+			];
+		}
+	}
 
 	$output = '';
 	foreach ($icons as $icon) {
@@ -819,7 +837,9 @@ function idwiz_get_social_media_icons($isEditor = false)
 		$output .= '<img width="35" height="27" alt="' . $icon['title'] . '" style="width: 35px; height: auto;" src="' . $icon['src'] . '" />';
 		$output .= '</a></span> ';
 	}
-	$output .= '<br />';
+	if (!empty($icons)) {
+		$output .= '<br />';
+	}
 	return $output;
 }
 
