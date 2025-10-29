@@ -213,6 +213,137 @@ function id_remove_course_from_rec_handler()
     }
 }
 
+add_action('wp_ajax_id_import_csv_mappings', 'id_import_csv_mappings_handler');
+function id_import_csv_mappings_handler()
+{
+    // Check nonce
+    if (!check_ajax_referer('id-general', 'security', false)) {
+        error_log('Nonce check failed');
+        wp_send_json_error('Nonce check failed');
+        return;
+    }
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_courses';
+
+    $mappings_json = isset($_POST['mappings']) ? stripslashes($_POST['mappings']) : '';
+    $clear_existing = isset($_POST['clear_existing']) && $_POST['clear_existing'] === '1';
+    
+    $mappings = json_decode($mappings_json, true);
+    
+    if (!is_array($mappings)) {
+        wp_send_json_error('Invalid mappings data');
+        return;
+    }
+
+    $total_processed = 0;
+    $mappings_created = 0;
+    $errors = 0;
+    $details = [];
+
+    // Clear existing mappings if requested
+    if ($clear_existing) {
+        $wpdb->query("UPDATE $table_name SET course_recs = NULL");
+        $details[] = [
+            'success' => true,
+            'message' => 'Cleared all existing course mappings'
+        ];
+    }
+
+    // Process each mapping
+    foreach ($mappings as $mapping) {
+        $course_abbreviation = $mapping['course_abbreviation'];
+        $total_processed++;
+        
+        // Find course by abbreviation
+        $course = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, course_recs FROM $table_name WHERE abbreviation = %s LIMIT 1",
+            $course_abbreviation
+        ));
+        
+        if (!$course) {
+            $errors++;
+            $details[] = [
+                'success' => false,
+                'message' => "Course not found: $course_abbreviation"
+            ];
+            continue;
+        }
+
+        // Get existing recs or create new array
+        $course_recs = maybe_unserialize($course->course_recs);
+        if (!is_array($course_recs)) {
+            $course_recs = [];
+        }
+
+        $recs_added = 0;
+
+        // Process each rec type
+        foreach (['idtc', 'idtc_ageup', 'idta', 'vtc', 'vtc_ageup'] as $rec_type) {
+            if (empty($mapping[$rec_type])) {
+                continue;
+            }
+
+            // Initialize rec type array if not exists
+            if (!isset($course_recs[$rec_type]) || !is_array($course_recs[$rec_type])) {
+                $course_recs[$rec_type] = [];
+            }
+
+            // Add each recommended course
+            foreach ($mapping[$rec_type] as $rec_abbreviation) {
+                // Find the recommended course ID by abbreviation
+                $rec_course = $wpdb->get_row($wpdb->prepare(
+                    "SELECT id FROM $table_name WHERE abbreviation = %s LIMIT 1",
+                    $rec_abbreviation
+                ));
+                
+                if ($rec_course) {
+                    // Add if not already present
+                    if (!in_array($rec_course->id, $course_recs[$rec_type])) {
+                        $course_recs[$rec_type][] = $rec_course->id;
+                        $recs_added++;
+                    }
+                } else {
+                    $details[] = [
+                        'success' => false,
+                        'message' => "Recommended course not found: $rec_abbreviation (for $course_abbreviation)"
+                    ];
+                }
+            }
+        }
+
+        // Update the course if we added any recs
+        if ($recs_added > 0) {
+            $updated = $wpdb->update(
+                $table_name,
+                ['course_recs' => maybe_serialize($course_recs)],
+                ['id' => $course->id]
+            );
+            
+            if ($updated !== false) {
+                $mappings_created += $recs_added;
+                $details[] = [
+                    'success' => true,
+                    'message' => "Updated $course_abbreviation: added $recs_added recommendations"
+                ];
+            } else {
+                $errors++;
+                $details[] = [
+                    'success' => false,
+                    'message' => "Database update failed for $course_abbreviation"
+                ];
+            }
+        }
+    }
+
+    wp_send_json_success([
+        'total_processed' => $total_processed,
+        'mappings_created' => $mappings_created,
+        'errors' => $errors,
+        'details' => $details
+    ]);
+}
+
 add_action('wp_ajax_id_clear_non_current_fy_mappings', 'id_clear_non_current_fy_mappings_handler');
 function id_clear_non_current_fy_mappings_handler()
 {

@@ -116,6 +116,9 @@
         <div class="wizHeader-right">
 
             <div class="wizHeader-actions">
+                <button id="upload-csv-mappings" class="button button-primary" type="button">
+                    <i class="fa-solid fa-file-arrow-up"></i> Upload CSV Mappings
+                </button>
                 <button id="clear-non-current-mappings" class="button button-secondary" type="button">
                     <i class="fa-solid fa-broom"></i> Clear Non-Current FY Mappings
                 </button>
@@ -227,4 +230,62 @@
         </div>
     </div>
 </div>
+
+<!-- CSV Upload Modal -->
+<div id="csv-upload-modal" class="wiz-modal" style="display:none;">
+    <div class="wiz-modal-content" style="max-width: 600px;">
+        <span class="wiz-modal-close">&times;</span>
+        <h2>Upload Course Recommendations CSV</h2>
+        <div class="wiz-modal-body">
+            <p>Upload a CSV file with course recommendations. The CSV should have the following columns:</p>
+            <ul style="font-size: 12px; margin: 10px 0;">
+                <li><strong>Last Course Shortcode</strong> - Course abbreviation</li>
+                <li><strong>Rec 1/2/3 Shortcode</strong> - iDTC recommendations</li>
+                <li><strong>Rec Age Up 1/2/3 Shortcode</strong> - iDTC age-up recommendations</li>
+                <li><strong>VTC Rec 1/2/3 Shortcode</strong> - VTC recommendations</li>
+                <li><strong>VTC Rec Age Up 1/2/3 Shortcode</strong> - VTC age-up recommendations</li>
+                <li><strong>IDTA Rec Age Up 1 Shortcode</strong> - iDTA recommendations</li>
+            </ul>
+            
+            <form id="csv-upload-form" enctype="multipart/form-data">
+                <div style="margin: 20px 0;">
+                    <label for="csv-file" style="display: block; margin-bottom: 10px; font-weight: 600;">
+                        Select CSV File:
+                    </label>
+                    <input type="file" id="csv-file" name="csv-file" accept=".csv" required style="width: 100%;">
+                </div>
+                
+                <div style="margin: 20px 0;">
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="clear-existing" name="clear-existing">
+                        <span>Clear existing mappings before import</span>
+                    </label>
+                </div>
+                
+                <div id="upload-progress" style="display:none; margin: 20px 0;">
+                    <div style="background: #f0f0f0; border-radius: 4px; overflow: hidden;">
+                        <div id="upload-progress-bar" style="background: #2271b1; height: 30px; width: 0%; transition: width 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">
+                            0%
+                        </div>
+                    </div>
+                    <div id="upload-status" style="margin-top: 10px; font-size: 12px; color: #666;">
+                        Preparing upload...
+                    </div>
+                </div>
+                
+                <div class="wiz-modal-actions" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="button button-secondary cancel-upload">Cancel</button>
+                    <button type="submit" class="button button-primary">Upload & Process</button>
+                </div>
+            </form>
+            
+            <div id="upload-results" style="display:none; margin-top: 20px;">
+                <h3>Import Results</h3>
+                <div id="results-summary" style="padding: 15px; background: #f0f0f0; border-radius: 4px; margin-bottom: 15px;"></div>
+                <div id="results-details" style="max-height: 300px; overflow-y: auto; font-size: 12px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php get_footer(); ?>

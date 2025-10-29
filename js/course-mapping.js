@@ -130,12 +130,12 @@ jQuery(document).on("click", ".remove-course", function () {
 });
 
 jQuery(document).ready(function() {
-    // Initialize select2 for dropdown menus (removed target-fy-select since it's no longer needed)
-    jQuery('#division-select, #source-fy-select').select2({
+    // Initialize select2 for dropdown menus
+    jQuery('#division-select').select2({
         width: '100%',
         dropdownAutoWidth: true,
         closeOnSelect: false,
-        placeholder: "Select options",
+        placeholder: "Select divisions",
         allowClear: true
     });
 });
@@ -189,5 +189,214 @@ jQuery(document).on("click", "#clear-non-current-mappings", function () {
             );
         }
     });
+});
+
+// CSV Upload Modal Handling
+jQuery(document).on("click", "#upload-csv-mappings", function () {
+    jQuery('#csv-upload-modal').fadeIn(200);
+    jQuery('#upload-results').hide();
+    jQuery('#csv-upload-form').show();
+    jQuery('#upload-progress').hide();
+    jQuery('#csv-file').val('');
+    jQuery('#clear-existing').prop('checked', false);
+});
+
+jQuery(document).on("click", ".wiz-modal-close, .cancel-upload", function () {
+    jQuery('#csv-upload-modal').fadeOut(200);
+});
+
+jQuery(document).on("submit", "#csv-upload-form", function (e) {
+    e.preventDefault();
+    
+    const fileInput = jQuery('#csv-file')[0];
+    const clearExisting = jQuery('#clear-existing').is(':checked');
+    
+    if (!fileInput.files || !fileInput.files[0]) {
+        Swal.fire({
+            icon: 'error',
+            title: 'No File Selected',
+            text: 'Please select a CSV file to upload.'
+        });
+        return;
+    }
+    
+    const file = fileInput.files[0];
+    
+    // Check file type
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Invalid File Type',
+            text: 'Please upload a CSV file (.csv extension).'
+        });
+        return;
+    }
+    
+    // Show progress
+    jQuery('#upload-progress').show();
+    jQuery('#upload-progress-bar').css('width', '0%').text('0%');
+    jQuery('#upload-status').text('Reading CSV file...');
+    jQuery('button[type="submit"]', this).prop('disabled', true);
+    
+    // Read and parse CSV file
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        const csvContent = e.target.result;
+        
+        // Update progress
+        jQuery('#upload-progress-bar').css('width', '30%').text('30%');
+        jQuery('#upload-status').text('Parsing CSV data...');
+        
+        // Parse CSV
+        const lines = csvContent.split('\n');
+        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+        
+        // Find column indices
+        const columnMap = {
+            'Last Course Shortcode': headers.indexOf('Last Course Shortcode'),
+            'Rec 1 Shortcode': headers.indexOf('Rec 1 Shortcode'),
+            'Rec 2 Shortcode': headers.indexOf('Rec 2 Shortcode'),
+            'Rec 3 Shortcode': headers.indexOf('Rec 3 Shortcode'),
+            'Rec Age Up 1 Shortcode': headers.indexOf('Rec Age Up 1 Shortcode'),
+            'Rec Age Up 2 Shortcode': headers.indexOf('Rec Age Up 2 Shortcode'),
+            'Rec Age Up 3 Shortcode': headers.indexOf('Rec Age Up 3 Shortcode'),
+            'IDTA Rec Age Up 1 Shortcode': headers.indexOf('IDTA Rec Age Up 1 Shortcode'),
+            'VTC Rec 1 Shortcode': headers.indexOf('VTC Rec 1 Shortcode'),
+            'VTC Rec 2 Shortcode': headers.indexOf('VTC Rec 2 Shortcode'),
+            'VTC Rec 3 Shortcode': headers.indexOf('VTC Rec 3 Shortcode'),
+            'VTC Rec Age Up 1 Shortcode': headers.indexOf('VTC Rec Age Up 1 Shortcode'),
+            'VTC Rec Age Up 2 Shortcode': headers.indexOf('VTC Rec Age Up 2 Shortcode'),
+            'VTC Rec Age Up 3 Shortcode': headers.indexOf('VTC Rec Age Up 3 Shortcode')
+        };
+        
+        // Parse data rows
+        const mappings = [];
+        for (let i = 1; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
+            
+            const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+            const courseAbbr = values[columnMap['Last Course Shortcode']];
+            
+            if (!courseAbbr) continue;
+            
+            const mapping = {
+                course_abbreviation: courseAbbr,
+                idtc: [],
+                idtc_ageup: [],
+                idta: [],
+                vtc: [],
+                vtc_ageup: []
+            };
+            
+            // iDTC recs
+            ['Rec 1 Shortcode', 'Rec 2 Shortcode', 'Rec 3 Shortcode'].forEach(col => {
+                const val = values[columnMap[col]];
+                if (val) mapping.idtc.push(val);
+            });
+            
+            // iDTC age-up recs
+            ['Rec Age Up 1 Shortcode', 'Rec Age Up 2 Shortcode', 'Rec Age Up 3 Shortcode'].forEach(col => {
+                const val = values[columnMap[col]];
+                if (val) mapping.idtc_ageup.push(val);
+            });
+            
+            // iDTA rec
+            const idtaVal = values[columnMap['IDTA Rec Age Up 1 Shortcode']];
+            if (idtaVal) mapping.idta.push(idtaVal);
+            
+            // VTC recs
+            ['VTC Rec 1 Shortcode', 'VTC Rec 2 Shortcode', 'VTC Rec 3 Shortcode'].forEach(col => {
+                const val = values[columnMap[col]];
+                if (val) mapping.vtc.push(val);
+            });
+            
+            // VTC age-up recs
+            ['VTC Rec Age Up 1 Shortcode', 'VTC Rec Age Up 2 Shortcode', 'VTC Rec Age Up 3 Shortcode'].forEach(col => {
+                const val = values[columnMap[col]];
+                if (val) mapping.vtc_ageup.push(val);
+            });
+            
+            mappings.push(mapping);
+        }
+        
+        // Update progress
+        jQuery('#upload-progress-bar').css('width', '50%').text('50%');
+        jQuery('#upload-status').text('Uploading to server...');
+        
+        // Send to server
+        idemailwiz_do_ajax(
+            "id_import_csv_mappings",
+            idAjax_id_general.nonce,
+            {
+                mappings: JSON.stringify(mappings),
+                clear_existing: clearExisting ? '1' : '0'
+            },
+            function (response) {
+                // Update progress to complete
+                jQuery('#upload-progress-bar').css('width', '100%').text('100%');
+                jQuery('#upload-status').text('Import complete!');
+                
+                // Hide form, show results
+                setTimeout(function() {
+                    jQuery('#csv-upload-form').hide();
+                    jQuery('#upload-results').show();
+                    
+                    // Display results
+                    const summary = `
+                        <strong>Import Summary:</strong><br>
+                        Courses processed: ${response.total_processed || 0}<br>
+                        Mappings created: ${response.mappings_created || 0}<br>
+                        Errors: ${response.errors || 0}
+                    `;
+                    jQuery('#results-summary').html(summary);
+                    
+                    if (response.details && response.details.length > 0) {
+                        let detailsHtml = '<ul style="list-style: none; padding: 0;">';
+                        response.details.forEach(detail => {
+                            const icon = detail.success ? '✓' : '✗';
+                            const color = detail.success ? '#46b450' : '#dc3232';
+                            detailsHtml += `<li style="color: ${color}; margin: 5px 0;">${icon} ${detail.message}</li>`;
+                        });
+                        detailsHtml += '</ul>';
+                        jQuery('#results-details').html(detailsHtml);
+                    }
+                    
+                    // Show success message
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Import Complete!',
+                        text: `Processed ${response.total_processed || 0} courses with ${response.mappings_created || 0} mappings created.`,
+                        confirmButtonText: 'Reload Page'
+                    }).then(() => {
+                        location.reload();
+                    });
+                }, 500);
+            },
+            function (error) {
+                jQuery('#upload-progress').hide();
+                jQuery('button[type="submit"]').prop('disabled', false);
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Import Failed',
+                    text: error.message || 'An error occurred during import.'
+                });
+            }
+        );
+    };
+    
+    reader.onerror = function() {
+        jQuery('#upload-progress').hide();
+        jQuery('button[type="submit"]').prop('disabled', false);
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'File Read Error',
+            text: 'Failed to read the CSV file. Please try again.'
+        });
+    };
+    
+    reader.readAsText(file);
 });
 
