@@ -491,7 +491,7 @@ function wizPulse_get_all_courses()
 
 /**
  * Calculate the current fiscal year
- * Fiscal year runs from November to October (e.g., FY25 = Nov 2024 - Oct 2025)
+ * Fiscal year runs from November to October (e.g., FY25/26 = Nov 2025 - Oct 2026)
  */
 function wizPulse_get_current_fiscal_year()
 {
@@ -499,37 +499,55 @@ function wizPulse_get_current_fiscal_year()
     $year = intval($current_date->format('Y'));
     $month = intval($current_date->format('n'));
     
-    // For any date from November through October, the fiscal year is the next calendar year
-    // So November 2024 - October 2025 is FY2025
-    $current_fy_year = ($month >= 11) ? $year + 1 : $year;
+    // If we're in November or December, FY is current_year / (current_year + 1)
+    // If we're in January - October, FY is (current_year - 1) / current_year
+    if ($month >= 11) {
+        return $year . '/' . ($year + 1);
+    } else {
+        return ($year - 1) . '/' . $year;
+    }
+}
+
+/**
+ * Determine fiscal year from mustTurnMinAgeByDate
+ * If date is 12/31/2025, course is for FY 2025/2026
+ * 
+ * @param string $date Date string in Y-m-d format
+ * @return string|null Fiscal year string like "2025/2026" or null if invalid
+ */
+function wizPulse_get_fiscal_year_from_date($date)
+{
+    if (empty($date)) {
+        return null;
+    }
+    
+    $date_obj = DateTime::createFromFormat('Y-m-d', $date);
+    if (!$date_obj) {
+        return null;
+    }
+    
+    // Extract the year from the date (should be end of year, 12/31/YYYY)
+    $year = intval($date_obj->format('Y'));
     return $year . '/' . ($year + 1);
 }
 
 /**
- * Derive fiscal year from mustTurnMinAgeByDate
- * mustTurnMinAgeByDate is always 12/31 of the year before the course is offered
- * Example: 12/31/2025 means course is for FY26 (Nov 2025 - Oct 2026)
+ * Check if a course is active based on mustTurnMinAgeByDate
+ * A course is active if its mustTurnMinAgeByDate matches the current fiscal year
  * 
- * @param string $mustTurnMinAgeByDate Date string in Y-m-d format
- * @return string|null Fiscal year string (e.g., "2025/2026") or null if date is invalid
+ * @param string $mustTurnMinAgeByDate Date string
+ * @return bool True if active, false otherwise
  */
-function wizPulse_get_fiscal_year_from_age_date($mustTurnMinAgeByDate)
+function wizPulse_is_course_active($mustTurnMinAgeByDate)
 {
     if (empty($mustTurnMinAgeByDate)) {
-        return null;
+        return false;
     }
     
-    try {
-        $date = new DateTime($mustTurnMinAgeByDate);
-        // Extract the year from the mustTurnMinAgeByDate (should be 12/31/YYYY)
-        $year = intval($date->format('Y'));
-        
-        // The fiscal year is YYYY/(YYYY+1) since mustTurnMinAgeByDate is the year before course is offered
-        return $year . '/' . ($year + 1);
-    } catch (Exception $e) {
-        wiz_log("Error parsing mustTurnMinAgeByDate: " . $e->getMessage());
-        return null;
-    }
+    $course_fy = wizPulse_get_fiscal_year_from_date($mustTurnMinAgeByDate);
+    $current_fy = wizPulse_get_current_fiscal_year();
+    
+    return $course_fy === $current_fy;
 }
 
 /**
@@ -606,22 +624,10 @@ function wizPulse_map_courses_to_database()
                 // Serialize genres, or set to NULL if empty
                 $genres = !empty($course['genres']) ? serialize($course['genres']) : null;
 
-                // Determine fiscal year(s) for this course
-                $fiscal_years = [];
-                
-                // First, try to derive fiscal year from mustTurnMinAgeByDate
-                if (!empty($mustTurnMinAgeByDate)) {
-                    $derived_fy = wizPulse_get_fiscal_year_from_age_date($mustTurnMinAgeByDate);
-                    if ($derived_fy) {
-                        $fiscal_years[] = $derived_fy;
-                    }
-                }
-                
-                // If no fiscal year could be derived, fall back to current fiscal year
-                if (empty($fiscal_years)) {
-                    $current_fiscal_year = wizPulse_get_current_fiscal_year();
-                    $fiscal_years[] = $current_fiscal_year;
-                }
+                // Determine wizStatus based on mustTurnMinAgeByDate
+                // If mustTurnMinAgeByDate matches current fiscal year, course is Active
+                // Otherwise, it's Inactive
+                $wizStatus = wizPulse_is_course_active($mustTurnMinAgeByDate) ? 'Active' : 'Inactive';
 
                 $processed_courses[] = [
                     'id' => $id,
@@ -638,8 +644,7 @@ function wizPulse_map_courses_to_database()
                     'maxAge' => $course['maxAge'],
                     'isNew' => $course['isNew'] ? 1 : 0,
                     'isMostPopular' => $course['isMostPopular'] ? 1 : 0,
-                    'wizStatus' => 'Active',
-                    'fiscal_years' => serialize($fiscal_years)
+                    'wizStatus' => $wizStatus
                 ];
 
                 $seen_abbreviations[$clean_abbreviation] = true;
@@ -647,7 +652,7 @@ function wizPulse_map_courses_to_database()
         }
         
         wiz_log("Course Sync: Processed " . count($processed_courses) . " unique courses, skipped $skipped_count OLT courses");
-        wiz_log("Course Sync: Fiscal years derived from mustTurnMinAgeByDate when available, otherwise using current FY: " . wizPulse_get_current_fiscal_year());
+        wiz_log("Course Sync: Current fiscal year is: " . wizPulse_get_current_fiscal_year());
 
         // Insert/update courses in database
         if (!empty($processed_courses)) {
@@ -655,7 +660,7 @@ function wizPulse_map_courses_to_database()
             $course_ids = array_column($processed_courses, 'id');
             $placeholders = implode(',', array_fill(0, count($course_ids), '%d'));
             $existing_courses = $wpdb->get_results(
-                $wpdb->prepare("SELECT id, course_recs, courseUrl, courseDesc, fiscal_years FROM {$table_name} WHERE id IN ($placeholders)", $course_ids),
+                $wpdb->prepare("SELECT id, course_recs, courseUrl, courseDesc FROM {$table_name} WHERE id IN ($placeholders)", $course_ids),
                 ARRAY_A
             );
             
@@ -695,37 +700,6 @@ function wizPulse_map_courses_to_database()
                             $course['courseDesc'] = $existing_course['courseDesc'];
                             $preserved_manual_values++;
                         }
-                        
-                        // Handle fiscal years - preserve existing and add derived/current fiscal year if not present
-                        $existing_fiscal_years = [];
-                        if (!empty($existing_course['fiscal_years'])) {
-                            $existing_fiscal_years = unserialize($existing_course['fiscal_years']);
-                            if (!is_array($existing_fiscal_years)) {
-                                $existing_fiscal_years = [];
-                            }
-                        }
-                        
-                        // Derive fiscal year from mustTurnMinAgeByDate
-                        $derived_fy = null;
-                        if (!empty($course['mustTurnMinAgeByDate'])) {
-                            $derived_fy = wizPulse_get_fiscal_year_from_age_date($course['mustTurnMinAgeByDate']);
-                        }
-                        
-                        // Get current fiscal year as fallback
-                        $current_fiscal_year = wizPulse_get_current_fiscal_year();
-                        
-                        // Add derived fiscal year if available and not already present
-                        if ($derived_fy && !in_array($derived_fy, $existing_fiscal_years)) {
-                            $existing_fiscal_years[] = $derived_fy;
-                            wiz_log("Course Sync: Added derived fiscal year ($derived_fy) to existing course ID $course_id based on mustTurnMinAgeByDate");
-                        }
-                        // Otherwise, add current fiscal year if not present (fallback)
-                        elseif (!$derived_fy && !in_array($current_fiscal_year, $existing_fiscal_years)) {
-                            $existing_fiscal_years[] = $current_fiscal_year;
-                            wiz_log("Course Sync: Added current fiscal year ($current_fiscal_year) to existing course ID $course_id");
-                        }
-                        
-                        $course['fiscal_years'] = serialize($existing_fiscal_years);
                         
                         // Use INSERT ... ON DUPLICATE KEY UPDATE for better performance
                         $fields = array_keys($course);
@@ -804,11 +778,7 @@ function wizPulse_refresh_courses()
         
         wizPulse_map_courses_to_database();
         
-        // Add a small delay between operations to prevent overwhelming the database
-        usleep(100000); // 100ms delay
-        
-        updateCourseFiscalYears();
-        wiz_log("Course Refresh Complete: Successfully updated courses and fiscal years");
+        wiz_log("Course Refresh Complete: Successfully updated courses");
     } catch (Exception $e) {
         wiz_log("Course Refresh Error: " . $e->getMessage());
     }

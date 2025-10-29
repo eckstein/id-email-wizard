@@ -36,10 +36,9 @@ function id_get_courses_options_handler()
     $division = isset($_POST['division']) ? intval($_POST['division']) : '';
     $term = isset($_POST['term']) ? sanitize_text_field($_POST['term']) : '';
     $wizStatus = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : '';
-    // Note: Removed target fiscal year filtering since mapping is now course-to-course without FY restriction
 
-    // Building the query
-    $query = "SELECT id, title, abbreviation, minAge, maxAge FROM {$table_name} WHERE 1=1";
+    // Building the query - need to select mustTurnMinAgeByDate for filtering
+    $query = "SELECT id, title, abbreviation, minAge, maxAge, mustTurnMinAgeByDate FROM {$table_name} WHERE 1=1";
     $params = array();
 
     // Add division filter if provided
@@ -69,7 +68,9 @@ function id_get_courses_options_handler()
         $params[] = $wizStatus;
     }
     
-    // Fiscal year filtering removed - courses can be mapped regardless of fiscal year
+    // Filter to only show courses active in current fiscal year
+    // A course is active if mustTurnMinAgeByDate is not null and matches current FY
+    $query .= " AND mustTurnMinAgeByDate IS NOT NULL";
 
     // Filter out specific course IDs
     //$excludeIds = [2569,470,2188,1958,2189,2570,1849,2190,2571,1850,2191,2572,1570,2192,2480,2369,];
@@ -77,15 +78,28 @@ function id_get_courses_options_handler()
 
     $courses = $wpdb->get_results($wpdb->prepare($query, $params));
     
+    // Filter courses to only show those active in current fiscal year
+    $current_fy = wizPulse_get_current_fiscal_year();
+    $filtered_courses = array();
+    
+    foreach ($courses as $course) {
+        if (!empty($course->mustTurnMinAgeByDate)) {
+            $course_fy = wizPulse_get_fiscal_year_from_date($course->mustTurnMinAgeByDate);
+            if ($course_fy === $current_fy) {
+                $filtered_courses[] = $course;
+            }
+        }
+    }
+    
     // Debug logging
-    wiz_log("Course Selection Query: Division=$division, Term='$term', Found " . count($courses) . " courses");
-    if (count($courses) > 0) {
-        $sample_course = $courses[0];
-        wiz_log("Sample course: ID={$sample_course->id}, Title={$sample_course->title}, Division={$sample_course->division_id}");
+    wiz_log("Course Selection Query: Division=$division, Term='$term', Found " . count($filtered_courses) . " active courses (current FY: $current_fy)");
+    if (count($filtered_courses) > 0) {
+        $sample_course = $filtered_courses[0];
+        wiz_log("Sample course: ID={$sample_course->id}, Title={$sample_course->title}, mustTurnMinAgeByDate={$sample_course->mustTurnMinAgeByDate}");
     }
 
     $results = array();
-    foreach ($courses as $course) {
+    foreach ($filtered_courses as $course) {
         $results[] = array(
             'id' => $course->id,
             'text' => $course->id . ' | ' . $course->abbreviation . ' | ' . $course->minAge . '-' . $course->maxAge . ' | ' . $course->title
@@ -213,7 +227,7 @@ function id_clear_non_current_fy_mappings_handler()
     $table_name = $wpdb->prefix . 'idemailwiz_courses';
 
     // Get current fiscal year
-    $currentFiscalYear = date('Y') . '/' . (date('Y') + 1);
+    $current_fy = wizPulse_get_current_fiscal_year();
 
     // Get all courses with recommendations
     $courses = $wpdb->get_results("SELECT id, course_recs FROM {$table_name} WHERE course_recs IS NOT NULL AND course_recs != ''");
@@ -240,18 +254,14 @@ function id_clear_non_current_fy_mappings_handler()
             
             // Check each recommended course
             foreach ($rec_ids as $rec_id) {
-                $recd_course = $wpdb->get_row($wpdb->prepare("SELECT fiscal_years FROM {$table_name} WHERE id = %s", $rec_id));
+                $recd_course = $wpdb->get_row($wpdb->prepare("SELECT mustTurnMinAgeByDate FROM {$table_name} WHERE id = %s", $rec_id));
                 
                 if ($recd_course) {
-                    $courseFiscalYears = maybe_unserialize($recd_course->fiscal_years);
-                    $inCurrentFiscalYear = false;
+                    // Check if recommended course is active in current fiscal year
+                    $is_active = wizPulse_is_course_active($recd_course->mustTurnMinAgeByDate);
                     
-                    if (is_array($courseFiscalYears)) {
-                        $inCurrentFiscalYear = in_array($currentFiscalYear, $courseFiscalYears);
-                    }
-                    
-                    // Keep only courses that are in the current fiscal year
-                    if ($inCurrentFiscalYear) {
+                    // Keep only courses that are active in the current fiscal year
+                    if ($is_active) {
                         $filtered_recs[] = $rec_id;
                     } else {
                         $total_removed++;
@@ -275,7 +285,7 @@ function id_clear_non_current_fy_mappings_handler()
     }
 
     wp_send_json_success([
-        'message' => "Removed {$total_removed} non-current FY mappings from {$courses_updated} courses",
+        'message' => "Removed {$total_removed} non-current FY mappings from {$courses_updated} courses (current FY: {$current_fy})",
         'total_removed' => $total_removed,
         'courses_updated' => $courses_updated
     ]);
