@@ -220,7 +220,7 @@ function idwiz_save_course_description_handler()
     
     // Get and validate data
     $course_id = isset($_POST['course_id']) ? intval($_POST['course_id']) : 0;
-    $description = isset($_POST['description']) ? sanitize_textarea_field($_POST['description']) : '';
+    $description = isset($_POST['description']) ? sanitize_textarea_field(wp_unslash($_POST['description'])) : '';
     
     if ($course_id <= 0) {
         wp_send_json_error('Invalid course ID');
