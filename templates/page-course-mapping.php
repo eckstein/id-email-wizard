@@ -80,6 +80,48 @@
         background-color: #fff3cd;
         border: 1px solid #ffeaa7;
     }
+    
+    /* Modal Styles */
+    .wiz-modal {
+        display: none;
+        position: fixed;
+        z-index: 9999;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.5);
+    }
+    
+    .wiz-modal-content {
+        background-color: #fefefe;
+        margin: 5% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        border-radius: 4px;
+        max-width: 600px;
+        position: relative;
+    }
+    
+    .wiz-modal-close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        line-height: 20px;
+    }
+    
+    .wiz-modal-close:hover,
+    .wiz-modal-close:focus {
+        color: #000;
+    }
+    
+    .wiz-modal-body {
+        clear: both;
+        padding-top: 10px;
+    }
 </style>
 
 <header class="wizHeader">
