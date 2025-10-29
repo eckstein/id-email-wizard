@@ -1063,7 +1063,7 @@ function get_idwiz_courses($division_ids = [], $active_only = true)
 		$where_clauses[] = "division_id IN (" . implode(',', array_map('intval', $division_ids)) . ")";
 	}
 
-	// Filter by active courses only (based on mustTurnMinAgeByDate matching current FY)
+	// Filter by active courses only (based on mustTurnMinAgeByDate matching current OR next FY)
 	if ($active_only) {
 		// Only show courses with mustTurnMinAgeByDate set
 		$where_clauses[] = "mustTurnMinAgeByDate IS NOT NULL";
@@ -1071,13 +1071,16 @@ function get_idwiz_courses($division_ids = [], $active_only = true)
 		// Get current fiscal year to filter by
 		$current_fy = wizPulse_get_current_fiscal_year();
 		
-		// Extract year from current FY (e.g., "2025/2026" -> "2025")
+		// Extract year from current FY (e.g., "2024/2025" -> "2024")
 		$fy_parts = explode('/', $current_fy);
-		$fy_year = $fy_parts[0];
+		$current_fy_year = intval($fy_parts[0]);
+		$next_fy_year = $current_fy_year + 1;
 		
-		// Filter for courses where mustTurnMinAgeByDate is 12/31/YEAR matching current FY
-		$where_clauses[] = "YEAR(mustTurnMinAgeByDate) = %d";
-		$query_params[] = $fy_year;
+		// Filter for courses where mustTurnMinAgeByDate year matches current OR next FY
+		// (Include next FY because registration/display for next year's courses starts before current year ends)
+		$where_clauses[] = "(YEAR(mustTurnMinAgeByDate) = %d OR YEAR(mustTurnMinAgeByDate) = %d)";
+		$query_params[] = $current_fy_year;
+		$query_params[] = $next_fy_year;
 	}
 
 	if (!empty($where_clauses)) {

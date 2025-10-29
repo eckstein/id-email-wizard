@@ -78,21 +78,28 @@ function id_get_courses_options_handler()
 
     $courses = $wpdb->get_results($wpdb->prepare($query, $params));
     
-    // Filter courses to only show those active in current fiscal year
+    // Filter courses to only show those active in current OR next fiscal year
     $current_fy = wizPulse_get_current_fiscal_year();
+    
+    // Also get next fiscal year
+    $current_fy_parts = explode('/', $current_fy);
+    $next_fy_year = intval($current_fy_parts[0]) + 1;
+    $next_fy = $next_fy_year . '/' . ($next_fy_year + 1);
+    
     $filtered_courses = array();
     
     foreach ($courses as $course) {
         if (!empty($course->mustTurnMinAgeByDate)) {
             $course_fy = wizPulse_get_fiscal_year_from_date($course->mustTurnMinAgeByDate);
-            if ($course_fy === $current_fy) {
+            // Include courses for current OR next fiscal year
+            if ($course_fy === $current_fy || $course_fy === $next_fy) {
                 $filtered_courses[] = $course;
             }
         }
     }
     
     // Debug logging
-    wiz_log("Course Selection Query: Division=$division, Term='$term', Found " . count($filtered_courses) . " active courses (current FY: $current_fy)");
+    wiz_log("Course Selection Query: Division=$division, Term='$term', Found " . count($filtered_courses) . " active courses (current FY: $current_fy, next FY: $next_fy)");
     if (count($filtered_courses) > 0) {
         $sample_course = $filtered_courses[0];
         wiz_log("Sample course: ID={$sample_course->id}, Title={$sample_course->title}, mustTurnMinAgeByDate={$sample_course->mustTurnMinAgeByDate}");

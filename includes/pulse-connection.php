@@ -533,7 +533,8 @@ function wizPulse_get_fiscal_year_from_date($date)
 
 /**
  * Check if a course is active based on mustTurnMinAgeByDate
- * A course is active if its mustTurnMinAgeByDate matches the current fiscal year
+ * A course is active if its mustTurnMinAgeByDate matches the current OR next fiscal year
+ * (We include next FY because registration/display for next year's courses starts before current year ends)
  * 
  * @param string $mustTurnMinAgeByDate Date string
  * @return bool True if active, false otherwise
@@ -547,7 +548,13 @@ function wizPulse_is_course_active($mustTurnMinAgeByDate)
     $course_fy = wizPulse_get_fiscal_year_from_date($mustTurnMinAgeByDate);
     $current_fy = wizPulse_get_current_fiscal_year();
     
-    return $course_fy === $current_fy;
+    // Also get next fiscal year
+    $current_fy_parts = explode('/', $current_fy);
+    $next_fy_year = intval($current_fy_parts[0]) + 1;
+    $next_fy = $next_fy_year . '/' . ($next_fy_year + 1);
+    
+    // Course is active if it matches current OR next fiscal year
+    return $course_fy === $current_fy || $course_fy === $next_fy;
 }
 
 /**
@@ -661,7 +668,13 @@ function wizPulse_map_courses_to_database()
         }
         
         wiz_log("Course Sync: Processed " . count($processed_courses) . " unique courses, skipped $skipped_count OLT courses");
-        wiz_log("Course Sync: Current fiscal year is: " . wizPulse_get_current_fiscal_year());
+        
+        $current_fy = wizPulse_get_current_fiscal_year();
+        $current_fy_parts = explode('/', $current_fy);
+        $next_fy_year = intval($current_fy_parts[0]) + 1;
+        $next_fy = $next_fy_year . '/' . ($next_fy_year + 1);
+        
+        wiz_log("Course Sync: Current fiscal year is: $current_fy, Next fiscal year is: $next_fy (both considered active)");
 
         // Insert/update courses in database
         if (!empty($processed_courses)) {
