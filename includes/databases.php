@@ -1049,7 +1049,7 @@ function get_idwiz_user_by_userID($userId)
 	return $wizUser;
 }
 
-function get_idwiz_courses($division_ids = [], $fiscalYears = [])
+function get_idwiz_courses($division_ids = [], $active_only = true)
 {
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'idemailwiz_courses';
@@ -1057,23 +1057,27 @@ function get_idwiz_courses($division_ids = [], $fiscalYears = [])
 	$where_clauses = [];
 	$query_params = [];
 
-	if (!empty($fiscalYears)) {
-		$fiscalYears[] = date('Y') . '/' . (date('Y') + 1);
-	}
-
 	$query = "SELECT * FROM {$table_name}";
 
 	if (!empty($division_ids)) {
 		$where_clauses[] = "division_id IN (" . implode(',', array_map('intval', $division_ids)) . ")";
 	}
 
-	if (!empty($fiscalYears)) {
-		$fiscal_year_conditions = [];
-		foreach ($fiscalYears as $fiscalYear) {
-			$fiscal_year_conditions[] = "fiscal_years LIKE %s";
-			$query_params[] = '%' . $wpdb->esc_like($fiscalYear) . '%';
-		}
-		$where_clauses[] = '(' . implode(' OR ', $fiscal_year_conditions) . ')';
+	// Filter by active courses only (based on mustTurnMinAgeByDate matching current FY)
+	if ($active_only) {
+		// Only show courses with mustTurnMinAgeByDate set
+		$where_clauses[] = "mustTurnMinAgeByDate IS NOT NULL";
+		
+		// Get current fiscal year to filter by
+		$current_fy = wizPulse_get_current_fiscal_year();
+		
+		// Extract year from current FY (e.g., "2025/2026" -> "2025")
+		$fy_parts = explode('/', $current_fy);
+		$fy_year = $fy_parts[0];
+		
+		// Filter for courses where mustTurnMinAgeByDate is 12/31/YEAR matching current FY
+		$where_clauses[] = "YEAR(mustTurnMinAgeByDate) = %d";
+		$query_params[] = $fy_year;
 	}
 
 	if (!empty($where_clauses)) {

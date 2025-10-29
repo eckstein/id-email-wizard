@@ -1,6 +1,4 @@
-<?php get_header();
-updateCourseFiscalYears();
-?>
+<?php get_header(); ?>
 
 <style>
     /* Dropdown styling fixes */
@@ -28,6 +26,11 @@ updateCourseFiscalYears();
     }
     
     /* Styling for course elements */
+    .course-blob.inactive {
+        background-color: #ffe0e0 !important;
+        border: 1px solid #ffb3b3 !important;
+    }
+    
     .course-blob.not-current-fy {
         background-color: #fff3cd !important;
         border: 1px solid #ffeaa7 !important;
@@ -69,8 +72,8 @@ updateCourseFiscalYears();
     }
     
     .color-sample.inactive {
-        background-color: #f0f0f0;
-        border: 1px solid #ccc;
+        background-color: #ffe0e0;
+        border: 1px solid #ffb3b3;
     }
     
     .color-sample.not-current-fy {
@@ -88,29 +91,9 @@ updateCourseFiscalYears();
 
             <form method="get" id="course-mapping-options" name="course-mapping-options">
                 <fieldset>
-                    <label for="source-fy-select">Source fiscal years:</label>
-                    <select id="source-fy-select" name="source-fy-select[]" multiple onchange="this.form.submit()">
-                        <?php
-                        $currentFiscalYear = date('Y') . '/' . (date('Y') + 1);
-                        $fiscalYears = [];
-                        for ($year = 2021; $year <= date('Y') + 1; $year++) {
-                            $fiscalYears[] = $year . '/' . ($year + 1);
-                        }
-
-                        $selectedSourceFiscals = isset($_GET['source-fy-select']) ? $_GET['source-fy-select'] : [$currentFiscalYear];
-                        foreach ($fiscalYears as $fiscalYear) {
-                            $fiscalsSelected = in_array($fiscalYear, $selectedSourceFiscals) ? 'selected' : '';
-                            echo "<option value='$fiscalYear' $fiscalsSelected>" . strtoupper($fiscalYear) . "</option>";
-                        }
-                        ?>
-                    </select>
-                </fieldset>
-
-                <fieldset>
-                    <label for="division-select">Source divisions:</label>
+                    <label for="division-select">Division:</label>
                     <select id="division-select" name="division-select[]" multiple onchange="this.form.submit()">
                         <?php
-                        //$divisions = ['idtc', 'idta', 'vtc', 'ota', 'opl'];
                         $divisions = [
                             'iDTC' => 25,
                             'iDTA' => 22,
@@ -148,16 +131,11 @@ updateCourseFiscalYears();
                 // Get the selected divisions from the form submission
                 $selectedDivisions = isset($_GET['division-select']) ? array_map('intval', $_GET['division-select']) : [25];
 
-                // Get the selected source fiscal years from the form submission
-                // Default to current fiscal year to include new Pulse courses
-                $currentFiscalYearForMapping = date('Y') . '/' . (date('Y') + 1);
-                $selectedSourceFiscalYears = isset($_GET['source-fy-select']) ? $_GET['source-fy-select'] : [$currentFiscalYearForMapping];
+                // Get current fiscal year for display
+                $currentFiscalYear = wizPulse_get_current_fiscal_year();
 
-                // Set current fiscal year for availability checking (not for mapping requirements)
-                $currentFiscalYear = date('Y') . '/' . (date('Y') + 1);
-
-                // Use these selections to fetch the source courses
-                $courses = get_idwiz_courses($selectedDivisions, $selectedSourceFiscalYears);
+                // Fetch active courses for selected divisions (based on mustTurnMinAgeByDate)
+                $courses = get_idwiz_courses($selectedDivisions, true);
                 if (is_wp_error($courses)) {
                     echo 'Error retrieving courses: ' . $courses->get_error_message();
                 } else {
@@ -169,7 +147,7 @@ updateCourseFiscalYears();
                     echo '<tr>';
                     echo '<td colspan="11" class="legend-row">';
                     echo '<div class="mapping-legend">';
-                    echo '<span class="legend-item"><span class="color-sample inactive"></span> Inactive course</span>';
+                    echo '<span class="legend-item"><span class="color-sample inactive"></span> Inactive course (wizStatus = Inactive)</span>';
                     echo '<span class="legend-item"><span class="color-sample not-current-fy"></span> Course not offered in current fiscal year (' . $currentFiscalYear . ')</span>';
                     echo '</div>';
                     echo '</td>';
@@ -207,23 +185,26 @@ updateCourseFiscalYears();
                             foreach ($courseRecIds as $courseRecId) {
                                 $recdCourse = get_course_details_by_id($courseRecId);
                                 if ($recdCourse) {
-                                    $activeClass = $recdCourse->wizStatus == 'active' ? 'active' : 'inactive';
+                                    // Check wizStatus (Active/Inactive)
+                                    $activeClass = (strtolower($recdCourse->wizStatus) == 'active') ? 'active' : 'inactive';
                                     
-                                    // Check if course is offered in current fiscal year
-                                    $courseFiscalYears = maybe_unserialize($recdCourse->fiscal_years);
-                                    $inCurrentFiscalYear = false;
-                                    
-                                    if (is_array($courseFiscalYears)) {
-                                        $inCurrentFiscalYear = in_array($currentFiscalYear, $courseFiscalYears);
-                                    }
-                                    
+                                    // Check if course is offered in current fiscal year based on mustTurnMinAgeByDate
+                                    $inCurrentFiscalYear = wizPulse_is_course_active($recdCourse->mustTurnMinAgeByDate);
                                     $fiscalYearClass = $inCurrentFiscalYear ? '' : 'not-current-fy';
                                     
                                     $warningTitle = '';
                                     if (!$inCurrentFiscalYear) {
-                                        $availableFY = is_array($courseFiscalYears) ? implode(', ', $courseFiscalYears) : 'N/A';
-                                        $warningTitle = 'This course is not offered in the current fiscal year (' . $currentFiscalYear . '). ' .
-                                                       'It is available in: ' . $availableFY;
+                                        $courseFY = wizPulse_get_fiscal_year_from_date($recdCourse->mustTurnMinAgeByDate);
+                                        $warningTitle = 'This course is not offered in the current fiscal year (' . $currentFiscalYear . '). ';
+                                        if ($courseFY) {
+                                            $warningTitle .= 'It is available in: ' . $courseFY;
+                                        } else {
+                                            $warningTitle .= 'No fiscal year assigned (mustTurnMinAgeByDate is empty).';
+                                        }
+                                    }
+                                    
+                                    if (strtolower($recdCourse->wizStatus) == 'inactive') {
+                                        $warningTitle = 'This course is marked as Inactive in the database. ' . $warningTitle;
                                     }
                                     
                                     echo "<span class='course-blob $activeClass $fiscalYearClass' data-recd-course-id='{$recdCourse->id}' title='" . esc_attr($warningTitle) . "'>";
