@@ -231,10 +231,16 @@ function id_import_csv_mappings_handler()
     
     $mappings = json_decode($mappings_json, true);
     
+    // Debug logging
+    wiz_log('CSV Import: Received ' . strlen($mappings_json) . ' bytes of JSON data');
+    
     if (!is_array($mappings)) {
-        wp_send_json_error('Invalid mappings data');
+        wiz_log('CSV Import Error: Failed to decode JSON - ' . json_last_error_msg());
+        wp_send_json_error('Invalid mappings data: ' . json_last_error_msg());
         return;
     }
+    
+    wiz_log('CSV Import: Decoded ' . count($mappings) . ' course mappings');
 
     $total_processed = 0;
     $mappings_created = 0;
@@ -255,6 +261,11 @@ function id_import_csv_mappings_handler()
         $course_abbreviation = $mapping['course_abbreviation'];
         $total_processed++;
         
+        // Debug first few courses
+        if ($total_processed <= 3) {
+            wiz_log("CSV Import: Processing course $course_abbreviation - " . print_r($mapping, true));
+        }
+        
         // Find course by abbreviation
         $course = $wpdb->get_row($wpdb->prepare(
             "SELECT id, course_recs FROM $table_name WHERE abbreviation = %s LIMIT 1",
@@ -267,6 +278,7 @@ function id_import_csv_mappings_handler()
                 'success' => false,
                 'message' => "Course not found: $course_abbreviation"
             ];
+            wiz_log("CSV Import: Course not found in database: $course_abbreviation");
             continue;
         }
 
@@ -291,9 +303,14 @@ function id_import_csv_mappings_handler()
 
             // Add each recommended course
             foreach ($mapping[$rec_type] as $rec_abbreviation) {
+                // Skip empty values
+                if (empty($rec_abbreviation)) {
+                    continue;
+                }
+                
                 // Find the recommended course ID by abbreviation
                 $rec_course = $wpdb->get_row($wpdb->prepare(
-                    "SELECT id FROM $table_name WHERE abbreviation = %s LIMIT 1",
+                    "SELECT id, abbreviation FROM $table_name WHERE abbreviation = %s LIMIT 1",
                     $rec_abbreviation
                 ));
                 
@@ -302,8 +319,17 @@ function id_import_csv_mappings_handler()
                     if (!in_array($rec_course->id, $course_recs[$rec_type])) {
                         $course_recs[$rec_type][] = $rec_course->id;
                         $recs_added++;
+                        
+                        // Log first few successful additions
+                        if ($total_processed <= 3 && $recs_added <= 5) {
+                            wiz_log("CSV Import: Added rec $rec_abbreviation (ID: {$rec_course->id}) to $course_abbreviation as $rec_type");
+                        }
                     }
                 } else {
+                    // Log warning for missing courses but don't fail the whole import
+                    if ($total_processed <= 10) {
+                        wiz_log("CSV Import Warning: Recommended course not found: $rec_abbreviation (for $course_abbreviation in $rec_type)");
+                    }
                     $details[] = [
                         'success' => false,
                         'message' => "Recommended course not found: $rec_abbreviation (for $course_abbreviation)"
@@ -336,6 +362,9 @@ function id_import_csv_mappings_handler()
         }
     }
 
+    // Log final summary
+    wiz_log("CSV Import Complete: Processed $total_processed courses, created $mappings_created mappings, $errors errors");
+    
     wp_send_json_success([
         'total_processed' => $total_processed,
         'mappings_created' => $mappings_created,

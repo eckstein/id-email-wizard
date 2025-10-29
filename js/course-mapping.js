@@ -250,36 +250,29 @@ jQuery(document).on("submit", "#csv-upload-form", function (e) {
         jQuery('#upload-progress-bar').css('width', '30%').text('30%');
         jQuery('#upload-status').text('Parsing CSV data...');
         
-        // Parse CSV
+        // Parse CSV - use fixed column positions (skip row 1, start from row 2)
         var lines = csvContent.split('\n');
-        var headers = lines[0].split(',').map(function(h) { return h.trim().replace(/"/g, ''); });
-        
-        // Find column indices
-        var columnMap = {
-            'Last Course Shortcode': headers.indexOf('Last Course Shortcode'),
-            'Rec 1 Shortcode': headers.indexOf('Rec 1 Shortcode'),
-            'Rec 2 Shortcode': headers.indexOf('Rec 2 Shortcode'),
-            'Rec 3 Shortcode': headers.indexOf('Rec 3 Shortcode'),
-            'Rec Age Up 1 Shortcode': headers.indexOf('Rec Age Up 1 Shortcode'),
-            'Rec Age Up 2 Shortcode': headers.indexOf('Rec Age Up 2 Shortcode'),
-            'Rec Age Up 3 Shortcode': headers.indexOf('Rec Age Up 3 Shortcode'),
-            'IDTA Rec Age Up 1 Shortcode': headers.indexOf('IDTA Rec Age Up 1 Shortcode'),
-            'VTC Rec 1 Shortcode': headers.indexOf('VTC Rec 1 Shortcode'),
-            'VTC Rec 2 Shortcode': headers.indexOf('VTC Rec 2 Shortcode'),
-            'VTC Rec 3 Shortcode': headers.indexOf('VTC Rec 3 Shortcode'),
-            'VTC Rec Age Up 1 Shortcode': headers.indexOf('VTC Rec Age Up 1 Shortcode'),
-            'VTC Rec Age Up 2 Shortcode': headers.indexOf('VTC Rec Age Up 2 Shortcode'),
-            'VTC Rec Age Up 3 Shortcode': headers.indexOf('VTC Rec Age Up 3 Shortcode')
-        };
-        
-        // Parse data rows
         var mappings = [];
+        
+        // Column positions (0-indexed):
+        // 0: Last Course Shortcode
+        // 2, 4, 6: iDTC Rec 1/2/3 Shortcode
+        // 8, 10, 12: iDTC Age Up 1/2/3 Shortcode
+        // 14: IDTA Rec Age Up 1 Shortcode
+        // 16, 18, 20: VTC Rec 1/2/3 Shortcode
+        // 22, 24, 26: VTC Age Up 1/2/3 Shortcode
+        
+        // Start from line 1 (index 1, skipping header row 0)
         for (var i = 1; i < lines.length; i++) {
-            if (!lines[i].trim()) continue;
+            var line = lines[i].trim();
+            if (!line) continue;
             
-            var values = lines[i].split(',').map(function(v) { return v.trim().replace(/"/g, ''); });
-            var courseAbbr = values[columnMap['Last Course Shortcode']];
+            // Split by comma and clean values
+            var values = line.split(',').map(function(v) { 
+                return v.trim().replace(/^["']|["']$/g, ''); 
+            });
             
+            var courseAbbr = values[0];
             if (!courseAbbr) continue;
             
             var mapping = {
@@ -291,42 +284,46 @@ jQuery(document).on("submit", "#csv-upload-form", function (e) {
                 vtc_ageup: []
             };
             
-            // iDTC recs
-            ['Rec 1 Shortcode', 'Rec 2 Shortcode', 'Rec 3 Shortcode'].forEach(function(col) {
-                var val = values[columnMap[col]];
-                if (val) mapping.idtc.push(val);
-            });
+            // iDTC recs (columns 2, 4, 6)
+            if (values[2]) mapping.idtc.push(values[2]);
+            if (values[4]) mapping.idtc.push(values[4]);
+            if (values[6]) mapping.idtc.push(values[6]);
             
-            // iDTC age-up recs
-            ['Rec Age Up 1 Shortcode', 'Rec Age Up 2 Shortcode', 'Rec Age Up 3 Shortcode'].forEach(function(col) {
-                var val = values[columnMap[col]];
-                if (val) mapping.idtc_ageup.push(val);
-            });
+            // iDTC age-up recs (columns 8, 10, 12)
+            if (values[8]) mapping.idtc_ageup.push(values[8]);
+            if (values[10]) mapping.idtc_ageup.push(values[10]);
+            if (values[12]) mapping.idtc_ageup.push(values[12]);
             
-            // iDTA rec
-            var idtaVal = values[columnMap['IDTA Rec Age Up 1 Shortcode']];
-            if (idtaVal) mapping.idta.push(idtaVal);
+            // iDTA rec (column 14)
+            if (values[14]) mapping.idta.push(values[14]);
             
-            // VTC recs
-            ['VTC Rec 1 Shortcode', 'VTC Rec 2 Shortcode', 'VTC Rec 3 Shortcode'].forEach(function(col) {
-                var val = values[columnMap[col]];
-                if (val) mapping.vtc.push(val);
-            });
+            // VTC recs (columns 16, 18, 20)
+            if (values[16]) mapping.vtc.push(values[16]);
+            if (values[18]) mapping.vtc.push(values[18]);
+            if (values[20]) mapping.vtc.push(values[20]);
             
-            // VTC age-up recs
-            ['VTC Rec Age Up 1 Shortcode', 'VTC Rec Age Up 2 Shortcode', 'VTC Rec Age Up 3 Shortcode'].forEach(function(col) {
-                var val = values[columnMap[col]];
-                if (val) mapping.vtc_ageup.push(val);
-            });
+            // VTC age-up recs (columns 22, 24, 26)
+            if (values[22]) mapping.vtc_ageup.push(values[22]);
+            if (values[24]) mapping.vtc_ageup.push(values[24]);
+            if (values[26]) mapping.vtc_ageup.push(values[26]);
             
             mappings.push(mapping);
+            
+            // Log progress every 10 rows
+            if (i % 10 === 0) {
+                console.log('Parsed ' + i + ' rows...');
+            }
         }
+        
+        console.log('Total mappings parsed: ' + mappings.length);
+        console.log('Sample mapping:', mappings[0]);
         
         // Update progress
         jQuery('#upload-progress-bar').css('width', '50%').text('50%');
         jQuery('#upload-status').text('Uploading to server...');
         
         // Send to server
+        console.log('Sending ' + mappings.length + ' mappings to server...');
         idemailwiz_do_ajax(
             "id_import_csv_mappings",
             idAjax_id_general.nonce,
