@@ -627,7 +627,16 @@ function wizPulse_map_courses_to_database()
                 // Determine wizStatus based on mustTurnMinAgeByDate
                 // If mustTurnMinAgeByDate matches current fiscal year, course is Active
                 // Otherwise, it's Inactive
-                $wizStatus = wizPulse_is_course_active($mustTurnMinAgeByDate) ? 'Active' : 'Inactive';
+                $isActive = wizPulse_is_course_active($mustTurnMinAgeByDate);
+                $wizStatus = $isActive ? 'Active' : 'Inactive';
+                
+                // Debug logging for first few courses
+                static $logged_count = 0;
+                if ($logged_count < 5) {
+                    $course_fy = wizPulse_get_fiscal_year_from_date($mustTurnMinAgeByDate);
+                    wiz_log("Course Sync Debug: {$clean_abbreviation} - mustTurnMinAgeByDate: " . ($mustTurnMinAgeByDate ?? 'NULL') . ", Course FY: " . ($course_fy ?? 'NULL') . ", wizStatus: {$wizStatus}");
+                    $logged_count++;
+                }
 
                 $processed_courses[] = [
                     'id' => $id,
@@ -701,28 +710,44 @@ function wizPulse_map_courses_to_database()
                             $preserved_manual_values++;
                         }
                         
-                        // Use INSERT ... ON DUPLICATE KEY UPDATE for better performance
-                        $fields = array_keys($course);
-                        $placeholders = array_fill(0, count($course), '%s');
-                        $values = array_values($course);
+                        // Build update data with proper format specifiers
+                        $update_data = array();
+                        $update_formats = array();
                         
-                        $sql = "INSERT INTO {$table_name} (" . implode(', ', $fields) . ") 
-                                VALUES (" . implode(', ', $placeholders) . ") 
-                                ON DUPLICATE KEY UPDATE ";
-                        
-                        $updates = array();
-                        foreach ($fields as $field) {
+                        foreach ($course as $field => $value) {
                             if ($field !== 'id') { // Don't update the primary key
-                                $escaped_field = esc_sql($field);
-                                $updates[] = "`$escaped_field` = VALUES(`$escaped_field`)";
+                                $update_data[$field] = $value;
+                                
+                                // Use proper format specifier based on field type
+                                // Integer fields
+                                if (in_array($field, ['isNew', 'isMostPopular', 'pathwayLevelCredits', 'minAge', 'maxAge', 'division_id'])) {
+                                    $update_formats[] = '%d';
+                                } else {
+                                    // String fields (including NULL values - wpdb handles NULL correctly with %s)
+                                    $update_formats[] = '%s';
+                                }
                             }
                         }
-                        $sql .= implode(', ', $updates);
                         
-                        $result = $wpdb->query($wpdb->prepare($sql, $values));
+                        $result = $wpdb->update(
+                            $table_name,
+                            $update_data,
+                            array('id' => $course_id),
+                            $update_formats,
+                            array('%d')
+                        );
                         
-                        if ($result) {
+                        if ($result !== false) { // FALSE means error, 0 means no rows affected (data was same)
                             $update_count++;
+                            
+                            // Debug logging for first update
+                            static $update_logged = false;
+                            if (!$update_logged && isset($update_data['wizStatus'])) {
+                                wiz_log("Course Sync Debug: First update for course ID {$course_id} - wizStatus in update_data: {$update_data['wizStatus']}");
+                                $update_logged = true;
+                            }
+                        } elseif ($result === false) {
+                            wiz_log("Course Sync Error: Failed to update course ID {$course_id} - " . $wpdb->last_error);
                         }
                     } else {
                         // New course - insert directly
