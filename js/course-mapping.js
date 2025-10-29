@@ -332,6 +332,11 @@ jQuery(document).on("submit", "#csv-upload-form", function (e) {
                 clear_existing: clearExisting ? '1' : '0'
             },
             function (response) {
+                console.log('Server response:', response);
+                
+                // Handle both direct response and nested data structure
+                var data = response.data || response;
+                
                 // Update progress to complete
                 jQuery('#upload-progress-bar').css('width', '100%').text('100%');
                 jQuery('#upload-status').text('Import complete!');
@@ -343,14 +348,14 @@ jQuery(document).on("submit", "#csv-upload-form", function (e) {
                     
                     // Display results
                     var summary = '<strong>Import Summary:</strong><br>' +
-                        'Courses processed: ' + (response.total_processed || 0) + '<br>' +
-                        'Mappings created: ' + (response.mappings_created || 0) + '<br>' +
-                        'Errors: ' + (response.errors || 0);
+                        'Courses processed: ' + (data.total_processed || 0) + '<br>' +
+                        'Mappings created: ' + (data.mappings_created || 0) + '<br>' +
+                        'Errors: ' + (data.errors || 0);
                     jQuery('#results-summary').html(summary);
                     
-                    if (response.details && response.details.length > 0) {
+                    if (data.details && data.details.length > 0) {
                         var detailsHtml = '<ul style="list-style: none; padding: 0;">';
-                        response.details.forEach(function(detail) {
+                        data.details.forEach(function(detail) {
                             var icon = detail.success ? '✓' : '✗';
                             var color = detail.success ? '#46b450' : '#dc3232';
                             detailsHtml += '<li style="color: ' + color + '; margin: 5px 0;">' + icon + ' ' + detail.message + '</li>';
@@ -363,7 +368,7 @@ jQuery(document).on("submit", "#csv-upload-form", function (e) {
                     Swal.fire({
                         icon: 'success',
                         title: 'Import Complete!',
-                        text: 'Processed ' + (response.total_processed || 0) + ' courses with ' + (response.mappings_created || 0) + ' mappings created.',
+                        text: 'Processed ' + (data.total_processed || 0) + ' courses with ' + (data.mappings_created || 0) + ' mappings created.',
                         confirmButtonText: 'Reload Page'
                     }).then(function() {
                         location.reload();

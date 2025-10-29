@@ -1083,6 +1083,9 @@ function get_idwiz_courses($division_ids = [], $active_only = true)
 	if (!empty($where_clauses)) {
 		$query .= " WHERE " . implode(' AND ', $where_clauses);
 	}
+	
+	// Order by abbreviation for consistent display
+	$query .= " ORDER BY abbreviation ASC";
 
 	if (!empty($query_params)) {
 		$query = $wpdb->prepare($query, $query_params);

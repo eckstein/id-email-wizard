@@ -179,8 +179,10 @@
                 // Get current fiscal year for display
                 $currentFiscalYear = wizPulse_get_current_fiscal_year();
 
-                // Fetch active courses for selected divisions (based on mustTurnMinAgeByDate)
-                $courses = get_idwiz_courses($selectedDivisions, true);
+                // Fetch ALL courses for selected divisions (active_only = false)
+                // We show all courses here because these are courses we're mapping FROM
+                // It doesn't matter if they're not currently active
+                $courses = get_idwiz_courses($selectedDivisions, false);
                 if (is_wp_error($courses)) {
                     echo 'Error retrieving courses: ' . $courses->get_error_message();
                 } else {
