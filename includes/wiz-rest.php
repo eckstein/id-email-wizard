@@ -626,7 +626,7 @@ function process_preset_value($preset_name, $student_data) {
             
             // Get course data for all locations, including sessionWeeks
             $location_courses_query = $wpdb->prepare( // Renamed for clarity
-                "SELECT id, courses, sessionWeeks, locationUrl, overnightOffered
+                "SELECT id, courses, sessionWeeks, locationUrl, overnightOffered, locationDesc
                  FROM {$wpdb->prefix}idemailwiz_locations 
                  WHERE id IN (" . implode(',', array_fill(0, count($location_ids), '%d')) . ")
                  AND id != 324", // Extra safeguard to exclude Online Campus
