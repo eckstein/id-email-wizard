@@ -749,9 +749,55 @@ jQuery(document).ready(function($) {
 		});
 
 		
-		$("#builder").on('click', '.wiz-check-toggle-display', function(e) {
-			save_template_to_session();
-		});
+	$("#builder").on('click', '.wiz-check-toggle-display', function(e) {
+		save_template_to_session();
+	});
+
+	// Handle email type (promotional/transactional) radio button changes
+	$('input[name="email_type"]').on('change', function() {
+		var selectedType = $(this).val();
+		var $promotionalTypes = $('.promotional-types');
+		var $transactionalTypes = $('.transactional-types');
+		var $hiddenInput = $('#template_settings_message_type_id');
+		
+		if (selectedType === 'promotional') {
+			// Show promotional, hide transactional
+			$promotionalTypes.addClass('active');
+			$transactionalTypes.removeClass('active');
+			
+			// Enable promotional select, disable transactional
+			$promotionalTypes.find('.message-type-select').prop('disabled', false);
+			$transactionalTypes.find('.message-type-select').prop('disabled', true);
+			
+			// Update hidden input with selected promotional message type
+			var promotionalValue = $promotionalTypes.find('.message-type-select').val();
+			$hiddenInput.val(promotionalValue);
+		} else if (selectedType === 'transactional') {
+			// Show transactional, hide promotional
+			$transactionalTypes.addClass('active');
+			$promotionalTypes.removeClass('active');
+			
+			// Enable transactional select, disable promotional
+			$transactionalTypes.find('.message-type-select').prop('disabled', false);
+			$promotionalTypes.find('.message-type-select').prop('disabled', true);
+			
+			// Update hidden input with transactional message type (always 52620)
+			var transactionalValue = $transactionalTypes.find('.message-type-select').val();
+			$hiddenInput.val(transactionalValue);
+		}
+		
+		// Trigger a change event to save
+		$hiddenInput.trigger('change');
+	});
+	
+	// Handle message type select dropdown changes
+	$('.message-type-select').on('change', function() {
+		// Only update if this select is in the active message type
+		if (!$(this).prop('disabled')) {
+			var selectedValue = $(this).val();
+			$('#template_settings_message_type_id').val(selectedValue).trigger('change');
+		}
+	});
 
 
 	} // end check for builder
