@@ -58,9 +58,12 @@ function idemailwiz_get_template_data_for_iterable()
 	// Ensure message type ID is an integer for Iterable API
 	$message_type_id = intval($message_type_id);
 
-	// Define from/replyTo emails based on type
-	$from_email = $email_type === 'transactional' ? 'info@idtechnotifications.com' : ($messageSettings['from_email'] ?? 'info@idtechonline.com');
-	$reply_to_email = $email_type === 'transactional' ? 'info@idtechnotifications.com' : ($messageSettings['reply_to'] ?? 'hello@idtechonline.com');
+	// Define from/replyTo emails - use form values if set, otherwise use defaults based on type
+	$default_from_email = $email_type === 'transactional' ? 'info@idtechnotifications.com' : 'info@idtechonline.com';
+	$default_reply_to_email = $email_type === 'transactional' ? 'info@idtechnotifications.com' : 'hello@idtechonline.com';
+	
+	$from_email = $messageSettings['from_email'] ?? $default_from_email;
+	$reply_to_email = $messageSettings['reply_to'] ?? $default_reply_to_email;
 
 	$reqTemplateFields = array(
 		'templateName' => html_entity_decode(get_the_title($post_id), ENT_QUOTES, 'UTF-8'),
