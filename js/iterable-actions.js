@@ -227,19 +227,20 @@ jQuery(document).ready(function ($) {
 				return;
 			}
 
-			const {
-				postId,
-				createdBy,
-				templateName,
-				messageType,
-				emailSubject,
-				preheader,
-				fromName,
-				plainText,
-				googleAnalyticsCampaignName,
-				linkParams,
-				messageTypeId
-			} = templateData;
+		const {
+			postId,
+			createdBy,
+			templateName,
+			messageType,
+			emailSubject,
+			preheader,
+			fromName,
+			replyToEmail,
+			plainText,
+			googleAnalyticsCampaignName,
+			linkParams,
+			messageTypeId
+		} = templateData;
 
 			// Ensure we have a valid message type ID
 			if (!messageTypeId) {
@@ -272,20 +273,21 @@ jQuery(document).ready(function ($) {
 				// Decode HTML entities
 				templateHtml = decodeHtml(templateHtml);
             
-				const apiData = {
-					name: templateName,
-					fromName: fromName,
-					fromEmail: fromSender,
-					subject: emailSubject,
-					preheaderText: preheader,
-					clientTemplateId: postId,
-					creatorUserId: createdBy,
-					messageTypeId,
-					html: templateHtml,
-					plainText: plainText,
-					googleAnalyticsCampaignName: googleAnalyticsCampaignName,
-					linkParams: linkParams,
-				};
+			const apiData = {
+				name: templateName,
+				fromName: fromName,
+				fromEmail: fromSender,
+				replyToEmail: replyToEmail,
+				subject: emailSubject,
+				preheaderText: preheader,
+				clientTemplateId: postId,
+				creatorUserId: createdBy,
+				messageTypeId,
+				html: templateHtml,
+				plainText: plainText,
+				googleAnalyticsCampaignName: googleAnalyticsCampaignName,
+				linkParams: linkParams,
+			};
 
 				if (existingTemplateId) {
 					apiData.templateId = parseInt(existingTemplateId);
