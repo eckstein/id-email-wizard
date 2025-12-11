@@ -48,7 +48,7 @@ jQuery(document).ready(function ($) {
 					console.log(response);
 					Swal.fire({
 						title: "Template duplicated!",
-						html: `Your new template is ready: <br><br><a href="${response.data.newURL}" target="_blank" style="color: #007cba; text-decoration: underline;">${response.data.newURL}</a>`,
+						html: `Your new template is ready: <br><br><a href="${response.data.newURL}" style="color: #007cba; text-decoration: underline;">${response.data.newURL}</a>`,
 						icon: "success",
 						confirmButtonText: 'Continue',
 					}).then(() => {
