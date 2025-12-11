@@ -278,8 +278,9 @@ function duplicate_wiz_template($post_id, $returnPHP = false) {
 		// Unpack the JSON in the template_data column
 		$templateData = json_decode( $wizTemplateRow['template_data'], true );
 
-		// Remove the iterable_template_id value
+		// Remove the iterable_template_id value and sync history
 		unset( $templateData['template_options']['template_settings']['iterable-sync']['iterable_template_id'] );
+		unset( $templateData['template_options']['template_settings']['iterable-sync']['synced_templates_history'] );
 
 		// Re-encode the JSON and save back to the column
 		$wizTemplateRow['template_data'] = json_encode( $templateData );

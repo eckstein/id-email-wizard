@@ -22,7 +22,7 @@ function idemailwiz_get_template_data_for_iterable()
 
 	$wizTemplate = get_wiztemplate($post_id);
 
-	$iterableSyncSettings = $wizTemplate['template_settings']['iterable-sync'] ?? [];
+	$iterableSyncSettings = $wizTemplate['template_options']['template_settings']['iterable-sync'] ?? [];
 
 	$messageSettings = $wizTemplate['template_options']['message_settings'];
 
@@ -92,9 +92,13 @@ function idemailwiz_get_template_data_for_iterable()
 			'fields' => $templateFields,
 		);
 
-		// Iterable template ID
-		//$templateId = $_POST['template_id'] ?? false;
+		// Iterable template ID (primary)
 		$templateId = $iterableSyncSettings['iterable_template_id'] ?? '';
+		
+		// Get sync history
+		$syncHistory = $iterableSyncSettings['synced_templates_history'] ?? [];
+		$response['syncHistory'] = $syncHistory;
+		$response['primaryTemplateId'] = $templateId;
 
 		if ($templateId) {
 			// Get wiz campaign based on templateId
@@ -204,3 +208,188 @@ function update_template_after_sync()
 	wp_send_json($response);
 }
 add_action('wp_ajax_update_template_after_sync', 'update_template_after_sync');
+
+
+/**
+ * Update the sync history for a template after syncing to Iterable
+ * Adds new template IDs to history and sets primary ID if not already set
+ */
+function update_iterable_sync_history()
+{
+	global $wpdb;
+
+	check_ajax_referer('iterable-actions', 'security');
+
+	$post_id = $_POST['post_id'] ?? null;
+	$synced_template_ids = $_POST['synced_template_ids'] ?? [];
+
+	if (!$post_id || empty($synced_template_ids)) {
+		wp_send_json(array(
+			'status' => 'error',
+			'message' => 'Missing post ID or synced template IDs'
+		));
+		return;
+	}
+
+	// Get current template data
+	$table_name = $wpdb->prefix . 'wiz_templates';
+	$templateDataJSON = $wpdb->get_var($wpdb->prepare(
+		"SELECT template_data FROM $table_name WHERE post_id = %d",
+		$post_id
+	));
+
+	if (!$templateDataJSON) {
+		wp_send_json(array(
+			'status' => 'error',
+			'message' => 'Template not found'
+		));
+		return;
+	}
+
+	$templateData = json_decode($templateDataJSON, true);
+
+	// Initialize sync settings if not exists
+	if (!isset($templateData['template_options']['template_settings']['iterable-sync'])) {
+		$templateData['template_options']['template_settings']['iterable-sync'] = [];
+	}
+
+	$iterableSync = &$templateData['template_options']['template_settings']['iterable-sync'];
+
+	// Get current history or initialize empty array
+	$syncHistory = $iterableSync['synced_templates_history'] ?? [];
+	$currentPrimaryId = $iterableSync['iterable_template_id'] ?? '';
+
+	// Process each synced template ID
+	$now = current_time('c'); // ISO 8601 format
+	foreach ($synced_template_ids as $templateId) {
+		$templateId = strval($templateId);
+		
+		// Check if this ID already exists in history
+		$existingIndex = null;
+		foreach ($syncHistory as $index => $entry) {
+			if (strval($entry['template_id']) === $templateId) {
+				$existingIndex = $index;
+				break;
+			}
+		}
+
+		if ($existingIndex !== null) {
+			// Update existing entry's timestamp
+			$syncHistory[$existingIndex]['synced_at'] = $now;
+		} else {
+			// Add new entry
+			$isPrimary = empty($currentPrimaryId);
+			$syncHistory[] = array(
+				'template_id' => $templateId,
+				'synced_at' => $now,
+				'is_primary' => $isPrimary
+			);
+
+			// Set as primary if no primary exists (first-synced logic)
+			if ($isPrimary) {
+				$currentPrimaryId = $templateId;
+				$iterableSync['iterable_template_id'] = $templateId;
+			}
+		}
+	}
+
+	// Update the history
+	$iterableSync['synced_templates_history'] = $syncHistory;
+
+	// Save back to database
+	$wpdb->update(
+		$table_name,
+		array('template_data' => json_encode($templateData)),
+		array('post_id' => $post_id),
+		array('%s'),
+		array('%d')
+	);
+
+	wp_send_json(array(
+		'status' => 'success',
+		'message' => 'Sync history updated',
+		'syncHistory' => $syncHistory,
+		'primaryTemplateId' => $currentPrimaryId
+	));
+}
+add_action('wp_ajax_update_iterable_sync_history', 'update_iterable_sync_history');
+
+
+/**
+ * Remove a template ID from sync history
+ */
+function remove_from_iterable_sync_history()
+{
+	global $wpdb;
+
+	check_ajax_referer('iterable-actions', 'security');
+
+	$post_id = $_POST['post_id'] ?? null;
+	$template_id_to_remove = $_POST['template_id'] ?? null;
+
+	if (!$post_id || !$template_id_to_remove) {
+		wp_send_json(array(
+			'status' => 'error',
+			'message' => 'Missing post ID or template ID'
+		));
+		return;
+	}
+
+	// Get current template data
+	$table_name = $wpdb->prefix . 'wiz_templates';
+	$templateDataJSON = $wpdb->get_var($wpdb->prepare(
+		"SELECT template_data FROM $table_name WHERE post_id = %d",
+		$post_id
+	));
+
+	if (!$templateDataJSON) {
+		wp_send_json(array(
+			'status' => 'error',
+			'message' => 'Template not found'
+		));
+		return;
+	}
+
+	$templateData = json_decode($templateDataJSON, true);
+	$iterableSync = &$templateData['template_options']['template_settings']['iterable-sync'];
+	$syncHistory = $iterableSync['synced_templates_history'] ?? [];
+
+	// Filter out the template ID to remove
+	$syncHistory = array_filter($syncHistory, function($entry) use ($template_id_to_remove) {
+		return strval($entry['template_id']) !== strval($template_id_to_remove);
+	});
+	$syncHistory = array_values($syncHistory); // Re-index array
+
+	// If removed template was the primary, clear it (or set to next in history)
+	if (strval($iterableSync['iterable_template_id'] ?? '') === strval($template_id_to_remove)) {
+		if (!empty($syncHistory)) {
+			// Set the oldest entry as the new primary
+			usort($syncHistory, function($a, $b) {
+				return strtotime($a['synced_at']) - strtotime($b['synced_at']);
+			});
+			$iterableSync['iterable_template_id'] = $syncHistory[0]['template_id'];
+			$syncHistory[0]['is_primary'] = true;
+		} else {
+			$iterableSync['iterable_template_id'] = '';
+		}
+	}
+
+	$iterableSync['synced_templates_history'] = $syncHistory;
+
+	// Save back to database
+	$wpdb->update(
+		$table_name,
+		array('template_data' => json_encode($templateData)),
+		array('post_id' => $post_id),
+		array('%s'),
+		array('%d')
+	);
+
+	wp_send_json(array(
+		'status' => 'success',
+		'message' => 'Template removed from sync history',
+		'syncHistory' => $syncHistory,
+		'primaryTemplateId' => $iterableSync['iterable_template_id'] ?? ''
+	));
+}
+add_action('wp_ajax_remove_from_iterable_sync_history', 'remove_from_iterable_sync_history');

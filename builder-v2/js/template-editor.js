@@ -133,6 +133,10 @@ jQuery(document).ready(function($) {
 		$(this).addClass('active');
 		$('.mockup-tab-content').addClass('hidden');
 		$('#' + tabId).removeClass('hidden');
+		
+		// Clear cached scroll position and validate scroll after DOM changes
+		sessionStorage.removeItem('scrollPosition_#builder-tab-mocks');
+		validateBuilderPaneScroll();
 		});
 
 		// File upload functionality
@@ -149,6 +153,10 @@ jQuery(document).ready(function($) {
 		var mockupUploader = $('#' + type + '-mockup .mockup-uploader');
 
 		mockupUploader.toggleClass('hidden');
+		
+		// Clear cached scroll position and validate scroll after DOM changes
+		sessionStorage.removeItem('scrollPosition_#builder-tab-mocks');
+		validateBuilderPaneScroll();
 		});
 
 		// Remove mock button click
@@ -161,6 +169,10 @@ jQuery(document).ready(function($) {
 		mockupDisplay.addClass('hidden');
 		mockupDisplay.find('img').attr('src', '');
 		urlInput.val('');
+		
+		// Clear cached scroll position and validate scroll after DOM changes
+		sessionStorage.removeItem('scrollPosition_#builder-tab-mocks');
+		validateBuilderPaneScroll();
 		});
 	
 	/*
@@ -187,39 +199,6 @@ jQuery(document).ready(function($) {
 			update_preview_pane_background($(this).data('frame'), $(this).data('mode'));
 		});
 
-		$('.fill-merge-tags').on('click', function () {
-			if ($(this).hasClass('active')) {
-				revertPlaceholders('#previewFrame');
-				$(this).removeClass('active');
-			} else {
-				$(this).addClass('active');
-				let jsonData = jQuery('textarea#templateData').val().trim();
-				let replacements = {};
-
-				if (jsonData) {
-					try {
-						// Check if the jsonData is already an object
-						if (typeof jsonData === 'object') {
-							replacements = generateReplacements(jsonData);
-						} else {
-							// If it's a string, parse it
-							jsonData = JSON.parse(jsonData);
-							replacements = generateReplacements(jsonData);
-						}
-					} catch (e) {
-						console.error('Error parsing json data:', e);
-						console.log('json Data:', jsonData);
-						do_wiz_notif({ message: 'Error parsing json data. Using default values.', duration: 5000 });
-						replacements = getDefaultReplacements();
-					}
-				} else {
-					replacements = getDefaultReplacements();
-				}
-
-				replacePlaceholders('#previewFrame', replacements);
-			}
-		});
-
 		$(document).on('click', '.re-start-link-checker', function () {
 			$('#link-analysis-modal').remove();
 			setTimeout(function () {
@@ -242,31 +221,6 @@ jQuery(document).ready(function($) {
 
 
 
-		$('.manage-template-data').on('click', function() {
-			$(this).toggleClass('active');
-			$('#template-data-modal').slideToggle();
-		});
-
-		$('#template-data-modal .close-modal').on('click', function () {
-			$('.manage-template-data').removeClass('active');
-			$('#template-data-modal').slideUp();
-		});
-
-		// Initialize select 2
-		$('#dataPresetSelect').select2({
-			placeholder: 'Select a preset',
-			allowClear: true,
-			minimumResultsForSearch: -1,
-			dropdownCssClass: 'select2DropdownZindex'
-		});
-
-		$('#dataPresetSelect').on('select2:select', function (e) {
-			var data = e.params.data;
-			if (data.id) {
-				load_json_into_template_data(data.id);
-			}
-		});
-	
 	/*
 	****************
 	* Builder UI Interactions
@@ -725,16 +679,6 @@ jQuery(document).ready(function($) {
 	*/
 	$(document).on('click', '.wiz-modal-close', function () {
 		wizCloseModal();
-	});
-
-	$('#showModal').on('click', function (e) {
-		e.preventDefault();
-		wizFetchModal( {
-			modal_type: 'edit_interactive',
-			title: 'Edit Interactive Element',
-			post_id: idAjax.currentPostId,
-			interactive_type: 'quiz'
-		});
 	});
 
 	/*

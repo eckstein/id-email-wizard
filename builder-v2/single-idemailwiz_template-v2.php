@@ -727,10 +727,58 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 					<fieldset name="iterable-sync">
 						<h5>Iterable Sync</h5>
 						<div class="builder-field-wrapper block">
-							<label for="iterable_template_id">Iterable Template Id</label>
+							<label for="iterable_template_id">Primary Template ID</label>
+							<?php 
+							$primaryTemplateId = $templateOptions['template_settings']['iterable-sync']['iterable_template_id'] ?? '';
+							$syncHistory = $templateOptions['template_settings']['iterable-sync']['synced_templates_history'] ?? [];
+							?>
 							<input type="text" id="iterable_template_id" name="iterable_template_id"
-								class="builder-field"
-								value="<?php echo $templateOptions['template_settings']['iterable-sync']['iterable_template_id'] ?? ''; ?>">
+								class="builder-field" readonly
+								value="<?php echo esc_attr($primaryTemplateId); ?>"
+								placeholder="No primary template synced">
+							<?php if ($primaryTemplateId): ?>
+							<a href="https://app.iterable.com/templates/editor?templateId=<?php echo esc_attr($primaryTemplateId); ?>" 
+								target="_blank" class="iterable-link" title="View in Iterable">
+								<i class="fa-solid fa-arrow-up-right-from-square"></i>
+							</a>
+							<?php endif; ?>
+						</div>
+
+						<div class="builder-field-wrapper block sync-history-wrapper">
+							<label>Sync History</label>
+							<div id="sync-history-list" class="sync-history-list" data-post-id="<?php echo $postId; ?>">
+								<?php if (!empty($syncHistory)): ?>
+									<?php 
+									// Sort by synced_at descending (most recent first)
+									usort($syncHistory, function($a, $b) {
+										return strtotime($b['synced_at']) - strtotime($a['synced_at']);
+									});
+									foreach ($syncHistory as $entry): 
+										$templateId = $entry['template_id'];
+										$syncedAt = isset($entry['synced_at']) ? date('M j, Y g:i A', strtotime($entry['synced_at'])) : 'Unknown';
+										$isPrimary = ($templateId === $primaryTemplateId);
+									?>
+									<div class="sync-history-item<?php echo $isPrimary ? ' is-primary' : ''; ?>" data-template-id="<?php echo esc_attr($templateId); ?>">
+										<span class="sync-history-id">
+											<a href="https://app.iterable.com/templates/editor?templateId=<?php echo esc_attr($templateId); ?>" 
+												target="_blank" title="View in Iterable">
+												<?php echo esc_html($templateId); ?>
+												<i class="fa-solid fa-arrow-up-right-from-square"></i>
+											</a>
+											<?php if ($isPrimary): ?>
+											<span class="primary-badge">Primary</span>
+											<?php endif; ?>
+										</span>
+										<span class="sync-history-date"><?php echo esc_html($syncedAt); ?></span>
+										<button type="button" class="remove-from-history" data-template-id="<?php echo esc_attr($templateId); ?>" title="Remove from history">
+											<i class="fa-solid fa-times"></i>
+										</button>
+									</div>
+									<?php endforeach; ?>
+								<?php else: ?>
+									<div class="sync-history-empty">No sync history yet</div>
+								<?php endif; ?>
+							</div>
 						</div>
 
 					</fieldset>
@@ -803,8 +851,6 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 
 		<?php
 		echo get_template_actions_bar($postId);
-
-		echo get_template_data_modal();
 		?>
 
 

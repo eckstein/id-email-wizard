@@ -1234,10 +1234,22 @@ function upload_wiz_mock(uploadInput) {
         contentType: false,
         success: function (response) {
             if (response.success) {
-                jQuery(mockupDisplay).find('img').attr('src', response.data.url);
+                var $mockupImg = jQuery(mockupDisplay).find('img');
+                $mockupImg.attr('src', response.data.url);
                 jQuery(urlInput).val(response.data.url);
                 $uploadInput.parent('.mockup-uploader').addClass('hidden');
                 jQuery(mockupDisplay).removeClass('hidden');
+                
+                // Clear cached scroll position for mockups tab to prevent scroll issues
+                sessionStorage.removeItem('scrollPosition_#builder-tab-mocks');
+                
+                // Validate scroll position after image loads (images can change content height)
+                $mockupImg.off('load.scrollFix').on('load.scrollFix', function() {
+                    validateBuilderPaneScroll();
+                });
+                
+                // Also validate immediately for cached images
+                validateBuilderPaneScroll();
             } else {
                 console.error('Error uploading mockup:', response.data);
             }
@@ -1246,7 +1258,22 @@ function upload_wiz_mock(uploadInput) {
             console.error('AJAX error:', error);
         }
     });
-};
+}
+
+// Ensures builder pane scroll position is within valid bounds
+function validateBuilderPaneScroll() {
+    requestAnimationFrame(function() {
+        var $scrollBody = jQuery('#builder-pane');
+        if ($scrollBody.length && $scrollBody[0]) {
+            var maxScroll = $scrollBody[0].scrollHeight - $scrollBody[0].clientHeight;
+            var currentScroll = $scrollBody.scrollTop();
+            // If current scroll exceeds valid range, clamp it
+            if (currentScroll > maxScroll && maxScroll >= 0) {
+                $scrollBody.scrollTop(Math.max(0, maxScroll));
+            }
+        }
+    });
+}
 
 
 
@@ -1640,39 +1667,6 @@ function updateEmailHead(params, iframe) {
 }
 
 
-
-function load_json_into_template_data(profileId) {
-    if (!profileId) {
-        console.error('No profile ID provided.');
-        do_wiz_notif({ message: 'No profile ID provided!', duration: 5000 });
-        return;
-    }
-    jQuery.ajax({
-        url: idAjax.wizAjaxUrl,
-        type: 'POST',
-        data: {
-            action: 'get_template_data_profile_ajax',
-            profileId: profileId,
-            security: idAjax_template_editor.nonce
-        },
-        success: function(response) {
-            if (response.success && response.data && response.data.templateData) {
-                // Remove the WizProfileId and WizProfileName fields
-                delete response.data.templateData.WizProfileId;
-                delete response.data.templateData.WizProfileName;
-                const jsonString = JSON.stringify(response.data.templateData, null, 2);
-                jQuery('textarea#templateData').val(jsonString);
-            } else {
-                console.error('Error: ', response.data ? response.data.message : 'Unknown error');
-                do_wiz_notif({ message: response.data ? response.data.message : 'Unknown error occurred', duration: 5000 });
-            }
-        },
-        error: function(jqXHR, textStatus, errorThrown) {
-            console.error('AJAX error: ' + textStatus + ' - ' + errorThrown);
-            do_wiz_notif({ message: 'Failed to load template data. Please try again.', duration: 5000 });
-        }
-    });
-}
 
 function analyzeTemplateLinks() {
     toggleOverlay(true);

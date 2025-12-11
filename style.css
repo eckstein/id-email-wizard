@@ -270,6 +270,7 @@ body.single-idemailwiz_template {
 #builder-pane {
 	width: 100%;
 	overflow-x: auto;
+	overflow-y: auto;
 	max-height: calc(100vh - 200px);
 }
 
@@ -1714,22 +1715,6 @@ textarea.custom-background-css-input {
 		outline: 1px solid #94c52a;
 		background-position: bottom left;
 	}
-#templateActions .fill-merge-tags {
-	text-align: center;
-	font-weight: bold;
-	cursor: pointer;	
-}
-#templateActions .fill-merge-tags span {
-	color: #bbbbbb;
-	padding: 0;
-}
-#templateActions .fill-merge-tags span:hover {
-	color: #222;
-}
-#templateActions .fill-merge-tags.active span {
-	color: #94c52a !important;
-}
-
 .templateActions-divider {
 	border-right: 1px solid #888;
 	margin: 0 10px;
@@ -1742,59 +1727,6 @@ textarea.custom-background-css-input {
 	-moz-user-select: none;
 	-webkit-user-select: none;
 	-ms-user-select: none;
-}
-
-
-/* Template Data management */
-
-#template-data-modal {
-	display: none;
-	background-color: #fff;
-	padding: 20px;
-	box-shadow: 0 5px 8px rgba(0, 0, 0, 0.2);
-	z-index: 99;
-}
-#template-data-modal .inner-flex {
-	display: flex;
-	justify-content: space-between;
-	flex-direction: column;
-}
-#template-data-modal #template-data-modal-header {
-	display: flex;
-	justify-content: space-between;
-}
-#template-data-modal #template-data-modal-header i.close-modal {
-	cursor: pointer;
-}
-#template-data-modal #template-data-modal-header i.close-modal:hover {
-	color: red;
-}
-#template-data-modal textarea {
-	width: 100%;
-	resize: vertical;
-}
-
-.template-data-form-wrap {
-	display: flex;
-	gap: 20px;
-	justify-content: space-between;
-}
-
-.template-data-form-wrap .template-data-form-fieldset {
-	display: flex;
-	flex-direction:column;
-	gap: 10px;
-	flex: 0;
-}
-.template-data-form-wrap .template-data-form-fieldset.presetSelect {
-	flex: 2;
-}
-.template-data-form-wrap .template-data-form-fieldset.jsonData {
-	flex: 3;
-}
-
-.template-data-form-wrap select {
-	width: 100%;
 }
 
 /* Wiz Modal */
@@ -6393,4 +6325,226 @@ color: #eee;
 
 .preset-definitions dd:last-child {
     margin-bottom: 0;
+}
+
+/* ============================
+   Iterable Sync History Styles
+   ============================ */
+
+/* Settings Tab - Sync History List */
+.sync-history-wrapper {
+    margin-top: 1rem;
+}
+
+.sync-history-list {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 0.75rem;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.sync-history-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+
+.sync-history-item:last-child {
+    margin-bottom: 0;
+}
+
+.sync-history-item.is-primary {
+    border-color: #28a745;
+    background: #f0fff4;
+}
+
+.sync-history-id {
+    flex: 1;
+}
+
+.sync-history-id a {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.sync-history-id a:hover {
+    text-decoration: underline;
+}
+
+.sync-history-id .fa-arrow-up-right-from-square {
+    font-size: 0.75rem;
+    margin-left: 0.25rem;
+    opacity: 0.7;
+}
+
+.primary-badge {
+    display: inline-block;
+    background: #28a745;
+    color: #fff;
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    margin-left: 0.5rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.sync-history-date {
+    color: #6c757d;
+    font-size: 0.8rem;
+}
+
+.sync-history-item .remove-from-history {
+    background: none;
+    border: none;
+    color: #dc3545;
+    cursor: pointer;
+    padding: 0.25rem;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.sync-history-item .remove-from-history:hover {
+    opacity: 1;
+}
+
+.sync-history-empty {
+    color: #6c757d;
+    font-style: italic;
+    text-align: center;
+    padding: 1rem;
+}
+
+.iterable-link {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 0.5rem;
+    color: #007bff;
+}
+
+.iterable-link:hover {
+    color: #0056b3;
+}
+
+/* Sync Modal - Targets Section */
+.sync-targets-section {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #dee2e6;
+    text-align: left;
+}
+
+.sync-targets-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #212529;
+}
+
+.sync-targets-list {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 0.75rem;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.sync-target-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.sync-target-item:hover {
+    border-color: #007bff;
+}
+
+.sync-target-item:last-child {
+    margin-bottom: 0;
+}
+
+.sync-target-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+}
+
+.sync-target-id {
+    flex: 1;
+    font-weight: 500;
+}
+
+.sync-target-link {
+    color: #007bff;
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+.sync-target-link:hover {
+    opacity: 1;
+}
+
+.sync-target-new {
+    background: #e8f5e9;
+    border-color: #c8e6c9;
+}
+
+.sync-target-new .sync-target-id {
+    color: #2e7d32;
+}
+
+.sync-target-manual {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed #dee2e6;
+}
+
+.sync-target-manual label {
+    display: block;
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+}
+
+.sync-target-manual-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sync-target-manual input[type="text"] {
+    flex: 1;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.sync-target-manual button {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+/* SweetAlert container adjustments for sync modal */
+.sync-to-iterable-container .sync-targets-section {
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
 }

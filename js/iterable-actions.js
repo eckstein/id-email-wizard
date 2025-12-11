@@ -100,7 +100,8 @@ jQuery(document).ready(function ($) {
 
 	// Success handling function for getting template data
 	function handleTemplateDataSuccess(data) {
-		var existingTemplateId = $('#iterable_template_id').val();
+		var primaryTemplateId = data.primaryTemplateId || '';
+		var syncHistory = data.syncHistory || [];
     
 		// Function to format the display of a field
 		function formatField(label, val, isOptional = false) {
@@ -119,6 +120,72 @@ jQuery(document).ready(function ($) {
 			return `<li><strong>UTM Parameters:</strong><ul>${utmList}</ul></li>`;
 		}
 
+		// Function to build sync target checkboxes
+		function buildSyncTargets() {
+			let html = '<div class="sync-targets-section">';
+			html += '<label class="sync-targets-label">Sync to:</label>';
+			html += '<div class="sync-targets-list">';
+			
+			// Check if primary ID exists but isn't in history (backwards compatibility)
+			const historyIds = syncHistory.map(entry => String(entry.template_id));
+			const hasPrimaryInHistory = primaryTemplateId && historyIds.includes(String(primaryTemplateId));
+			
+			// Add primary template ID first if it exists but isn't in history
+			if (primaryTemplateId && !hasPrimaryInHistory) {
+				html += `
+					<label class="sync-target-item">
+						<input type="checkbox" name="sync_target" value="${primaryTemplateId}" checked>
+						<span class="sync-target-id">${primaryTemplateId} <span class="primary-badge">Primary</span></span>
+						<a href="https://app.iterable.com/templates/editor?templateId=${primaryTemplateId}" 
+							target="_blank" class="sync-target-link" title="View in Iterable">
+							<i class="fa-solid fa-arrow-up-right-from-square"></i>
+						</a>
+					</label>
+				`;
+			}
+			
+			// Add existing history items as checkboxes
+			if (syncHistory.length > 0) {
+				syncHistory.forEach(entry => {
+					const isPrimary = String(entry.template_id) === String(primaryTemplateId);
+					const primaryLabel = isPrimary ? ' <span class="primary-badge">Primary</span>' : '';
+					html += `
+						<label class="sync-target-item">
+							<input type="checkbox" name="sync_target" value="${entry.template_id}" checked>
+							<span class="sync-target-id">${entry.template_id}${primaryLabel}</span>
+							<a href="https://app.iterable.com/templates/editor?templateId=${entry.template_id}" 
+								target="_blank" class="sync-target-link" title="View in Iterable">
+								<i class="fa-solid fa-arrow-up-right-from-square"></i>
+							</a>
+						</label>
+					`;
+				});
+			}
+			
+			// Add "Create new template" option (unchecked if there's existing sync targets)
+			const hasExistingTargets = syncHistory.length > 0 || primaryTemplateId;
+			html += `
+				<label class="sync-target-item sync-target-new">
+					<input type="checkbox" name="sync_target" value="new" ${!hasExistingTargets ? 'checked' : ''}>
+					<span class="sync-target-id">Create new template</span>
+				</label>
+			`;
+			
+			// Add manual input for existing template ID
+			html += `
+				<div class="sync-target-manual">
+					<label>Or enter an existing template ID:</label>
+					<div class="sync-target-manual-input-wrap">
+						<input type="text" id="manual_template_id" placeholder="Enter Iterable template ID">
+						<button type="button" id="add_manual_template" class="wiz-button small green">Add</button>
+					</div>
+				</div>
+			`;
+			
+			html += '</div></div>';
+			return html;
+		}
+
 		const fieldList = `
 			<ul style="text-align: left;">
 				${formatField("Subject Line", data.fields.emailSubject)}
@@ -129,19 +196,8 @@ jQuery(document).ready(function ($) {
 				${formatField("GA Campaign", data.fields.googleAnalyticsCampaignName, true)}
 				${formatUTMs(data.fields.linkParams)}
 			</ul>
+			${buildSyncTargets()}
 		`;
-		
-		var existingTemplateMessage = 'Enter an existing template ID or leave blank to create a new base template.';
-		
-		if (existingTemplateId) {
-			if (data.alreadySent === true) {
-				
-				existingTemplateMessage = `The campaign attached to template <a target="_blank" href="https://app.iterable.com/templates/editor?templateId=${existingTemplateId}">${existingTemplateId}</a> has already been sent! Click OK below to create a new template in Iterable.`;
-				existingTemplateId = '';
-			} else {
-				existingTemplateMessage = `Currently synced to template <a target="_blank" href="https://app.iterable.com/templates/editor?templateId=${existingTemplateId}">${existingTemplateId}</a>.`;
-			}
-		}
 
 		Swal.fire({
 			title: "Confirm Sync Details",
@@ -149,39 +205,162 @@ jQuery(document).ready(function ($) {
 			icon: false,
 			showCancelButton: true,
 			confirmButtonText: "Confirm & Sync!",
-			input: 'text',
-			inputValue: existingTemplateId,
-			inputLabel: 'Iterable Template ID',
-			inputPlaceholder: 'Leave blank to create new base template',
-			footer: `<em>${existingTemplateMessage}</em>`,
 			customClass: {
 				htmlContainer: 'sync-to-iterable-container'
-			}
-		}).then((result) => {
-			existingTemplateId = result.value;
-			if (!existingTemplateId) {
-				existingTemplateId = 'new';
-			}
-			if (result.isConfirmed) {
-				$.post(idAjax.ajaxurl, {
-					action: "check_duplicate_itTemplateId",
-					template_id: existingTemplateId,
-					post_id: data.fields.postId
-				})
-				.done(dupCheckData => {
-					if (dupCheckData.status == "error") {
-						handleAjaxError(false, dupCheckData.message).then(() => {
-							toggleOverlay(false);
-						});
-					} else {
-						create_or_update_iterable_template(data.fields, result.value, data.alreadySent)
-							.then(handleTemplateUpdateSuccess)
-							.catch(handleTemplateUpdateFailure);
+			},
+			didOpen: () => {
+				// Handle adding manual template ID
+				$(document).on('click', '#add_manual_template', function() {
+					const manualId = $('#manual_template_id').val().trim();
+					if (manualId) {
+						// Check if already exists
+						const exists = $(`.sync-targets-list input[value="${manualId}"]`).length > 0;
+						if (!exists) {
+							const newItem = `
+								<label class="sync-target-item">
+									<input type="checkbox" name="sync_target" value="${manualId}" checked>
+									<span class="sync-target-id">${manualId}</span>
+									<a href="https://app.iterable.com/templates/editor?templateId=${manualId}" 
+										target="_blank" class="sync-target-link" title="View in Iterable">
+										<i class="fa-solid fa-arrow-up-right-from-square"></i>
+									</a>
+								</label>
+							`;
+							$('.sync-target-new').before(newItem);
+							$('#manual_template_id').val('');
+						} else {
+							// Check the existing checkbox
+							$(`.sync-targets-list input[value="${manualId}"]`).prop('checked', true);
+							$('#manual_template_id').val('');
+						}
 					}
 				});
+			},
+			preConfirm: () => {
+				// Collect checked values while modal is still open
+				const selectedIds = [];
+				$('.sync-targets-list input[name="sync_target"]:checked').each(function() {
+					selectedIds.push($(this).val());
+				});
+				
+				if (selectedIds.length === 0) {
+					Swal.showValidationMessage('Please select at least one template to sync to.');
+					return false;
+				}
+				
+				return selectedIds;
+			}
+		}).then((result) => {
+			if (result.isConfirmed && result.value) {
+				// Process syncs sequentially with the collected IDs
+				processSyncs(data.fields, result.value, data.alreadySent);
 			} else {
 				toggleOverlay(false);
 			}
+		});
+	}
+	
+	// Process multiple syncs sequentially
+	async function processSyncs(templateData, templateIds, alreadySent) {
+		const successfulSyncs = [];
+		const failedSyncs = [];
+		
+		// Check if we're creating a new template AND syncing to existing ones
+		// If so, we need a unique clientTemplateId for the new template
+		const hasExistingSync = templateIds.some(id => id !== 'new');
+		const hasNewRequest = templateIds.includes('new');
+		const needsUniqueClientId = hasExistingSync && hasNewRequest;
+		
+		for (const templateId of templateIds) {
+			try {
+				// Check for duplicates first (skip for 'new')
+				if (templateId !== 'new') {
+					const dupCheck = await $.post(idAjax.ajaxurl, {
+						action: "check_duplicate_itTemplateId",
+						template_id: templateId,
+						post_id: templateData.postId
+					});
+					
+					if (dupCheck.status === "error") {
+						failedSyncs.push({ id: templateId, error: dupCheck.message });
+						continue;
+					}
+				}
+				
+				// For 'new' when there are also existing templates, use unique clientTemplateId
+				const isNewTemplate = templateId === 'new';
+				const useUniqueClientId = isNewTemplate && needsUniqueClientId;
+				const passedId = isNewTemplate ? null : templateId;
+				
+				const syncedId = await create_or_update_iterable_template(
+					templateData, 
+					passedId, 
+					alreadySent,
+					useUniqueClientId
+				);
+				successfulSyncs.push(syncedId);
+			} catch (error) {
+				failedSyncs.push({ id: templateId, error: error });
+			}
+		}
+		
+		// Update sync history with all successful syncs
+		if (successfulSyncs.length > 0) {
+			await updateSyncHistory(templateData.postId, successfulSyncs);
+			handleMultiSyncSuccess(successfulSyncs, failedSyncs);
+		} else {
+			handleTemplateUpdateFailure(failedSyncs.map(f => f.error).join('<br>'));
+		}
+	}
+	
+	// Update sync history via AJAX
+	function updateSyncHistory(postId, syncedTemplateIds) {
+		return $.post(idAjax.ajaxurl, {
+			action: "update_iterable_sync_history",
+			security: idAjax_iterable_actions.nonce,
+			post_id: postId,
+			synced_template_ids: syncedTemplateIds
+		});
+	}
+	
+	// Handle success for multiple syncs
+	function handleMultiSyncSuccess(successfulSyncs, failedSyncs) {
+		let message = '';
+		
+		if (successfulSyncs.length > 0) {
+			message += '<strong>Successfully synced to:</strong><ul>';
+			successfulSyncs.forEach(id => {
+				message += `<li><a href="https://app.iterable.com/templates/editor?templateId=${id}" target="_blank">${id}</a></li>`;
+			});
+			message += '</ul>';
+		}
+		
+		if (failedSyncs.length > 0) {
+			message += '<strong>Failed to sync:</strong><ul>';
+			failedSyncs.forEach(f => {
+				message += `<li>${f.id}: ${f.error}</li>`;
+			});
+			message += '</ul>';
+		}
+		
+		// Update the primary template ID field if we have successful syncs
+		if (successfulSyncs.length > 0) {
+			// Get the current primary or use first synced
+			const currentPrimary = $('#iterable_template_id').val();
+			if (!currentPrimary) {
+				$('#iterable_template_id').val(successfulSyncs[0]);
+			}
+		}
+		
+		Swal.fire({
+			title: "Sync Complete",
+			html: message,
+			icon: successfulSyncs.length > 0 ? 'success' : 'error',
+			showConfirmButton: true,
+		}).then(() => {
+			toggleOverlay(false);
+			// Reload to refresh sync history display
+			window.location.reload();
 		});
 	}
 
@@ -219,7 +398,9 @@ jQuery(document).ready(function ($) {
 	}
 
 	// Function to create or update Iterable template
-	function create_or_update_iterable_template(templateData, existingTemplateId = null, alreadySent = false) {
+	// useUniqueClientId: when true, appends timestamp to clientTemplateId to force Iterable to create a new template
+	function create_or_update_iterable_template(templateData, existingTemplateId = null, alreadySent = false, useUniqueClientId = false) {
+		
 		return new Promise((resolve, reject) => {
 			// Check early if we're trying to update an already sent template and bail if so
 			if (existingTemplateId && alreadySent === true) {
@@ -273,6 +454,10 @@ jQuery(document).ready(function ($) {
 				// Decode HTML entities
 				templateHtml = decodeHtml(templateHtml);
             
+			// Use unique clientTemplateId when creating additional templates
+			// This prevents Iterable's upsert from finding/updating the existing template
+			const clientId = useUniqueClientId ? `${postId}_${Date.now()}` : postId;
+			
 			const apiData = {
 				name: templateName,
 				fromName: fromName,
@@ -280,7 +465,7 @@ jQuery(document).ready(function ($) {
 				replyToEmail: replyToEmail,
 				subject: emailSubject,
 				preheaderText: preheader,
-				clientTemplateId: postId,
+				clientTemplateId: clientId,
 				creatorUserId: createdBy,
 				messageTypeId,
 				html: templateHtml,
@@ -393,6 +578,48 @@ jQuery(document).ready(function ($) {
 		});
 	  });
 	}
+
+	// Click event handler for removing template from sync history
+	$(document).on('click', '.remove-from-history', function(e) {
+		e.preventDefault();
+		const $item = $(this).closest('.sync-history-item');
+		const templateId = $(this).data('template-id');
+		const postId = $('#sync-history-list').data('post-id');
+		
+		Swal.fire({
+			title: 'Remove from history?',
+			text: `Remove template ${templateId} from sync history?`,
+			icon: 'warning',
+			showCancelButton: true,
+			confirmButtonText: 'Remove',
+			confirmButtonColor: '#d33'
+		}).then((result) => {
+			if (result.isConfirmed) {
+				$.post(idAjax.ajaxurl, {
+					action: 'remove_from_iterable_sync_history',
+					security: idAjax_iterable_actions.nonce,
+					post_id: postId,
+					template_id: templateId
+				}).done(function(response) {
+					if (response.status === 'success') {
+						$item.fadeOut(300, function() {
+							$(this).remove();
+							// Update primary field if needed
+							$('#iterable_template_id').val(response.primaryTemplateId || '');
+							// Check if list is empty
+							if ($('#sync-history-list .sync-history-item').length === 0) {
+								$('#sync-history-list').html('<div class="sync-history-empty">No sync history yet</div>');
+							}
+						});
+					} else {
+						Swal.fire('Error', response.message, 'error');
+					}
+				}).fail(function() {
+					Swal.fire('Error', 'Failed to remove template from history', 'error');
+				});
+			}
+		});
+	});
 
 	// Click event handler for the "edit name" link
 	$(document).on('click', '.editTemplateName', function(e) {

@@ -1,9 +1,8 @@
 jQuery(document).ready(function ($) {
-    console.log('Endpoints.js loaded');
-    
-    // Check if our elements exist
-    console.log('Test user select exists:', $('.test-user-select').length);
-    console.log('Test user select HTML:', $('.test-user-select').parent().html());
+    // Only run on endpoint pages
+    if (!$('.endpoint-content').length) {
+        return;
+    }
     
     // Add cache object at the top
     const userDataCache = {
@@ -455,7 +454,6 @@ jQuery(document).ready(function ($) {
     });
 
     // Handle user selection and preview
-    console.log('Setting up endpoint preview handlers');
     
     // Toggle manual user ID input
     $(document).on('click', '.toggle-user-input', function(e) {
@@ -467,7 +465,6 @@ jQuery(document).ready(function ($) {
     // Handle refresh preview button
     $(document).on('click', '.refresh-preview', function(e) {
         e.preventDefault();
-        console.log('Refresh preview clicked');
         
         // Get the current account number
         const accountNumber = $('.test-user-select').val() || $('.manual-user-id').val();
@@ -489,7 +486,6 @@ jQuery(document).ready(function ($) {
     });
 
     function loadUserDataAndUpdatePreview(accountNumber) {
-        console.log('Loading user data for account:', accountNumber);
         const $activeContainer = $('.endpoint-content.active');
         const $preview = $activeContainer.find('.payload-preview');
         const endpoint = $activeContainer.attr('id').replace('endpoint-', '');
@@ -522,7 +518,6 @@ jQuery(document).ready(function ($) {
         const now = Date.now();
         if (userDataCache.data[cacheKey] && 
             (now - userDataCache.timestamps[cacheKey]) < userDataCache.timeout) {
-            console.log('Using cached data');
             handlePayloadData(userDataCache.data[cacheKey], $activeContainer);
             return;
         }
@@ -548,8 +543,6 @@ jQuery(document).ready(function ($) {
                 security: idAjax_wiz_endpoints.nonce
             },
             success: function(response) {
-                console.log('AJAX response received');
-                
                 // Check if response is HTML (error page) instead of JSON
                 if (typeof response === 'string' && response.trim().startsWith('<')) {
                     console.error('Received HTML response instead of JSON. Likely PHP error:', response);
@@ -610,18 +603,8 @@ jQuery(document).ready(function ($) {
                     $preview.html('Error loading user data: ' + errorMessage);
                 }
             },
-            // Add extra settings to help with debugging
             dataType: 'json',
-            timeout: 30000, // 30 second timeout
-            beforeSend: function() {
-                console.log('Sending AJAX request with data:', {
-                    action: 'idwiz_get_user_data',
-                    account_number: accountNumber,
-                    base_data_source: baseDataSource,
-                    endpoint: endpoint,
-                    data_mapping: dataMappings
-                });
-            }
+            timeout: 30000 // 30 second timeout
         });
     }
     
@@ -665,9 +648,7 @@ jQuery(document).ready(function ($) {
 
     // Update handlers to use debounced function
     $(document).on('change', '.test-user-select', function() {
-        console.log('User selected from dropdown');
         const accountNumber = $(this).val();
-        console.log('Account number:', accountNumber);
         if (accountNumber) {
             $('.manual-user-id').val(accountNumber);
             debouncedLoadUserData(accountNumber);
@@ -675,12 +656,10 @@ jQuery(document).ready(function ($) {
     });
 
     $(document).on('click', '.load-user-data', function() {
-        console.log('Manual load clicked');
         // Find the active container first
         const $activeContainer = $('.endpoint-content.active');
         // Get the manual input value from within the active container
         const accountNumber = $activeContainer.find('.manual-user-id').val();
-        console.log('Manual account number:', accountNumber);
         if (accountNumber) {
             // Also update the dropdown to reflect the manually entered value, if it exists as an option
             const $select = $activeContainer.find('.test-user-select');

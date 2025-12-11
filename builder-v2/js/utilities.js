@@ -47,9 +47,18 @@ function switch_wizard_tab(clickedTabSelector) {
     jQuery(newTabId).addClass('--active');
 
     if ($scrollBody.length) {
-        // Restore scroll position from session storage based on clicked tab, or default to 0
-        var restoredScrollPosition = sessionStorage.getItem('scrollPosition_' + newTabId) || 0;
-        $scrollBody.scrollTop(parseInt(restoredScrollPosition, 10));
+        // Defer scroll position restoration to allow browser to calculate new content dimensions
+        // This prevents scroll from getting stuck when switching between tabs with different content heights
+        requestAnimationFrame(function() {
+            var restoredScrollPosition = sessionStorage.getItem('scrollPosition_' + newTabId) || 0;
+            var parsedPosition = parseInt(restoredScrollPosition, 10);
+            
+            // Ensure scroll position is valid (non-negative and within scrollable range)
+            var maxScroll = $scrollBody[0].scrollHeight - $scrollBody[0].clientHeight;
+            parsedPosition = Math.max(0, Math.min(parsedPosition, maxScroll));
+            
+            $scrollBody.scrollTop(parsedPosition);
+        });
     }
 }
 

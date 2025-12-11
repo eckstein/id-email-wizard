@@ -73,17 +73,10 @@ function get_template_actions_bar($postId)
                     data-mode="trans" data-frame="#previewFrame">
                 </div>
                 <span class="templateActions-divider"></span>
-
-                <div title="Fill Merge Tags" class="fill-merge-tags" data-postid="<?php echo $postId; ?>">
-                    &nbsp;<span style="font-size:.8em;">{{X}}</span>&nbsp;</div>
-                <i title="Template Data" class="fa-solid fa-database manage-template-data"></i>
-                <span class="templateActions-divider"></span>
                 <i title="Start link checker" class="fa-solid fa-link start-link-checker"></i>
             </div>
 
 
-            <button title="Refresh Preview" class="wiz-button green" id="showModal"><i
-                    class="fa-solid fa-rotate"></i>&nbsp;&nbsp;Modal</button>
             <button title="Refresh Preview" class="wiz-button green" id="refreshPreview"><i
                     class="fa-solid fa-rotate"></i>&nbsp;&nbsp;Refresh</button>
             <button title="Show Preview Pane" class="wiz-button green show-preview" id="showFullPreview"
@@ -1058,40 +1051,3 @@ function generate_background_settings_module($backgroundSettings, $uniqueId = ''
 
 
 
-function get_template_data_modal()
-{
-    ob_start();
-?>
-    <div id="template-data-modal">
-        <div class="inner-flex">
-            <div id="template-data-modal-header">
-                <h4>Template Data</h4><i class="fa-solid fa-xmark close-modal"></i>
-            </div>
-
-            <form id="templateDataForm">
-                <div class="template-data-form-wrap">
-                    <div class="template-data-form-fieldset presetSelect">
-                        <label for="dataPresetSelect">Select preset profile</label>
-                        <select id="dataPresetSelect" name="dataPreset">
-                            <option value="" disabled selected>Select a profile</option>
-                            <?php
-                            $presetProfiles = get_template_data_profiles();
-                            foreach ($presetProfiles as $profile) {
-                                echo '<option value="' . $profile['WizProfileId'] . '">' . $profile['WizProfileName'] . '</option>';
-                            }
-                            ?>
-
-                        </select>
-                    </div>
-                    <div class="template-data-form-fieldset jsonData">
-                        <label for="templateData">JSON data</label>
-                        <textarea id="templateData" name="template_data" class="templateData" placeholder="{}" rows="5"></textarea>
-                    </div>
-                </div>
-            </form>
-
-        </div>
-    </div>
-<?php
-    return ob_get_clean();
-}
