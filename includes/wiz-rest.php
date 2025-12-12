@@ -1762,7 +1762,7 @@ function batch_process_preset_values($presets_to_process, $student_data) {
     if (!empty($location_presets)) {
         // Get student's last location with one optimized query
         $last_location_query = $wpdb->prepare(
-            "SELECT p.shoppingCartItems_locationName, l.id, l.name, l.locationStatus, l.address, l.locationUrl 
+            "SELECT p.shoppingCartItems_locationName, l.id, l.name, l.locationStatus, l.address, l.locationUrl, l.courses, l.sessionWeeks, l.locationDesc, l.overnightOffered 
             FROM {$wpdb->prefix}idemailwiz_purchases p
             LEFT JOIN {$wpdb->prefix}idemailwiz_locations l ON p.shoppingCartItems_locationName = l.name
             WHERE p.shoppingCartItems_studentAccountNumber = %s 
@@ -1780,15 +1780,29 @@ function batch_process_preset_values($presets_to_process, $student_data) {
         if ($location_data) {
             // Process the last location preset if requested
             if (in_array('last_location', $presets_to_process)) {
-                $address = $location_data['address'] ? unserialize($location_data['address']) : null;
+                // Safer unserialize function
+                $safe_unserialize = function($data, $default = null) {
+                    if (empty($data)) return $default;
+                    if (!is_string($data) || !preg_match('/^[aOs]:[0-9]+:/', $data)) return $data;
+                    $result = @unserialize($data);
+                    return ($result !== false) ? $result : $default;
+                };
+                
+                $address = $safe_unserialize($location_data['address'], null);
                 $url = !empty($location_data['locationUrl']) ? $location_data['locationUrl'] : null;
+                $courses = $safe_unserialize($location_data['courses'], []);
+                $sessionWeeks = $safe_unserialize($location_data['sessionWeeks'], []);
                 
                 $results['last_location'] = [
                     'id' => $location_data['id'],
                     'name' => $location_data['name'],
                     'status' => $location_data['locationStatus'],
                     'url' => $url,
-                    'address' => $address
+                    'address' => $address,
+                    'locationDesc' => $location_data['locationDesc'] ?? null,
+                    'overnightOffered' => $location_data['overnightOffered'] ?? 'No',
+                    'courses' => $courses,
+                    'sessionWeeks' => $sessionWeeks
                 ];
             }
             
