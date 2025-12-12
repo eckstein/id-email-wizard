@@ -271,10 +271,10 @@ function generate_builder_columnset($colSetIndex, $columnSet, $rowId)
                 <div class="builder-columnset-actions-button columnset-column-settings exclude-from-toggle" data-columns="{$countColumns}" title="Change columns layout">
                     <i class="fas fa-columns"></i>
                 </div>
-                <div class="builder-columnset-actions-button mobile-wrap-toggle columnset-columns-mobile-wrap exclude-from-toggle {$mobileWrapToggleClass}" title="Toggle mobile column wrap">
+                <div class="builder-columnset-actions-button mobile-wrap-toggle columnset-columns-mobile-wrap exclude-from-toggle {$mobileWrapToggleClass}" title="When enabled, columns stack vertically on mobile devices">
                     <i class="fa-solid fa-mobile-alt"></i> <i class="fa-solid fa-arrows-turn-right fa-rotate-180"></i>
                 </div>
-                <div class="builder-columnset-actions-button magic-wrap-toggle columnset-columns-magic-wrap exclude-from-toggle {$magicWrapToggleClass}" title="Magic Wrap">
+                <div class="builder-columnset-actions-button magic-wrap-toggle columnset-columns-magic-wrap exclude-from-toggle {$magicWrapToggleClass}" title="Magic Wrap: Reverses column order on mobile. Great for image/text layouts where you want the image on top on mobile">
                     <i class="fa-solid fa-wand-magic-sparkles"></i> <i class="fa-solid fa-arrow-right-arrow-left"></i>
                 </div>
                 <span>&nbsp;|&nbsp;</span>
@@ -379,7 +379,7 @@ function generate_builder_column($rowId, $columnIndex, $columnData = [])
                 </div>
                 <div class="builder-field-group">
                     <div class="button-group-wrapper">
-                        <label class="button-group-label">Vertical Align</label>
+                        <label class="button-group-label">Vertical Align<span class='wiz-tooltip-trigger' data-tooltip='Controls how content is positioned vertically within the column when columns have different heights.' tabindex='0'>?</span></label>
                         <div class="button-group radio">
                             <input type="radio" id="{$uniqueId}_valign_top" name="valign" value="top" class="valign-type-select" {$valignTopChecked}>
                             <label class="button-label" for="{$uniqueId}_valign_top">Top</label>
@@ -580,7 +580,7 @@ function show_specific_chunk_settings($chunkData, $uniqueId, $settings, $chunkTy
 
         echo "<input type='checkbox' class='wiz-check-toggle toggle-chunk-wrap-input' id='$uniqueIdchunkWrap' name='chunk_wrap' hidden $chunkWrapChecked>";
         echo "<label for='$uniqueIdchunkWrap' class='wiz-check-toggle-display toggle_chunk_wrap $chunkWrapActive'><i class='$chunkWrapClass fa-2x fa-square-check'></i></label>";
-        echo "<label class='checkbox-toggle-label'>Standard Chunk Wrap</label>";
+        echo "<label class='checkbox-toggle-label'>Standard Chunk Wrap<span class='wiz-tooltip-trigger' data-tooltip='Wraps content in standard email table structure for consistent spacing. Disable for raw HTML that handles its own layout.' tabindex='0'>?</span></label>";
         echo "</div>";
         echo "</div>";
         echo "</div>";
@@ -606,7 +606,7 @@ function show_specific_chunk_settings($chunkData, $uniqueId, $settings, $chunkTy
                 case 'chunk_padding':
                     $defaultPadding = $chunkType === 'text' ? '20px' : '0';
                     $chunkPadding = $chunkSettings['chunk_padding'] ?? $defaultPadding;
-                    echo "<div class='builder-field-wrapper chunk-padding small-input'><label for='{$uniqueId}-chunk-padding'>Chunk Padding</label>";
+                    echo "<div class='builder-field-wrapper chunk-padding small-input'><label for='{$uniqueId}-chunk-padding'>Chunk Padding<span class='wiz-tooltip-trigger' data-tooltip='CSS shorthand: one value (all sides), two values (top/bottom, left/right), three values (top, left/right, bottom), or four values (top, right, bottom, left).' tabindex='0'>?</span></label>";
                     echo "<input type='text' name='chunk_padding' id='{$uniqueId}-chunk-padding' value='{$chunkPadding}'>";
                     echo "</div>";
                     break;
@@ -622,7 +622,7 @@ function show_specific_chunk_settings($chunkData, $uniqueId, $settings, $chunkTy
 
                     echo "<input type='checkbox' class='wiz-check-toggle' id='$uniqueIdPpadding' name='p_padding' hidden $pPaddingChecked>";
                     echo "<label for='$uniqueIdPpadding' class='wiz-check-toggle-display $pPaddingActive'><i class='$npPaddingClass fa-2x fa-square-check'></i></label>";
-                    echo "<label class='checkbox-toggle-label'>Pad " . htmlentities('<p>') . "'s</label>";
+                    echo "<label class='checkbox-toggle-label'>Pad " . htmlentities('<p>') . "'s<span class='wiz-tooltip-trigger' data-tooltip='Adds vertical spacing between paragraphs for better readability.' tabindex='0'>?</span></label>";
                     echo "</div>";
                     echo "</div>";
                     break;
@@ -636,7 +636,7 @@ function show_specific_chunk_settings($chunkData, $uniqueId, $settings, $chunkTy
                     ];
 
                     echo "<div class='button-group-wrapper builder-field-wrapper chunk-force-white-text-devices'>";
-                    echo "<label class='button-group-label'>Force Gmail white text on:</label>";
+                    echo "<label class='button-group-label'>Force Gmail white text on:<span class='wiz-tooltip-trigger' data-tooltip='Use this to force text to remain white on backgrounds that won&#39;t invert in dark mode, like images.' tabindex='0'>?</span></label>";
                     echo "<div class='button-group checkbox'>";
                     foreach ($forceWhiteTextDevices as $opt) {
                         $fieldID = $opt['id'];
@@ -762,7 +762,7 @@ function render_chunk_fields($chunkType, $chunkData, $uniqueId)
             echo "</div>";
 
             // Button Padding
-            echo "<div class='builder-field-wrapper button-padding small-input'><label for='{$uniqueId}-button-padding'>Btn Padding</label>";
+            echo "<div class='builder-field-wrapper button-padding small-input'><label for='{$uniqueId}-button-padding'>Btn Padding<span class='wiz-tooltip-trigger' data-tooltip='Inner spacing: one value (all sides), two values (top/bottom, left/right), or four values (top, right, bottom, left).' tabindex='0'>?</span></label>";
             echo "<input type='text' name='button_padding' id='{$uniqueId}-button-padding' value='{$buttonPadding}'>";
             echo "</div>";
 
@@ -954,7 +954,7 @@ function generate_background_settings_module($backgroundSettings, $uniqueId = ''
                         <label for="<?php echo $uniqueId . 'force-background'; ?>"
                             class="wiz-check-toggle-display <?php echo $forceBackground ? 'active' : ''; ?>"><i
                                 class="<?php echo $forceBackground ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
-                        <label class="checkbox-toggle-label">Force BG in all modes</label>
+                        <label class="checkbox-toggle-label">Force BG in all modes<span class='wiz-tooltip-trigger' data-tooltip='Prevents this background from being overridden by dark mode in email clients.' tabindex='0'>?</span></label>
                     </div>
                 </div>
             </div>

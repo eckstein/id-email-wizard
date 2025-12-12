@@ -240,6 +240,7 @@ function idemailwiz_enqueue_assets()
         'save-functions' => array('/builder-v2/js/save-functions.js?v=1.1', array('builder-functions')),
         'import-export' => array('/builder-v2/js/import-export.js', array('builder-functions')),
         'tiny-mce-editor' => array('/builder-v2/js/tiny-mce-editor.js', array('builder-functions')),
+        'wiz-tooltips' => array('/builder-v2/js/wiz-tooltips.js', array('jquery')),
 
         'preview-pane' => array('/builder-v2/js/preview-pane.js', array('builder-functions')),
 
@@ -272,6 +273,12 @@ function idemailwiz_enqueue_assets()
     wp_enqueue_style(
         'id-style',
         plugins_url('/style.css?ver=' . $stylesheetCacheBuster, __FILE__),
+        array()
+    );
+
+    wp_enqueue_style(
+        'wiz-tooltips',
+        plugins_url('/builder-v2/css/wiz-tooltips.css', __FILE__),
         array()
     );
 

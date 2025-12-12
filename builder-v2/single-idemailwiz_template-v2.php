@@ -160,7 +160,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 
 									<?php $headerPadding = $templateHeaderFooterStyles['header_padding'] ?? '20px 0'; ?>
 									<div class='builder-field-wrapper header-padding small-input'><label
-											for='header-chunk-padding'>Header Padding</label>
+											for='header-chunk-padding'>Header Padding<span class="wiz-tooltip-trigger" data-tooltip="CSS shorthand: one value (all sides), two values (top/bottom, left/right), or four values (top, right, bottom, left)." tabindex="0">?</span></label>
 										<input type='text' name='header_padding' id='header-padding' data-preview-part="standard_header"
 											value='<?php echo $headerPadding; ?>'>
 									</div>
@@ -225,7 +225,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 
 									<div
 										class='button-group-wrapper builder-field-wrapper chunk-force-white-text-devices'>
-										<label class='button-group-label'>Force Gmail white text on:</label>
+										<label class='button-group-label'>Force Gmail white text on:<span class="wiz-tooltip-trigger" data-tooltip="Use this to force text to remain white on backgrounds that won't invert in dark mode, like images." tabindex="0">?</span></label>
 										<div class='button-group conditional checkbox'>
 											<?php foreach ($forceWhiteTextDevices as $opt) { ?>
 
@@ -372,7 +372,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 												<?php
 												$templateLineHeight = $templateFontStyles['template_line_height'] ?? '1.5';
 												?>
-												<label for="template_styles_line_height">Line Height</label>
+												<label for="template_styles_line_height">Line Height<span class="wiz-tooltip-trigger" data-tooltip="Controls spacing between lines of text. Use a number (1.5) or unit value (24px). Higher = more space." tabindex="0">?</span></label>
 												<input type="text" id="template_styles_line_height"
 													name="template_line_height" class="builder-field"
 													value="<?php echo $templateLineHeight; ?>">
@@ -461,7 +461,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 								$includeDarkModeSupport = $customStyles['dark-mode-support'] ?? false;
 								?>
 								<div class="builder-field-wrapper">
-									<label class="checkbox-toggle-label">Include Dark Mode Support Meta Tag</label>
+									<label class="checkbox-toggle-label">Include Dark Mode Support Meta Tag<span class="wiz-tooltip-trigger" data-tooltip="Adds meta tag that tells email clients (like Apple Mail) this template supports dark mode styling." tabindex="0">?</span></label>
 									<div class="wiz-checkbox-toggle">
 										<input type="checkbox" class="wiz-check-toggle" data-preview-part="email_head"
 											id="template_styles_dark_mode_support" name="dark-mode-support" hidden
@@ -599,7 +599,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 								<input type="text" id="template_settings_ga_campaign_name" name="ga_campaign_name"
 									class="builder-field"
 									value="<?php echo isset($templateSettings['ga_campaign_name']) ? $templateSettings['ga_campaign_name'] : '{{campaignId}}'; ?>">
-								<div class="field-description">Leave blank to turn off GA tracking. {{campaignId}} = Iterable campaign ID.</div>
+								<div class="field-description">Leave blank to turn off GA tracking. <code>{{campaignId}}</code> = Iterable campaign ID.</div>
 							</div>
 							<div class="builder-field-wrapper block">
 								<label>UTM Parameters</label>
@@ -732,16 +732,18 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 							$primaryTemplateId = $templateOptions['template_settings']['iterable-sync']['iterable_template_id'] ?? '';
 							$syncHistory = $templateOptions['template_settings']['iterable-sync']['synced_templates_history'] ?? [];
 							?>
-							<input type="text" id="iterable_template_id" name="iterable_template_id"
-								class="builder-field" readonly
-								value="<?php echo esc_attr($primaryTemplateId); ?>"
-								placeholder="No primary template synced">
-							<?php if ($primaryTemplateId): ?>
-							<a href="https://app.iterable.com/templates/editor?templateId=<?php echo esc_attr($primaryTemplateId); ?>" 
-								target="_blank" class="iterable-link" title="View in Iterable">
-								<i class="fa-solid fa-arrow-up-right-from-square"></i>
-							</a>
-							<?php endif; ?>
+							<div class="input-with-link">
+								<input type="text" id="iterable_template_id" name="iterable_template_id"
+									class="builder-field" readonly
+									value="<?php echo esc_attr($primaryTemplateId); ?>"
+									placeholder="No primary template synced">
+								<?php if ($primaryTemplateId): ?>
+								<a href="https://app.iterable.com/templates/editor?templateId=<?php echo esc_attr($primaryTemplateId); ?>" 
+									target="_blank" class="iterable-link" title="View in Iterable">
+									<i class="fa-solid fa-arrow-up-right-from-square"></i>
+								</a>
+								<?php endif; ?>
+							</div>
 						</div>
 
 						<div class="builder-field-wrapper block sync-history-wrapper">
@@ -755,7 +757,12 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 									});
 									foreach ($syncHistory as $entry): 
 										$templateId = $entry['template_id'];
-										$syncedAt = isset($entry['synced_at']) ? date('M j, Y g:i A', strtotime($entry['synced_at'])) : 'Unknown';
+										$syncedAtFormatted = 'Unknown';
+										if (isset($entry['synced_at'])) {
+											$dt = new DateTime($entry['synced_at'], new DateTimeZone('UTC'));
+											$dt->setTimezone(new DateTimeZone('America/Los_Angeles'));
+											$syncedAtFormatted = $dt->format('M j, Y g:i A');
+										}
 										$isPrimary = ($templateId === $primaryTemplateId);
 									?>
 									<div class="sync-history-item<?php echo $isPrimary ? ' is-primary' : ''; ?>" data-template-id="<?php echo esc_attr($templateId); ?>">
@@ -769,7 +776,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 											<span class="primary-badge">Primary</span>
 											<?php endif; ?>
 										</span>
-										<span class="sync-history-date"><?php echo esc_html($syncedAt); ?></span>
+										<span class="sync-history-date"><?php echo esc_html($syncedAtFormatted); ?></span>
 										<button type="button" class="remove-from-history" data-template-id="<?php echo esc_attr($templateId); ?>" title="Remove from history">
 											<i class="fa-solid fa-times"></i>
 										</button>
@@ -787,7 +794,7 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 					<h4>Interface Settings</h4>
 					<fieldset name="interface-settings">
 						<div class="builder-field-wrapper centered">
-							<label class="checkbox-toggle-label">Save Collapse States</label>
+							<label class="checkbox-toggle-label">Save Collapse States<span class="wiz-tooltip-trigger" data-tooltip="Remember which sections are expanded/collapsed when you save. Useful for keeping your workspace organized." tabindex="0">?</span></label>
 							<div class="wiz-checkbox-toggle">
 								<?php $saveCollapseStates = $templateOptions['template_settings']['interface-settings']['save_collapse_states'] ?? true; ?>
 								<input type="checkbox" class="wiz-check-toggle"
