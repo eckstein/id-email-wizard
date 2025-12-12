@@ -312,14 +312,14 @@ function get_last_location($student_data) {
         return null;
     }
 
-    // Get location details from locations table
+    // Get location details from locations table including courses and sessionWeeks
     $location = $wpdb->get_row(
         $wpdb->prepare(
-            "SELECT id, name, locationStatus, address, locationUrl, locationDesc, overnightOffered 
+            "SELECT id, name, locationStatus, address, locationUrl, locationDesc, overnightOffered, courses, sessionWeeks 
             FROM {$wpdb->prefix}idemailwiz_locations 
             WHERE name = %s 
             AND locationStatus IN ('Open', 'Registration opens soon')",
-            $purchase->shoppingCartItems_locationName // Use location name from purchase directly
+            $purchase->shoppingCartItems_locationName
         )
     );
 
@@ -327,8 +327,20 @@ function get_last_location($student_data) {
         return null;
     }
 
+    // Safer unserialize function
+    $safe_unserialize = function($data, $default = null) {
+        if (empty($data)) return $default;
+        if (!is_string($data) || !preg_match('/^[aOs]:[0-9]+:/', $data)) return $data;
+        $result = @unserialize($data);
+        return ($result !== false) ? $result : $default;
+    };
+
     // Unserialize address if it exists
-    $address = $location->address ? unserialize($location->address) : null;
+    $address = $safe_unserialize($location->address, null);
+    
+    // Unserialize courses and sessionWeeks
+    $courses = $safe_unserialize($location->courses, []);
+    $sessionWeeks = $safe_unserialize($location->sessionWeeks, null);
 
     // Use locationUrl from database if available, otherwise fallback to generated URL
     $url = !empty($location->locationUrl) ? $location->locationUrl : null;
@@ -341,7 +353,9 @@ function get_last_location($student_data) {
         'url' => $url,
         'address' => $address,
         'locationDesc' => $location->locationDesc ?? null,
-        'overnightOffered' => $location->overnightOffered ?? 'No'
+        'overnightOffered' => $location->overnightOffered ?? 'No',
+        'courses' => $courses,
+        'sessionWeeks' => $sessionWeeks
     ];
 }
 
@@ -468,7 +482,7 @@ function get_nearby_locations($student_data, $radius_miles = 30) {
                 return ($result !== false) ? $result : $default;
             };
             $location_courses = $safe_unserialize($location['courses']);
-            $location_session_weeks = $safe_unserialize($location['sessionWeeks'], null); // Unserialize session weeks
+            $location_session_weeks = $safe_unserialize($location['sessionWeeks'], []);
             
             $nearby_locations[] = [
                 'id' => $location['id'],
@@ -506,7 +520,7 @@ function get_available_presets() {
         'last_location' => [
             'name' => 'Last Camp Location',
             'group' => 'Location History',
-            'description' => 'Returns details about the student\'s most recent location including name, status, URL, and address. Only includes locations with status "Open" or "Registration opens soon". Returns null if no valid location is found.'
+            'description' => 'Returns details about the student\'s most recent location including name, status, URL, address, available courses, and upcoming session weeks. Only includes locations with status "Open" or "Registration opens soon". Returns null if no valid location is found.'
         ],
         'nearby_locations' => [
             'name' => 'Nearby Camp Locations (30 Miles)',
