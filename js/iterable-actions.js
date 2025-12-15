@@ -10,6 +10,9 @@ jQuery(document).ready(function ($) {
 
 	// Handle channel type change
 	$(document).on('change', 'input[name=\"email_type\"]', function() {
+		// Ignore changes during initialization
+		if (window.wizBuilderInitializing) return;
+		
 		const channelType = $(this).val();
 		$('.message-types').removeClass('active');
 		$('.message-type-select').prop('disabled', true);
@@ -34,6 +37,9 @@ jQuery(document).ready(function ($) {
 
 	// Handle message type selection
 	$(document).on('change', '.message-type-select', function() {
+		// Ignore changes during initialization
+		if (window.wizBuilderInitializing) return;
+		
 		if (!$(this).prop('disabled')) {
 			const messageTypeId = $(this).val();
 			// Store the selected message type ID in a hidden input
@@ -53,16 +59,41 @@ jQuery(document).ready(function ($) {
 
 	// Main click event handler
 	$("#sendToIterable").on("click", function () {
-		// Directly check sessionStorage here
+		const post_id = $(this).data("postid");
+		
+		// Check for unsaved changes and offer to save first
 		if (sessionStorage.getItem('unsavedChanges') === 'true') {
 			return Swal.fire({
-				html: 'Save your changes before syncing!',
-				icon: "error"
-			}).then(() => {
-				toggleOverlay(false);
+				title: 'Unsaved Changes',
+				html: 'You have unsaved changes. Would you like to save before syncing?',
+				icon: "warning",
+				showCancelButton: true,
+				confirmButtonText: 'Save & Sync',
+				cancelButtonText: 'Cancel',
+				confirmButtonColor: '#94d401'
+			}).then((result) => {
+				if (result.isConfirmed) {
+					// Save first, then trigger sync
+					toggleOverlay(true, 'Saving...');
+					save_template_data().then(() => {
+						proceedWithSync(post_id);
+					}).catch((error) => {
+						toggleOverlay(false);
+						Swal.fire({
+							title: 'Save Failed',
+							html: 'Could not save template: ' + error,
+							icon: 'error'
+						});
+					});
+				}
 			});
 		}
-		const post_id = $(this).data("postid");
+		
+		proceedWithSync(post_id);
+	});
+	
+	// Proceed with the sync process
+	function proceedWithSync(post_id) {
 		toggleOverlay(true);
 
 		// Fetch template data from the server
@@ -84,7 +115,7 @@ jQuery(document).ready(function ($) {
 		.fail(() => handleAjaxError(true).then(() => {
 			toggleOverlay(false);
 		}));
-	});
+	}
 
 	// Error handling function
 	function handleAjaxError(hideOverlay = true, message = "Whoops, something went wrong!") {
@@ -264,17 +295,20 @@ jQuery(document).ready(function ($) {
 	async function processSyncs(templateData, templateIds, alreadySent) {
 		const successfulSyncs = [];
 		const failedSyncs = [];
+		const totalSyncs = templateIds.length;
+		let currentSync = 0;
 		
-		// Check if we're creating a new template AND syncing to existing ones
-		// If so, we need a unique clientTemplateId for the new template
-		const hasExistingSync = templateIds.some(id => id !== 'new');
-		const hasNewRequest = templateIds.includes('new');
-		const needsUniqueClientId = hasExistingSync && hasNewRequest;
+		// Show syncing overlay with initial message
+		toggleOverlay(true, 'Syncing...');
 		
 		for (const templateId of templateIds) {
+			currentSync++;
+			const displayId = templateId === 'new' ? 'new template' : templateId;
+			
 			try {
 				// Check for duplicates first (skip for 'new')
 				if (templateId !== 'new') {
+					updateOverlayMessage(`Syncing (${currentSync}/${totalSyncs}): Checking template ${displayId}...`);
 					const dupCheck = await $.post(idAjax.ajaxurl, {
 						action: "check_duplicate_itTemplateId",
 						template_id: templateId,
@@ -287,16 +321,19 @@ jQuery(document).ready(function ($) {
 					}
 				}
 				
-				// For 'new' when there are also existing templates, use unique clientTemplateId
+				// Update message for syncing
+				updateOverlayMessage(`Syncing (${currentSync}/${totalSyncs}): Pushing to ${displayId}...`);
+				
+				// For 'new', always use unique clientTemplateId to force Iterable to create a new template
+				// (Iterable's upsert uses clientTemplateId to match existing templates)
 				const isNewTemplate = templateId === 'new';
-				const useUniqueClientId = isNewTemplate && needsUniqueClientId;
 				const passedId = isNewTemplate ? null : templateId;
 				
 				const syncedId = await create_or_update_iterable_template(
 					templateData, 
 					passedId, 
 					alreadySent,
-					useUniqueClientId
+					isNewTemplate // Always use unique clientTemplateId when creating new
 				);
 				successfulSyncs.push(syncedId);
 			} catch (error) {
@@ -306,8 +343,9 @@ jQuery(document).ready(function ($) {
 		
 		// Update sync history with all successful syncs
 		if (successfulSyncs.length > 0) {
-			await updateSyncHistory(templateData.postId, successfulSyncs);
-			handleMultiSyncSuccess(successfulSyncs, failedSyncs);
+			updateOverlayMessage('Syncing: Updating sync history...');
+			const syncHistoryResponse = await updateSyncHistory(templateData.postId, successfulSyncs);
+			handleMultiSyncSuccess(successfulSyncs, failedSyncs, syncHistoryResponse);
 		} else {
 			handleTemplateUpdateFailure(failedSyncs.map(f => f.error).join('<br>'));
 		}
@@ -324,32 +362,30 @@ jQuery(document).ready(function ($) {
 	}
 	
 	// Handle success for multiple syncs
-	function handleMultiSyncSuccess(successfulSyncs, failedSyncs) {
-		let message = '';
+	function handleMultiSyncSuccess(successfulSyncs, failedSyncs, syncHistoryData) {
+		let message = '<div class="sync-results">';
 		
 		if (successfulSyncs.length > 0) {
-			message += '<strong>Successfully synced to:</strong><ul>';
+			message += '<div class="sync-results-section"><strong>Successfully synced to:</strong><ul class="sync-results-list">';
 			successfulSyncs.forEach(id => {
-				message += `<li><a href="https://app.iterable.com/templates/editor?templateId=${id}" target="_blank">${id}</a></li>`;
+				message += `<li><a href="https://app.iterable.com/templates/editor?templateId=${id}" target="_blank">${id} <i class="fa-solid fa-arrow-up-right-from-square"></i></a></li>`;
 			});
-			message += '</ul>';
+			message += '</ul></div>';
 		}
 		
 		if (failedSyncs.length > 0) {
-			message += '<strong>Failed to sync:</strong><ul>';
+			message += '<div class="sync-results-section sync-results-failed"><strong>Failed to sync:</strong><ul class="sync-results-list">';
 			failedSyncs.forEach(f => {
 				message += `<li>${f.id}: ${f.error}</li>`;
 			});
-			message += '</ul>';
+			message += '</ul></div>';
 		}
 		
-		// Update the primary template ID field if we have successful syncs
-		if (successfulSyncs.length > 0) {
-			// Get the current primary or use first synced
-			const currentPrimary = $('#iterable_template_id').val();
-			if (!currentPrimary) {
-				$('#iterable_template_id').val(successfulSyncs[0]);
-			}
+		message += '</div>';
+		
+		// Update the sync history UI without page reload
+		if (syncHistoryData) {
+			updateSyncHistoryUI(syncHistoryData.syncHistory, syncHistoryData.primaryTemplateId);
 		}
 		
 		Swal.fire({
@@ -357,11 +393,90 @@ jQuery(document).ready(function ($) {
 			html: message,
 			icon: successfulSyncs.length > 0 ? 'success' : 'error',
 			showConfirmButton: true,
+			customClass: {
+				htmlContainer: 'sync-results-container'
+			}
 		}).then(() => {
 			toggleOverlay(false);
-			// Reload to refresh sync history display
-			window.location.reload();
 		});
+	}
+	
+	// Update the sync history section in the UI without page reload
+	function updateSyncHistoryUI(syncHistory, primaryTemplateId) {
+		const $historyList = $('#sync-history-list');
+		
+		if (!$historyList.length) return;
+		
+		// Update primary template ID field
+		$('#iterable_template_id').val(primaryTemplateId || '');
+		
+		// Update the Iterable link next to primary ID
+		const $iterableLink = $('#iterable_template_id').siblings('.iterable-link');
+		if (primaryTemplateId) {
+			if ($iterableLink.length) {
+				$iterableLink.attr('href', `https://app.iterable.com/templates/editor?templateId=${primaryTemplateId}`).show();
+			} else {
+				$('#iterable_template_id').parent().append(`
+					<a href="https://app.iterable.com/templates/editor?templateId=${primaryTemplateId}" 
+						target="_blank" class="iterable-link" title="View in Iterable">
+						<i class="fa-solid fa-arrow-up-right-from-square"></i>
+					</a>
+				`);
+			}
+		}
+		
+		// Clear existing history
+		$historyList.empty();
+		
+		if (!syncHistory || syncHistory.length === 0) {
+			$historyList.html('<div class="sync-history-empty">No sync history yet</div>');
+			return;
+		}
+		
+		// Sort by synced_at descending (most recent first)
+		syncHistory.sort((a, b) => new Date(b.synced_at) - new Date(a.synced_at));
+		
+		// Build new history items
+		syncHistory.forEach(entry => {
+			const templateId = entry.template_id;
+			const isPrimary = (String(templateId) === String(primaryTemplateId));
+			const syncedAt = entry.synced_at ? formatSyncDate(entry.synced_at) : 'Unknown';
+			
+			const itemHtml = `
+				<div class="sync-history-item${isPrimary ? ' is-primary' : ''}" data-template-id="${templateId}">
+					<span class="sync-history-id">
+						<a href="https://app.iterable.com/templates/editor?templateId=${templateId}" 
+							target="_blank" title="View in Iterable">
+							${templateId}
+							<i class="fa-solid fa-arrow-up-right-from-square"></i>
+						</a>
+						${isPrimary ? '<span class="primary-badge">Primary</span>' : ''}
+					</span>
+					<span class="sync-history-date">${syncedAt}</span>
+					<button type="button" class="remove-from-history" data-template-id="${templateId}" title="Remove from history">
+						<i class="fa-solid fa-times"></i>
+					</button>
+				</div>
+			`;
+			$historyList.append(itemHtml);
+		});
+	}
+	
+	// Format sync date for display
+	function formatSyncDate(isoDate) {
+		try {
+			const date = new Date(isoDate);
+			return date.toLocaleString('en-US', {
+				month: 'short',
+				day: 'numeric',
+				year: 'numeric',
+				hour: 'numeric',
+				minute: '2-digit',
+				hour12: true
+			});
+		} catch (e) {
+			return 'Unknown';
+		}
 	}
 
 

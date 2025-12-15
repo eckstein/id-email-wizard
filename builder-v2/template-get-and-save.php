@@ -132,20 +132,53 @@ function save_template_data($postId, $userId, $templateData)
     global $wpdb;
     $table_name = $wpdb->prefix . 'wiz_templates';
 
-    // Ensure templateData is a JSON string
-    if (is_array($templateData)) {
-        $templateData = json_encode($templateData);
+    // Convert to array if it's a JSON string
+    if (is_string($templateData)) {
+        $templateData = json_decode($templateData, true);
+    }
+
+    // Check for an existing record and preserve sync history
+    $existingRecordId = $wpdb->get_var($wpdb->prepare("SELECT id FROM $table_name WHERE post_id = %d", $postId));
+    
+    if ($existingRecordId) {
+        // Get existing template data to preserve sync history
+        $existingDataJSON = $wpdb->get_var($wpdb->prepare(
+            "SELECT template_data FROM $table_name WHERE id = %d",
+            $existingRecordId
+        ));
+        
+        if ($existingDataJSON) {
+            $existingData = json_decode($existingDataJSON, true);
+            
+            // Preserve iterable sync history (not collected from form fields)
+            $existingSyncHistory = $existingData['template_options']['template_settings']['iterable-sync']['synced_templates_history'] ?? [];
+            $existingPrimaryId = $existingData['template_options']['template_settings']['iterable-sync']['iterable_template_id'] ?? '';
+            
+            if (!empty($existingSyncHistory) || !empty($existingPrimaryId)) {
+                // Ensure the nested structure exists
+                if (!isset($templateData['template_options']['template_settings']['iterable-sync'])) {
+                    $templateData['template_options']['template_settings']['iterable-sync'] = [];
+                }
+                
+                // Preserve sync history if not already set in incoming data
+                if (empty($templateData['template_options']['template_settings']['iterable-sync']['synced_templates_history'])) {
+                    $templateData['template_options']['template_settings']['iterable-sync']['synced_templates_history'] = $existingSyncHistory;
+                }
+                
+                // Preserve primary ID if incoming is empty but existing has a value
+                if (empty($templateData['template_options']['template_settings']['iterable-sync']['iterable_template_id']) && !empty($existingPrimaryId)) {
+                    $templateData['template_options']['template_settings']['iterable-sync']['iterable_template_id'] = $existingPrimaryId;
+                }
+            }
+        }
     }
 
     // Prepare data for database insertion
     $data = [
         'last_updated' => date('Y-m-d H:i:s'),
         'post_id' => $postId,
-        'template_data' => $templateData
+        'template_data' => json_encode($templateData)
     ];
-
-    // Check for an existing record
-    $existingRecordId = $wpdb->get_var($wpdb->prepare("SELECT id FROM $table_name WHERE post_id = %d", $postId));
 
     if ($existingRecordId) {
         // Update existing record

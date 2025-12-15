@@ -8,6 +8,9 @@ jQuery(document).ready(function($) {
 	****************
 	*/	
 
+		// Flag to ignore change events during initialization
+		window.wizBuilderInitializing = true;
+
 		// Start a new session to track unsaved changes
 		sessionStorage.setItem('unsavedChanges', 'false');
 
@@ -46,12 +49,14 @@ jQuery(document).ready(function($) {
 
 		// Handle global actions on any builder update
 		$("#builder").on('change', 'input, select, textarea', function (e) {
-		// Delay these operations slightly to allow UI updates to complete
+			// Ignore changes during initialization
+			if (window.wizBuilderInitializing) return;
+			
+			// Delay these operations slightly to allow UI updates to complete
 			setTimeout(() => {
 				save_template_to_session();
-				sessionStorage.setItem('unsavedChanges',true);
+				sessionStorage.setItem('unsavedChanges', 'true');
 			}, 200);
-
 		})
 
 

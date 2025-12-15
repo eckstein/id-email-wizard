@@ -6,7 +6,7 @@ $wizTemplateObject = get_wiztemplate_object($postId);
 
 $current_user = wp_get_current_user();
 $userId = $current_user->ID;
-$itTemplateId = $wizTemplate['template_settings']['iterable-sync']['iterable_template_id'] ?? '';
+$itTemplateId = $wizTemplate['template_options']['template_settings']['iterable-sync']['iterable_template_id'] ?? '';
 $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 
 ?>

@@ -97,6 +97,7 @@ function idemailwiz_get_template_data_for_iterable()
 		
 		// Get sync history
 		$syncHistory = $iterableSyncSettings['synced_templates_history'] ?? [];
+		
 		$response['syncHistory'] = $syncHistory;
 		$response['primaryTemplateId'] = $templateId;
 

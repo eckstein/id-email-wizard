@@ -28,6 +28,8 @@ function initialize_template() {
         // Initialize the template preview
         update_template_preview();
         sessionStorage.setItem('unsavedChanges', 'false');
+        // Clear initialization flag - changes after this point are real user changes
+        window.wizBuilderInitializing = false;
     }, 500);
     
 

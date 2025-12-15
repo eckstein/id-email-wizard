@@ -12,14 +12,26 @@ function insert_overlay_loader()
 	?>
 	<script type="text/javascript">
 		// Function to show and hide overlays and spinners
-		const toggleOverlay = (show = true) => {
+		// Can optionally pass a message to display on the overlay
+		const toggleOverlay = (show = true, message = null) => {
 			if (show) {
 				jQuery("#iDoverlay").fadeIn(100);
 				jQuery("#iDspinner").fadeIn(250);
+				if (message) {
+					jQuery("#iDoverlay").attr('data-message', message);
+				} else {
+					jQuery("#iDoverlay").removeAttr('data-message');
+				}
 			} else {
 				jQuery("#iDoverlay").fadeOut(100);
 				jQuery("#iDspinner").hide();
+				jQuery("#iDoverlay").removeAttr('data-message');
 			}
+		};
+		
+		// Update overlay message without toggling visibility
+		const updateOverlayMessage = (message) => {
+			jQuery("#iDoverlay").attr('data-message', message);
 		};
 
 		// Call toggleOverlay() as soon as the script is executed
