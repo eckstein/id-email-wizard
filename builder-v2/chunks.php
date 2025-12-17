@@ -129,7 +129,7 @@ function idwiz_get_button_chunk($chunk, $templateOptions, $chunkIndex = null, $i
 	$output .= '<!--[if !mso]><!-->';
 	$output .= '
 		<div style="' . $backgroundColorCss . ' ' . $chunkPaddingCss . '; border: 0!important; text-align: ' . $textAlign . '; font-family: Poppins, Arial, sans-serif; font-size: ' . ($templateOptions['template_styles']['template_font_size'] ?? '16px') . '">
-			<a href="' . $ctaUrl . '" aria-label="' . $ctaText . '" class="id-button" style="font-size: ' . ($chunk['fields']['button_font_size'] ?? '1.2em') . '; line-height: 1;text-align: center; font-weight: bold;background-color: ' . $btnBgColor . '; ' . $btnBorderCss . ' text-decoration: none; padding:' . $buttonPadding . '; color: ' . $textColor . ' !important; border-radius: ' . $borderRadius . '; display: inline-block;">
+			<a href="' . $ctaUrl . '" aria-label="' . $ctaText . '" class="id-button" style="font-size: ' . ($chunk['fields']['button_font_size'] ?? '1.2em') . '; line-height: 1.3; text-align: center; font-weight: bold;background-color: ' . $btnBgColor . '; ' . $btnBorderCss . ' text-decoration: none; padding:' . $buttonPadding . '; color: ' . $textColor . ' !important; border-radius: ' . $borderRadius . '; display: inline-block;">
 				' . $ctaText . '
 			</a>
 		</div>
