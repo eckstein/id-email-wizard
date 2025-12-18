@@ -271,7 +271,7 @@ function builder_init_tinymce($optionalElement) {
             { name: 'merge_tags_button', items: [ 'merge_tags_button'] },
             { name: 'theme_switcher', items: [ 'theme_switcher'] },
             { name: 'styles', items: [ 'styles' ] }, 
-            { name: 'formatting', items: [ 'fontsize', 'lineheight', 'forecolor', 'bold', 'italic', 'uppercase', 'removeformat'] },
+            { name: 'formatting', items: [ 'fontsize', 'lineheight', 'forecolor', 'bold', 'italic', 'uppercase', 'fix_reg_symbols', 'removeformat'] },
             { name: 'alignment', items: [ 'alignleft', 'aligncenter', 'alignright' ] },
             { name: 'lists', items: [ 'bullist', 'numlist' ] },
             { name: 'link', items: [ 'link'] },
@@ -295,6 +295,19 @@ function builder_init_tinymce($optionalElement) {
                 onAction: function() {
                     var content = editor.selection.getContent({ 'format': 'html' });
                     editor.selection.setContent('<span style="text-transform: uppercase;">' + content + '</span>');
+                }
+            });
+
+            editor.ui.registry.addButton('fix_reg_symbols', {
+                text: '®',
+                tooltip: 'Fix ® symbols (superscript & smaller)',
+                onAction: function() {
+                    var content = editor.getContent();
+                    // Replace &reg; and ® with superscript styled version
+                    // Avoid replacing if already wrapped in <sup>
+                    var updatedContent = content.replace(/(?!<sup[^>]*>)(&reg;|®)(?![^<]*<\/sup>)/gi, '<sup style="font-size: .5em;">&reg;</sup>');
+                    editor.setContent(updatedContent);
+                    updateEditorContent(editor);
                 }
             });
 
