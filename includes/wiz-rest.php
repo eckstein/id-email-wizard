@@ -779,41 +779,58 @@ function process_preset_value($preset_name, $student_data) {
                     }
                 }
             }
-            // Check for 13-year-olds who need to transition from iDTC to iDTA
-            else if ($student_age >= 13 && $last_course_max_age && $last_course_max_age < 13) {
-                $needs_age_up = true;
-                $metadata['age_up'] = true;
-                
-                // For 13-year-olds, we should consider both iDTC and iDTA options
-                $combined_recs = [];
-                
-                // First try to get age-appropriate iDTC recommendations
-                $idtc_recs = get_division_course_recommendations($student_data, 'idtc');
-                if (!empty($idtc_recs['recs'])) {
-                    $filtered_idtc = array_filter($idtc_recs['recs'], function($rec) use ($student_age) {
-                        return $rec['minAge'] <= $student_age && $rec['maxAge'] >= $student_age;
-                    });
-                    
-                    if (!empty($filtered_idtc)) {
-                        $combined_recs = array_merge($combined_recs, array_values($filtered_idtc));
-                    }
+            // Check for 13+ students - they should get both iDTC and iDTA options
+            else if ($student_age >= 13) {
+                // Determine if this is an age-up scenario
+                if ($last_course_max_age && $last_course_max_age < 13) {
+                    $needs_age_up = true;
+                    $metadata['age_up'] = true;
                 }
                 
-                // Then try to get iDTA recommendations
-                $idta_recs = get_division_course_recommendations($student_data, 'idta');
-                if (!empty($idta_recs['recs'])) {
-                    $filtered_idta = array_filter($idta_recs['recs'], function($rec) use ($student_age) {
-                        return $rec['minAge'] <= $student_age && $rec['maxAge'] >= $student_age;
-                    });
+                // For 13+ students, get both iDTC and iDTA recommendations from their last course
+                $combined_recs = [];
+                
+                // Get the last course to pull recommendations from both divisions
+                if ($last_purchase && !empty($last_purchase['course_id'])) {
+                    $last_course = get_course_details_by_id($last_purchase['course_id']);
                     
-                    if (!empty($filtered_idta)) {
-                        $combined_recs = array_merge($combined_recs, array_values($filtered_idta));
+                    if (!is_wp_error($last_course) && isset($last_course->course_recs)) {
+                        // Get iDTC recommendations from this course
+                        $idtc_recs = get_course_recommendations($last_course, 'idtc', $needs_age_up);
+                        if (!empty($idtc_recs)) {
+                            $filtered_idtc = array_filter($idtc_recs, function($rec) use ($student_age) {
+                                return $rec['minAge'] <= $student_age && $rec['maxAge'] >= $student_age;
+                            });
+                            if (!empty($filtered_idtc)) {
+                                $combined_recs = array_merge($combined_recs, array_values($filtered_idtc));
+                            }
+                        }
+                        
+                        // Get iDTA recommendations from this course
+                        $idta_recs = get_course_recommendations($last_course, 'idta', $needs_age_up);
+                        if (!empty($idta_recs)) {
+                            $filtered_idta = array_filter($idta_recs, function($rec) use ($student_age) {
+                                return $rec['minAge'] <= $student_age && $rec['maxAge'] >= $student_age;
+                            });
+                            if (!empty($filtered_idta)) {
+                                $combined_recs = array_merge($combined_recs, array_values($filtered_idta));
+                            }
+                        }
                     }
                 }
                 
                 // If we found any suitable recommendations from either division, use them
                 if (!empty($combined_recs)) {
-                    $all_recommendations = $combined_recs;
+                    // Remove duplicates based on course ID
+                    $unique_recs = [];
+                    $seen_ids = [];
+                    foreach ($combined_recs as $rec) {
+                        if (!in_array($rec['id'], $seen_ids)) {
+                            $seen_ids[] = $rec['id'];
+                            $unique_recs[] = $rec;
+                        }
+                    }
+                    $all_recommendations = $unique_recs;
                     $metadata['ipc_count'] = count($all_recommendations);
                 }
             }
