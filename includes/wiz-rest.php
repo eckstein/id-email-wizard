@@ -693,6 +693,17 @@ function process_preset_value($preset_name, $student_data) {
                         $division_key = ($latest_purchase['shoppingCartItems_divisionId'] == 22) ? 'idta' : 'idtc';
                         $direct_recommendations = get_course_recommendations($current_course, $division_key, $needs_age_up);
                         
+                        // Get location URL if we have a location name
+                        $location_url = null;
+                        if (!empty($latest_purchase['shoppingCartItems_locationName'])) {
+                            $location_url = $wpdb->get_var(
+                                $wpdb->prepare(
+                                    "SELECT locationUrl FROM {$wpdb->prefix}idemailwiz_locations WHERE name = %s LIMIT 1",
+                                    $latest_purchase['shoppingCartItems_locationName']
+                                )
+                            );
+                        }
+                        
                         // Create the recommendations structure similar to fiscal year version
                         $ipc_recommendations = [
                             'recs' => $direct_recommendations,
@@ -711,7 +722,8 @@ function process_preset_value($preset_name, $student_data) {
                                 'courseDesc' => $current_course->courseDesc ?? null,
                                 'division' => $latest_purchase['shoppingCartItems_divisionName'],
                                 'division_id' => $latest_purchase['shoppingCartItems_divisionId'],
-                                'location' => $latest_purchase['shoppingCartItems_locationName'] ?? null
+                                'location' => $latest_purchase['shoppingCartItems_locationName'] ?? null,
+                                'locationUrl' => $location_url
                             ]
                         ];
                     }
@@ -845,9 +857,18 @@ function process_preset_value($preset_name, $student_data) {
                 $course_id = $course_rec['id'];
                 $course_type = isset($course_details[$course_id]) ? $course_details[$course_id]['type'] : 'camps';
                 
-                $course_with_locations = $course_rec;
-                $course_with_locations['locations'] = [];
-                $course_with_locations['course_type'] = $course_type;
+                // Build course with metadata fields together, then locations
+                $course_with_locations = [
+                    'id' => $course_rec['id'],
+                    'title' => $course_rec['title'],
+                    'abbreviation' => $course_rec['abbreviation'],
+                    'minAge' => $course_rec['minAge'],
+                    'maxAge' => $course_rec['maxAge'],
+                    'courseUrl' => $course_rec['courseUrl'] ?? '',
+                    'courseDesc' => $course_rec['courseDesc'] ?? null,
+                    'course_type' => $course_type,
+                    'locations' => []
+                ];
                 
                 $course_recs_with_locations[$course_id] = $course_with_locations;
             }
@@ -1337,6 +1358,17 @@ function get_course_recommendations_between_fiscal_years($student_data, $from_fi
         return [];
     }
 
+    // Get location URL if we have a location name
+    $locationUrl = null;
+    if (!empty($latestPurchase['shoppingCartItems_locationName'])) {
+        $locationUrl = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT locationUrl FROM {$wpdb->prefix}idemailwiz_locations WHERE name = %s LIMIT 1",
+                $latestPurchase['shoppingCartItems_locationName']
+            )
+        );
+    }
+
     return [
         'recs' => $recommendations,
         'total_count' => count($recommendations),
@@ -1351,10 +1383,11 @@ function get_course_recommendations_between_fiscal_years($student_data, $from_fi
             'abbreviation' => $course->abbreviation,
             'age_range' => $course->minAge . '-' . $course->maxAge,
             'courseUrl' => $course->courseUrl ?? '',
-            'courseDesc' => $course->courseDesc ?? null, // Add courseDesc
+            'courseDesc' => $course->courseDesc ?? null,
             'division' => $latestPurchase['shoppingCartItems_divisionName'],
             'division_id' => $latestPurchase['shoppingCartItems_divisionId'],
-            'location' => $latestPurchase['shoppingCartItems_locationName'] ?? null
+            'location' => $latestPurchase['shoppingCartItems_locationName'] ?? null,
+            'locationUrl' => $locationUrl
         ]
     ];
 }
