@@ -985,7 +985,7 @@ function get_available_presets() {
         'location_lead_data' => [
             'name' => 'Location Lead Data',
             'group' => 'Location Details',
-            'description' => 'Uses the parent\'s leadLocationId to get full location data with courses organized into camps and academies arrays. Each course includes nested session data with seat availability. Also includes a nearby array with the same structure for locations within 30 miles.'
+            'description' => 'Gets full location data with courses organized into camps and academies arrays. Each course includes nested session data with seat availability. Also includes a nearby array with the same structure for locations within 30 miles. Best used with "Location" data source for cacheable results.'
         ],
         'location_with_courses' => [
             'name' => 'Location With Courses',
@@ -2517,24 +2517,6 @@ function idwiz_endpoint_handler($request) {
     $endpoint = str_replace('/idemailwiz/v1', '', $route);
     $endpoint = trim($endpoint, '/');
     
-    // Get parameters
-    $params = $request->get_params();
-    $account_number = isset($params['account_number']) ? sanitize_text_field($params['account_number']) : '';
-    
-    if (empty($account_number)) {
-        return new WP_REST_Response(['error' => 'Account number is required'], 400);
-    }
-    
-    // Check for cached response
-    $cache_key = 'idwiz_endpoint_' . md5($endpoint . '_' . $account_number . '_' . serialize($params));
-    $cached_response = wp_cache_get($cache_key);
-    
-    if ($cached_response !== false) {
-        // Log cache hit
-        error_log("ID Email Wiz REST API: Cache hit for account $account_number on endpoint $endpoint");
-        return $cached_response;
-    }
-
     // Get endpoint configuration from database
     $endpoint_config = idwiz_get_endpoint($endpoint);
     if (!$endpoint_config) {
@@ -2545,15 +2527,66 @@ function idwiz_endpoint_handler($request) {
     
     // Get base data source
     $base_data_source = $endpoint_config['base_data_source'] ?? 'student';
+    
+    // Get parameters based on data source type
+    $params = $request->get_params();
+    $identifier = '';
+    $cache_identifier = '';
+    
+    // Location data source uses location_id, others use account_number
+    if ($base_data_source === 'location') {
+        $identifier = isset($params['location_id']) ? intval($params['location_id']) : 0;
+        if (empty($identifier)) {
+            return new WP_REST_Response(['error' => 'location_id parameter is required for this endpoint'], 400);
+        }
+        $cache_identifier = 'loc_' . $identifier;
+    } else {
+        $identifier = isset($params['account_number']) ? sanitize_text_field($params['account_number']) : '';
+        if (empty($identifier)) {
+            return new WP_REST_Response(['error' => 'account_number parameter is required'], 400);
+        }
+        $cache_identifier = 'acct_' . $identifier;
+    }
+    
+    // Check for cached response
+    $cache_key = 'idwiz_endpoint_' . md5($endpoint . '_' . $cache_identifier . '_' . serialize($params));
+    $cached_response = wp_cache_get($cache_key);
+    
+    if ($cached_response !== false) {
+        error_log("ID Email Wiz REST API: Cache hit for $cache_identifier on endpoint $endpoint");
+        return $cached_response;
+    }
+
     $feed_data = [];
 
     // Handle different data sources
-    if ($base_data_source === 'parent') {
+    if ($base_data_source === 'location') {
+        // Location-based endpoint - no user lookup needed
+        // Just pass the location_id to presets
+        $feed_data = [
+            'location_id' => $identifier,
+            'leadLocationId' => $identifier // For compatibility with existing preset functions
+        ];
+        
+        // Verify the location exists
+        $location_exists = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}idemailwiz_locations 
+                 WHERE id = %d AND locationStatus IN ('Open', 'Registration opens soon')",
+                $identifier
+            )
+        );
+        
+        if (!$location_exists) {
+            return new WP_REST_Response(['error' => 'Location not found or not active'], 404);
+        }
+        
+    } else if ($base_data_source === 'parent') {
         // Get data from users table (parent/lead account info)
         $feed_data = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT * FROM {$wpdb->prefix}idemailwiz_users WHERE accountNumber = %s OR userId = %s LIMIT 1",
-                $account_number, $account_number
+                $identifier, $identifier
             ),
             ARRAY_A
         );
@@ -2562,18 +2595,12 @@ function idwiz_endpoint_handler($request) {
             return new WP_REST_Response(['error' => 'User not found in database'], 404);
         }
         
-        // Check if leadLocationId is empty or missing for parent endpoints
-        // Commented out: location_with_courses preset now has fallback logic (previous location -> leadLocationId -> null)
-        // if (empty($feed_data['leadLocationId']) && in_array('location_with_courses', get_required_presets($endpoint_config))) {
-        //     return new WP_REST_Response(['error' => 'User does not have a lead location assigned'], 400);
-        // }
-        
     } else if ($base_data_source === 'student') {
         // Get data from userfeed table (student info)
         $feed_data = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT * FROM {$wpdb->prefix}idemailwiz_userfeed WHERE studentAccountNumber = %s LIMIT 1",
-                $account_number
+                $identifier
             ),
             ARRAY_A
         );
@@ -2607,7 +2634,7 @@ function idwiz_endpoint_handler($request) {
         }
     } else {
         // Custom data source - just create an empty container
-        $feed_data = ['accountNumber' => $account_number];
+        $feed_data = ['accountNumber' => $identifier];
     }
 
     // Get all required presets at once
@@ -2659,7 +2686,7 @@ function idwiz_endpoint_handler($request) {
     $execution_time = round((microtime(true) - $start_time) * 1000);
     $data_size = strlen(json_encode($payload));
     
-    error_log("ID Email Wiz REST API Success: Account Number=$account_number, Response Size=$data_size bytes, Execution Time={$execution_time}ms");
+    error_log("ID Email Wiz REST API Success: Identifier=$cache_identifier, Response Size=$data_size bytes, Execution Time={$execution_time}ms");
 
     $response = new WP_REST_Response($payload, 200);
     
@@ -2931,6 +2958,95 @@ function idwiz_get_user_data_for_preview() {
     } catch (Exception $e) {
         error_log('Error retrieving user data: ' . $e->getMessage());
         wp_send_json_error('Error retrieving user data: ' . $e->getMessage());
+        return;
+    }
+}
+
+// Add AJAX handler for getting location data for endpoint preview
+add_action('wp_ajax_idwiz_get_location_data', 'idwiz_get_location_data_for_preview');
+
+function idwiz_get_location_data_for_preview() {
+    // Verify nonce
+    if (!check_ajax_referer('wiz-endpoints', 'security', false)) {
+        wp_send_json_error('Invalid nonce');
+        return;
+    }
+
+    // Get location ID
+    $location_id = isset($_POST['location_id']) ? intval($_POST['location_id']) : 0;
+    
+    if (empty($location_id)) {
+        wp_send_json_error('No location ID provided');
+        return;
+    }
+
+    // Get endpoint name and other parameters
+    $endpoint = isset($_POST['endpoint']) ? sanitize_text_field($_POST['endpoint']) : '';
+    $base_data_source = isset($_POST['base_data_source']) ? sanitize_text_field($_POST['base_data_source']) : 'location';
+    $data_mapping = isset($_POST['data_mapping']) ? json_decode(stripslashes($_POST['data_mapping']), true) : [];
+    
+    // Create a temporary endpoint config for preview
+    $endpoint_config = [
+        'base_data_source' => $base_data_source,
+        'data_mapping' => $data_mapping
+    ];
+
+    global $wpdb;
+    
+    try {
+        // Verify the location exists and is active
+        $location_exists = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}idemailwiz_locations 
+                 WHERE id = %d AND locationStatus IN ('Open', 'Registration opens soon')",
+                $location_id
+            )
+        );
+        
+        if (!$location_exists) {
+            wp_send_json_error('Location not found or not active');
+            return;
+        }
+        
+        // Create feed_data with location info
+        $feed_data = [
+            'location_id' => $location_id,
+            'leadLocationId' => $location_id // For compatibility with existing preset functions
+        ];
+
+        // Process presets
+        try {
+            $presets = [];
+            
+            // Get list of compatible presets for location data source
+            $compatible_presets = get_compatible_presets('location');
+            
+            // Process each compatible preset
+            foreach ($compatible_presets as $preset) {
+                try {
+                    $result = process_preset_value($preset, $feed_data);
+                    if ($result !== null) {
+                        $presets[$preset] = $result;
+                    }
+                } catch (Exception $e) {
+                    error_log('Error processing preset ' . $preset . ': ' . $e->getMessage());
+                }
+            }
+
+            // Generate the payload using the same function as the real endpoint
+            $payload = generate_endpoint_payload($endpoint, $feed_data, $presets, $endpoint_config);
+            
+            wp_send_json_success($payload);
+            
+        } catch (Exception $e) {
+            error_log('Error processing presets: ' . $e->getMessage());
+            wp_send_json_error('Error processing presets: ' . $e->getMessage());
+            return;
+        }
+        
+    } catch (Exception $e) {
+        error_log('Error retrieving location data: ' . $e->getMessage());
+        wp_send_json_error('Error retrieving location data: ' . $e->getMessage());
         return;
     }
 }
@@ -3606,8 +3722,15 @@ function get_compatible_presets($data_source = 'student') {
         'location_lead_data'
     ];
     
+    // Presets that work with location data (location_id parameter)
+    $location_presets = [
+        'location_lead_data'
+    ];
+    
     // Return appropriate presets based on data source
-    if ($data_source === 'parent') {
+    if ($data_source === 'location') {
+        return $location_presets;
+    } else if ($data_source === 'parent') {
         return $parent_presets;
     } else {
         return $student_presets;

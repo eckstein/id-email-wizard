@@ -442,27 +442,47 @@ jQuery(document).ready(function ($) {
         e.preventDefault();
         
         const $container = $(this).closest('.endpoint-content');
+        const baseDataSource = $container.find('.endpoint-base-data-source').val();
         
-        // Get the current account number from the active container
-        const dropdownVal = $container.find('.test-user-select').val();
-        const manualVal = $container.find('.manual-user-id').val();
-        const accountNumber = dropdownVal || manualVal;
-        
-        if (!accountNumber) {
-            alert('Please select or enter a test user first');
-            return;
-        }
-        
-        // Clear all caches that might contain this account to force a fresh load
-        for (const key in userDataCache.data) {
-            if (key.includes(accountNumber)) {
-                delete userDataCache.data[key];
-                delete userDataCache.timestamps[key];
+        if (baseDataSource === 'location') {
+            // Handle location data source
+            const locationId = $container.find('.manual-location-id').val();
+            
+            if (!locationId) {
+                alert('Please enter a Location ID first');
+                return;
             }
+            
+            // Clear cache for this location
+            for (const key in userDataCache.data) {
+                if (key.includes('location_' + locationId)) {
+                    delete userDataCache.data[key];
+                    delete userDataCache.timestamps[key];
+                }
+            }
+            
+            loadLocationDataAndUpdatePreview(locationId);
+        } else {
+            // Handle account-based data sources
+            const dropdownVal = $container.find('.test-user-select').val();
+            const manualVal = $container.find('.manual-user-id').val();
+            const accountNumber = dropdownVal || manualVal;
+            
+            if (!accountNumber) {
+                alert('Please select or enter a test user first');
+                return;
+            }
+            
+            // Clear all caches that might contain this account
+            for (const key in userDataCache.data) {
+                if (key.includes(accountNumber)) {
+                    delete userDataCache.data[key];
+                    delete userDataCache.timestamps[key];
+                }
+            }
+            
+            loadUserDataAndUpdatePreview(accountNumber);
         }
-        
-        // Reload the data
-        loadUserDataAndUpdatePreview(accountNumber);
     });
 
     function loadUserDataAndUpdatePreview(accountNumber) {
@@ -623,8 +643,117 @@ jQuery(document).ready(function ($) {
         }
     }
 
+    // Function to load location data and update preview
+    function loadLocationDataAndUpdatePreview(locationId) {
+        const $activeContainer = $('.endpoint-content.active');
+        const $preview = $activeContainer.find('.payload-preview');
+        const endpoint = $activeContainer.attr('id').replace('endpoint-', '');
+        const baseDataSource = $activeContainer.find('.endpoint-base-data-source').val();
+        
+        // Collect all mappings for the server as an object
+        const dataMappings = {};
+        $activeContainer.find('.data-mapping-item').each(function() {
+            const $item = $(this);
+            const key = $item.find('.mapping-key').val();
+            const type = $item.find('.mapping-type').val();
+            let value;
+            
+            if (type === 'static') {
+                value = $item.find('.mapping-value').val();
+            } else {
+                value = $item.find('.mapping-preset').val();
+            }
+            
+            if (key) {
+                dataMappings[key] = {
+                    type: type,
+                    value: value || ''
+                };
+            }
+        });
+        
+        // Check cache first
+        const cacheKey = 'location_' + locationId + '_' + JSON.stringify(dataMappings);
+        const now = Date.now();
+        if (userDataCache.data[cacheKey] && 
+            (now - userDataCache.timestamps[cacheKey]) < userDataCache.timeout) {
+            handlePayloadData(userDataCache.data[cacheKey], $activeContainer);
+            return;
+        }
+
+        // If there's a CodeMirror instance, update its content
+        const editor = $preview.data('codemirror');
+        if (editor) {
+            editor.setValue('Loading...');
+        } else {
+            $preview.html('Loading...');
+        }
+        
+        // Get location data
+        $.ajax({
+            url: idAjax_wiz_endpoints.ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'idwiz_get_location_data',
+                location_id: locationId,
+                base_data_source: baseDataSource,
+                endpoint: endpoint,
+                data_mapping: JSON.stringify(dataMappings),
+                security: idAjax_wiz_endpoints.nonce
+            },
+            success: function(response) {
+                if (typeof response === 'string' && response.trim().startsWith('<')) {
+                    console.error('Received HTML response instead of JSON:', response);
+                    if (editor) {
+                        editor.setValue('PHP Error: Server returned HTML instead of JSON.');
+                    } else {
+                        $preview.html('PHP Error: Server returned HTML instead of JSON.');
+                    }
+                    return;
+                }
+                
+                if (response.success) {
+                    if (!response.data) {
+                        console.error('Response missing data property:', response);
+                        if (editor) {
+                            editor.setValue('Error: Invalid response format');
+                        } else {
+                            $preview.html('Error: Invalid response format');
+                        }
+                        return;
+                    }
+                    
+                    // Cache the response
+                    userDataCache.data[cacheKey] = response.data;
+                    userDataCache.timestamps[cacheKey] = now;
+                    
+                    // Display the payload
+                    handlePayloadData(response.data, $activeContainer);
+                } else {
+                    const errorMsg = response.data || 'Unknown error';
+                    if (editor) {
+                        editor.setValue('Error loading location data: ' + errorMsg);
+                    } else {
+                        $preview.html('Error loading location data: ' + errorMsg);
+                    }
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX error:', error);
+                if (editor) {
+                    editor.setValue('Error loading location data: ' + error);
+                } else {
+                    $preview.html('Error loading location data: ' + error);
+                }
+            },
+            dataType: 'json',
+            timeout: 30000
+        });
+    }
+
     // Debounce the preview updates
     const debouncedLoadUserData = debounce(loadUserDataAndUpdatePreview, 300);
+    const debouncedLoadLocationData = debounce(loadLocationDataAndUpdatePreview, 300);
 
     // Update handlers to use debounced function
     $(document).on('change', '.test-user-select', function() {
@@ -657,35 +786,57 @@ jQuery(document).ready(function ($) {
         }
     });
 
+    // Handle location data load button
+    $(document).on('click', '.load-location-data', function() {
+        const $activeContainer = $('.endpoint-content.active');
+        const locationId = $activeContainer.find('.manual-location-id').val();
+        if (locationId) {
+            loadLocationDataAndUpdatePreview(locationId);
+        } else {
+            alert('Please enter a Location ID.');
+        }
+    });
+
     // Handle base data source change
     $(document).on('change', '.endpoint-base-data-source', function() {
         const baseDataSource = $(this).val();
         const $container = $(this).closest('.endpoint-content');
         const $testUserContainer = $container.find('.test-user-selector');
-        const $testUserSelect = $testUserContainer.find('.test-user-select');
-        const $userIdInput = $testUserContainer.find('.user-id-input');
-        const $toggleLink = $testUserContainer.find('.toggle-user-input');
-        const currentType = $testUserSelect.data('type');
-        const isManualVisible = $userIdInput.is(':visible');
         
-        // Update labels based on data source
-        const accountType = baseDataSource === 'parent' ? 'Parent Account Number' : 'Student Account Number';
-        const labelText = baseDataSource === 'parent' ? 'Test Parent Account:' : 'Test User:';
-        
-        $testUserContainer.find('.test-user-label').text(labelText);
-        $testUserContainer.find('.user-id-input label').text('Or enter ' + accountType + ':');
-        $testUserContainer.find('.manual-user-id').attr('placeholder', 'Enter ' + accountType);
-        
-        // Update toggle link text based on current visibility state
-        $toggleLink.text(isManualVisible ? 'Select from dropdown' : 'Enter ' + accountType + ' manually');
-        
-        // If dropdown type doesn't match the data source, reload options
-        if (baseDataSource === 'parent') {
-            if (currentType !== 'parent') {
-                loadParentAccountOptions($testUserSelect);
-            }
+        // Clear existing test input UI and rebuild based on data source
+        if (baseDataSource === 'location') {
+            // Show location ID input
+            $testUserContainer.html(`
+                <label class="test-user-label">Test Location:</label>
+                <div class="location-id-input">
+                    <input type="text" class="manual-location-id wiz-input" placeholder="Enter Location ID">
+                    <button class="load-location-data wiz-button">Load Location</button>
+                </div>
+            `);
         } else {
-            if (currentType !== 'student') {
+            // Show account number inputs (student or parent)
+            const accountType = baseDataSource === 'parent' ? 'Parent Account Number' : 'Student Account Number';
+            const labelText = baseDataSource === 'parent' ? 'Test Parent Account:' : 'Test User:';
+            const selectType = baseDataSource === 'parent' ? 'parent' : 'student';
+            
+            $testUserContainer.html(`
+                <label class="test-user-label">${labelText}</label>
+                <select class="test-user-select wiz-select" data-type="${selectType}">
+                    <option value="">Loading...</option>
+                </select>
+                <div class="user-id-input" style="display: none;">
+                    <label>Or enter ${accountType}:</label>
+                    <input type="text" class="manual-user-id wiz-input" placeholder="Enter ${accountType}">
+                    <button class="load-user-data wiz-button">Load User</button>
+                </div>
+                <a href="#" class="toggle-user-input">Enter ${accountType} manually</a>
+            `);
+            
+            // Load appropriate options
+            const $testUserSelect = $testUserContainer.find('.test-user-select');
+            if (baseDataSource === 'parent') {
+                loadParentAccountOptions($testUserSelect);
+            } else {
                 loadStudentAccountOptions($testUserSelect);
             }
         }
@@ -696,10 +847,13 @@ jQuery(document).ready(function ($) {
         // Clear any existing preview data
         const $preview = $container.find('.payload-preview');
         const editor = $preview.data('codemirror');
+        const promptText = baseDataSource === 'location' 
+            ? 'Enter a Location ID to preview the payload' 
+            : 'Select a test user to preview the payload';
         if (editor) {
-            editor.setValue('Select a test user to preview the payload');
+            editor.setValue(promptText);
         } else {
-            $preview.html('Select a test user to preview the payload');
+            $preview.html(promptText);
         }
         
         // Clear the manual input field
@@ -795,18 +949,30 @@ jQuery(document).ready(function ($) {
     $(document).on('click', '.test-endpoint', function(e) {
         e.preventDefault();
         const $container = $(this).closest('.endpoint-content');
-        const dropdownVal = $container.find('.test-user-select').val();
-        const manualVal = $container.find('.manual-user-id').val();
-        const accountNumber = dropdownVal || manualVal;
+        const baseDataSource = $container.find('.endpoint-base-data-source').val();
         
-        if (!accountNumber) {
-            alert('Please select or enter a test user first');
-            return;
-        }
-
+        let testUrl;
         const baseUrl = $(this).data('url');
         const token = $(this).data('token');
-        const testUrl = `${baseUrl}?account_number=${accountNumber}`;
+        
+        if (baseDataSource === 'location') {
+            const locationId = $container.find('.manual-location-id').val();
+            if (!locationId) {
+                alert('Please enter a Location ID first');
+                return;
+            }
+            testUrl = `${baseUrl}?location_id=${locationId}`;
+        } else {
+            const dropdownVal = $container.find('.test-user-select').val();
+            const manualVal = $container.find('.manual-user-id').val();
+            const accountNumber = dropdownVal || manualVal;
+            
+            if (!accountNumber) {
+                alert('Please select or enter a test user first');
+                return;
+            }
+            testUrl = `${baseUrl}?account_number=${accountNumber}`;
+        }
 
         // First test the endpoint via AJAX
         $.ajax({

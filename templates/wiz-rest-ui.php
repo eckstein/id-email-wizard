@@ -99,15 +99,22 @@ global $wpdb;
                                                     <label>Base Data Source:</label>
                                                     <select class="endpoint-base-data-source wiz-select" 
                                                             data-endpoint="<?php echo esc_attr($endpoint); ?>">
-                                                        <option value="student" <?php selected($endpoint_details['base_data_source'], 'student'); ?>>Student</option>
-                                                        <option value="parent" <?php selected($endpoint_details['base_data_source'], 'parent'); ?>>Parent</option>
+                                                        <option value="student" <?php selected($endpoint_details['base_data_source'], 'student'); ?>>Student (account_number)</option>
+                                                        <option value="parent" <?php selected($endpoint_details['base_data_source'], 'parent'); ?>>Parent (account_number)</option>
+                                                        <option value="location" <?php selected($endpoint_details['base_data_source'], 'location'); ?>>Location (location_id)</option>
                                                         <option value="custom" <?php selected($endpoint_details['base_data_source'], 'custom'); ?>>Custom</option>
                                                     </select>
                                                 </div>
                                                 
                                                 <div class="test-user-selector">
-                                                    <label class="test-user-label">Test User:</label>
-                                                    <?php if ($endpoint_details['base_data_source'] === 'parent'): ?>
+                                                    <?php if ($endpoint_details['base_data_source'] === 'location'): ?>
+                                                    <label class="test-user-label">Test Location:</label>
+                                                    <div class="location-id-input">
+                                                        <input type="text" class="manual-location-id wiz-input" placeholder="Enter Location ID">
+                                                        <button class="load-location-data wiz-button">Load Location</button>
+                                                    </div>
+                                                    <?php elseif ($endpoint_details['base_data_source'] === 'parent'): ?>
+                                                    <label class="test-user-label">Test Parent Account:</label>
                                                     <select class="test-user-select wiz-select" data-type="parent">
                                                         <?php
                                                         // Get parent accounts for user profile data source
@@ -122,6 +129,7 @@ global $wpdb;
                                                     </div>
                                                     <a href="#" class="toggle-user-input">Enter Parent Account Number manually</a>
                                                     <?php else: ?>
+                                                    <label class="test-user-label">Test User:</label>
                                                     <select class="test-user-select wiz-select" data-type="student">
                                                         <?php
                                                         // Get users from previous fiscal year with at least one from each division
