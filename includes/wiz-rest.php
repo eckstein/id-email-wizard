@@ -2821,7 +2821,26 @@ function idwiz_get_available_presets_callback() {
         return;
     }
     
-    wp_send_json_success(get_available_presets());
+    $all_presets = get_available_presets();
+    
+    // If a data source is specified, filter to compatible presets only
+    if (isset($_POST['data_source']) && !empty($_POST['data_source'])) {
+        $data_source = sanitize_text_field($_POST['data_source']);
+        $compatible_keys = get_compatible_presets($data_source);
+        
+        // Filter presets to only include compatible ones
+        $filtered_presets = [];
+        foreach ($all_presets as $key => $preset) {
+            if (in_array($key, $compatible_keys)) {
+                $filtered_presets[$key] = $preset;
+            }
+        }
+        
+        wp_send_json_success($filtered_presets);
+        return;
+    }
+    
+    wp_send_json_success($all_presets);
 }
 
 /**

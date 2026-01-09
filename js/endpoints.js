@@ -358,14 +358,16 @@ jQuery(document).ready(function ($) {
         return html;
     }
 
-    // Cache for presets
-    let presetsCache = null;
+    // Cache for presets (keyed by data source)
+    let presetsCache = {};
 
-    // Function to load presets
-    function loadPresets() {
+    // Function to load presets for a specific data source
+    // PHP is the single source of truth for which presets are compatible with which data sources
+    function loadPresets(dataSource = 'student') {
         return new Promise((resolve, reject) => {
-            if (presetsCache) {
-                resolve(presetsCache);
+            // Check cache for this data source
+            if (presetsCache[dataSource]) {
+                resolve(presetsCache[dataSource]);
                 return;
             }
 
@@ -374,12 +376,13 @@ jQuery(document).ready(function ($) {
                 type: 'POST',
                 data: {
                     action: 'idwiz_get_available_presets',
-                    security: idAjax_wiz_endpoints.nonce
+                    security: idAjax_wiz_endpoints.nonce,
+                    data_source: dataSource
                 },
                 success: function(response) {
                     if (response.success) {
-                        presetsCache = response.data;
-                        resolve(presetsCache);
+                        presetsCache[dataSource] = response.data;
+                        resolve(presetsCache[dataSource]);
                     } else {
                         reject('Failed to load presets');
                     }
@@ -391,43 +394,6 @@ jQuery(document).ready(function ($) {
         });
     }
 
-    // Function to get presets compatible with the base data source
-    function getCompatiblePresets(baseDataSource, allPresets) {
-        // Presets that work with student data
-        const studentPresets = [
-            'most_recent_purchase',
-            'last_location',
-            'nearby_locations',
-            'nearby_locations_with_course_recs',
-            'sessions_at_location_by_date',
-            'ipc_course_recs',
-            'idtc_course_recs',
-            'idta_course_recs',
-            'vtc_course_recs',
-            'ota_course_recs',
-            'opl_course_recs',
-            'current_year_continuity_recs'
-        ];
-        
-        // Presets that work with parent data
-        const parentPresets = [
-            'location_with_courses',
-            'sessions_at_location_by_date'
-        ];
-        
-        const compatiblePresetKeys = (baseDataSource === 'parent') ? parentPresets : studentPresets;
-        
-        // Filter the allPresets object to only include compatible presets
-        const compatiblePresets = {};
-        for (const presetKey in allPresets) {
-            if (compatiblePresetKeys.includes(presetKey)) {
-                compatiblePresets[presetKey] = allPresets[presetKey];
-            }
-        }
-        
-        return compatiblePresets;
-    }
-
     $(document).on('change', '.mapping-type', function() {
         const valueContainer = $(this).next();
         const type = $(this).val();
@@ -437,14 +403,12 @@ jQuery(document).ready(function ($) {
             const loadingSelect = $('<select class="mapping-preset wiz-select"><option>Loading presets...</option></select>');
             valueContainer.replaceWith(loadingSelect);
             
-            // Get base data source
+            // Get base data source - PHP handles filtering
             const baseDataSource = $(this).closest('.endpoint-content').find('.endpoint-base-data-source').val();
             
-            loadPresets()
+            loadPresets(baseDataSource)
                 .then(presets => {
-                    // Filter presets by compatibility with base data source
-                    const compatiblePresets = getCompatiblePresets(baseDataSource, presets);
-                    loadingSelect.html(generatePresetOptionsHtml(compatiblePresets));
+                    loadingSelect.html(generatePresetOptionsHtml(presets));
                 })
                 .catch(error => {
                     console.error('Error loading presets:', error);
@@ -736,15 +700,13 @@ jQuery(document).ready(function ($) {
                     // Replace with loading indicator
                     $presetDropdown.html('<option>Loading presets...</option>');
                     
-                    // Load and filter presets
-                    loadPresets()
+                    // Load presets filtered by data source (PHP handles filtering)
+                    loadPresets(baseDataSource)
                         .then(presets => {
-                            // Filter presets by compatibility with base data source
-                            const compatiblePresets = getCompatiblePresets(baseDataSource, presets);
-                            $presetDropdown.html(generatePresetOptionsHtml(compatiblePresets));
+                            $presetDropdown.html(generatePresetOptionsHtml(presets));
                             
                             // Try to restore previously selected value if it's compatible
-                            if (currentValue && compatiblePresets[currentValue]) {
+                            if (currentValue && presets[currentValue]) {
                                 $presetDropdown.val(currentValue);
                             }
                         })
@@ -882,6 +844,7 @@ jQuery(document).ready(function ($) {
     // Function to update preset definitions
     function updatePresetDefinitions($container) {
         const $definitionsContent = $container.find('.preset-definitions-content');
+        const baseDataSource = $container.find('.endpoint-base-data-source').val() || 'student';
         const usedPresets = new Set();
         
         // Collect all used presets
@@ -895,27 +858,28 @@ jQuery(document).ready(function ($) {
             }
         });
 
-        // If we have the presets cached, use them immediately
-        if (presetsCache) {
-            renderPresetDefinitions($definitionsContent, usedPresets);
+        // If we have the presets cached for this data source, use them immediately
+        if (presetsCache[baseDataSource]) {
+            renderPresetDefinitions($definitionsContent, usedPresets, baseDataSource);
         } else {
             // Otherwise load them first
-            loadPresets().then(() => {
-                renderPresetDefinitions($definitionsContent, usedPresets);
+            loadPresets(baseDataSource).then(() => {
+                renderPresetDefinitions($definitionsContent, usedPresets, baseDataSource);
             });
         }
     }
 
     // Function to render preset definitions
-    function renderPresetDefinitions($container, usedPresets) {
+    function renderPresetDefinitions($container, usedPresets, dataSource) {
         if (usedPresets.size === 0) {
             $container.html('<p class="no-presets-message">No presets currently in use. Add a preset mapping above to see its definition here.</p>');
             return;
         }
 
+        const presets = presetsCache[dataSource] || {};
         let html = '<dl class="preset-list">';
         for (const presetKey of usedPresets) {
-            const preset = presetsCache[presetKey];
+            const preset = presets[presetKey];
             if (preset) {
                 html += `<dt>${preset.name}</dt>`;
                 html += `<dd>${preset.description}</dd>`;

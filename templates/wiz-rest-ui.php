@@ -156,7 +156,16 @@ global $wpdb;
                                                         <select class="mapping-preset wiz-select">
                                                             <option value="">Select Preset</option>
                                                             <?php
-                                                            $presets = get_available_presets();
+                                                            // Get all presets, then filter by data source compatibility
+                                                            $all_presets = get_available_presets();
+                                                            $base_data_source = $endpoint_details['base_data_source'] ?? 'student';
+                                                            $compatible_preset_keys = get_compatible_presets($base_data_source);
+                                                            
+                                                            // Filter to only compatible presets
+                                                            $presets = array_filter($all_presets, function($key) use ($compatible_preset_keys) {
+                                                                return in_array($key, $compatible_preset_keys);
+                                                            }, ARRAY_FILTER_USE_KEY);
+                                                            
                                                             $current_group = null;
                                                             
                                                             // Sort presets by group then name
