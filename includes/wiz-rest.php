@@ -836,7 +836,7 @@ function get_location_lead_data($user_data) {
                         'maxAge' => intval($course['maxAge']),
                         'courseUrl' => $course['courseUrl'] ?? '',
                         'courseDesc' => $course['courseDesc'] ?? null,
-                        'sessions' => $sessions
+                        'sessions' => (object)$sessions // Cast to object for Iterable compatibility
                     ];
                     
                     // Categorize by division
@@ -858,8 +858,8 @@ function get_location_lead_data($user_data) {
             'address' => $address,
             'locationDesc' => $location['locationDesc'] ?? null,
             'overnightOffered' => $location['overnightOffered'] ?? 'No',
-            'camps' => $camps,
-            'academies' => $academies
+            'camps' => (object)$camps, // Cast to object for Iterable compatibility
+            'academies' => (object)$academies // Cast to object for Iterable compatibility
         ];
         
         if ($include_distance && $distance !== null) {
@@ -944,14 +944,18 @@ function get_location_lead_data($user_data) {
         }
     }
     
+    // Count camps and academies before they're cast to objects
+    $camps_count = is_object($lead_location['camps']) ? count((array)$lead_location['camps']) : count($lead_location['camps']);
+    $academies_count = is_object($lead_location['academies']) ? count((array)$lead_location['academies']) : count($lead_location['academies']);
+    
     return [
         'location' => $lead_location,
-        'nearby' => $nearby,
+        'nearby' => (object)$nearby, // Cast to object for Iterable compatibility
         'metadata' => [
             'lead_location_id' => $lead_location_id,
             'nearby_count' => count($nearby),
-            'total_camps' => count($lead_location['camps']),
-            'total_academies' => count($lead_location['academies'])
+            'total_camps' => $camps_count,
+            'total_academies' => $academies_count
         ]
     ];
 }
