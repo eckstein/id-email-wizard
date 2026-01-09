@@ -422,27 +422,43 @@ jQuery(document).ready(function ($) {
     // Toggle manual user ID input
     $(document).on('click', '.toggle-user-input', function(e) {
         e.preventDefault();
-        $('.user-id-input').slideToggle();
-        $(this).text($(this).text() === 'Enter Student Account Number manually' ? 'Select from dropdown' : 'Enter Student Account Number manually');
+        const $container = $(this).closest('.endpoint-content');
+        const $userIdInput = $container.find('.user-id-input');
+        const baseDataSource = $container.find('.endpoint-base-data-source').val();
+        const accountType = baseDataSource === 'parent' ? 'Parent Account Number' : 'Student Account Number';
+        
+        // Check visibility BEFORE toggling (since slideToggle is async)
+        const wasHidden = !$userIdInput.is(':visible');
+        
+        $userIdInput.slideToggle();
+        
+        // If it was hidden, it will now be visible (showing manual input)
+        // If it was visible, it will now be hidden (showing dropdown)
+        $(this).text(wasHidden ? 'Select from dropdown' : 'Enter ' + accountType + ' manually');
     });
 
     // Handle refresh preview button
     $(document).on('click', '.refresh-preview', function(e) {
         e.preventDefault();
         
-        // Get the current account number
-        const accountNumber = $('.test-user-select').val() || $('.manual-user-id').val();
+        const $container = $(this).closest('.endpoint-content');
+        
+        // Get the current account number from the active container
+        const dropdownVal = $container.find('.test-user-select').val();
+        const manualVal = $container.find('.manual-user-id').val();
+        const accountNumber = dropdownVal || manualVal;
         
         if (!accountNumber) {
-            alert('Please select a test user first');
+            alert('Please select or enter a test user first');
             return;
         }
         
-        // Clear cache for this account to force a fresh load
-        const cacheKey = accountNumber;
-        if (userDataCache.data[cacheKey]) {
-            delete userDataCache.data[cacheKey];
-            delete userDataCache.timestamps[cacheKey];
+        // Clear all caches that might contain this account to force a fresh load
+        for (const key in userDataCache.data) {
+            if (key.includes(accountNumber)) {
+                delete userDataCache.data[key];
+                delete userDataCache.timestamps[key];
+            }
         }
         
         // Reload the data
@@ -614,7 +630,9 @@ jQuery(document).ready(function ($) {
     $(document).on('change', '.test-user-select', function() {
         const accountNumber = $(this).val();
         if (accountNumber) {
-            $('.manual-user-id').val(accountNumber);
+            // Scope to the current endpoint container
+            const $container = $(this).closest('.endpoint-content');
+            $container.find('.manual-user-id').val(accountNumber);
             debouncedLoadUserData(accountNumber);
         }
     });
@@ -645,26 +663,28 @@ jQuery(document).ready(function ($) {
         const $container = $(this).closest('.endpoint-content');
         const $testUserContainer = $container.find('.test-user-selector');
         const $testUserSelect = $testUserContainer.find('.test-user-select');
+        const $userIdInput = $testUserContainer.find('.user-id-input');
+        const $toggleLink = $testUserContainer.find('.toggle-user-input');
         const currentType = $testUserSelect.data('type');
+        const isManualVisible = $userIdInput.is(':visible');
         
         // Update labels based on data source
+        const accountType = baseDataSource === 'parent' ? 'Parent Account Number' : 'Student Account Number';
+        const labelText = baseDataSource === 'parent' ? 'Test Parent Account:' : 'Test User:';
+        
+        $testUserContainer.find('.test-user-label').text(labelText);
+        $testUserContainer.find('.user-id-input label').text('Or enter ' + accountType + ':');
+        $testUserContainer.find('.manual-user-id').attr('placeholder', 'Enter ' + accountType);
+        
+        // Update toggle link text based on current visibility state
+        $toggleLink.text(isManualVisible ? 'Select from dropdown' : 'Enter ' + accountType + ' manually');
+        
+        // If dropdown type doesn't match the data source, reload options
         if (baseDataSource === 'parent') {
-            $testUserContainer.find('.test-user-label').text('Test Parent Account:');
-            $testUserContainer.find('.toggle-user-input').text('Enter Parent Account Number manually');
-            $testUserContainer.find('.user-id-input label').text('Or enter Parent Account Number:');
-            $testUserContainer.find('.manual-user-id').attr('placeholder', 'Enter Parent Account Number');
-            
-            // If dropdown type doesn't match the data source, reload options
             if (currentType !== 'parent') {
                 loadParentAccountOptions($testUserSelect);
             }
         } else {
-            $testUserContainer.find('.test-user-label').text('Test User:');
-            $testUserContainer.find('.toggle-user-input').text('Enter Student Account Number manually');
-            $testUserContainer.find('.user-id-input label').text('Or enter Student Account Number:');
-            $testUserContainer.find('.manual-user-id').attr('placeholder', 'Enter Student Account Number');
-            
-            // If dropdown type doesn't match the data source, reload options
             if (currentType !== 'student') {
                 loadStudentAccountOptions($testUserSelect);
             }
@@ -774,10 +794,13 @@ jQuery(document).ready(function ($) {
     // Handle endpoint testing
     $(document).on('click', '.test-endpoint', function(e) {
         e.preventDefault();
-        const accountNumber = $('.test-user-select').val() || $('.manual-user-id').val();
+        const $container = $(this).closest('.endpoint-content');
+        const dropdownVal = $container.find('.test-user-select').val();
+        const manualVal = $container.find('.manual-user-id').val();
+        const accountNumber = dropdownVal || manualVal;
         
         if (!accountNumber) {
-            alert('Please select a test user first');
+            alert('Please select or enter a test user first');
             return;
         }
 
