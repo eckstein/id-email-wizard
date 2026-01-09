@@ -720,6 +720,243 @@ function get_nearby_locations_from_base($user_data, $radius_miles = 30) {
 }
 
 /**
+ * Get location lead data with courses organized by type and session availability
+ * Uses the parent's leadLocationId to get full location data
+ * 
+ * @param array $user_data Parent/user data containing leadLocationId
+ * @return array|null Location data with camps, academies, and nearby locations
+ */
+function get_location_lead_data($user_data) {
+    global $wpdb;
+    
+    // Get the leadLocationId
+    $lead_location_id = null;
+    
+    if (isset($user_data['leadLocationId']) && $user_data['leadLocationId'] > 0) {
+        $lead_location_id = intval($user_data['leadLocationId']);
+    }
+    
+    if (empty($lead_location_id)) {
+        return null;
+    }
+    
+    // Sessions must start at least 2 days from now
+    $min_start_date = (new DateTime('today'))->setTime(0, 0, 0)->modify('+2 days');
+    $min_start_date_str = $min_start_date->format('Y-m-d');
+    
+    // Helper function to get location data with courses and sessions
+    $get_location_with_sessions = function($location_id, $include_distance = false, $distance = null) use ($wpdb, $min_start_date_str) {
+        // Get location details
+        $location = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id, name, abbreviation, locationStatus, address, locationUrl, courses, locationDesc, overnightOffered 
+                 FROM {$wpdb->prefix}idemailwiz_locations 
+                 WHERE id = %d 
+                 AND locationStatus IN ('Open', 'Registration opens soon')
+                 AND id != 324",
+                $location_id
+            ),
+            ARRAY_A
+        );
+        
+        if (!$location) {
+            return null;
+        }
+        
+        // Safer unserialize function
+        $safe_unserialize = function($data, $default = null) {
+            if (empty($data)) return $default;
+            if (!is_string($data) || !preg_match('/^[aOs]:[0-9]+:/', $data)) return $data;
+            $result = @unserialize($data);
+            return ($result !== false) ? $result : $default;
+        };
+        
+        $address = $safe_unserialize($location['address'], null);
+        $course_ids = $safe_unserialize($location['courses'], []);
+        
+        // Get courses for this location (only iDTC and iDTA, active only)
+        $camps = [];
+        $academies = [];
+        
+        if (!empty($course_ids)) {
+            $course_ids = array_map('intval', $course_ids);
+            $course_ids = array_filter($course_ids, function($id) { return $id > 0; });
+            
+            if (!empty($course_ids)) {
+                $placeholders = implode(',', array_fill(0, count($course_ids), '%d'));
+                $courses = $wpdb->get_results(
+                    $wpdb->prepare(
+                        "SELECT id, title, abbreviation, division_id, minAge, maxAge, courseUrl, courseDesc
+                         FROM {$wpdb->prefix}idemailwiz_courses 
+                         WHERE id IN ($placeholders)
+                         AND division_id IN (22, 25)
+                         AND wizStatus = 'Active'",
+                        $course_ids
+                    ),
+                    ARRAY_A
+                );
+                
+                foreach ($courses as $course) {
+                    // Get session/capacity data for this course at this location
+                    $capacity_data = get_idwiz_course_capacity([
+                        'locationID' => $location_id,
+                        'productID' => $course['id'],
+                        'sortBy' => 'sessionStartDate',
+                        'sort' => 'ASC'
+                    ]);
+                    
+                    $sessions = [];
+                    if (!empty($capacity_data)) {
+                        foreach ($capacity_data as $session) {
+                            // Only include future sessions
+                            if (empty($session['sessionStartDate']) || $session['sessionStartDate'] < $min_start_date_str) {
+                                continue;
+                            }
+                            
+                            $sessions[] = [
+                                'session_start_date' => $session['sessionStartDate'],
+                                'course_start_date' => $session['courseStartDate'],
+                                'seats_left' => intval($session['courseSeatsLeft']),
+                                'total_capacity' => intval($session['courseCapacityTotal']),
+                                'availability_status' => get_availability_status($session['courseSeatsLeft'], $session['courseCapacityTotal'])
+                            ];
+                        }
+                    }
+                    
+                    // Only include courses that have future sessions
+                    if (empty($sessions)) {
+                        continue;
+                    }
+                    
+                    $course_data = [
+                        'id' => intval($course['id']),
+                        'title' => $course['title'],
+                        'abbreviation' => $course['abbreviation'],
+                        'minAge' => intval($course['minAge']),
+                        'maxAge' => intval($course['maxAge']),
+                        'courseUrl' => $course['courseUrl'] ?? '',
+                        'courseDesc' => $course['courseDesc'] ?? null,
+                        'sessions' => $sessions
+                    ];
+                    
+                    // Categorize by division
+                    if ($course['division_id'] == 22) {
+                        $academies[] = $course_data;
+                    } else {
+                        $camps[] = $course_data;
+                    }
+                }
+            }
+        }
+        
+        $location_data = [
+            'id' => intval($location['id']),
+            'name' => $location['name'],
+            'abbreviation' => $location['abbreviation'] ?? null,
+            'status' => $location['locationStatus'],
+            'url' => !empty($location['locationUrl']) ? $location['locationUrl'] : null,
+            'address' => $address,
+            'locationDesc' => $location['locationDesc'] ?? null,
+            'overnightOffered' => $location['overnightOffered'] ?? 'No',
+            'camps' => $camps,
+            'academies' => $academies
+        ];
+        
+        if ($include_distance && $distance !== null) {
+            $location_data['distance'] = $distance;
+        }
+        
+        return $location_data;
+    };
+    
+    // Get the lead location data
+    $lead_location = $get_location_with_sessions($lead_location_id);
+    
+    if (!$lead_location) {
+        return null;
+    }
+    
+    // Get coordinates from lead location for nearby search
+    $lead_coordinates = null;
+    if (isset($lead_location['address']) && 
+        !empty($lead_location['address']['latitude']) && 
+        !empty($lead_location['address']['longitude'])) {
+        $lead_coordinates = [
+            'latitude' => $lead_location['address']['latitude'],
+            'longitude' => $lead_location['address']['longitude']
+        ];
+    }
+    
+    // Get nearby locations
+    $nearby = [];
+    
+    if ($lead_coordinates) {
+        // Get all active locations that host iDTC or iDTA
+        $locations_query = $wpdb->prepare(
+            "SELECT id, name, address
+            FROM {$wpdb->prefix}idemailwiz_locations
+            WHERE locationStatus IN ('Open', 'Registration opens soon')
+            AND id != 324
+            AND id != %d
+            AND (divisions LIKE %s OR divisions LIKE %s)",
+            $lead_location_id,
+            '%i:22;%',
+            '%i:25;%'
+        );
+        
+        $potential_locations = $wpdb->get_results($locations_query, ARRAY_A);
+        
+        if (!empty($potential_locations)) {
+            $safe_unserialize = function($data, $default = null) {
+                if (empty($data)) return $default;
+                if (!is_string($data) || !preg_match('/^[aOs]:[0-9]+:/', $data)) return $data;
+                $result = @unserialize($data);
+                return ($result !== false) ? $result : $default;
+            };
+            
+            foreach ($potential_locations as $loc) {
+                $loc_address = $safe_unserialize($loc['address'], null);
+                
+                if (empty($loc_address['latitude']) || empty($loc_address['longitude'])) {
+                    continue;
+                }
+                
+                $distance = calculate_distance(
+                    $lead_coordinates['latitude'],
+                    $lead_coordinates['longitude'],
+                    $loc_address['latitude'],
+                    $loc_address['longitude']
+                );
+                
+                // Only include locations within 30 miles
+                if ($distance <= 30) {
+                    $nearby_location = $get_location_with_sessions($loc['id'], true, round($distance, 1));
+                    if ($nearby_location && (!empty($nearby_location['camps']) || !empty($nearby_location['academies']))) {
+                        $nearby[] = $nearby_location;
+                    }
+                }
+            }
+            
+            // Sort nearby by distance
+            usort($nearby, function($a, $b) {
+                return $a['distance'] <=> $b['distance'];
+            });
+        }
+    }
+    
+    return [
+        'location' => $lead_location,
+        'nearby' => $nearby,
+        'metadata' => [
+            'lead_location_id' => $lead_location_id,
+            'nearby_count' => count($nearby),
+            'total_camps' => count($lead_location['camps']),
+            'total_academies' => count($lead_location['academies'])
+        ]
+    ];
+}
+
+/**
  * Get all available presets and their metadata
  * This is the single source of truth for preset definitions
  */
@@ -744,6 +981,11 @@ function get_available_presets() {
             'name' => 'Nearby Locations (From Base Location)',
             'group' => 'Location Details',
             'description' => 'Finds the user\'s base location (student\'s previous location or parent\'s lead location) and returns all nearby camp locations within 30 miles. Works for both student and parent data sources. Excludes the base location from results.'
+        ],
+        'location_lead_data' => [
+            'name' => 'Location Lead Data',
+            'group' => 'Location Details',
+            'description' => 'Uses the parent\'s leadLocationId to get full location data with courses organized into camps and academies arrays. Each course includes nested session data with seat availability. Also includes a nearby array with the same structure for locations within 30 miles.'
         ],
         'location_with_courses' => [
             'name' => 'Location With Courses',
@@ -817,6 +1059,8 @@ function process_preset_value($preset_name, $student_data) {
             return get_nearby_locations($student_data, 30); // 30 miles radius
         case 'nearby_locations_from_base':
             return get_nearby_locations_from_base($student_data, 30); // 30 miles radius
+        case 'location_lead_data':
+            return get_location_lead_data($student_data);
         case 'location_with_courses':
             return get_location_with_courses($student_data);
         case 'sessions_at_location_by_date':
@@ -3358,7 +3602,8 @@ function get_compatible_presets($data_source = 'student') {
     $parent_presets = [
         'location_with_courses',
         'sessions_at_location_by_date',
-        'nearby_locations_from_base'
+        'nearby_locations_from_base',
+        'location_lead_data'
     ];
     
     // Return appropriate presets based on data source
