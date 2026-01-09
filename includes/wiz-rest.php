@@ -507,6 +507,219 @@ function get_nearby_locations($student_data, $radius_miles = 30) {
 }
 
 /**
+ * Get nearby locations from a base location (works for both students and parents)
+ * Uses the same location-finding logic as get_location_with_courses
+ * @param array $user_data User data (student or parent)
+ * @param int $radius_miles Radius in miles to search
+ * @return array Array of nearby locations excluding the base location
+ */
+function get_nearby_locations_from_base($user_data, $radius_miles = 30) {
+    global $wpdb;
+    
+    $base_location_id = null;
+    $base_coordinates = null;
+    $location_source = 'unknown';
+    
+    // Determine if we are working with a parent/lead account
+    $is_parent_account = isset($user_data['userId']) && !isset($user_data['studentAccountNumber']);
+    
+    // First priority: Parent/lead account with a leadLocationId
+    if ($is_parent_account && isset($user_data['leadLocationId']) && $user_data['leadLocationId'] > 0) {
+        $base_location_id = intval($user_data['leadLocationId']);
+        $location_source = 'parent_lead_location';
+    } 
+    // Second priority: Student's last location
+    else if (isset($user_data['studentAccountNumber']) || isset($user_data['StudentAccountNumber'])) {
+        $last_location = get_last_location($user_data);
+        
+        if ($last_location && isset($last_location['id']) && $last_location['id'] > 0) {
+            $base_location_id = intval($last_location['id']);
+            $location_source = 'student_previous_location';
+            
+            // Get coordinates from last_location if available
+            if (isset($last_location['address']) && 
+                !empty($last_location['address']['latitude']) && 
+                !empty($last_location['address']['longitude'])) {
+                $base_coordinates = [
+                    'latitude' => $last_location['address']['latitude'],
+                    'longitude' => $last_location['address']['longitude']
+                ];
+            }
+        } else {
+            // Fall back to parent's leadLocationId if student has no previous location
+            if (!empty($user_data['accountNumber'])) {
+                $parent = $wpdb->get_row(
+                    $wpdb->prepare(
+                        "SELECT leadLocationId FROM {$wpdb->prefix}idemailwiz_users WHERE accountNumber = %s LIMIT 1",
+                        $user_data['accountNumber']
+                    ),
+                    ARRAY_A
+                );
+                
+                if ($parent && isset($parent['leadLocationId']) && $parent['leadLocationId'] > 0) {
+                    $base_location_id = intval($parent['leadLocationId']);
+                    $location_source = 'parent_lead_location';
+                }
+            }
+        }
+    } 
+    // Handle other parent account scenarios
+    else {
+        if (isset($user_data['leadLocationId']) && $user_data['leadLocationId'] > 0) {
+            $base_location_id = intval($user_data['leadLocationId']);
+            $location_source = 'parent_lead_location';
+        } 
+        else if (isset($user_data['studentArray']) && !empty($user_data['studentArray'])) {
+            $student_array = is_string($user_data['studentArray']) ? unserialize($user_data['studentArray']) : $user_data['studentArray'];
+            
+            if (is_array($student_array) && !empty($student_array)) {
+                foreach ($student_array as $student_info) {
+                    if (isset($student_info['StudentAccountNumber'])) {
+                        $temp_student_data = [
+                            'studentAccountNumber' => $student_info['StudentAccountNumber'],
+                            'StudentAccountNumber' => $student_info['StudentAccountNumber']
+                        ];
+                        
+                        $student_last_location = get_last_location($temp_student_data);
+                        
+                        if ($student_last_location && isset($student_last_location['id']) && $student_last_location['id'] > 0) {
+                            $base_location_id = intval($student_last_location['id']);
+                            $location_source = 'student_previous_location';
+                            
+                            if (isset($student_last_location['address']) && 
+                                !empty($student_last_location['address']['latitude']) && 
+                                !empty($student_last_location['address']['longitude'])) {
+                                $base_coordinates = [
+                                    'latitude' => $student_last_location['address']['latitude'],
+                                    'longitude' => $student_last_location['address']['longitude']
+                                ];
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // If no base location found, return null
+    if (empty($base_location_id) || $base_location_id <= 0) {
+        return null;
+    }
+    
+    // If we don't have coordinates yet, get them from the base location
+    if (!$base_coordinates) {
+        $base_location_data = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id, name, address, locationUrl, locationStatus 
+                 FROM {$wpdb->prefix}idemailwiz_locations 
+                 WHERE id = %d",
+                $base_location_id
+            ),
+            ARRAY_A
+        );
+        
+        if (!$base_location_data) {
+            return null;
+        }
+        
+        $base_address = @unserialize($base_location_data['address']);
+        if (empty($base_address['latitude']) || empty($base_address['longitude'])) {
+            return null;
+        }
+        
+        $base_coordinates = [
+            'latitude' => $base_address['latitude'],
+            'longitude' => $base_address['longitude']
+        ];
+    }
+    
+    // Get all active locations that host iDTC or iDTA
+    $locations_query = $wpdb->prepare(
+        "SELECT id, name, locationStatus, address, addressArea, locationUrl, courses, sessionWeeks, locationDesc, overnightOffered
+        FROM {$wpdb->prefix}idemailwiz_locations
+        WHERE locationStatus IN ('Open', 'Registration opens soon')
+        AND addressArea IS NOT NULL AND addressArea != ''
+        AND divisions IS NOT NULL
+        AND id != 324 -- Exclude Online Campus
+        AND id != %d -- Exclude the base location
+        AND (divisions LIKE %s OR divisions LIKE %s)",
+        $base_location_id,
+        '%i:22;%', // iDTA
+        '%i:25;%'  // iDTC
+    );
+    
+    $locations = $wpdb->get_results($locations_query, ARRAY_A);
+    
+    if (empty($locations)) {
+        return [
+            'base_location_id' => $base_location_id,
+            'location_source' => $location_source,
+            'base_coordinates' => $base_coordinates,
+            'total_count' => 0,
+            'locations' => []
+        ];
+    }
+    
+    // Safer unserialize function
+    $safe_unserialize = function($data, $default = null) {
+        if (empty($data)) return $default;
+        if (!is_string($data) || !preg_match('/^[aOs]:[0-9]+:/', $data)) return $data;
+        $result = @unserialize($data);
+        return ($result !== false) ? $result : $default;
+    };
+    
+    // Calculate distance for each location and filter by radius
+    $nearby_locations = [];
+    
+    foreach ($locations as $location) {
+        $address = $safe_unserialize($location['address'], null);
+        
+        // Skip locations without coordinates
+        if (empty($address['latitude']) || empty($address['longitude'])) {
+            continue;
+        }
+        
+        // Calculate distance
+        $distance = calculate_distance(
+            $base_coordinates['latitude'],
+            $base_coordinates['longitude'],
+            $address['latitude'],
+            $address['longitude']
+        );
+        
+        // Add location if within radius
+        if ($distance <= $radius_miles) {
+            $nearby_locations[] = [
+                'id' => $location['id'],
+                'name' => $location['name'],
+                'status' => $location['locationStatus'],
+                'url' => !empty($location['locationUrl']) ? $location['locationUrl'] : null,
+                'address' => $address,
+                'distance' => round($distance, 1),
+                'courses' => $safe_unserialize($location['courses'], []),
+                'sessionWeeks' => $safe_unserialize($location['sessionWeeks'], []),
+                'locationDesc' => $location['locationDesc'] ?? null,
+                'overnightOffered' => $location['overnightOffered'] ?? 'No'
+            ];
+        }
+    }
+    
+    // Sort by distance
+    usort($nearby_locations, function($a, $b) {
+        return $a['distance'] <=> $b['distance'];
+    });
+    
+    return [
+        'base_location_id' => $base_location_id,
+        'location_source' => $location_source,
+        'base_coordinates' => $base_coordinates,
+        'total_count' => count($nearby_locations),
+        'locations' => $nearby_locations
+    ];
+}
+
+/**
  * Get all available presets and their metadata
  * This is the single source of truth for preset definitions
  */
@@ -526,6 +739,11 @@ function get_available_presets() {
             'name' => 'Nearby Camp Locations (30 Miles)',
             'group' => 'Location History',
             'description' => 'Returns locations within 30 miles of the student\'s last known location, sorted by distance. Uses Haversine formula for accurate distance calculation. Returns empty array if no coordinates found for student or no locations within range.'
+        ],
+        'nearby_locations_from_base' => [
+            'name' => 'Nearby Locations (From Base Location)',
+            'group' => 'Location Details',
+            'description' => 'Finds the user\'s base location (student\'s previous location or parent\'s lead location) and returns all nearby camp locations within 30 miles. Works for both student and parent data sources. Excludes the base location from results.'
         ],
         'location_with_courses' => [
             'name' => 'Location With Courses',
@@ -597,6 +815,8 @@ function process_preset_value($preset_name, $student_data) {
             return get_last_location($student_data);
         case 'nearby_locations':
             return get_nearby_locations($student_data, 30); // 30 miles radius
+        case 'nearby_locations_from_base':
+            return get_nearby_locations_from_base($student_data, 30); // 30 miles radius
         case 'location_with_courses':
             return get_location_with_courses($student_data);
         case 'sessions_at_location_by_date':
@@ -3103,6 +3323,7 @@ function get_compatible_presets($data_source = 'student') {
         'most_recent_purchase',
         'last_location',
         'nearby_locations',
+        'nearby_locations_from_base',
         'nearby_locations_with_course_recs',
         'sessions_at_location_by_date',
         'ipc_course_recs',
@@ -3117,7 +3338,8 @@ function get_compatible_presets($data_source = 'student') {
     // Presets that work with parent data
     $parent_presets = [
         'location_with_courses',
-        'sessions_at_location_by_date'
+        'sessions_at_location_by_date',
+        'nearby_locations_from_base'
     ];
     
     // Return appropriate presets based on data source
