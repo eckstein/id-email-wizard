@@ -47,7 +47,11 @@ function wizPulse_map_locations_to_database()
         $processed = 0;
         $updated = 0;
         $inserted = 0;
+        $deleted = 0;
         $preserved_manual_values = 0;
+        
+        // Collect all location IDs from API for purge check
+        $api_location_ids = array_column($locations, 'id');
         
         // Start transaction for better performance
         $wpdb->query('START TRANSACTION');
@@ -172,6 +176,20 @@ function wizPulse_map_locations_to_database()
                 }
             }
             
+            // Purge locations that exist locally but are no longer in the API
+            $local_location_ids = array_keys($existing_locations_by_id);
+            $stale_location_ids = array_diff($local_location_ids, $api_location_ids);
+            
+            if (!empty($stale_location_ids)) {
+                $ids_placeholder = implode(',', array_map('intval', $stale_location_ids));
+                $delete_result = $wpdb->query("DELETE FROM $table_name WHERE id IN ($ids_placeholder)");
+                
+                if ($delete_result !== false) {
+                    $deleted = $delete_result;
+                    wiz_log("Location Sync: Purged $deleted stale locations no longer in Pulse API (IDs: $ids_placeholder)");
+                }
+            }
+            
             // Commit transaction
             $wpdb->query('COMMIT');
             
@@ -182,9 +200,11 @@ function wizPulse_map_locations_to_database()
         }
         
         $log_message = "Location Sync: Successfully processed $processed locations from Pulse API";
-        if ($updated > 0) $log_message .= " ($updated updated";
-        if ($inserted > 0) $log_message .= ($updated > 0 ? ", $inserted inserted" : " ($inserted inserted");
-        if ($updated > 0 || $inserted > 0) $log_message .= ")";
+        $details = array();
+        if ($updated > 0) $details[] = "$updated updated";
+        if ($inserted > 0) $details[] = "$inserted inserted";
+        if ($deleted > 0) $details[] = "$deleted purged";
+        if (!empty($details)) $log_message .= " (" . implode(", ", $details) . ")";
         if ($preserved_manual_values > 0) $log_message .= " - Preserved $preserved_manual_values manual locationDesc values";
         
         wiz_log($log_message);
