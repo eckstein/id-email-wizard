@@ -2769,13 +2769,19 @@ function idwiz_endpoint_handler($request) {
     $identifier = '';
     $cache_identifier = '';
     
-    // Location data source uses location_id, others use account_number
+    // Location data source uses location_id, quiz_url uses courseRecUrl, others use account_number
     if ($base_data_source === 'location') {
         $identifier = isset($params['location_id']) ? intval($params['location_id']) : 0;
         if (empty($identifier)) {
             return new WP_REST_Response(['error' => 'location_id parameter is required for this endpoint'], 400);
         }
         $cache_identifier = 'loc_' . $identifier;
+    } else if ($base_data_source === 'quiz_url') {
+        $identifier = isset($params['courseRecUrl']) ? sanitize_text_field(urldecode($params['courseRecUrl'])) : '';
+        if (empty($identifier)) {
+            return new WP_REST_Response(['error' => 'courseRecUrl parameter is required for this endpoint'], 400);
+        }
+        $cache_identifier = 'quiz_' . md5($identifier);
     } else {
         $identifier = isset($params['account_number']) ? sanitize_text_field($params['account_number']) : '';
         if (empty($identifier)) {
@@ -2868,6 +2874,11 @@ function idwiz_endpoint_handler($request) {
             $feed_data['turned_10'] = false;
             $feed_data['turned_13'] = false;
         }
+    } else if ($base_data_source === 'quiz_url') {
+        // Quiz URL data source - pass the URL to presets for parsing
+        $feed_data = [
+            'courseRecUrl' => $identifier
+        ];
     } else {
         // Custom data source - just create an empty container
         $feed_data = ['accountNumber' => $identifier];
