@@ -743,6 +743,12 @@ function wizPulse_map_courses_to_database()
                             $preserved_manual_values++;
                         }
                         
+                        // A course must have both courseUrl AND courseDesc to be Active
+                        // If either is missing, override wizStatus to Inactive
+                        if (empty($course['courseUrl']) || empty($course['courseDesc'])) {
+                            $course['wizStatus'] = 'Inactive';
+                        }
+                        
                         // Build update data with proper format specifiers
                         $update_data = array();
                         $update_formats = array();
@@ -784,6 +790,9 @@ function wizPulse_map_courses_to_database()
                         }
                     } else {
                         // New course - insert directly
+                        // New courses don't have courseUrl/courseDesc yet, so they must be Inactive
+                        $course['wizStatus'] = 'Inactive';
+                        
                         $result = $wpdb->insert($table_name, $course);
                         
                         if ($result) {
