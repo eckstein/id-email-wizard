@@ -1761,6 +1761,14 @@ function get_quiz_result_recs($data) {
         return null;
     }
     
+    // Decode HTML entities (e.g., &amp; -> &) that may come from Iterable or other sources
+    $course_rec_url = html_entity_decode($course_rec_url, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    
+    // Also handle double-encoded URLs (URL decode if needed)
+    if (strpos($course_rec_url, '%') !== false) {
+        $course_rec_url = urldecode($course_rec_url);
+    }
+    
     // Parse the URL query string
     $parsed_url = parse_url($course_rec_url);
     if (!isset($parsed_url['query'])) {
@@ -2777,10 +2785,13 @@ function idwiz_endpoint_handler($request) {
         }
         $cache_identifier = 'loc_' . $identifier;
     } else if ($base_data_source === 'quiz_url') {
-        $identifier = isset($params['courseRecUrl']) ? sanitize_text_field(urldecode($params['courseRecUrl'])) : '';
-        if (empty($identifier)) {
+        $raw_url = isset($params['courseRecUrl']) ? $params['courseRecUrl'] : '';
+        if (empty($raw_url)) {
             return new WP_REST_Response(['error' => 'courseRecUrl parameter is required for this endpoint'], 400);
         }
+        // URL decode, then decode HTML entities (e.g., &amp; -> &)
+        $identifier = html_entity_decode(urldecode($raw_url), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $identifier = sanitize_text_field($identifier);
         $cache_identifier = 'quiz_' . md5($identifier);
     } else {
         $identifier = isset($params['account_number']) ? sanitize_text_field($params['account_number']) : '';
