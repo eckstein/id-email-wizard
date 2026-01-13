@@ -1781,7 +1781,6 @@ function get_quiz_result_recs($data) {
     $interests_raw = $query_params['interests'] ?? '';
     $programs = $query_params['programs'] ?? 'all';
     $age = isset($query_params['age']) ? intval($query_params['age']) : null;
-    $format = $query_params['format'] ?? '';
     
     // Parse interests into array of genre IDs
     $interest_ids = [];
@@ -1798,62 +1797,15 @@ function get_quiz_result_recs($data) {
         295006 => 'Math'
     ];
     
-    // Determine division_ids based on format and programs
+    // IPC only - On-Campus divisions: iDTC (25) for camps, iDTA (22) for academies
     $division_ids = [];
     
-    // Format determines On-Campus vs Online
-    // 405000 = On-Campus (iDTC=25, iDTA=22)
-    // 405001 = Online (VTC=42, OPL=41, OTA=47)
-    if ($format === '405000') {
-        // On-Campus divisions
-        if ($programs === 'twoWeek') {
-            // Teen Academies only
-            $division_ids = [22]; // iDTA
-        } elseif ($programs === 'private') {
-            // Private lessons don't apply to on-campus, return empty
-            $division_ids = [];
-        } else {
-            // All on-campus: iDTC and iDTA
-            $division_ids = [25, 22];
-        }
-    } elseif ($format === '405001') {
-        // Online divisions
-        if ($programs === 'twoWeek') {
-            // Online Teen Academies
-            $division_ids = [47]; // OTA
-        } elseif ($programs === 'private') {
-            // Private Lessons
-            $division_ids = [41]; // OPL
-        } else {
-            // All online: VTC, OPL, OTA
-            $division_ids = [42, 41, 47];
-        }
+    if ($programs === 'twoWeek') {
+        // Teen Academies only
+        $division_ids = [22]; // iDTA
     } else {
-        // No format specified or unknown - include all based on programs
-        if ($programs === 'twoWeek') {
-            $division_ids = [22, 47]; // iDTA and OTA
-        } elseif ($programs === 'private') {
-            $division_ids = [41]; // OPL
-        } else {
-            // All divisions
-            $division_ids = [25, 22, 42, 41, 47];
-        }
-    }
-    
-    // If no valid divisions, return empty result
-    if (empty($division_ids)) {
-        return [
-            'metadata' => [
-                'parsed_url' => $course_rec_url,
-                'interests' => $interest_ids,
-                'programs' => $programs,
-                'format' => $format,
-                'age' => $age,
-                'division_ids' => [],
-                'total_courses' => 0
-            ],
-            'courses' => []
-        ];
+        // All on-campus: iDTC and iDTA (camps and academies)
+        $division_ids = [25, 22];
     }
     
     // Build the query
@@ -1878,8 +1830,10 @@ function get_quiz_result_recs($data) {
     $prepared_query = $wpdb->prepare($query, $query_params_sql);
     $courses = $wpdb->get_results($prepared_query, ARRAY_A);
     
-    // Filter courses by interests (genres) if any interests were specified
-    $matching_courses = [];
+    // Filter courses by interests (genres) and split into camps/academies
+    $camps = [];
+    $academies = [];
+    
     foreach ($courses as $course) {
         // Check if course matches any of the requested interests
         $matches_interest = empty($interest_ids); // If no interests specified, all courses match
@@ -1912,21 +1866,10 @@ function get_quiz_result_recs($data) {
                 }
             }
             
-            // Get division name
-            $division_names = [
-                22 => 'iD Teen Academies',
-                25 => 'iD Tech Camps',
-                41 => 'Online Private Lessons',
-                42 => 'Virtual Tech Camps',
-                47 => 'Online Teen Academies'
-            ];
-            
-            $matching_courses[] = [
+            $course_data = [
                 'id' => (int)$course['id'],
                 'title' => $course['title'],
                 'abbreviation' => $course['abbreviation'],
-                'division_id' => (int)$course['division_id'],
-                'division_name' => $division_names[$course['division_id']] ?? 'Unknown',
                 'minAge' => (int)$course['minAge'],
                 'maxAge' => (int)$course['maxAge'],
                 'genres' => $course_genres,
@@ -1935,6 +1878,13 @@ function get_quiz_result_recs($data) {
                 'isNew' => (bool)$course['isNew'],
                 'isMostPopular' => (bool)$course['isMostPopular']
             ];
+            
+            // Split into camps (iDTC = 25) and academies (iDTA = 22)
+            if ((int)$course['division_id'] === 22) {
+                $academies[] = $course_data;
+            } else {
+                $camps[] = $course_data;
+            }
         }
     }
     
@@ -1952,13 +1902,15 @@ function get_quiz_result_recs($data) {
             'interests' => $interest_ids,
             'interest_names' => $interest_names,
             'programs' => $programs,
-            'format' => $format,
-            'format_name' => ($format === '405000') ? 'On-Campus' : (($format === '405001') ? 'Online' : 'All'),
             'age' => $age,
-            'division_ids' => $division_ids,
-            'total_courses' => count($matching_courses)
+            'total_camps' => count($camps),
+            'total_academies' => count($academies),
+            'total_courses' => count($camps) + count($academies)
         ],
-        'courses' => $matching_courses
+        'courses' => [
+            'camps' => $camps,
+            'academies' => $academies
+        ]
     ];
 }
 
