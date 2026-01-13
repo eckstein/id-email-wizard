@@ -806,6 +806,12 @@ function wizPulse_map_courses_to_database()
                 $log_message .= " - Preserved $preserved_manual_values manual values (course_recs, courseUrl, courseDesc)";
             }
             wiz_log($log_message);
+            
+            // Deactivate orphaned courses (those no longer returned from the API)
+            $orphaned_count = wizPulse_deactivate_orphaned_courses($course_ids);
+            if ($orphaned_count > 0) {
+                wiz_log("Course Sync: Deactivated $orphaned_count orphaned courses no longer in API");
+            }
         } else {
             wiz_log("Course Sync Warning: No courses to process after filtering");
         }
@@ -813,6 +819,53 @@ function wizPulse_map_courses_to_database()
     } catch (Exception $e) {
         wiz_log("Course Sync Error: " . $e->getMessage());
     }
+}
+
+/**
+ * Deactivate courses that are no longer returned from the Pulse API
+ * 
+ * @param array $synced_course_ids Array of course IDs that were just synced from the API
+ * @return int Number of courses deactivated
+ */
+function wizPulse_deactivate_orphaned_courses($synced_course_ids)
+{
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'idemailwiz_courses';
+    
+    if (empty($synced_course_ids)) {
+        wiz_log("Course Sync Warning: No synced course IDs provided, skipping orphan deactivation to prevent accidental mass deactivation");
+        return 0;
+    }
+    
+    // Get all currently active courses that were NOT in the sync
+    $placeholders = implode(',', array_fill(0, count($synced_course_ids), '%d'));
+    $query = $wpdb->prepare(
+        "SELECT id, abbreviation FROM {$table_name} WHERE wizStatus = 'Active' AND id NOT IN ($placeholders)",
+        $synced_course_ids
+    );
+    
+    $orphaned_courses = $wpdb->get_results($query, ARRAY_A);
+    
+    if (empty($orphaned_courses)) {
+        return 0;
+    }
+    
+    // Log which courses are being deactivated
+    $orphaned_abbrevs = array_column($orphaned_courses, 'abbreviation');
+    wiz_log("Course Sync: Deactivating orphaned courses: " . implode(', ', $orphaned_abbrevs));
+    
+    // Update all orphaned courses to Inactive
+    $orphaned_ids = array_column($orphaned_courses, 'id');
+    $update_placeholders = implode(',', array_fill(0, count($orphaned_ids), '%d'));
+    
+    $result = $wpdb->query(
+        $wpdb->prepare(
+            "UPDATE {$table_name} SET wizStatus = 'Inactive' WHERE id IN ($update_placeholders)",
+            $orphaned_ids
+        )
+    );
+    
+    return $result !== false ? count($orphaned_courses) : 0;
 }
 
 //Run cron daily to refresh courses
