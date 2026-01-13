@@ -102,7 +102,7 @@ global $wpdb;
                                                         <option value="student" <?php selected($endpoint_details['base_data_source'], 'student'); ?>>Student (account_number)</option>
                                                         <option value="parent" <?php selected($endpoint_details['base_data_source'], 'parent'); ?>>Parent (account_number)</option>
                                                         <option value="location" <?php selected($endpoint_details['base_data_source'], 'location'); ?>>Location (location_id)</option>
-                                                        <option value="custom" <?php selected($endpoint_details['base_data_source'], 'custom'); ?>>Custom</option>
+                                                        <option value="quiz_url" <?php selected($endpoint_details['base_data_source'], 'quiz_url'); ?>>Quiz URL String (courseRecUrl)</option>
                                                     </select>
                                                 </div>
                                                 
@@ -128,6 +128,12 @@ global $wpdb;
                                                         <button class="load-user-data wiz-button">Load User</button>
                                                     </div>
                                                     <a href="#" class="toggle-user-input">Enter Parent Account Number manually</a>
+                                                    <?php elseif ($endpoint_details['base_data_source'] === 'quiz_url'): ?>
+                                                    <label class="test-user-label">Test Quiz URL:</label>
+                                                    <div class="quiz-url-input">
+                                                        <input type="text" class="manual-quiz-url wiz-input" placeholder="Paste quiz result URL (e.g., https://www.idtech.com/courses?interests=295003,295001&age=10&format=405000)">
+                                                        <button class="load-quiz-url-data wiz-button">Load Quiz URL</button>
+                                                    </div>
                                                     <?php else: ?>
                                                     <label class="test-user-label">Test User:</label>
                                                     <select class="test-user-select wiz-select" data-type="student">

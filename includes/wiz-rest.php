@@ -3287,6 +3287,78 @@ function idwiz_get_location_data_for_preview() {
     }
 }
 
+// Add AJAX handler for getting quiz URL data for endpoint preview
+add_action('wp_ajax_idwiz_get_quiz_url_data', 'idwiz_get_quiz_url_data_for_preview');
+
+function idwiz_get_quiz_url_data_for_preview() {
+    // Verify nonce
+    if (!check_ajax_referer('wiz-endpoints', 'security', false)) {
+        wp_send_json_error('Invalid nonce');
+        return;
+    }
+
+    // Get quiz URL
+    $quiz_url = isset($_POST['quiz_url']) ? sanitize_text_field($_POST['quiz_url']) : '';
+    
+    if (empty($quiz_url)) {
+        wp_send_json_error('No quiz URL provided');
+        return;
+    }
+
+    // Get endpoint name and other parameters
+    $endpoint = isset($_POST['endpoint']) ? sanitize_text_field($_POST['endpoint']) : '';
+    $base_data_source = isset($_POST['base_data_source']) ? sanitize_text_field($_POST['base_data_source']) : 'quiz_url';
+    $data_mapping = isset($_POST['data_mapping']) ? json_decode(stripslashes($_POST['data_mapping']), true) : [];
+    
+    // Create a temporary endpoint config for preview
+    $endpoint_config = [
+        'base_data_source' => $base_data_source,
+        'data_mapping' => $data_mapping
+    ];
+    
+    try {
+        // Create feed_data with the quiz URL
+        $feed_data = [
+            'courseRecUrl' => $quiz_url
+        ];
+
+        // Process presets
+        try {
+            $presets = [];
+            
+            // Get list of compatible presets for quiz_url data source
+            $compatible_presets = get_compatible_presets('quiz_url');
+            
+            // Process each compatible preset
+            foreach ($compatible_presets as $preset) {
+                try {
+                    $result = process_preset_value($preset, $feed_data);
+                    if ($result !== null) {
+                        $presets[$preset] = $result;
+                    }
+                } catch (Exception $e) {
+                    error_log('Error processing preset ' . $preset . ': ' . $e->getMessage());
+                }
+            }
+
+            // Generate the payload using the same function as the real endpoint
+            $payload = generate_endpoint_payload($endpoint, $feed_data, $presets, $endpoint_config);
+            
+            wp_send_json_success($payload);
+            
+        } catch (Exception $e) {
+            error_log('Error processing presets: ' . $e->getMessage());
+            wp_send_json_error('Error processing presets: ' . $e->getMessage());
+            return;
+        }
+        
+    } catch (Exception $e) {
+        error_log('Error processing quiz URL data: ' . $e->getMessage());
+        wp_send_json_error('Error processing quiz URL data: ' . $e->getMessage());
+        return;
+    }
+}
+
 /**
  * Gets course recommendations for a specific division
  */
@@ -3963,8 +4035,8 @@ function get_compatible_presets($data_source = 'student') {
         'location_lead_data'
     ];
     
-    // Presets that work with custom data (URL parameters, etc.)
-    $custom_presets = [
+    // Presets that work with quiz URL data
+    $quiz_url_presets = [
         'quiz_result_recs'
     ];
     
@@ -3973,8 +4045,8 @@ function get_compatible_presets($data_source = 'student') {
         return $location_presets;
     } else if ($data_source === 'parent') {
         return $parent_presets;
-    } else if ($data_source === 'custom') {
-        return $custom_presets;
+    } else if ($data_source === 'quiz_url') {
+        return $quiz_url_presets;
     } else {
         return $student_presets;
     }

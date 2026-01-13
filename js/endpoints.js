@@ -462,6 +462,24 @@ jQuery(document).ready(function ($) {
             }
             
             loadLocationDataAndUpdatePreview(locationId);
+        } else if (baseDataSource === 'quiz_url') {
+            // Handle quiz URL data source
+            const quizUrl = $container.find('.manual-quiz-url').val();
+            
+            if (!quizUrl) {
+                alert('Please paste a Quiz URL first');
+                return;
+            }
+            
+            // Clear cache for this quiz URL
+            for (const key in userDataCache.data) {
+                if (key.includes('quiz_url_')) {
+                    delete userDataCache.data[key];
+                    delete userDataCache.timestamps[key];
+                }
+            }
+            
+            loadQuizUrlDataAndUpdatePreview(quizUrl);
         } else {
             // Handle account-based data sources
             const dropdownVal = $container.find('.test-user-select').val();
@@ -751,9 +769,118 @@ jQuery(document).ready(function ($) {
         });
     }
 
+    // Function to load quiz URL data and update preview
+    function loadQuizUrlDataAndUpdatePreview(quizUrl) {
+        const $activeContainer = $('.endpoint-content.active');
+        const $preview = $activeContainer.find('.payload-preview');
+        const endpoint = $activeContainer.attr('id').replace('endpoint-', '');
+        const baseDataSource = $activeContainer.find('.endpoint-base-data-source').val();
+        
+        // Collect all mappings for the server as an object
+        const dataMappings = {};
+        $activeContainer.find('.data-mapping-item').each(function() {
+            const $item = $(this);
+            const key = $item.find('.mapping-key').val();
+            const type = $item.find('.mapping-type').val();
+            let value;
+            
+            if (type === 'static') {
+                value = $item.find('.mapping-value').val();
+            } else {
+                value = $item.find('.mapping-preset').val();
+            }
+            
+            if (key) {
+                dataMappings[key] = {
+                    type: type,
+                    value: value || ''
+                };
+            }
+        });
+        
+        // Check cache first
+        const cacheKey = 'quiz_url_' + quizUrl + '_' + JSON.stringify(dataMappings);
+        const now = Date.now();
+        if (userDataCache.data[cacheKey] && 
+            (now - userDataCache.timestamps[cacheKey]) < userDataCache.timeout) {
+            handlePayloadData(userDataCache.data[cacheKey], $activeContainer);
+            return;
+        }
+
+        // If there's a CodeMirror instance, update its content
+        const editor = $preview.data('codemirror');
+        if (editor) {
+            editor.setValue('Loading...');
+        } else {
+            $preview.html('Loading...');
+        }
+        
+        // Get quiz URL data
+        $.ajax({
+            url: idAjax_wiz_endpoints.ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'idwiz_get_quiz_url_data',
+                quiz_url: quizUrl,
+                base_data_source: baseDataSource,
+                endpoint: endpoint,
+                data_mapping: JSON.stringify(dataMappings),
+                security: idAjax_wiz_endpoints.nonce
+            },
+            success: function(response) {
+                if (typeof response === 'string' && response.trim().startsWith('<')) {
+                    console.error('Received HTML response instead of JSON:', response);
+                    if (editor) {
+                        editor.setValue('PHP Error: Server returned HTML instead of JSON.');
+                    } else {
+                        $preview.html('PHP Error: Server returned HTML instead of JSON.');
+                    }
+                    return;
+                }
+                
+                if (response.success) {
+                    if (!response.data) {
+                        console.error('Response missing data property:', response);
+                        if (editor) {
+                            editor.setValue('Error: Invalid response format');
+                        } else {
+                            $preview.html('Error: Invalid response format');
+                        }
+                        return;
+                    }
+                    
+                    // Cache the response
+                    userDataCache.data[cacheKey] = response.data;
+                    userDataCache.timestamps[cacheKey] = now;
+                    
+                    // Display the payload
+                    handlePayloadData(response.data, $activeContainer);
+                } else {
+                    const errorMsg = response.data || 'Unknown error';
+                    if (editor) {
+                        editor.setValue('Error loading quiz URL data: ' + errorMsg);
+                    } else {
+                        $preview.html('Error loading quiz URL data: ' + errorMsg);
+                    }
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX error:', error);
+                if (editor) {
+                    editor.setValue('Error loading quiz URL data: ' + error);
+                } else {
+                    $preview.html('Error loading quiz URL data: ' + error);
+                }
+            },
+            dataType: 'json',
+            timeout: 30000
+        });
+    }
+
     // Debounce the preview updates
     const debouncedLoadUserData = debounce(loadUserDataAndUpdatePreview, 300);
     const debouncedLoadLocationData = debounce(loadLocationDataAndUpdatePreview, 300);
+    const debouncedLoadQuizUrlData = debounce(loadQuizUrlDataAndUpdatePreview, 300);
 
     // Update handlers to use debounced function
     $(document).on('change', '.test-user-select', function() {
@@ -797,6 +924,17 @@ jQuery(document).ready(function ($) {
         }
     });
 
+    // Handle quiz URL data load button
+    $(document).on('click', '.load-quiz-url-data', function() {
+        const $activeContainer = $('.endpoint-content.active');
+        const quizUrl = $activeContainer.find('.manual-quiz-url').val();
+        if (quizUrl) {
+            loadQuizUrlDataAndUpdatePreview(quizUrl);
+        } else {
+            alert('Please paste a Quiz URL.');
+        }
+    });
+
     // Handle base data source change
     $(document).on('change', '.endpoint-base-data-source', function() {
         const baseDataSource = $(this).val();
@@ -811,6 +949,15 @@ jQuery(document).ready(function ($) {
                 <div class="location-id-input">
                     <input type="text" class="manual-location-id wiz-input" placeholder="Enter Location ID">
                     <button class="load-location-data wiz-button">Load Location</button>
+                </div>
+            `);
+        } else if (baseDataSource === 'quiz_url') {
+            // Show quiz URL input
+            $testUserContainer.html(`
+                <label class="test-user-label">Test Quiz URL:</label>
+                <div class="quiz-url-input">
+                    <input type="text" class="manual-quiz-url wiz-input" placeholder="Paste quiz result URL (e.g., https://www.idtech.com/courses?interests=295003,295001&age=10&format=405000)">
+                    <button class="load-quiz-url-data wiz-button">Load Quiz URL</button>
                 </div>
             `);
         } else {
@@ -847,9 +994,12 @@ jQuery(document).ready(function ($) {
         // Clear any existing preview data
         const $preview = $container.find('.payload-preview');
         const editor = $preview.data('codemirror');
-        const promptText = baseDataSource === 'location' 
-            ? 'Enter a Location ID to preview the payload' 
-            : 'Select a test user to preview the payload';
+        let promptText = 'Select a test user to preview the payload';
+        if (baseDataSource === 'location') {
+            promptText = 'Enter a Location ID to preview the payload';
+        } else if (baseDataSource === 'quiz_url') {
+            promptText = 'Paste a Quiz URL to preview the payload';
+        }
         if (editor) {
             editor.setValue(promptText);
         } else {
