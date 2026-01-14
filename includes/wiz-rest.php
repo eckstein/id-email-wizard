@@ -1830,60 +1830,119 @@ function get_quiz_result_recs($data) {
     $prepared_query = $wpdb->prepare($query, $query_params_sql);
     $courses = $wpdb->get_results($prepared_query, ARRAY_A);
     
-    // Filter courses by interests (genres) and split into camps/academies
-    $camps = [];
-    $academies = [];
+    // Group courses by interest and division for round-robin ordering
+    // Structure: $courses_by_interest[interest_id][division_type][] = course_data
+    $camps_by_interest = [];
+    $academies_by_interest = [];
+    
+    // Initialize arrays for each interest
+    foreach ($interest_ids as $interest_id) {
+        $camps_by_interest[$interest_id] = [];
+        $academies_by_interest[$interest_id] = [];
+    }
+    // Also track courses with no specific interest match (when no interests specified)
+    $camps_no_interest = [];
+    $academies_no_interest = [];
     
     foreach ($courses as $course) {
-        // Check if course matches any of the requested interests
-        $matches_interest = empty($interest_ids); // If no interests specified, all courses match
-        
-        if (!empty($interest_ids) && !empty($course['genres'])) {
-            // Parse the serialized genres data
+        // Parse the serialized genres data
+        $course_genre_ids = [];
+        $course_genres = [];
+        if (!empty($course['genres'])) {
             $genres = @unserialize($course['genres']);
             if (is_array($genres)) {
                 foreach ($genres as $genre) {
-                    if (isset($genre['id']) && in_array((int)$genre['id'], $interest_ids)) {
-                        $matches_interest = true;
-                        break;
+                    if (isset($genre['id'])) {
+                        $course_genre_ids[] = (int)$genre['id'];
                     }
+                    $course_genres[] = [
+                        'id' => $genre['id'] ?? null,
+                        'name' => $genre['name'] ?? null
+                    ];
                 }
             }
         }
         
-        if ($matches_interest) {
-            // Parse genres for output
-            $course_genres = [];
-            if (!empty($course['genres'])) {
-                $genres = @unserialize($course['genres']);
-                if (is_array($genres)) {
-                    foreach ($genres as $genre) {
-                        $course_genres[] = [
-                            'id' => $genre['id'] ?? null,
-                            'name' => $genre['name'] ?? null
-                        ];
-                    }
+        // Find which requested interests this course matches
+        $matching_interests = [];
+        if (!empty($interest_ids)) {
+            foreach ($interest_ids as $interest_id) {
+                if (in_array($interest_id, $course_genre_ids)) {
+                    $matching_interests[] = $interest_id;
                 }
             }
-            
-            $course_data = [
-                'id' => (int)$course['id'],
-                'title' => $course['title'],
-                'abbreviation' => $course['abbreviation'],
-                'minAge' => (int)$course['minAge'],
-                'maxAge' => (int)$course['maxAge'],
-                'genres' => $course_genres,
-                'courseUrl' => $course['courseUrl'],
-                'courseDesc' => $course['courseDesc'],
-                'isNew' => (bool)$course['isNew'],
-                'isMostPopular' => (bool)$course['isMostPopular']
-            ];
-            
-            // Split into camps (iDTC = 25) and academies (iDTA = 22)
-            if ((int)$course['division_id'] === 22) {
-                $academies[] = $course_data;
+        }
+        
+        // Skip courses that don't match any interest (when interests are specified)
+        if (!empty($interest_ids) && empty($matching_interests)) {
+            continue;
+        }
+        
+        $course_data = [
+            'id' => (int)$course['id'],
+            'title' => $course['title'],
+            'abbreviation' => $course['abbreviation'],
+            'minAge' => (int)$course['minAge'],
+            'maxAge' => (int)$course['maxAge'],
+            'genres' => $course_genres,
+            'courseUrl' => $course['courseUrl'],
+            'courseDesc' => $course['courseDesc'],
+            'isNew' => (bool)$course['isNew'],
+            'isMostPopular' => (bool)$course['isMostPopular']
+        ];
+        
+        $is_academy = (int)$course['division_id'] === 22;
+        
+        if (empty($interest_ids)) {
+            // No interests specified - add to general pool
+            if ($is_academy) {
+                $academies_no_interest[] = $course_data;
             } else {
-                $camps[] = $course_data;
+                $camps_no_interest[] = $course_data;
+            }
+        } else {
+            // Add course to the FIRST matching interest bucket (to avoid duplicates in round-robin)
+            $first_matching_interest = $matching_interests[0];
+            if ($is_academy) {
+                $academies_by_interest[$first_matching_interest][] = $course_data;
+            } else {
+                $camps_by_interest[$first_matching_interest][] = $course_data;
+            }
+        }
+    }
+    
+    // Round-robin merge: cycle through interests and take one course from each
+    $camps = [];
+    $academies = [];
+    
+    if (empty($interest_ids)) {
+        // No interests - just use the general pools
+        $camps = $camps_no_interest;
+        $academies = $academies_no_interest;
+    } else {
+        // Round-robin through interests for camps
+        $max_camps = 0;
+        foreach ($interest_ids as $interest_id) {
+            $max_camps = max($max_camps, count($camps_by_interest[$interest_id]));
+        }
+        for ($i = 0; $i < $max_camps; $i++) {
+            foreach ($interest_ids as $interest_id) {
+                if (isset($camps_by_interest[$interest_id][$i])) {
+                    $camps[] = $camps_by_interest[$interest_id][$i];
+                }
+            }
+        }
+        
+        // Round-robin through interests for academies
+        $max_academies = 0;
+        foreach ($interest_ids as $interest_id) {
+            $max_academies = max($max_academies, count($academies_by_interest[$interest_id]));
+        }
+        for ($i = 0; $i < $max_academies; $i++) {
+            foreach ($interest_ids as $interest_id) {
+                if (isset($academies_by_interest[$interest_id][$i])) {
+                    $academies[] = $academies_by_interest[$interest_id][$i];
+                }
             }
         }
     }
