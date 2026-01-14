@@ -754,19 +754,9 @@ function get_location_lead_data($user_data) {
         $divisions = $safe_unserialize($location_row['divisions'], []);
         
         // Check if location offers camps (iDTC - division 25) or academies (iDTA - division 22)
-        $offers_camps = false;
-        $offers_academies = false;
-        
-        if (!empty($divisions) && is_array($divisions)) {
-            foreach ($divisions as $division_id) {
-                if (intval($division_id) === 25) {
-                    $offers_camps = true;
-                }
-                if (intval($division_id) === 22) {
-                    $offers_academies = true;
-                }
-            }
-        }
+        // Divisions stored as indexed array of IDs: [22, 25]
+        $offers_camps = !empty($divisions) && in_array(25, $divisions);
+        $offers_academies = !empty($divisions) && in_array(22, $divisions);
         
         $location_data = [
             'id' => intval($location_row['id']),
