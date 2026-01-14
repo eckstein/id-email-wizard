@@ -740,7 +740,55 @@ function get_location_lead_data($user_data) {
         return null;
     }
     
-    // Get location details
+    // Safer unserialize function
+    $safe_unserialize = function($data, $default = null) {
+        if (empty($data)) return $default;
+        if (!is_string($data) || !preg_match('/^[aOs]:[0-9]+:/', $data)) return $data;
+        $result = @unserialize($data);
+        return ($result !== false) ? $result : $default;
+    };
+    
+    // Helper function to build location data
+    $build_location_data = function($location_row, $include_distance = false, $distance = null) use ($safe_unserialize) {
+        $address = $safe_unserialize($location_row['address'], null);
+        $divisions = $safe_unserialize($location_row['divisions'], []);
+        
+        // Check if location offers camps (iDTC - division 25) or academies (iDTA - division 22)
+        $offers_camps = false;
+        $offers_academies = false;
+        
+        if (!empty($divisions) && is_array($divisions)) {
+            foreach ($divisions as $division_id) {
+                if (intval($division_id) === 25) {
+                    $offers_camps = true;
+                }
+                if (intval($division_id) === 22) {
+                    $offers_academies = true;
+                }
+            }
+        }
+        
+        $location_data = [
+            'id' => intval($location_row['id']),
+            'name' => $location_row['name'],
+            'abbreviation' => $location_row['abbreviation'] ?? null,
+            'status' => $location_row['locationStatus'],
+            'url' => !empty($location_row['locationUrl']) ? $location_row['locationUrl'] : null,
+            'address' => $address,
+            'locationDesc' => $location_row['locationDesc'] ?? null,
+            'overnightOffered' => ($location_row['overnightOffered'] ?? 'No') === 'Yes',
+            'offersCamps' => $offers_camps,
+            'offersAcademies' => $offers_academies
+        ];
+        
+        if ($include_distance && $distance !== null) {
+            $location_data['distance'] = $distance;
+        }
+        
+        return $location_data;
+    };
+    
+    // Get lead location details
     $location = $wpdb->get_row(
         $wpdb->prepare(
             "SELECT id, name, abbreviation, locationStatus, address, locationUrl, locationDesc, overnightOffered, divisions 
@@ -757,43 +805,73 @@ function get_location_lead_data($user_data) {
         return null;
     }
     
-    // Safer unserialize function
-    $safe_unserialize = function($data, $default = null) {
-        if (empty($data)) return $default;
-        if (!is_string($data) || !preg_match('/^[aOs]:[0-9]+:/', $data)) return $data;
-        $result = @unserialize($data);
-        return ($result !== false) ? $result : $default;
-    };
+    $lead_location = $build_location_data($location);
     
-    $address = $safe_unserialize($location['address'], null);
-    $divisions = $safe_unserialize($location['divisions'], []);
+    // Get coordinates from lead location for nearby search
+    $lead_coordinates = null;
+    if (isset($lead_location['address']) && 
+        !empty($lead_location['address']['latitude']) && 
+        !empty($lead_location['address']['longitude'])) {
+        $lead_coordinates = [
+            'latitude' => $lead_location['address']['latitude'],
+            'longitude' => $lead_location['address']['longitude']
+        ];
+    }
     
-    // Check if location offers camps (iDTC - division 25) or academies (iDTA - division 22)
-    $offers_camps = false;
-    $offers_academies = false;
+    // Get nearby locations
+    $nearby = [];
     
-    if (!empty($divisions) && is_array($divisions)) {
-        foreach ($divisions as $division_id) {
-            if (intval($division_id) === 25) {
-                $offers_camps = true;
+    if ($lead_coordinates) {
+        // Get all active locations that host iDTC or iDTA
+        $locations_query = $wpdb->prepare(
+            "SELECT id, name, abbreviation, locationStatus, address, locationUrl, locationDesc, overnightOffered, divisions
+            FROM {$wpdb->prefix}idemailwiz_locations
+            WHERE locationStatus IN ('Open', 'Registration opens soon')
+            AND id != 324
+            AND id != %d
+            AND (divisions LIKE %s OR divisions LIKE %s)",
+            $lead_location_id,
+            '%i:22;%',
+            '%i:25;%'
+        );
+        
+        $potential_locations = $wpdb->get_results($locations_query, ARRAY_A);
+        
+        if (!empty($potential_locations)) {
+            foreach ($potential_locations as $loc) {
+                $loc_address = $safe_unserialize($loc['address'], null);
+                
+                if (empty($loc_address['latitude']) || empty($loc_address['longitude'])) {
+                    continue;
+                }
+                
+                $distance = calculate_distance(
+                    $lead_coordinates['latitude'],
+                    $lead_coordinates['longitude'],
+                    $loc_address['latitude'],
+                    $loc_address['longitude']
+                );
+                
+                // Only include locations within 30 miles
+                if ($distance <= 30) {
+                    $nearby[] = $build_location_data($loc, true, round($distance, 1));
+                }
             }
-            if (intval($division_id) === 22) {
-                $offers_academies = true;
-            }
+            
+            // Sort nearby by distance
+            usort($nearby, function($a, $b) {
+                return $a['distance'] <=> $b['distance'];
+            });
         }
     }
     
     return [
-        'id' => intval($location['id']),
-        'name' => $location['name'],
-        'abbreviation' => $location['abbreviation'] ?? null,
-        'status' => $location['locationStatus'],
-        'url' => !empty($location['locationUrl']) ? $location['locationUrl'] : null,
-        'address' => $address,
-        'locationDesc' => $location['locationDesc'] ?? null,
-        'overnightOffered' => ($location['overnightOffered'] ?? 'No') === 'Yes',
-        'offersCamps' => $offers_camps,
-        'offersAcademies' => $offers_academies
+        'location' => $lead_location,
+        'nearby' => (object)$nearby, // Cast to object for Iterable compatibility
+        'metadata' => [
+            'lead_location_id' => $lead_location_id,
+            'nearby_count' => count($nearby)
+        ]
     ];
 }
 
@@ -826,7 +904,7 @@ function get_available_presets() {
         'location_lead_data' => [
             'name' => 'Location Lead Data',
             'group' => 'Location Details',
-            'description' => 'Returns location details including name, address, URL, overnight availability, and whether it offers camps (iDTC) or academies (iDTA). Best used with "Location" data source.'
+            'description' => 'Returns location details including name, address, URL, overnight availability, and whether it offers camps (iDTC) or academies (iDTA). Also includes nearby locations within 30 miles. Best used with "Location" data source.'
         ],
         'location_with_courses' => [
             'name' => 'Location With Courses',
