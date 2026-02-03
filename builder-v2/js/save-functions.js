@@ -431,8 +431,9 @@ function get_wizfield_value($field) {
         var editor = tinymce.get($field.attr('id'));
         if (editor) {
             editor.save();
-            return $field.val();
         }
+        // Always return the textarea value, whether TinyMCE is available or not
+        return $field.val();
     } else if ($field.is('.wiz-html-block')) {
         var editor = $field.data('CodeMirrorInstance');
         if (editor) {

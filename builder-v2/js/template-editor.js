@@ -285,6 +285,10 @@ jQuery(document).ready(function($) {
 			updateBuilderChunkPreview('image', this);
 		});
 
+		$("#builder").on('change','.builder-chunk[data-chunk-type="icon-list"] input[name="image_url"]', function() {
+			updateBuilderChunkPreview('icon-list', this);
+		});
+
 		$("#builder").on('change', '.builder-chunk[data-chunk-type="button"] input[name="button_text"]', function() {
 			updateBuilderChunkPreview('button', this);
 		});

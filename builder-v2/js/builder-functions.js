@@ -338,6 +338,7 @@ function updateBuilderChunkPreview(chunkType, element) {
   
     switch (chunkType) {
       case 'image':
+      case 'icon-list':
         var imageUrl = $element.val();
         $closestChunk.find('.image-chunk-preview-wrapper > img').attr('src', imageUrl);
         break;
