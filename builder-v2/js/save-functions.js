@@ -271,8 +271,8 @@ function gather_chunk_data($chunk) {
     var $chunkFields = $chunk.find('.chunk-content');
     var $chunkSettings = $chunk.find('.chunk-settings');
 
-    // Check for dark mode on plain text chunks
-    if (chunk.field_type === 'text') {
+    // Check for dark mode on chunks with TinyMCE editors (text and icon-list)
+    if (chunk.field_type === 'text' || chunk.field_type === 'icon-list') {
         var editorMode = $chunk.find('.wiz-wysiwyg').attr('data-editor-mode');
         chunk.editor_mode = editorMode ? editorMode : 'light';
     }
