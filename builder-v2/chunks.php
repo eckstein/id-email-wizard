@@ -332,6 +332,8 @@ function idwiz_get_icon_list_chunk($chunk, $templateOptions, $chunkIndex = null,
 
 	$listWidth = $chunkSettings['list_width'] ?? '600px';
 	$iconWidth = $chunkSettings['icon_width'] ?? '80px';
+	$contentPadding = $chunkSettings['content_padding'] ?? '0';
+	$contentPaddingCss = $contentPadding ? 'padding:' . $contentPadding . ';' : '';
 
 	$imageSrc = $chunkFields['image_url'] ?? '';
 	$darkModeImageSrc = $chunkFields['dark_mode_image_url'] ?? '';
@@ -383,8 +385,8 @@ function idwiz_get_icon_list_chunk($chunk, $templateOptions, $chunkIndex = null,
 	}
 	$output .= 	'</a>
 	  </div>
-	<!--[if mso]></td><td valign="top"><![endif]-->
-	  <div class="icon-bullet-content-wrap" style="margin-left: ' . (intval($iconWidth) + 10) . 'px;">
+	<!--[if mso]></td><td valign="top" style="' . $contentPaddingCss . '"><![endif]-->
+	  <div class="icon-bullet-content-wrap" style="margin-left: ' . (intval($iconWidth) + 10) . 'px; ' . $contentPaddingCss . '">
 		' . wpautop(stripslashes($textContent)) . '
 	  </div>
 	</div>

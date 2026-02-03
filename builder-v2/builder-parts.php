@@ -541,7 +541,7 @@ function render_chunk_settings($chunkType, $chunkData, $uniqueId)
     $settings = array(
         'text' => ['chunk_classes', 'chunk_padding', 'p_padding', 'div', 'force_white_text_devices', 'div', 'background_settings'],
         'html' => ['chunk_wrap', 'chunk_classes', 'chunk_padding', 'div', 'force_white_text_devices', 'div', 'background_settings', 'chunk_wrap_hide_end'],
-        'icon-list' => ['chunk_classes', 'chunk_padding', 'p_padding', 'div', 'force_white_text_devices', 'div', 'list_width', 'icon_width', 'div', 'background_settings'],
+        'icon-list' => ['chunk_classes', 'chunk_padding', 'p_padding', 'div', 'force_white_text_devices', 'div', 'list_width', 'icon_width', 'content_padding', 'div', 'background_settings'],
         'image' => ['chunk_classes', 'chunk_padding', 'div', 'background_settings'],
         'button' => ['chunk_classes', 'chunk_padding', 'div', 'background_settings'],
         'spacer' => ['chunk_classes', 'div', 'background_settings'],
@@ -663,6 +663,12 @@ function show_specific_chunk_settings($chunkData, $uniqueId, $settings, $chunkTy
                     $iconWidth = $chunkSettings['icon_width'] ?? '100px';
                     echo "<div class='builder-field-wrapper icon-width'><label for='{$uniqueId}-icon-width'>Icon Width</label>";
                     echo "<input type='text' name='icon_width' id='{$uniqueId}-icon-width' value='{$iconWidth}'>";
+                    echo "</div>";
+                    break;
+                case 'content_padding':
+                    $contentPadding = $chunkSettings['content_padding'] ?? '0';
+                    echo "<div class='builder-field-wrapper content-padding small-input'><label for='{$uniqueId}-content-padding'>Content Padding<span class='wiz-tooltip-trigger' data-tooltip='Padding inside the content area next to the icon. CSS shorthand: one value (all sides), two values (top/bottom, left/right), or four values (top, right, bottom, left).' tabindex='0'>?</span></label>";
+                    echo "<input type='text' name='content_padding' id='{$uniqueId}-content-padding' value='{$contentPadding}'>";
                     echo "</div>";
                     break;
                 case 'background_settings':
