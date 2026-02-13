@@ -86,11 +86,11 @@ jQuery(document).ready(function ($) {
         
         const data = {
             action: 'idemailwiz_ajax_sync',
-            security: wizAjax.nonce,
+            security: idAjax.wizAjaxNonce,
             campaignIds: journeyIds ? JSON.stringify(journeyIds) : JSON.stringify([])
         };
         
-        $.post(wizAjax.ajaxurl, data)
+        $.post(idAjax.ajaxurl, data)
             .done(function(response) {
                 if (response.success) {
                     $button.text('Synced!').removeClass('green').addClass('blue');

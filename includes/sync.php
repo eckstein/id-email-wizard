@@ -2093,7 +2093,8 @@ function idemailwiz_ajax_sync()
 			check_ajax_referer('data-tables', 'security', false) ||
 			check_ajax_referer('initiatives', 'security', false) ||
 			check_ajax_referer('wiz-metrics', 'security', false) ||
-			check_ajax_referer('id-general', 'security', false)
+			check_ajax_referer('id-general', 'security', false) ||
+			check_ajax_referer('wizAjaxNonce', 'security', false)
 		)
 	) {
 		wp_die('Invalid action or nonce');
