@@ -457,15 +457,16 @@ add_action('wp_ajax_filter_journeys', function() {
 	]);
 });
 
-function display_workflow_campaigns_table($workflowId, $campaigns, $startDate = null, $endDate = null)
+function display_workflow_campaigns_table($workflowId, $campaigns, $startDate = null, $endDate = null, $showAllWithFilter = false)
 {
 	//$workflow = get_workflow($workflowId);
 ?>
 	<div class="workflow-campaigns">
-		<table class="idemailwiz_table journey_campaigns_table">
+		<table class="idemailwiz_table journey_campaigns_table<?php echo $showAllWithFilter ? ' journey-campaigns-sortable' : ''; ?>" id="journey-campaigns-table-<?php echo $workflowId; ?>">
 			<thead>
 				<tr>
 					<th>Campaign</th>
+					<th>Status</th>
 					<th>Last Sent</th>
 					<th>Sent</th>
 					<th>Delivered</th>
@@ -487,94 +488,121 @@ function display_workflow_campaigns_table($workflowId, $campaigns, $startDate = 
 			</thead>
 			<tbody>
 				<?php foreach ($campaigns as $campaign) {
-					if ($campaign['campaignState'] == 'Running') {
+					$campaignState = $campaign['campaignState'] ?? 'Unknown';
+					$isActive = ($campaignState === 'Running' || $campaignState === 'Finished');
+					
+					// If not showing all with filter, only show Running campaigns (original behavior)
+					if (!$showAllWithFilter && $campaignState !== 'Running') {
+						continue;
+					}
+					
+					// Get metrics for active campaigns, show zeros for inactive
+					if ($isActive) {
 						if (!$startDate && !$endDate) {
 							$campaignMetrics = get_idwiz_metric($campaign['id']);
 						} else {
 							$campaignMetrics = get_triggered_campaign_metrics([$campaign['id']], $startDate, $endDate);
 						}
-						$totalSent = $campaignMetrics['uniqueEmailSends'];
-						$uniqueDelivers = $campaignMetrics['uniqueEmailsDelivered'];
-						$uniqueOpens = $campaignMetrics['uniqueEmailOpens'];
-						$openRate = $campaignMetrics['wizOpenRate'];
-						$uniqueClicks = $campaignMetrics['uniqueEmailClicks'];
-						$ctr = $campaignMetrics['wizCtr'];
-						$cto = $campaignMetrics['wizCto'];
-						$uniquePurchases = $campaignMetrics['uniquePurchases'];
-						$wizCvr = $campaignMetrics['wizCvr'];
-						$revenue = $campaignMetrics['revenue'];
-						$gaRevenue = $campaignMetrics['gaRevenue'];
-						$wizUnsubRate = $campaignMetrics['wizUnsubRate'];
+						$totalSent = $campaignMetrics['uniqueEmailSends'] ?? 0;
+						$uniqueDelivers = $campaignMetrics['uniqueEmailsDelivered'] ?? 0;
+						$uniqueOpens = $campaignMetrics['uniqueEmailOpens'] ?? 0;
+						$openRate = $campaignMetrics['wizOpenRate'] ?? 0;
+						$uniqueClicks = $campaignMetrics['uniqueEmailClicks'] ?? 0;
+						$ctr = $campaignMetrics['wizCtr'] ?? 0;
+						$cto = $campaignMetrics['wizCto'] ?? 0;
+						$uniquePurchases = $campaignMetrics['uniquePurchases'] ?? 0;
+						$wizCvr = $campaignMetrics['wizCvr'] ?? 0;
+						$revenue = $campaignMetrics['revenue'] ?? 0;
+						$gaRevenue = $campaignMetrics['gaRevenue'] ?? 0;
+						$wizUnsubRate = $campaignMetrics['wizUnsubRate'] ?? 0;
+					} else {
+						// Inactive campaigns show zeros
+						$totalSent = $uniqueDelivers = $uniqueOpens = $openRate = $uniqueClicks = 0;
+						$ctr = $cto = $uniquePurchases = $wizCvr = $revenue = $gaRevenue = $wizUnsubRate = 0;
+					}
+					
+					// Determine status class for styling
+					$statusClass = '';
+					switch ($campaignState) {
+						case 'Running':
+							$statusClass = 'status-running';
+							break;
+						case 'Finished':
+							$statusClass = 'status-finished';
+							break;
+						case 'Draft':
+							$statusClass = 'status-draft';
+							break;
+						default:
+							$statusClass = 'status-inactive';
+					}
+					
+					// Calculate sortable timestamp
+					$campaignStartStamp = isset($campaign['startAt']) ? (int) ($campaign['startAt'] / 1000) : 0;
 				?>
-						<tr>
+						<tr class="campaign-row <?php echo !$isActive ? 'inactive-campaign' : ''; ?>" data-status="<?php echo esc_attr($campaignState); ?>">
 							<td>
 								<a href="<?php echo get_bloginfo('url'); ?>/metrics/campaign/?id=<?php echo $campaign['id']; ?>">
-									<?php echo $campaign['name']; ?>
+									<?php echo esc_html($campaign['name']); ?>
 								</a>
 							</td>
 							<td>
+								<span class="campaign-status-badge <?php echo $statusClass; ?>">
+									<?php echo esc_html($campaignState); ?>
+								</span>
+							</td>
+							<td data-order="<?php echo $campaignStartStamp; ?>">
 								<?php 
-								// Display last sent date using the same approach as single-campaign.php
-								$campaignStartStamp = (int) ($campaign['startAt'] / 1000);
-								
 								// Validate that we have a proper timestamp and it's not zero
-								if ($campaignStartStamp > 0) {
-									// Additional check to ensure reasonable timestamp (after year 2000)
-									if ($campaignStartStamp > 946684800) { // January 1, 2000
-										echo date('M j, Y', $campaignStartStamp);
-									} else {
-										echo 'N/A';
-									}
+								if ($campaignStartStamp > 0 && $campaignStartStamp > 946684800) {
+									echo date('M j, Y', $campaignStartStamp);
 								} else {
 									echo 'N/A';
 								}
 								?>
 							</td>
-							<td>
+							<td data-order="<?php echo $totalSent; ?>">
 								<?php echo number_format($totalSent); ?>
 							</td>
-							<td>
+							<td data-order="<?php echo $uniqueDelivers; ?>">
 								<?php echo number_format($uniqueDelivers); ?>
 							</td>
-							<td>
+							<td data-order="<?php echo $uniqueOpens; ?>">
 								<?php echo number_format($uniqueOpens); ?>
 							</td>
-							<td>
+							<td data-order="<?php echo $openRate; ?>">
 								<?php echo number_format($openRate, 2); ?>%
 							</td>
-							<td>
+							<td data-order="<?php echo $uniqueClicks; ?>">
 								<?php echo number_format($uniqueClicks); ?>
 							</td>
-
-							<td>
+							<td data-order="<?php echo $ctr; ?>">
 								<?php echo number_format($ctr, 2); ?>%
 							</td>
-							<td>
+							<td data-order="<?php echo $cto; ?>">
 								<?php echo number_format($cto, 2); ?>%
 							</td>
-							<td>
+							<td data-order="<?php echo $uniquePurchases; ?>">
 								<?php echo number_format($uniquePurchases); ?>
 							</td>
-							<td>
+							<td data-order="<?php echo $wizCvr; ?>">
 								<?php echo '$' . number_format($wizCvr); ?>
 							</td>
-							<td>
+							<td data-order="<?php echo $revenue; ?>">
 								<?php echo '$' . number_format($revenue); ?>
 							</td>
-							<td>
+							<td data-order="<?php echo $wizUnsubRate; ?>">
 								<?php echo number_format($wizUnsubRate, 2); ?>%
 							</td>
-
 							<?php
 							if (!$startDate && !$endDate) {
 							?>
-								<td>
+								<td data-order="<?php echo (int)$gaRevenue; ?>">
 									<?php echo '$' . number_format((int)$gaRevenue); ?>
 								</td>
 							<?php } ?>
 						</tr>
 				<?php
-					}
 				}
 				?>
 			</tbody>

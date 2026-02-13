@@ -130,6 +130,130 @@
 	margin: 0 auto;
 }
 
+/* Full-width layout for single journey */
+.single-journey-article.full-width {
+	max-width: none;
+	padding: 0 20px;
+}
+
+/* Header spacing fix */
+.wizHeader.single-journey-header {
+	padding-top: 20px;
+	padding-bottom: 15px;
+}
+
+.wizHeader.single-journey-header .wizHeaderInnerWrap {
+	padding-top: 15px;
+}
+
+.wizHeader.single-journey-header .wizHeader-left {
+	padding-top: 10px;
+}
+
+.wizHeader.single-journey-header .wizHeader-right {
+	padding-top: 10px;
+	align-self: flex-start;
+}
+
+/* Campaign status badges */
+.campaign-status-badge {
+	display: inline-block;
+	padding: 4px 8px;
+	border-radius: 4px;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+
+.campaign-status-badge.status-running {
+	background-color: #d4edda;
+	color: #155724;
+	border: 1px solid #c3e6cb;
+}
+
+.campaign-status-badge.status-finished {
+	background-color: #e2e3e5;
+	color: #383d41;
+	border: 1px solid #d6d8db;
+}
+
+.campaign-status-badge.status-draft {
+	background-color: #fff3cd;
+	color: #856404;
+	border: 1px solid #ffeeba;
+}
+
+.campaign-status-badge.status-inactive {
+	background-color: #f8d7da;
+	color: #721c24;
+	border: 1px solid #f5c6cb;
+}
+
+/* Inactive campaigns styling */
+.campaign-row.inactive-campaign {
+	opacity: 0.6;
+}
+
+.campaign-row.inactive-campaign:hover {
+	opacity: 0.8;
+}
+
+/* Show inactive campaigns toggle */
+.journey-campaigns-controls {
+	margin-bottom: 15px;
+	padding: 10px 0;
+}
+
+.show-inactive-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	cursor: pointer;
+	font-size: 14px;
+	color: #495057;
+	user-select: none;
+}
+
+.show-inactive-toggle input[type="checkbox"] {
+	width: 16px;
+	height: 16px;
+	cursor: pointer;
+}
+
+.show-inactive-toggle:hover {
+	color: #007cba;
+}
+
+/* DataTables sorting styles for journey campaigns table */
+.journey-campaigns-sortable thead th {
+	cursor: pointer;
+	position: relative;
+	padding-right: 20px !important;
+}
+
+.journey-campaigns-sortable thead th:after {
+	position: absolute;
+	right: 8px;
+	top: 50%;
+	transform: translateY(-50%);
+	opacity: 0.3;
+}
+
+.journey-campaigns-sortable thead th.sorting:after {
+	content: "\2195";
+}
+
+.journey-campaigns-sortable thead th.sorting_asc:after {
+	content: "\2191";
+	opacity: 1;
+}
+
+.journey-campaigns-sortable thead th.sorting_desc:after {
+	content: "\2193";
+	opacity: 1;
+}
+
 .journey-description-section {
 	margin-bottom: 2rem;
 }

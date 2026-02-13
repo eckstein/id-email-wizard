@@ -10,20 +10,19 @@ $endDate = $_GET['endDate'] ?? date('Y-m-d');
 if ($journeyId && get_idwiz_journey($journeyId)) {
 	$journey = get_idwiz_journey($journeyId);
 
-	// Get campaigns associated with this journey
+	// Get ALL campaigns associated with this journey (we'll filter inactive via JS)
 	$journeyCampaigns = get_idwiz_campaigns([
-		'workflowId' => $journeyId,
-		'campaignState' => ['Running', 'Finished']
+		'workflowId' => $journeyId
 	]);
 
-	// If no campaigns found, fallback to all campaigns for this journey
-	if (empty($journeyCampaigns)) {
-		$journeyCampaigns = get_idwiz_campaigns([
-			'workflowId' => $journeyId
-		]);
+	// Separate active and inactive campaign IDs for sync button
+	$activeCampaignIds = [];
+	foreach ($journeyCampaigns as $campaign) {
+		if ($campaign['campaignState'] === 'Running' || $campaign['campaignState'] === 'Finished') {
+			$activeCampaignIds[] = $campaign['id'];
+		}
 	}
-
-	$journeyCampaignIds = array_column($journeyCampaigns, 'id');
+	$journeyCampaignIds = !empty($activeCampaignIds) ? $activeCampaignIds : array_column($journeyCampaigns, 'id');
 	$journeyName = $journey['name'];
 
 	// Calculate journey send dates from campaigns
@@ -43,7 +42,7 @@ if ($journeyId && get_idwiz_journey($journeyId)) {
 	$campaigns = $journeyCampaigns;
 ?>
 	<?php $activeTab = $_GET['view'] ?? 'Campaigns'; ?>
-	<header class="wizHeader">
+	<header class="wizHeader single-journey-header">
 		<div class="wizHeaderInnerWrap">
 			<div class="wizHeader-left">
 				<h1 class="wizEntry-title single-wizcampaign-title" title="<?php echo esc_attr(is_array($journeyName) ? implode(', ', $journeyName) : $journeyName); ?>" itemprop="name">
@@ -79,7 +78,7 @@ if ($journeyId && get_idwiz_journey($journeyId)) {
 		</div>
 	</header>
 
-	<article id="journey-<?php echo $journeyId; ?>" data-journey="<?php echo $journeyId; ?>" class="single-journey-article">
+	<article id="journey-<?php echo $journeyId; ?>" data-journey="<?php echo $journeyId; ?>" class="single-journey-article full-width">
 		<div class="entry-content" itemprop="mainContentOfPage">
 			<?php if (!empty($journey['description'])): ?>
 				<div class="wizcampaign-section inset journey-description-section">
@@ -112,10 +111,17 @@ if ($journeyId && get_idwiz_journey($journeyId)) {
 					</div>
 				</div>
 
+				<div class="journey-campaigns-controls">
+					<label class="show-inactive-toggle">
+						<input type="checkbox" id="show-inactive-campaigns" />
+						<span>Show inactive campaigns</span>
+					</label>
+				</div>
+
 				<div class="journey-campaigns-wrapper">
 					<?php
 					if (!empty($campaigns)) {
-						echo display_workflow_campaigns_table($journeyId, $campaigns, $startDate, $endDate);
+						echo display_workflow_campaigns_table($journeyId, $campaigns, $startDate, $endDate, true);
 					} else {
 						echo '<div class="wizcampaign-section inset"><p>No campaigns found for this journey.</p></div>';
 					}
