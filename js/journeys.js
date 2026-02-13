@@ -1,6 +1,7 @@
 jQuery(document).ready(function ($) {
 
     var journeyCampaignsTable = null;
+    var showInactiveCampaigns = false;
 
     // On page load
     if ($(".single-journey-article").length) {
@@ -30,9 +31,26 @@ jQuery(document).ready(function ($) {
             return;
         }
 
+        // Add custom filter for inactive campaigns BEFORE initializing DataTable
+        $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+            // Only apply to our journey campaigns table
+            if (settings.nTable.id.indexOf('journey-campaigns-table') === -1) {
+                return true;
+            }
+            
+            // If showing inactive, return all rows
+            if (showInactiveCampaigns) {
+                return true;
+            }
+            
+            // Otherwise, check if row has inactive class
+            var row = settings.aoData[dataIndex].nTr;
+            return !$(row).hasClass('inactive-campaign');
+        });
+
         journeyCampaignsTable = $table.DataTable({
             paging: false,
-            searching: false,
+            searching: true, // Enable searching for the filter to work
             info: false,
             order: [[2, 'desc']], // Sort by Last Sent column descending by default
             columnDefs: [
@@ -42,36 +60,17 @@ jQuery(document).ready(function ($) {
                 { targets: '_all', orderable: true }
             ],
             autoWidth: false,
-            responsive: false
+            responsive: false,
+            dom: 'lrtip' // Hide the search box but keep search functionality
         });
-
-        // Initially hide inactive campaigns
-        filterInactiveCampaigns(false);
-    }
-
-    // Filter inactive campaigns based on checkbox state
-    function filterInactiveCampaigns(showInactive) {
-        if (!journeyCampaignsTable) {
-            return;
-        }
-
-        // Use custom filtering with DataTables
-        $.fn.dataTable.ext.search.pop(); // Remove any existing filter
-        
-        if (!showInactive) {
-            $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
-                var row = journeyCampaignsTable.row(dataIndex).node();
-                return !$(row).hasClass('inactive-campaign');
-            });
-        }
-
-        journeyCampaignsTable.draw();
     }
 
     // Handle show inactive campaigns checkbox
     $('#show-inactive-campaigns').on('change', function() {
-        var showInactive = $(this).is(':checked');
-        filterInactiveCampaigns(showInactive);
+        showInactiveCampaigns = $(this).is(':checked');
+        if (journeyCampaignsTable) {
+            journeyCampaignsTable.draw();
+        }
     });
 
     // Handle sync journey button
