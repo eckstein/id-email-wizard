@@ -43,35 +43,55 @@ if ($journeyId && get_idwiz_journey($journeyId)) {
 ?>
 	<?php $activeTab = $_GET['view'] ?? 'Campaigns'; ?>
 	<header class="wizHeader single-journey-header">
+		<h1 class="wizEntry-title single-wizcampaign-title" title="<?php echo esc_attr(is_array($journeyName) ? implode(', ', $journeyName) : $journeyName); ?>" itemprop="name">
+			<?php echo esc_html(is_array($journeyName) ? implode(', ', $journeyName) : $journeyName); ?>
+		</h1>
 		<div class="wizHeaderInnerWrap">
 			<div class="wizHeader-left">
-				<h1 class="wizEntry-title single-wizcampaign-title" title="<?php echo esc_attr(is_array($journeyName) ? implode(', ', $journeyName) : $journeyName); ?>" itemprop="name">
-					<?php echo esc_html(is_array($journeyName) ? implode(', ', $journeyName) : $journeyName); ?>
-				</h1>
 				<div class="wizEntry-meta">
-					<strong>Journey</strong>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
+					<strong>Journey</strong>
+					<a href="https://app.iterable.com/workflows/<?php echo $journeyId; ?>/edit" target="_blank" title="View in Iterable">
+						<?php echo $journeyId; ?>
+					</a>
 					<?php if (!empty($journey['journeyType'])): ?>
-						<span class="journey-type"><?php echo esc_html(is_array($journey['journeyType']) ? implode(', ', $journey['journeyType']) : $journey['journeyType']); ?></span>&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
+						&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
+						<span class="journey-type"><?php echo esc_html(is_array($journey['journeyType']) ? implode(', ', $journey['journeyType']) : $journey['journeyType']); ?></span>
 					<?php endif; ?>
+					&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
+					<?php echo count($journeyCampaigns); ?> campaigns
+					&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
 					Send dates: <?php echo $journeyStartDate; ?> - <?php echo $journeyEndDate; ?>
+					<?php 
+					// Show journey status
+					$journeyStatus = '';
+					if (isset($journey['enabled']) && !$journey['enabled']) {
+						$journeyStatus = 'Disabled';
+					} elseif (isset($journey['isArchived']) && $journey['isArchived']) {
+						$journeyStatus = 'Archived';
+					} else {
+						$journeyStatus = 'Active';
+					}
+					?>
+					&nbsp;&nbsp;&#x2022;&nbsp;&nbsp;
+					Status: <span class="journey-status-text <?php echo strtolower($journeyStatus); ?>"><?php echo $journeyStatus; ?></span>
 				</div>
 				<div id="header-tabs">
-					<a href="<?php echo add_query_arg(['view' => 'Campaigns']); ?>" class="campaign-tab <?php if ($activeTab == 'Campaigns') {
-																											echo 'active';
-																										} ?>">
+					<a href="<?php echo add_query_arg(['view' => 'Campaigns']); ?>" class="campaign-tab <?php if ($activeTab == 'Campaigns') { echo 'active'; } ?>">
 						Campaigns Table
 					</a>
-					<a href="<?php echo add_query_arg(['view' => 'Timeline']); ?>" class="campaign-tab <?php if ($activeTab == 'Timeline') {
-																											echo 'active';
-																										} ?>">
+					<a href="<?php echo add_query_arg(['view' => 'Timeline']); ?>" class="campaign-tab <?php if ($activeTab == 'Timeline') { echo 'active'; } ?>">
 						Timeline
 					</a>
 				</div>
 			</div>
 			<div class="wizHeader-right">
 				<div class="wizHeader-actions">
-					<button class="wiz-button green sync-journey" data-journeyids="<?php echo htmlspecialchars(json_encode($journeyCampaignIds)); ?>">Sync
-						Journey</button>
+					<button class="wiz-button green sync-journey" data-journeyids="<?php echo htmlspecialchars(json_encode($journeyCampaignIds)); ?>">
+						<i class="fa-solid fa-arrows-rotate"></i>&nbsp;&nbsp;Sync Journey
+					</button>
+					<a href="<?php echo get_bloginfo('url') . '/sync-station'; ?>" class="wiz-button gray" id="viewSyncStation" title="View sync log">
+						<i class="fa-regular fa-rectangle-list"></i>
+					</a>
 					<?php include plugin_dir_path(__FILE__) . 'parts/module-user-settings-form.php'; ?>
 				</div>
 			</div>

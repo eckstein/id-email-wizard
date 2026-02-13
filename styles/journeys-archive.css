@@ -136,23 +136,51 @@
 	padding: 0 20px;
 }
 
-/* Header spacing fix */
+/* Single Journey Header Styles */
 .wizHeader.single-journey-header {
 	padding-top: 20px;
 	padding-bottom: 15px;
 }
 
+.wizHeader.single-journey-header .wizEntry-title {
+	margin-bottom: 15px;
+}
+
 .wizHeader.single-journey-header .wizHeaderInnerWrap {
-	padding-top: 15px;
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 20px;
 }
 
 .wizHeader.single-journey-header .wizHeader-left {
-	padding-top: 10px;
+	flex: 1;
 }
 
 .wizHeader.single-journey-header .wizHeader-right {
-	padding-top: 10px;
-	align-self: flex-start;
+	flex-shrink: 0;
+}
+
+.wizHeader.single-journey-header .wizEntry-meta {
+	margin-bottom: 15px;
+	font-size: 0.95rem;
+	color: #555;
+	line-height: 1.6;
+}
+
+.wizHeader.single-journey-header .wizEntry-meta a {
+	color: #007cba;
+	text-decoration: none;
+}
+
+.wizHeader.single-journey-header .wizEntry-meta a:hover {
+	text-decoration: underline;
+}
+
+.wizHeader.single-journey-header .wizHeader-actions {
+	display: flex;
+	gap: 8px;
+	align-items: center;
 }
 
 /* Campaign status badges */
@@ -194,6 +222,23 @@
 	background-color: #ffeeba;
 	color: #856404;
 	border: 1px solid #ffc107;
+}
+
+/* Journey status text in header */
+.journey-status-text {
+	font-weight: 600;
+}
+
+.journey-status-text.active {
+	color: #155724;
+}
+
+.journey-status-text.disabled {
+	color: #856404;
+}
+
+.journey-status-text.archived {
+	color: #721c24;
 }
 
 /* Inactive campaigns styling */
