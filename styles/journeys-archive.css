@@ -190,6 +190,12 @@
 	border: 1px solid #f5c6cb;
 }
 
+.campaign-status-badge.status-deactivated {
+	background-color: #ffeeba;
+	color: #856404;
+	border: 1px solid #ffc107;
+}
+
 /* Inactive campaigns styling */
 .campaign-row.inactive-campaign {
 	opacity: 0.6;

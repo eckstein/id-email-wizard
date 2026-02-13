@@ -489,10 +489,18 @@ function display_workflow_campaigns_table($workflowId, $campaigns, $startDate = 
 			<tbody>
 				<?php foreach ($campaigns as $campaign) {
 					$campaignState = $campaign['campaignState'] ?? 'Unknown';
-					$isActive = ($campaignState === 'Running' || $campaignState === 'Finished');
+					$campaignType = $campaign['type'] ?? 'Unknown';
 					
-					// If not showing all with filter, only show Running campaigns (original behavior)
-					if (!$showAllWithFilter && $campaignState !== 'Running') {
+					// For triggered campaigns, "Finished" means deactivated (inactive)
+					// For blast campaigns, "Finished" means completed (still considered active for display)
+					if ($campaignType === 'Triggered' || $campaignType === 'FromWorkflow') {
+						$isActive = ($campaignState === 'Running');
+					} else {
+						$isActive = ($campaignState === 'Running' || $campaignState === 'Finished');
+					}
+					
+					// If not showing all with filter, only show active campaigns
+					if (!$showAllWithFilter && !$isActive) {
 						continue;
 					}
 					
@@ -521,20 +529,28 @@ function display_workflow_campaigns_table($workflowId, $campaigns, $startDate = 
 						$ctr = $cto = $uniquePurchases = $wizCvr = $revenue = $gaRevenue = $wizUnsubRate = 0;
 					}
 					
-					// Determine status class for styling
+					// Determine status class and display text for styling
 					$statusClass = '';
-					switch ($campaignState) {
-						case 'Running':
-							$statusClass = 'status-running';
-							break;
-						case 'Finished':
-							$statusClass = 'status-finished';
-							break;
-						case 'Draft':
-							$statusClass = 'status-draft';
-							break;
-						default:
-							$statusClass = 'status-inactive';
+					$statusDisplay = $campaignState;
+					
+					// For triggered campaigns, "Finished" means deactivated
+					if (($campaignType === 'Triggered' || $campaignType === 'FromWorkflow') && $campaignState === 'Finished') {
+						$statusClass = 'status-deactivated';
+						$statusDisplay = 'Deactivated';
+					} else {
+						switch ($campaignState) {
+							case 'Running':
+								$statusClass = 'status-running';
+								break;
+							case 'Finished':
+								$statusClass = 'status-finished';
+								break;
+							case 'Draft':
+								$statusClass = 'status-draft';
+								break;
+							default:
+								$statusClass = 'status-inactive';
+						}
 					}
 					
 					// Calculate sortable timestamp
@@ -548,7 +564,7 @@ function display_workflow_campaigns_table($workflowId, $campaigns, $startDate = 
 							</td>
 							<td>
 								<span class="campaign-status-badge <?php echo $statusClass; ?>">
-									<?php echo esc_html($campaignState); ?>
+									<?php echo esc_html($statusDisplay); ?>
 								</span>
 							</td>
 							<td data-order="<?php echo $campaignStartStamp; ?>">
