@@ -602,7 +602,7 @@ function display_workflow_campaigns_table($workflowId, $campaigns, $startDate = 
 								<?php echo number_format($uniquePurchases); ?>
 							</td>
 							<td data-order="<?php echo $wizCvr; ?>">
-								<?php echo '$' . number_format($wizCvr); ?>
+								<?php echo number_format($wizCvr, 2); ?>%
 							</td>
 							<td data-order="<?php echo $revenue; ?>">
 								<?php echo '$' . number_format($revenue); ?>
