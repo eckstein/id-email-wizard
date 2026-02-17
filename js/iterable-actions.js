@@ -410,19 +410,33 @@ jQuery(document).ready(function ($) {
 		// Update primary template ID field
 		$('#iterable_template_id').val(primaryTemplateId || '');
 		
-		// Update the Iterable link next to primary ID
-		const $iterableLink = $('#iterable_template_id').siblings('.iterable-link');
+		// Update the Iterable link and Clear button next to primary ID
+		const $inputParent = $('#iterable_template_id').parent();
+		const $iterableLink = $inputParent.find('.iterable-link');
+		const $clearBtn = $inputParent.find('.clear-primary-template');
 		if (primaryTemplateId) {
 			if ($iterableLink.length) {
 				$iterableLink.attr('href', `https://app.iterable.com/templates/editor?templateId=${primaryTemplateId}`).show();
 			} else {
-				$('#iterable_template_id').parent().append(`
+				$inputParent.append(`
 					<a href="https://app.iterable.com/templates/editor?templateId=${primaryTemplateId}" 
 						target="_blank" class="iterable-link" title="View in Iterable">
 						<i class="fa-solid fa-arrow-up-right-from-square"></i>
 					</a>
 				`);
 			}
+			if (!$clearBtn.length) {
+				$inputParent.append(`
+					<button type="button" class="clear-primary-template" title="Clear primary template ID">
+						<i class="fa-solid fa-xmark"></i> Clear
+					</button>
+				`);
+			} else {
+				$clearBtn.show();
+			}
+		} else {
+			$iterableLink.hide();
+			$clearBtn.hide();
 		}
 		
 		// Clear existing history
@@ -453,6 +467,9 @@ jQuery(document).ready(function ($) {
 						${isPrimary ? '<span class="primary-badge">Primary</span>' : ''}
 					</span>
 					<span class="sync-history-date">${syncedAt}</span>
+					${!isPrimary ? `<button type="button" class="make-primary-template" data-template-id="${templateId}" title="Make primary">
+						<i class="fa-solid fa-star"></i>
+					</button>` : ''}
 					<button type="button" class="remove-from-history" data-template-id="${templateId}" title="Remove from history">
 						<i class="fa-solid fa-times"></i>
 					</button>
@@ -731,6 +748,70 @@ jQuery(document).ready(function ($) {
 					}
 				}).fail(function() {
 					Swal.fire('Error', 'Failed to remove template from history', 'error');
+				});
+			}
+		});
+	});
+
+	// Click event handler for "Make Primary" button in sync history
+	$(document).on('click', '.make-primary-template', function(e) {
+		e.preventDefault();
+		const templateId = $(this).data('template-id');
+		const postId = $('#sync-history-list').data('post-id');
+
+		Swal.fire({
+			title: 'Make primary?',
+			text: `Set template ${templateId} as the primary template ID?`,
+			icon: 'question',
+			showCancelButton: true,
+			confirmButtonText: 'Make Primary',
+			confirmButtonColor: '#28a745'
+		}).then((result) => {
+			if (result.isConfirmed) {
+				$.post(idAjax.ajaxurl, {
+					action: 'set_primary_iterable_template',
+					security: idAjax_iterable_actions.nonce,
+					post_id: postId,
+					template_id: templateId
+				}).done(function(response) {
+					if (response.status === 'success') {
+						updateSyncHistoryUI(response.syncHistory, response.primaryTemplateId);
+					} else {
+						Swal.fire('Error', response.message, 'error');
+					}
+				}).fail(function() {
+					Swal.fire('Error', 'Failed to update primary template', 'error');
+				});
+			}
+		});
+	});
+
+	// Click event handler for "Clear Primary" button next to primary template ID
+	$(document).on('click', '.clear-primary-template', function(e) {
+		e.preventDefault();
+		const postId = $('#sync-history-list').data('post-id');
+
+		Swal.fire({
+			title: 'Clear primary?',
+			text: 'Clear the primary template ID? It will be re-assigned on the next sync.',
+			icon: 'warning',
+			showCancelButton: true,
+			confirmButtonText: 'Clear',
+			confirmButtonColor: '#d33'
+		}).then((result) => {
+			if (result.isConfirmed) {
+				$.post(idAjax.ajaxurl, {
+					action: 'clear_primary_iterable_template',
+					security: idAjax_iterable_actions.nonce,
+					post_id: postId
+				}).done(function(response) {
+					if (response.status === 'success') {
+						updateSyncHistoryUI(response.syncHistory, response.primaryTemplateId);
+					} else {
+						Swal.fire('Error', response.message, 'error');
+					}
+				}).fail(function() {
+					Swal.fire('Error', 'Failed to clear primary template', 'error');
 				});
 			}
 		});

@@ -394,3 +394,146 @@ function remove_from_iterable_sync_history()
 	));
 }
 add_action('wp_ajax_remove_from_iterable_sync_history', 'remove_from_iterable_sync_history');
+
+
+/**
+ * Set a template ID from sync history as the primary template
+ */
+function set_primary_iterable_template()
+{
+	global $wpdb;
+
+	check_ajax_referer('iterable-actions', 'security');
+
+	$post_id = $_POST['post_id'] ?? null;
+	$template_id = $_POST['template_id'] ?? null;
+
+	if (!$post_id || !$template_id) {
+		wp_send_json(array(
+			'status' => 'error',
+			'message' => 'Missing post ID or template ID'
+		));
+		return;
+	}
+
+	$table_name = $wpdb->prefix . 'wiz_templates';
+	$templateDataJSON = $wpdb->get_var($wpdb->prepare(
+		"SELECT template_data FROM $table_name WHERE post_id = %d",
+		$post_id
+	));
+
+	if (!$templateDataJSON) {
+		wp_send_json(array(
+			'status' => 'error',
+			'message' => 'Template not found'
+		));
+		return;
+	}
+
+	$templateData = json_decode($templateDataJSON, true);
+	$iterableSync = &$templateData['template_options']['template_settings']['iterable-sync'];
+	$syncHistory = $iterableSync['synced_templates_history'] ?? [];
+
+	// Verify the template ID exists in sync history
+	$found = false;
+	foreach ($syncHistory as &$entry) {
+		if (strval($entry['template_id']) === strval($template_id)) {
+			$entry['is_primary'] = true;
+			$found = true;
+		} else {
+			$entry['is_primary'] = false;
+		}
+	}
+	unset($entry);
+
+	if (!$found) {
+		wp_send_json(array(
+			'status' => 'error',
+			'message' => 'Template ID not found in sync history'
+		));
+		return;
+	}
+
+	$iterableSync['iterable_template_id'] = strval($template_id);
+	$iterableSync['synced_templates_history'] = $syncHistory;
+
+	$wpdb->update(
+		$table_name,
+		array('template_data' => json_encode($templateData)),
+		array('post_id' => $post_id),
+		array('%s'),
+		array('%d')
+	);
+
+	wp_send_json(array(
+		'status' => 'success',
+		'message' => 'Primary template updated',
+		'syncHistory' => $syncHistory,
+		'primaryTemplateId' => strval($template_id)
+	));
+}
+add_action('wp_ajax_set_primary_iterable_template', 'set_primary_iterable_template');
+
+
+/**
+ * Clear the primary template ID without removing it from sync history
+ */
+function clear_primary_iterable_template()
+{
+	global $wpdb;
+
+	check_ajax_referer('iterable-actions', 'security');
+
+	$post_id = $_POST['post_id'] ?? null;
+
+	if (!$post_id) {
+		wp_send_json(array(
+			'status' => 'error',
+			'message' => 'Missing post ID'
+		));
+		return;
+	}
+
+	$table_name = $wpdb->prefix . 'wiz_templates';
+	$templateDataJSON = $wpdb->get_var($wpdb->prepare(
+		"SELECT template_data FROM $table_name WHERE post_id = %d",
+		$post_id
+	));
+
+	if (!$templateDataJSON) {
+		wp_send_json(array(
+			'status' => 'error',
+			'message' => 'Template not found'
+		));
+		return;
+	}
+
+	$templateData = json_decode($templateDataJSON, true);
+	$iterableSync = &$templateData['template_options']['template_settings']['iterable-sync'];
+	$syncHistory = $iterableSync['synced_templates_history'] ?? [];
+
+	// Clear primary from all entries
+	foreach ($syncHistory as &$entry) {
+		$entry['is_primary'] = false;
+	}
+	unset($entry);
+
+	$iterableSync['iterable_template_id'] = '';
+	$iterableSync['synced_templates_history'] = $syncHistory;
+
+	$wpdb->update(
+		$table_name,
+		array('template_data' => json_encode($templateData)),
+		array('post_id' => $post_id),
+		array('%s'),
+		array('%d')
+	);
+
+	wp_send_json(array(
+		'status' => 'success',
+		'message' => 'Primary template cleared',
+		'syncHistory' => $syncHistory,
+		'primaryTemplateId' => ''
+	));
+}
+add_action('wp_ajax_clear_primary_iterable_template', 'clear_primary_iterable_template');

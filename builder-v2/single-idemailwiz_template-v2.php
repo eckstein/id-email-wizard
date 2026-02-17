@@ -742,6 +742,9 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 									target="_blank" class="iterable-link" title="View in Iterable">
 									<i class="fa-solid fa-arrow-up-right-from-square"></i>
 								</a>
+								<button type="button" class="clear-primary-template" title="Clear primary template ID">
+									<i class="fa-solid fa-xmark"></i> Clear
+								</button>
 								<?php endif; ?>
 							</div>
 						</div>
@@ -777,6 +780,11 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 											<?php endif; ?>
 										</span>
 										<span class="sync-history-date"><?php echo esc_html($syncedAtFormatted); ?></span>
+										<?php if (!$isPrimary): ?>
+										<button type="button" class="make-primary-template" data-template-id="<?php echo esc_attr($templateId); ?>" title="Make primary">
+											<i class="fa-solid fa-star"></i>
+										</button>
+										<?php endif; ?>
 										<button type="button" class="remove-from-history" data-template-id="<?php echo esc_attr($templateId); ?>" title="Remove from history">
 											<i class="fa-solid fa-times"></i>
 										</button>
