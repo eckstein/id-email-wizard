@@ -717,6 +717,7 @@ jQuery(document).ready(function ($) {
 		const $item = $(this).closest('.sync-history-item');
 		const templateId = $(this).data('template-id');
 		const postId = $('#sync-history-list').data('post-id');
+		const hadUnsavedChanges = sessionStorage.getItem('unsavedChanges') === 'true';
 		
 		Swal.fire({
 			title: 'Remove from history?',
@@ -736,11 +737,12 @@ jQuery(document).ready(function ($) {
 					if (response.status === 'success') {
 						$item.fadeOut(300, function() {
 							$(this).remove();
-							// Update primary field if needed
 							$('#iterable_template_id').val(response.primaryTemplateId || '');
-							// Check if list is empty
 							if ($('#sync-history-list .sync-history-item').length === 0) {
 								$('#sync-history-list').html('<div class="sync-history-empty">No sync history yet</div>');
+							}
+							if (!hadUnsavedChanges) {
+								sessionStorage.setItem('unsavedChanges', 'false');
 							}
 						});
 					} else {
@@ -758,6 +760,7 @@ jQuery(document).ready(function ($) {
 		e.preventDefault();
 		const templateId = $(this).data('template-id');
 		const postId = $('#sync-history-list').data('post-id');
+		const hadUnsavedChanges = sessionStorage.getItem('unsavedChanges') === 'true';
 
 		Swal.fire({
 			title: 'Make primary?',
@@ -776,6 +779,9 @@ jQuery(document).ready(function ($) {
 				}).done(function(response) {
 					if (response.status === 'success') {
 						updateSyncHistoryUI(response.syncHistory, response.primaryTemplateId);
+						if (!hadUnsavedChanges) {
+							sessionStorage.setItem('unsavedChanges', 'false');
+						}
 					} else {
 						Swal.fire('Error', response.message, 'error');
 					}
@@ -790,6 +796,7 @@ jQuery(document).ready(function ($) {
 	$(document).on('click', '.clear-primary-template', function(e) {
 		e.preventDefault();
 		const postId = $('#sync-history-list').data('post-id');
+		const hadUnsavedChanges = sessionStorage.getItem('unsavedChanges') === 'true';
 
 		Swal.fire({
 			title: 'Clear primary?',
@@ -807,6 +814,9 @@ jQuery(document).ready(function ($) {
 				}).done(function(response) {
 					if (response.status === 'success') {
 						updateSyncHistoryUI(response.syncHistory, response.primaryTemplateId);
+						if (!hadUnsavedChanges) {
+							sessionStorage.setItem('unsavedChanges', 'false');
+						}
 					} else {
 						Swal.fire('Error', response.message, 'error');
 					}
