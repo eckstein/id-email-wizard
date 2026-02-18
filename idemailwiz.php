@@ -132,6 +132,7 @@ function idemailwiz_enqueue_assets()
     wp_enqueue_script('wiz-polyfill', plugin_dir_url(__FILE__) . 'js/wiz-polyfills.js', array('jquery'), '1.0', true);
 
     wp_enqueue_script('sweetalert2', 'https://cdn.jsdelivr.net/npm/sweetalert2@11', array(), '11.0', true);
+    wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array(), '4.1.0', true);
 
     if (!$is_lightweight_page) {
     wp_enqueue_script('jquery-ui');
@@ -139,8 +140,6 @@ function idemailwiz_enqueue_assets()
     wp_enqueue_script('jquery-ui-resizable', null, array('jquery', 'jquery-ui'));
 
     wp_enqueue_script('sortable-js', 'https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js', array(), null, true);
-
-    wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array(), '4.1.0', true);
 
     // Enqueue Luxon
     wp_enqueue_script('luxon', 'https://cdn.jsdelivr.net/npm/luxon@2.x/build/global/luxon.min.js', array('jquery'), null, true);
@@ -177,9 +176,9 @@ function idemailwiz_enqueue_assets()
     wp_enqueue_style('spectrum-styles', plugin_dir_url(__FILE__) . 'vendors/spectrum/spectrum.css', array());
 
     wp_enqueue_style('DataTablesCss', plugin_dir_url(__FILE__) . 'vendors/DataTables/datatables.css', array());
-    wp_enqueue_style('select2css', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css', array());
     } // end !$is_lightweight_page
 
+    wp_enqueue_style('select2css', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css', array());
     wp_enqueue_style('font-awesome-6', plugin_dir_url(__FILE__) . 'vendors/Font Awesome/css/all.css', array());
 
     // Activate wordpress image uploader for settings pages
