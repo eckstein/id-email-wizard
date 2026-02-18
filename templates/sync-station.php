@@ -305,7 +305,7 @@ if (isset($_GET['sync'])) {
 				<pre id="syncLogContent"><code>Loading log...</code></pre>
 			</div>
 			<script>
-			(function() {
+			document.addEventListener('DOMContentLoaded', function() {
 				fetch(idAjax.ajaxurl, {
 					method: 'POST',
 					headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -321,7 +321,7 @@ if (isset($_GET['sync'])) {
 						}
 					}
 				});
-			})();
+			});
 			</script>
 			</div>
 		</div>
