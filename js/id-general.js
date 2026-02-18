@@ -633,7 +633,12 @@ if (jQuery("#syncLogContent code").length) {
 			{},
 			function (response) {
 				if (response.success) {
-					jQuery("#syncLogContent code").text(response.data);
+					var codeEl = jQuery("#syncLogContent code");
+					codeEl.removeAttr('data-highlighted');
+					codeEl.text(response.data);
+					if (typeof hljs !== 'undefined') {
+						hljs.highlightElement(codeEl[0]);
+					}
 				}
 			},
 			function (error) {

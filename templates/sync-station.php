@@ -314,7 +314,11 @@ if (isset($_GET['sync'])) {
 				.then(r => r.json())
 				.then(res => {
 					if (res.success) {
-						document.querySelector('#syncLogContent code').textContent = res.data;
+						var codeEl = document.querySelector('#syncLogContent code');
+						codeEl.textContent = res.data;
+						if (typeof hljs !== 'undefined') {
+							hljs.highlightElement(codeEl);
+						}
 					}
 				});
 			})();

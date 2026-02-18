@@ -138,3 +138,31 @@ function ajax_to_wiz_log() {
 }
 add_action( 'wp_ajax_ajax_to_wiz_log', 'ajax_to_wiz_log' );
 
+// Trim the wiz log to keep only the last 10,000 rows (runs daily)
+function wiz_log_trim() {
+	global $wpdb;
+	$table_name = $wpdb->prefix . 'idemailwiz_wiz_log';
+	$max_rows = 5000;
+
+	$count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $table_name" );
+	if ( $count > $max_rows ) {
+		$cutoff = $wpdb->get_var( $wpdb->prepare(
+			"SELECT timestamp FROM $table_name ORDER BY timestamp DESC LIMIT 1 OFFSET %d",
+			$max_rows
+		) );
+		if ( $cutoff ) {
+			$deleted = $wpdb->query( $wpdb->prepare(
+				"DELETE FROM $table_name WHERE timestamp < %f",
+				$cutoff
+			) );
+			if ( $deleted ) {
+				wiz_log( "Log trimmed: removed $deleted old entries (kept newest $max_rows)" );
+			}
+		}
+	}
+}
+add_action( 'wiz_log_trim_cron', 'wiz_log_trim' );
+if ( ! wp_next_scheduled( 'wiz_log_trim_cron' ) ) {
+	wp_schedule_event( time(), 'daily', 'wiz_log_trim_cron' );
+}
+
