@@ -821,6 +821,9 @@ function wizPulse_map_courses_to_database()
             if ($orphaned_count > 0) {
                 wiz_log("Course Sync: Deactivated $orphaned_count orphaned courses no longer in API");
             }
+            
+            // Cross-reference with course capacity to activate/deactivate based on availability
+            $capacity_status_changes = wizPulse_update_course_status_from_capacity();
         } else {
             wiz_log("Course Sync Warning: No courses to process after filtering");
         }
@@ -875,6 +878,111 @@ function wizPulse_deactivate_orphaned_courses($synced_course_ids)
     );
     
     return $result !== false ? count($orphaned_courses) : 0;
+}
+
+/**
+ * Update course wizStatus based on presence in the course capacity table.
+ * 
+ * A course is "available" if it has ANY entry in course_capacity (even sold out
+ * with 0 seats). No entries at all means the course is no longer available.
+ * 
+ * Also handles reactivation: courses that regain capacity entries and meet all
+ * other Active criteria (fiscal year, courseUrl, courseDesc) will be set back to Active.
+ * 
+ * Safety: if the capacity table is completely empty (sync hasn't run or failed),
+ * this function skips the check entirely to avoid mass deactivation.
+ */
+function wizPulse_update_course_status_from_capacity()
+{
+    global $wpdb;
+    $courses_table = $wpdb->prefix . 'idemailwiz_courses';
+    $capacity_table = $wpdb->prefix . 'idemailwiz_course_capacity';
+
+    $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$capacity_table'");
+    if (!$table_exists) {
+        wiz_log("Course Capacity Status: Capacity table does not exist, skipping check");
+        return 0;
+    }
+
+    $capacity_product_ids = $wpdb->get_col("SELECT DISTINCT productID FROM $capacity_table");
+
+    if (empty($capacity_product_ids)) {
+        wiz_log("Course Capacity Status: No capacity data found, skipping check to prevent mass deactivation");
+        return 0;
+    }
+
+    wiz_log("Course Capacity Status: Found " . count($capacity_product_ids) . " unique products with capacity entries");
+
+    $all_courses = $wpdb->get_results(
+        "SELECT id, abbreviation, wizStatus, mustTurnMinAgeByDate, courseUrl, courseDesc FROM $courses_table",
+        ARRAY_A
+    );
+
+    if (empty($all_courses)) {
+        return 0;
+    }
+
+    $capacity_ids_set = array_flip($capacity_product_ids);
+    $deactivated = 0;
+    $reactivated = 0;
+    $deactivated_abbrevs = [];
+    $reactivated_abbrevs = [];
+
+    $wpdb->query('START TRANSACTION');
+
+    try {
+        foreach ($all_courses as $course) {
+            $course_id = $course['id'];
+            $has_capacity = isset($capacity_ids_set[$course_id]);
+            $current_status = $course['wizStatus'];
+
+            if (!$has_capacity && $current_status === 'Active') {
+                $wpdb->update(
+                    $courses_table,
+                    ['wizStatus' => 'Inactive'],
+                    ['id' => $course_id],
+                    ['%s'],
+                    ['%d']
+                );
+                $deactivated++;
+                $deactivated_abbrevs[] = $course['abbreviation'];
+            } elseif ($has_capacity && $current_status === 'Inactive') {
+                $is_fy_active = wizPulse_is_course_active($course['mustTurnMinAgeByDate']);
+                $has_url = !empty($course['courseUrl']);
+                $has_desc = !empty($course['courseDesc']);
+
+                if ($is_fy_active && $has_url && $has_desc) {
+                    $wpdb->update(
+                        $courses_table,
+                        ['wizStatus' => 'Active'],
+                        ['id' => $course_id],
+                        ['%s'],
+                        ['%d']
+                    );
+                    $reactivated++;
+                    $reactivated_abbrevs[] = $course['abbreviation'];
+                }
+            }
+        }
+
+        $wpdb->query('COMMIT');
+    } catch (Exception $e) {
+        $wpdb->query('ROLLBACK');
+        wiz_log("Course Capacity Status Error: " . $e->getMessage());
+        return 0;
+    }
+
+    if ($deactivated > 0) {
+        wiz_log("Course Capacity Status: Deactivated $deactivated courses with no capacity: " . implode(', ', $deactivated_abbrevs));
+    }
+    if ($reactivated > 0) {
+        wiz_log("Course Capacity Status: Reactivated $reactivated courses with capacity: " . implode(', ', $reactivated_abbrevs));
+    }
+    if ($deactivated === 0 && $reactivated === 0) {
+        wiz_log("Course Capacity Status: No status changes needed");
+    }
+
+    return $deactivated + $reactivated;
 }
 
 //Run cron daily to refresh courses
