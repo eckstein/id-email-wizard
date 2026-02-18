@@ -126,19 +126,20 @@ include(plugin_dir_path(__FILE__) . 'includes/course-descriptions.php');
 add_action('wp_enqueue_scripts', 'idemailwiz_enqueue_assets');
 function idemailwiz_enqueue_assets()
 {
-
+    $is_lightweight_page = (strpos($_SERVER['REQUEST_URI'], '/sync-station') !== false);
 
     wp_enqueue_script('jquery');
     wp_enqueue_script('wiz-polyfill', plugin_dir_url(__FILE__) . 'js/wiz-polyfills.js', array('jquery'), '1.0', true);
+
+    wp_enqueue_script('sweetalert2', 'https://cdn.jsdelivr.net/npm/sweetalert2@11', array(), '11.0', true);
+
+    if (!$is_lightweight_page) {
     wp_enqueue_script('jquery-ui');
     wp_enqueue_script('jquery-ui-sortable', null, array('jquery'));
     wp_enqueue_script('jquery-ui-resizable', null, array('jquery', 'jquery-ui'));
 
-
     wp_enqueue_script('sortable-js', 'https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js', array(), null, true);
 
-
-    wp_enqueue_script('sweetalert2', 'https://cdn.jsdelivr.net/npm/sweetalert2@11', array(), '11.0', true);
     wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array(), '4.1.0', true);
 
     // Enqueue Luxon
@@ -158,9 +159,7 @@ function idemailwiz_enqueue_assets()
 
 
     wp_enqueue_script('DataTables', plugin_dir_url(__FILE__) . 'vendors/DataTables/datatables.min.js', array());
-    //wp_enqueue_script('DataTables', 'https://cdn.datatables.net/v/dt/jszip-3.10.1/dt-1.13.6/b-2.4.2/b-colvis-2.4.2/b-html5-2.4.2/cr-1.7.0/date-1.5.1/fc-4.3.0/fh-3.4.0/rr-1.4.1/sc-2.2.0/sb-1.5.0/sl-1.7.0/sr-1.3.0/datatables.min.js', array());
     wp_enqueue_script('DataTablesScrollResize', plugin_dir_url(__FILE__) . 'vendors/DataTables/ScrollResize/dataTables.scrollResize.min.js', array());
-    //wp_enqueue_script('DataTablesEllips', '//cdn.datatables.net/plug-ins/1.13.6/dataRender/ellipsis.js', array());
     wp_enqueue_script('DataTables_ellipsis', plugin_dir_url(__FILE__) . 'vendors/DataTables/ellipsis.js', array());
 
     wp_enqueue_script('flatpickr', 'https://cdn.jsdelivr.net/npm/flatpickr', array());
@@ -169,22 +168,19 @@ function idemailwiz_enqueue_assets()
 
     wp_enqueue_script('tinymce', plugin_dir_url(__FILE__) . 'vendors/tinymce/js/tinymce/tinymce.min.js');
 
-
     wp_enqueue_script('editable', plugin_dir_url(__FILE__) . 'vendors/tiny-edit-in-place/jquery.editable.min.js', array());
 
     wp_enqueue_style('jquery-ui-css', 'https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css');
-
-    wp_enqueue_style('font-awesome-6', plugin_dir_url(__FILE__) . 'vendors/Font Awesome/css/all.css', array());
 
     wp_enqueue_style('flatpickr', 'https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css', array());
 
     wp_enqueue_style('spectrum-styles', plugin_dir_url(__FILE__) . 'vendors/spectrum/spectrum.css', array());
 
-
-
     wp_enqueue_style('DataTablesCss', plugin_dir_url(__FILE__) . 'vendors/DataTables/datatables.css', array());
-    //wp_enqueue_style('DataTablesCss', 'https://cdn.datatables.net/v/dt/jszip-3.10.1/dt-1.13.6/b-2.4.2/b-colvis-2.4.2/b-html5-2.4.2/cr-1.7.0/date-1.5.1/fc-4.3.0/fh-3.4.0/rr-1.4.1/sc-2.2.0/sb-1.5.0/sl-1.7.0/sr-1.3.0/datatables.min.css', array());
     wp_enqueue_style('select2css', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css', array());
+    } // end !$is_lightweight_page
+
+    wp_enqueue_style('font-awesome-6', plugin_dir_url(__FILE__) . 'vendors/Font Awesome/css/all.css', array());
 
     // Activate wordpress image uploader for settings pages
     if (isset($_GET['page']) && $_GET['page'] == 'idemailwiz_settings') {
@@ -192,7 +188,7 @@ function idemailwiz_enqueue_assets()
         wp_enqueue_script('idemailwiz-image-upload', plugin_dir_url(__FILE__) . 'js/image-upload.js', array('jquery'), null, true);
     }
 
-
+    if (!$is_lightweight_page) {
     $codemirror_path = plugin_dir_url(__FILE__) . 'vendors/codemirror-5.65.16/';
 
     $codemirror_files = array(
@@ -224,11 +220,16 @@ function idemailwiz_enqueue_assets()
     foreach ($codemirror_styles as $style) {
         wp_enqueue_style($style[0], $codemirror_path . $style[1], isset($style[2]) ? $style[2] : array(), '', 'all');
     }
+    } // end !$is_lightweight_page (codemirror)
 
     $scripts = array(
+        'id-general' => array('/js/id-general.js', array('jquery')),
+    );
+
+    if (!$is_lightweight_page) {
+    $scripts += array(
         'moment-js' => array('/js/libraries/moment.min.js', array()),
         'dt-date-col-sort' => array('/js/dt-date-col-sort.js', array('moment-js')),
-        'id-general' => array('/js/id-general.js', array('jquery')),
         'mergeTags' => array('/js/mergeTags.js', array()),
 
         'wiz-inits' => array('/builder-v2/js/wiz-inits.js', array('jquery', 'id-general', 'jquery-ui-resizable', 'editable', 'spectrum', 'tinymce', 'crush', 'mergeTags')),
@@ -265,22 +266,24 @@ function idemailwiz_enqueue_assets()
         'course-mapping' => array('/js/course-mapping.js', array('jquery', 'id-general')),
 
         'reporting' => array('/js/reporting.js', array('jquery', 'id-general', 'wiz-charts', 'data-tables')),
-
-
     );
-    $shortRandom = substr(md5(time()), 0, 8);
-    $stylesheetCacheBuster = time().'-'.$shortRandom;
+    }
+
+    $plugin_version = '1.0.0';
     wp_enqueue_style(
         'id-style',
-        plugins_url('/style.css?ver=' . $stylesheetCacheBuster, __FILE__),
-        array()
+        plugins_url('/style.css', __FILE__),
+        array(),
+        $plugin_version
     );
 
+    if (!$is_lightweight_page) {
     wp_enqueue_style(
         'wiz-tooltips',
         plugins_url('/builder-v2/css/wiz-tooltips.css', __FILE__),
         array()
     );
+    }
 
     $wizSettings = get_option('idemailwiz_settings');
 
@@ -323,12 +326,14 @@ function idemailwiz_enqueue_assets()
         )
     );
 
+    if (!$is_lightweight_page) {
     wp_enqueue_script('highlighterjs', '//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js', array('jquery'), '11.7.0', true);
     wp_enqueue_style('highlighter-agate', plugins_url('/styles/agate.css', __FILE__), array(), '11.7.0');
     
     // Engagement Report styles and scripts
     wp_enqueue_style('engagement-report', plugins_url('/styles/engagement-report.css', __FILE__), array(), '1.0.0');
     wp_enqueue_script('engagement-report', plugins_url('/js/engagement-report.js', __FILE__), array('jquery'), '1.0.0', true);
+    }
 }
 
 

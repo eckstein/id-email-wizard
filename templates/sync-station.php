@@ -301,9 +301,24 @@ if (isset($_GET['sync'])) {
 			<!-- Sync Log Section -->
 			<div class="wizcampaign-section inset" id="sync-log-panel" style="flex: 1;">
 				<h2><i class="fa-solid fa-list-alt"></i> Sync Log</h2>
-				<div class="log-container">
-					<pre id="syncLogContent"><code><?php echo get_wiz_log(250); ?></code></pre>
-				</div>
+			<div class="log-container">
+				<pre id="syncLogContent"><code>Loading log...</code></pre>
+			</div>
+			<script>
+			(function() {
+				fetch(idAjax.ajaxurl, {
+					method: 'POST',
+					headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+					body: new URLSearchParams({action: 'refresh_wiz_log', security: idAjax_id_general.nonce})
+				})
+				.then(r => r.json())
+				.then(res => {
+					if (res.success) {
+						document.querySelector('#syncLogContent code').textContent = res.data;
+					}
+				});
+			})();
+			</script>
 			</div>
 		</div>
 	</div>

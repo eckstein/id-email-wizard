@@ -449,7 +449,8 @@ function idemailwiz_create_databases()
         id INT(11) NOT NULL AUTO_INCREMENT,
         timestamp DECIMAL(18, 6),
         message VARCHAR(255),
-        PRIMARY KEY  (id)
+        PRIMARY KEY  (id),
+        INDEX idx_timestamp (timestamp)
     ) ENGINE=InnoDB $charset_collate;";
 
 	$endpoints_table_name = $wpdb->prefix . 'idemailwiz_endpoints';

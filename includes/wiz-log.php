@@ -24,6 +24,19 @@
 // }
 
 
+add_action('init', function() {
+	if (get_option('wiz_log_timestamp_index_added')) {
+		return;
+	}
+	global $wpdb;
+	$table_name = $wpdb->prefix . 'idemailwiz_wiz_log';
+	$index_exists = $wpdb->get_var("SHOW INDEX FROM $table_name WHERE Key_name = 'idx_timestamp'");
+	if (!$index_exists) {
+		$wpdb->query("ALTER TABLE $table_name ADD INDEX idx_timestamp (timestamp)");
+	}
+	update_option('wiz_log_timestamp_index_added', true);
+});
+
 function wiz_log( $message ) {
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'idemailwiz_wiz_log';
