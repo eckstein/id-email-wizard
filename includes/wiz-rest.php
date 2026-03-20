@@ -491,6 +491,7 @@ function get_nearby_locations($student_data, $radius_miles = 30) {
                 'url' => $url,
                 'address' => $address,
                 'distance' => round($distance, 1), // Round to 1 decimal place
+                '_distance_raw' => $distance,
                 'courses' => $location_courses, // Include the unserialized courses list
                 'sessionWeeks' => $location_session_weeks, // Include the unserialized session weeks
                 'locationDesc' => $location['locationDesc'] ?? null,
@@ -498,6 +499,22 @@ function get_nearby_locations($student_data, $radius_miles = 30) {
             ];
         }
     }
+
+    // Always return locations nearest to the student's last purchase location first.
+    // Tie-break on ID so ordering stays stable for equal distances.
+    usort($nearby_locations, function($a, $b) {
+        $distance_compare = $a['_distance_raw'] <=> $b['_distance_raw'];
+        if ($distance_compare !== 0) {
+            return $distance_compare;
+        }
+        return intval($a['id']) <=> intval($b['id']);
+    });
+
+    // Internal sort helper not needed in response payload.
+    foreach ($nearby_locations as &$location) {
+        unset($location['_distance_raw']);
+    }
+    unset($location);
     
     return [
         'total_count' => count($nearby_locations),
