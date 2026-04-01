@@ -417,10 +417,10 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 											<label>Link Styles</label>
 											<div class="button-group checkbox">
 												<?php foreach ($linkStyleOptions as $opt) : ?>
-													<?php
-													// Directly check the presence and truthiness of the value for each style option
-													$isChecked = ! empty($linkStyles[$opt['value']]) && $linkStyles[$opt['value']] === true ? 'checked' : '';
-													?>
+												<?php
+												$defaultVal = $opt['value'] === 'underline';
+												$isChecked = (isset($linkStyles[$opt['value']]) ? $linkStyles[$opt['value']] === true : $defaultVal) ? 'checked' : '';
+												?>
 													<input type='checkbox' id='<?php echo $opt['id']; ?>' data-preview-part="fullTemplate"
 														name='<?php echo $opt['value']; ?>' value='true' <?php echo $isChecked; ?>>
 													<label for='<?php echo $opt['id']; ?>' class='button-label'>

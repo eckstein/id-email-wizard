@@ -611,7 +611,7 @@ function show_specific_chunk_settings($chunkData, $uniqueId, $settings, $chunkTy
                     echo "</div>";
                     break;
                 case 'p_padding':
-                    $pPadding = $chunkSettings['p_padding'] ?? false;
+                    $pPadding = $chunkSettings['p_padding'] ?? true;
                     $uniqueIdPpadding = $uniqueId . 'p_padding';
                     $pPaddingChecked = $pPadding ? 'checked' : '';
                     $pPaddingActive = $pPadding ? 'active' : '';
