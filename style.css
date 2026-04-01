@@ -6552,36 +6552,20 @@ color: #eee;
     opacity: 1;
 }
 
-.sync-target-new {
-    background: #e8f5e9;
-    border-color: #c8e6c9;
-}
-
-.sync-target-new .sync-target-id {
-    color: #2e7d32;
-}
-
 .sync-target-manual {
-    margin-top: 0.75rem;
-    padding-top: 0.75rem;
-    border-top: 1px dashed #dee2e6;
-}
-
-.sync-target-manual label {
-    display: block;
-    font-size: 0.85rem;
-    color: #6c757d;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
 }
 
 .sync-target-manual-input-wrap {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .sync-target-manual input[type="text"] {
-    flex: 1;
+    flex: 0 1 auto;
+    width: 200px;
     padding: 0.4rem 0.6rem;
     border: 1px solid #ced4da;
     border-radius: 4px;
@@ -6592,6 +6576,12 @@ color: #eee;
     padding: 0.4rem 0.75rem;
     font-size: 0.85rem;
     flex-shrink: 0;
+}
+
+.sync-target-manual-hint {
+    font-size: 0.8rem;
+    color: #6c757d;
+    font-style: italic;
 }
 
 /* SweetAlert container adjustments for sync modal */

@@ -155,6 +155,18 @@ jQuery(document).ready(function ($) {
 		function buildSyncTargets() {
 			let html = '<div class="sync-targets-section">';
 			html += '<label class="sync-targets-label">Sync to:</label>';
+
+			// Manual template ID input (above the scrollable list)
+			html += `
+				<div class="sync-target-manual">
+					<div class="sync-target-manual-input-wrap">
+						<input type="text" id="manual_template_id" placeholder="Enter an existing template ID">
+						<button type="button" id="add_manual_template" class="wiz-button small green">Add</button>
+						<span class="sync-target-manual-hint">Leave blank to create a new template</span>
+					</div>
+				</div>
+			`;
+
 			html += '<div class="sync-targets-list">';
 			
 			// Check if primary ID exists but isn't in history (backwards compatibility)
@@ -193,26 +205,6 @@ jQuery(document).ready(function ($) {
 				});
 			}
 			
-			// Add "Create new template" option (unchecked if there's existing sync targets)
-			const hasExistingTargets = syncHistory.length > 0 || primaryTemplateId;
-			html += `
-				<label class="sync-target-item sync-target-new">
-					<input type="checkbox" name="sync_target" value="new" ${!hasExistingTargets ? 'checked' : ''}>
-					<span class="sync-target-id">Create new template</span>
-				</label>
-			`;
-			
-			// Add manual input for existing template ID
-			html += `
-				<div class="sync-target-manual">
-					<label>Or enter an existing template ID:</label>
-					<div class="sync-target-manual-input-wrap">
-						<input type="text" id="manual_template_id" placeholder="Enter Iterable template ID">
-						<button type="button" id="add_manual_template" class="wiz-button small green">Add</button>
-					</div>
-				</div>
-			`;
-			
 			html += '</div></div>';
 			return html;
 		}
@@ -244,7 +236,6 @@ jQuery(document).ready(function ($) {
 				$(document).on('click', '#add_manual_template', function() {
 					const manualId = $('#manual_template_id').val().trim();
 					if (manualId) {
-						// Check if already exists
 						const exists = $(`.sync-targets-list input[value="${manualId}"]`).length > 0;
 						if (!exists) {
 							const newItem = `
@@ -257,26 +248,27 @@ jQuery(document).ready(function ($) {
 									</a>
 								</label>
 							`;
-							$('.sync-target-new').before(newItem);
-							$('#manual_template_id').val('');
+							$('.sync-targets-list').append(newItem);
 						} else {
-							// Check the existing checkbox
 							$(`.sync-targets-list input[value="${manualId}"]`).prop('checked', true);
-							$('#manual_template_id').val('');
 						}
+						$('#manual_template_id').val('');
 					}
 				});
 			},
 			preConfirm: () => {
-				// Collect checked values while modal is still open
 				const selectedIds = [];
 				$('.sync-targets-list input[name="sync_target"]:checked').each(function() {
 					selectedIds.push($(this).val());
 				});
-				
+
+				const manualId = $('#manual_template_id').val().trim();
+				if (manualId && !selectedIds.includes(manualId)) {
+					selectedIds.push(manualId);
+				}
+
 				if (selectedIds.length === 0) {
-					Swal.showValidationMessage('Please select at least one template to sync to.');
-					return false;
+					selectedIds.push('new');
 				}
 				
 				return selectedIds;
