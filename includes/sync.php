@@ -574,6 +574,7 @@ function idemailwiz_fetch_journeys($journeyIds = null)
 
 function idemailwiz_fetch_metrics($campaignIds = null)
 {
+	@set_time_limit(600);
 
 	$today = new DateTime();
 	$startFetchDate = $today->modify('-8 weeks')->format('Y-m-d');
@@ -2247,10 +2248,12 @@ function idemailwiz_process_blast_sync()
 
 function idemailwiz_sync_non_triggered_metrics($campaignIds = [], $sync_dbs = null)
 {
+	@set_time_limit(600);
+
 	$syncArgs = [];
 	$response = [];
 
-	set_transient('idemailwiz_blast_sync_in_progress', true, (5 * MINUTE_IN_SECONDS));
+	set_transient('idemailwiz_blast_sync_in_progress', true, (10 * MINUTE_IN_SECONDS));
 	wiz_log("Starting metrics sync process...");
 
 	$sync_dbs = $sync_dbs ?? ['campaigns', 'templates', 'metrics', 'purchases', 'experiments', 'journeys'];
