@@ -663,6 +663,11 @@ function idemailwiz_fetch_metrics($campaignIds = null)
 			continue;
 		}
 
+		if (empty($response) || !isset($response['response']) || empty($response['response'])) {
+			wiz_log("Fetch Metrics: Empty or invalid response from API for batch. HTTP code: " . ($response['http_code'] ?? 'N/A') . " | URL: " . $url);
+			continue;
+		}
+
 		// Split the CSV data into lines
 		$lines = explode("\n", $response['response']);
 
