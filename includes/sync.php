@@ -661,7 +661,7 @@ function idemailwiz_fetch_metrics($campaignIds = null)
 		} catch (Throwable $e) {
 			wiz_log("Fetch Metrics: Batch $batchNum/$totalBatches FAILED with exception: " . $e->getMessage());
 
-			if ($e->getMessage() === "CONSECUTIVE_400_ERRORS") {
+			if (strpos($e->getMessage(), "CONSECUTIVE_400_ERRORS") !== false) {
 				wiz_log("More than 5 consecutive 400 errors encountered. Skipping batch.");
 			}
 

@@ -103,8 +103,8 @@ function idemailwiz_iterable_curl_call($apiURL, $postData = null, $verifySSL = f
 
         // If maximum attempts reached after errors, throw an exception
         if ($attempts >= $retryAttempts) { // Use >= to ensure it triggers after the last allowed attempt
-             wiz_log("API call to $apiURL failed after $retryAttempts attempts. Last HTTP Code: $httpCode"); // KEEP: Log max retries reached
-             throw new Exception("MAX_RETRY_ATTEMPTS_REACHED");
+             wiz_log("API call to $apiURL failed after $retryAttempts attempts. Last HTTP Code: $httpCode. Response: " . substr($response ?? '', 0, 500)); // KEEP: Log max retries reached
+             throw new Exception("MAX_RETRY_ATTEMPTS_REACHED (HTTP $httpCode)");
         }
 
     } while ($httpCode >= 400); // Continue loop only if there was an error code
