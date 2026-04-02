@@ -653,19 +653,14 @@ function idemailwiz_fetch_metrics($campaignIds = null)
 		$url = "https://api.iterable.com/api/campaigns/metrics" . $getString;
 		try {
 			$response = idemailwiz_iterable_curl_call($url);
-		} catch (Throwable $e) {  // Catching Throwable to handle both Error and Exception
-			// Log the error with more details
+		} catch (Throwable $e) {
 			wiz_log("Error encountered for fetch metrics curl call to : " . $url . " - " . $e->getMessage());
 
-
-			// Specific check for the "CONSECUTIVE_400_ERRORS" message
 			if ($e->getMessage() === "CONSECUTIVE_400_ERRORS") {
-				// Specific action for this type of error
 				wiz_log("More than 5 consecutive 400 errors encountered. Skipping...");
 			}
 
-			// Optionally, you can rethrow the exception or handle it differently
-			// throw $e;
+			continue;
 		}
 
 		// Split the CSV data into lines
