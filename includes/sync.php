@@ -646,27 +646,34 @@ function idemailwiz_fetch_metrics($campaignIds = null)
 	}
 
 	$allMetrics = []; // Initialize $data as an array
+	$batchNum = 0;
+	$totalBatches = count($batches);
+	wiz_log("Fetch Metrics: Processing $totalBatches batches for " . count($campaigns_to_fetch) . " campaigns.");
 
 	foreach ($batches as $batch) {
+		$batchNum++;
 		$getString = '?startDateTime=2021-11-01&campaignId=' . implode('&campaignId=', $batch);
 
 		$url = "https://api.iterable.com/api/campaigns/metrics" . $getString;
+		wiz_log("Fetch Metrics: Batch $batchNum/$totalBatches - Requesting " . count($batch) . " campaign IDs. URL length: " . strlen($url));
 		try {
 			$response = idemailwiz_iterable_curl_call($url);
 		} catch (Throwable $e) {
-			wiz_log("Error encountered for fetch metrics curl call to : " . $url . " - " . $e->getMessage());
+			wiz_log("Fetch Metrics: Batch $batchNum/$totalBatches FAILED with exception: " . $e->getMessage());
 
 			if ($e->getMessage() === "CONSECUTIVE_400_ERRORS") {
-				wiz_log("More than 5 consecutive 400 errors encountered. Skipping...");
+				wiz_log("More than 5 consecutive 400 errors encountered. Skipping batch.");
 			}
 
 			continue;
 		}
 
 		if (empty($response) || !isset($response['response']) || empty($response['response'])) {
-			wiz_log("Fetch Metrics: Empty or invalid response from API for batch. HTTP code: " . ($response['http_code'] ?? 'N/A') . " | URL: " . $url);
+			wiz_log("Fetch Metrics: Batch $batchNum/$totalBatches returned empty response. HTTP code: " . ($response['http_code'] ?? 'N/A'));
 			continue;
 		}
+
+		wiz_log("Fetch Metrics: Batch $batchNum/$totalBatches succeeded. HTTP code: " . $response['http_code'] . " | Response size: " . strlen($response['response']) . " bytes");
 
 		// Split the CSV data into lines
 		$lines = explode("\n", $response['response']);
