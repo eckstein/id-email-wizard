@@ -581,14 +581,14 @@ function idemailwiz_fetch_metrics($campaignIds = null)
 	$campaigns_to_fetch = []; // Initialize array to hold campaign IDs
 
 	if ($campaignIds) {
-		// If specific campaigns are passed, use them directly
 		$metricCampaignArgs = array(
 			'fields' => array('id'),
-			'campaignIds' => $campaignIds
+			'campaignIds' => $campaignIds,
+			'startAt_start' => $startFetchDate
 		);
 		$campaigns_to_fetch = get_idwiz_campaigns($metricCampaignArgs);
+		wiz_log("Fetch Metrics: " . count($campaigns_to_fetch) . " of " . count($campaignIds) . " passed campaigns are within the last 8 weeks.");
 	} else {
-		// 1. Fetch Blast campaigns started in the last 8 weeks
 		$blastCampaignArgs = array(
 			'fields' => array('id'),
 			'type' => 'Blast',
@@ -596,7 +596,6 @@ function idemailwiz_fetch_metrics($campaignIds = null)
 		);
 		$blast_campaigns = get_idwiz_campaigns($blastCampaignArgs);
 
-		// 2. Fetch Running Triggered campaigns created in the last year
 		$triggeredStartDate = (new DateTime())->modify('-1 year')->format('Y-m-d');
 		$triggeredCampaignArgs = array(
 			'fields' => array('id'),
@@ -609,7 +608,6 @@ function idemailwiz_fetch_metrics($campaignIds = null)
 		$campaigns_to_fetch = array_merge($blast_campaigns ?: [], $triggered_campaigns ?: []);
 
 		wiz_log("Default Metrics Fetch: Found " . count($blast_campaigns ?: []) . " Blast campaigns (last 8 weeks) and " . count($triggered_campaigns ?: []) . " Running Triggered campaigns (last year).");
-
 	}
 
 	// If no campaigns were found after filtering, return early
@@ -3201,7 +3199,6 @@ function handle_sync_station_sync()
 		} else {
 			$syncResult = idemailwiz_sync_non_triggered_metrics($campaignIds);
 		}
-		$syncResult = idemailwiz_sync_non_triggered_metrics($campaignIds);
 		unset($formFields['syncTypes'][array_search('blastMetrics', $formFields['syncTypes'])]);
 	} else {
 		$syncResult = maybe_add_to_sync_queue($campaignIds, $formFields['syncTypes'], $syncStartAt, $syncEndAt, 100);
