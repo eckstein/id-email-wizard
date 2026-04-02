@@ -184,12 +184,12 @@ function idemailwiz_fetch_campaigns($campaignIds = null)
 {
 
 	$url = 'https://api.iterable.com/api/campaigns';
-	wiz_log("Fetching Campaigns from Iterable API..."); // Simplified log
+	wiz_log("Fetching Campaigns from Iterable API...");
 	try {
 		$response = idemailwiz_iterable_curl_call($url);
 	} catch (Throwable $e) {  // Catching Throwable to handle both Error and Exception
 		// Log the error with more details
-		wiz_log("Fetch Campaigns: CAUGHT EXCEPTION during curl call to $url - " . $e->getMessage()); // Log inside catch
+		wiz_log("Fetch Campaigns: CAUGHT EXCEPTION during curl call to $url - " . $e->getMessage());
 
 
 		// Specific check for the "CONSECUTIVE_400_ERRORS" message
@@ -504,13 +504,9 @@ function idemailwiz_fetch_journeys($journeyIds = null)
 		$pageJourneys = $response['response']['journeys'];
 		$allJourneys = array_merge($allJourneys, $pageJourneys);
 		
-		// Log total count from first page
 		if ($pageCount === 1 && isset($response['response']['totalJourneysCount'])) {
 			$totalExpected = $response['response']['totalJourneysCount'];
-			wiz_log("Total journeys expected: $totalExpected");
 		}
-		
-		wiz_log("Fetched " . count($pageJourneys) . " journeys from page $pageCount (total so far: " . count($allJourneys) . ")");
 		
 		// Check for next page
 		$nextPageUrl = isset($response['response']['nextPageUrl']) ? $response['response']['nextPageUrl'] : null;
@@ -652,14 +648,14 @@ function idemailwiz_fetch_metrics($campaignIds = null)
 	$allMetrics = [];
 	$batchNum = 0;
 	$totalBatches = count($batches);
-	wiz_log("Fetch Metrics: Processing $totalBatches batches for " . count($campaigns_to_fetch) . " campaigns (max URL length: $maxUrlLength).");
+	wiz_log("Fetch Metrics: Processing $totalBatches batches for " . count($campaigns_to_fetch) . " campaigns.");
 
 	foreach ($batches as $batch) {
 		$batchNum++;
 		$getString = '?startDateTime=2021-11-01&campaignId=' . implode('&campaignId=', $batch);
 
 		$url = "https://api.iterable.com/api/campaigns/metrics" . $getString;
-		wiz_log("Fetch Metrics: Batch $batchNum/$totalBatches - " . count($batch) . " campaigns, URL length: " . strlen($url));
+		wiz_log("Fetch Metrics: Batch $batchNum/$totalBatches - " . count($batch) . " campaigns.");
 		try {
 			$response = idemailwiz_iterable_curl_call($url);
 		} catch (Throwable $e) {
@@ -676,8 +672,6 @@ function idemailwiz_fetch_metrics($campaignIds = null)
 			wiz_log("Fetch Metrics: Batch $batchNum/$totalBatches returned empty response. HTTP code: " . ($response['http_code'] ?? 'N/A'));
 			continue;
 		}
-
-		wiz_log("Fetch Metrics: Batch $batchNum/$totalBatches succeeded. HTTP code: " . $response['http_code'] . " | Response size: " . strlen($response['response']) . " bytes");
 
 		// Split the CSV data into lines
 		$lines = explode("\n", $response['response']);
@@ -1416,10 +1410,9 @@ function idemailwiz_sync_campaigns($passedCampaigns = null)
 
 	// Fetch campaigns from the API
 	$campaigns = idemailwiz_fetch_campaigns($passedCampaigns);
-	// wiz_log("Sync Campaigns: Returned from fetch_campaigns. Received \" . (is_array($campaigns) ? count($campaigns) : 'Invalid data type') . \" campaigns."); // REMOVED - Summary below is better
 
 	if (empty($campaigns) || is_string($campaigns)) {
-		wiz_log("Sync Campaigns: No campaigns found to sync or error occurred: " . (is_string($campaigns) ? $campaigns : "Empty result")); // Log empty/error
+		wiz_log("Sync Campaigns: No campaigns found to sync or error occurred: " . (is_string($campaigns) ? $campaigns : "Empty result"));
 		return "No campaigns found to sync or error occurred.";
 	}
 
@@ -1434,16 +1427,8 @@ function idemailwiz_sync_campaigns($passedCampaigns = null)
 	try {
 		// First, filter out campaigns we want to skip
 		$filtered_campaigns = [];
-		// wiz_log("Sync Campaigns: Starting campaign filtering loop..."); // REMOVED - Redundant log
-		$loop_counter = 0;
 		foreach ($campaigns as $campaign) {
-			$loop_counter++;
-			// if ($loop_counter % 100 == 0) { // REMOVED per-100 log
-			// 	wiz_log("Sync Campaigns: Processing campaign #{$loop_counter} in filter loop...");
-			// }
-
 			if (!isset($campaign['id'])) {
-				// wiz_log('No ID found in the fetched campaign record!'); // Keep logs focused
 				continue;
 			}
 			
@@ -1452,19 +1437,11 @@ function idemailwiz_sync_campaigns($passedCampaigns = null)
 				continue;
 			}
 			
-			// Get the latest startAt value from our DB for triggered campaigns
-			// if (isset($campaign['type']) && $campaign['type'] == 'Triggered') {
-			// 	$latestStartAt = get_latest_triggered_startAt($campaign['id']);
-			// 	if ($latestStartAt !== null) {
-			// 		$campaign['startAt'] = $latestStartAt;
-			// 	}
-			// }
-			
 			$filtered_campaigns[] = $campaign;
 		}
 		
 		$campaigns = $filtered_campaigns;
-		wiz_log("Sync Campaigns: Filtering complete. After filtering, processing " . count($campaigns) . " campaigns."); // Corrected log location
+		wiz_log("Sync Campaigns: Processing " . count($campaigns) . " campaigns after filtering.");
 		
 		// If we have no campaigns after filtering, return early
 		if (empty($campaigns)) {
@@ -1509,9 +1486,6 @@ function idemailwiz_sync_campaigns($passedCampaigns = null)
 		$batch_size = 500;
 		$campaign_batches = array_chunk($campaigns, $batch_size);
 		
-		// wiz_log("Processing campaigns in \" . count($campaign_batches) . \" batches of \" . $batch_size);
-		// Optional: Add simpler log wiz_log("Comparing API campaigns with database...");
-		
 		foreach ($campaign_batches as $batch_index => $campaign_batch) {
 			$batch_to_update = [];
 			$batch_to_insert = [];
@@ -1552,8 +1526,6 @@ function idemailwiz_sync_campaigns($passedCampaigns = null)
 					$batch_to_insert[] = $campaign;
 				}
 			}
-			
-			// wiz_log("Batch \" . ($batch_index + 1) . \": Processing \" . count($batch_to_update) . \" updates, \" . count($batch_to_insert) . \" inserts, and \" . count($batch_to_delete) . \" deletes"); // REMOVED per-batch summary
 			
 			// Process this batch and add results to the main arrays
 			if (!empty($batch_to_insert)) {
@@ -1659,11 +1631,6 @@ function idemailwiz_sync_purchases($campaignIds = null, $startDate = null, $endD
 			return "No purchases found to sync.";
 		}
 
-		// Log the first purchase as a sample of the raw data
-		if (!empty($purchases[0])) {
-			wiz_log("Sample of raw purchase data: " . print_r($purchases[0], true));
-		}
-
 		global $wpdb;
 		$purchases_table = $wpdb->prefix . 'idemailwiz_purchases';
 
@@ -1701,10 +1668,7 @@ function idemailwiz_sync_purchases($campaignIds = null, $startDate = null, $endD
         
         // Create a lookup array from the INTERSECTION of fetched and existing IDs
         $existing_purchase_lookup = array_flip($existing_purchase_ids);
-        wiz_log("Sync Purchases: Found " . count($existing_purchase_lookup) . " matching existing IDs locally for this fetch.");
-
 		// --- Prepare campaign start time lookup ---
-		wiz_log("Fetching campaign start times for purchase attribution...");
 		$campaign_ids_in_purchases = array_unique(array_filter(array_column($purchases, 'campaignId')));
 		$campaign_start_times = [];
 		if (!empty($campaign_ids_in_purchases)) {
@@ -1723,10 +1687,6 @@ function idemailwiz_sync_purchases($campaignIds = null, $startDate = null, $endD
 			}
 		}
 		// --- End campaign start time lookup ---
-
-        if (defined('WP_DEBUG_LOG') && WP_DEBUG_LOG === true) {
-            
-        }
 
 		foreach ($purchases as &$purchase) {
 			if (!isset($purchase['id'])) {
@@ -2455,13 +2415,9 @@ function idemailwiz_sync_engagement_data_callback()
 			 // Optionally mark the job as failed here if needed
 		}
 
-		// Reschedule quickly to check for the next job
-		wiz_log("Job processing finished (or failed). Rescheduling check in 5 seconds.");
 		wp_schedule_single_event(time() + 5, 'idemailwiz_sync_engagement_data');
 
 	} else {
-		// No ready jobs found
-		wiz_log("No ready jobs found in the queue.");
 
 		// Clear any lingering single schedule
 		$timestamp = wp_next_scheduled('idemailwiz_sync_engagement_data');
@@ -2861,14 +2817,8 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 	// Wrap the API call in a try-catch block
 	try {
 		$jobApiResponse = idemailwiz_iterable_curl_call("https://api.iterable.com/api/export/" . $jobId . "/files{$startAfter}");
-		if (isset($jobApiResponse['response'])) {
-			if (is_array($jobApiResponse['response']) && isset($jobApiResponse['response']['jobState'])) {
-				 wiz_log("Job $jobId: Job State from API: " . $jobApiResponse['response']['jobState']); // Keep job state log
-			} elseif (is_array($jobApiResponse['response'])) {
-				 wiz_log("Job $jobId: 'jobState' key not found in response array.");
-			}
-		} else {
-			wiz_log("Job $jobId: 'response' key not set in response.");
+		if (!isset($jobApiResponse['response'])) {
+			wiz_log("Job $jobId: 'response' key not set in API response.");
 		}
 	} catch (Exception $e) {
 		wiz_log("Job $jobId: Exception during API call: " . $e->getMessage() . ". Requeueing job.");
@@ -2914,7 +2864,7 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 
 	// Check jobState before attempting to process files
 	if ($jobApiResponse['response']['jobState'] !== 'completed') {
-		wiz_log("Job $jobId: Iterable job state is not 'completed' (State: " . $jobApiResponse['response']['jobState'] . "). Requeueing for later check."); // Added Log
+		wiz_log("Job $jobId: Iterable job state is not 'completed' (State: " . $jobApiResponse['response']['jobState'] . "). Requeueing.");
 		// Create a DateTime object representing the current time
 		$currentTime = new DateTime('now', new DateTimeZone('UTC'));
 
@@ -2942,7 +2892,6 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 		}
 
 		// Change status back to pending
-		wiz_log("Job $jobId: Setting status back to 'pending'."); // Added Log
 		$updatePending = $wpdb->update(
 			$sync_jobs_table_name,
 			['syncStatus' => 'pending'],
@@ -2957,8 +2906,6 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 
 
 	// --- Job is completed, proceed with file processing ---
-	wiz_log("Job $jobId: Job state is 'completed'. Processing files..."); // Added Log
-
 	foreach ($jobApiResponse['response']['files'] as $file) {
 		$jsonResponse = @file_get_contents($file['url']);
 		if ($jsonResponse === false) {
@@ -2974,7 +2921,7 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 				}
 				$record = json_decode($line, true);
 				if (json_last_error() !== JSON_ERROR_NONE) {
-					wiz_log("Failed to decode JSON for job $jobId. Line: $line. Error: " . json_last_error_msg()); // Added Log with error
+					wiz_log("Failed to decode JSON for job $jobId. Line: $line. Error: " . json_last_error_msg());
 					continue;
 				}
 
@@ -3009,10 +2956,8 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 					
 					if ($insertResult === false) {
 						wiz_log("Job $jobId: Error inserting batch records. Error: " . $wpdb->last_error);
-						// Decide how to handle batch failure - skip job? Mark as failed? For now, log and continue potentially skipping records
 					} else {
 						$totalInsertedCount += $insertResult; 
-						wiz_log("Job $jobId: Inserted $insertResult records in this batch.");
 					}
 					// Reset batch
 					$batchInsertData = [];
@@ -3040,7 +2985,7 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 				]
 			);
 			if ($updateResult === false) {
-				wiz_log("Error updating lastWizSync for campaign $campaignId in job $jobId. Error: " . $wpdb->last_error); // Corrected logging
+				wiz_log("Error updating lastWizSync for campaign $campaignId in job $jobId. Error: " . $wpdb->last_error);
 			}
 		}
 	}
@@ -3056,12 +3001,11 @@ function idemailwiz_process_job_from_sync_queue($jobId = null)
 			wiz_log("Job $jobId: Error inserting final batch records. Error: " . $wpdb->last_error);
 		} else {
 			$totalInsertedCount += $insertResult;
-			wiz_log("Job $jobId: Inserted $insertResult records in final batch.");
 		}
 	}
 
 	// Log total inserted count for the job
-	wiz_log("Job $jobId: Finished processing files. Total unique records inserted/updated: $totalInsertedCount"); // Adjusted wording slightly
+	wiz_log("Job $jobId: Finished processing. Total records inserted/updated: $totalInsertedCount");
 
 	if ($jobApiResponse['response']['exportTruncated'] === true && (!empty($lines) && (count(array_filter($lines)) > 0))) {
 		// Update the row to reflect the requeued job
@@ -3297,44 +3241,6 @@ function requeue_retry_afters()
 
 	return $result;
 }
-
-// function sync_single_campaign_data($campaignId, $exportStart = null, $exportEnd = null)
-// {
-// 	global $wpdb;
-// 	$sync_jobs_table_name = $wpdb->prefix . 'idemailwiz_sync_jobs';
-// 	// check for existing pending jobs in queue
-// 	$jobs = get_idwiz_sync_jobs('pending', $campaignId);
-// 	if (count($jobs) > 0) {
-// 		foreach ($jobs as $job) {
-// 			// Process this job immediately
-// 			wiz_log('Campaign found in queue, prioritizing...');
-// 			$wpdb->update(
-// 				$sync_jobs_table_name,
-// 				['priority' => 100, 'retryAfter' => 0],
-// 				['jobId' => $job['jobId']]
-// 			);
-
-// 			if (!wp_next_scheduled('idemailwiz_sync_engagement_data')) {
-// 				wp_schedule_single_event(time() + 1, 'idemailwiz_sync_engagement_data');
-// 			}
-// 		}
-// 	} else {
-// 		wiz_log('Campaign not in queue, queuing jobs...');
-// 		$campaign = get_idwiz_campaign($campaignId);
-// 		$campaignTypes = [$campaign['type']];
-// 		$messageMediums = [$campaign['messageMedium']];
-// 		$metricTypes = ['send', 'open', 'click', 'bounce', 'unsubscribe', 'sendskip', 'complaint'];
-
-// 		// Add jobs to queue with high priority
-// 		wiz_log("Adding jobs for campaign $campaignId to queue...");
-// 		idwiz_export_and_store_jobs_to_sync_queue([$campaignId], $campaignTypes, $messageMediums, $metricTypes, $exportStart, $exportEnd, 100, 1);
-
-// 		wiz_log('Jobs queued successfully. Sync should occur within 2 minutes.');
-// 		if (!wp_next_scheduled('idemailwiz_sync_engagement_data')) {
-// 			wp_schedule_single_event(time() + 60, 'idemailwiz_sync_engagement_data');
-// 		}
-// 	}
-// }
 
 function idemailwiz_schedule_weekly_cron()
 {

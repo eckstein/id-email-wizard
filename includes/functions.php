@@ -1676,7 +1676,7 @@ function idemailwiz_generate_image_from_template($templateId)
 	if (curl_errno($ch)) {
 		echo 'Error:' . curl_error($ch);
 	}
-	curl_close($ch);
+	unset($ch);
 	$res = json_decode($result, true);
 
 	if (isset($res['url'])) {

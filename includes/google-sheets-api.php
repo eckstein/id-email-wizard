@@ -177,8 +177,7 @@ function idwiz_google_sheet_api_curl_call($url)
         echo 'Curl error: ' . curl_error($ch);
     }
 
-    // Close cURL session
-    curl_close($ch);
+    unset($ch);
 
     return $response;
 }
