@@ -625,37 +625,41 @@ function idemailwiz_fetch_metrics($campaignIds = null)
 		];
 	}
 
-	$batchCount = 0;
+	$maxUrlLength = 2000;
+	$baseUrl = "https://api.iterable.com/api/campaigns/metrics?startDateTime=2021-11-01";
 	$batches = array();
 	$currentBatch = array();
+	$currentUrlLength = strlen($baseUrl);
+
 	foreach ($campaigns_to_fetch as $campaign) {
-		// Ensure campaign is an array and has an 'id' key before accessing it
 		if (is_array($campaign) && isset($campaign['id'])) {
-			$currentBatch[] = $campaign['id'];
-			if (++$batchCount % 200 == 0) {
+			$paramLength = strlen('&campaignId=' . $campaign['id']);
+			if ($currentUrlLength + $paramLength > $maxUrlLength && !empty($currentBatch)) {
 				$batches[] = $currentBatch;
 				$currentBatch = array();
+				$currentUrlLength = strlen($baseUrl);
 			}
+			$currentBatch[] = $campaign['id'];
+			$currentUrlLength += $paramLength;
 		} else {
 			wiz_log("Fetch Metrics Warning: Invalid campaign data encountered during batching: " . print_r($campaign, true));
 		}
 	}
-	// Add any remaining campaigns that didn't fill a full batch
 	if (!empty($currentBatch)) {
 		$batches[] = $currentBatch;
 	}
 
-	$allMetrics = []; // Initialize $data as an array
+	$allMetrics = [];
 	$batchNum = 0;
 	$totalBatches = count($batches);
-	wiz_log("Fetch Metrics: Processing $totalBatches batches for " . count($campaigns_to_fetch) . " campaigns.");
+	wiz_log("Fetch Metrics: Processing $totalBatches batches for " . count($campaigns_to_fetch) . " campaigns (max URL length: $maxUrlLength).");
 
 	foreach ($batches as $batch) {
 		$batchNum++;
 		$getString = '?startDateTime=2021-11-01&campaignId=' . implode('&campaignId=', $batch);
 
 		$url = "https://api.iterable.com/api/campaigns/metrics" . $getString;
-		wiz_log("Fetch Metrics: Batch $batchNum/$totalBatches - Requesting " . count($batch) . " campaign IDs. URL length: " . strlen($url));
+		wiz_log("Fetch Metrics: Batch $batchNum/$totalBatches - " . count($batch) . " campaigns, URL length: " . strlen($url));
 		try {
 			$response = idemailwiz_iterable_curl_call($url);
 		} catch (Throwable $e) {
