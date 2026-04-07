@@ -67,7 +67,11 @@ if (!empty($connectedCampaignIds)) {
 
 
 
-$purchases = get_idwiz_purchases(['campaignIds' => $allCampaignIds]);
+$purchases = get_idwiz_purchases([
+	'campaignIds'   => $allCampaignIds,
+	'startAt_start' => $startDate,
+	'startAt_end'   => $endDate,
+]);
 
 //$experimentIds = maybe_unserialize($campaign['experimentIds']) ?? array();
 // This returns one row per experiment TEMPLATE
@@ -454,14 +458,14 @@ $linkedExperimentIds = array_map(function ($id) {
 								<?php if (empty($purchases)): ?>
 									No data available
 								<?php else: ?>
+									<p class="purchases-click-hint"><i class="fa-solid fa-circle-info"></i> Click any row to view full purchase details.</p>
 									<table class="wizcampaign-tiny-table purchases-all-table">
 										<thead>
 											<tr>
-												<th width="38%">Product</th>
-												<th width="15%">Division</th>
-												<th width="28%">Location</th>
-												<th width="12%">Revenue</th>
-												<th width="7%"></th>
+												<th width="40%">Product</th>
+												<th width="16%">Division</th>
+												<th width="30%">Location</th>
+												<th width="14%">Revenue</th>
 											</tr>
 										</thead>
 										<tbody>
@@ -471,7 +475,6 @@ $linkedExperimentIds = array_map(function ($id) {
 													<td><?php echo esc_html($purchase['shoppingCartItems_divisionName']); ?></td>
 													<td><?php echo esc_html($purchase['shoppingCartItems_locationName']); ?></td>
 													<td>$<?php echo number_format((float)$purchase['total'], 2); ?></td>
-													<td><button class="purchase-view-btn" title="View details"><i class="fa-solid fa-eye"></i></button></td>
 												</tr>
 											<?php endforeach; ?>
 										</tbody>
