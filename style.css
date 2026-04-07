@@ -6658,3 +6658,89 @@ color: #eee;
     border-color: #f5c6cb;
     color: #721c24;
 }
+
+/* ── Purchase "All" table ───────────────────────────────────────── */
+.purchases-all-table .purchase-row {
+    cursor: pointer;
+    transition: background-color 0.12s ease;
+}
+.purchases-all-table .purchase-row:hover {
+    background-color: #f0f6ff;
+}
+.purchase-view-btn {
+    background: none;
+    border: none;
+    padding: 2px 6px;
+    cursor: pointer;
+    color: #888;
+    font-size: 0.85rem;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+}
+.purchase-view-btn:hover {
+    color: #2563eb;
+    background: #e8f0fe;
+}
+
+/* ── Purchase Detail Modal ──────────────────────────────────────── */
+.purchase-detail-modal {
+    max-width: 780px;
+    height: auto;
+    max-height: 88vh;
+}
+.pm-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+.pm-image {
+    grid-column: 1 / -1;
+}
+.pm-image img {
+    max-width: 180px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+}
+.pm-section {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 14px 16px;
+}
+.pm-section-title {
+    margin: 0 0 10px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6b7280;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e5e7eb;
+}
+.pm-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.pm-table th,
+.pm-table td {
+    padding: 4px 0;
+    font-size: 0.82rem;
+    vertical-align: top;
+    text-align: left;
+}
+.pm-table th {
+    color: #6b7280;
+    font-weight: 600;
+    width: 110px;
+    padding-right: 12px;
+    white-space: nowrap;
+}
+.pm-table td {
+    color: #111827;
+    word-break: break-word;
+}
+@media (max-width: 600px) {
+    .pm-grid {
+        grid-template-columns: 1fr;
+    }
+}

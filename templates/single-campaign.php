@@ -449,23 +449,36 @@ $linkedExperimentIds = array_map(function ($id) {
 						</div>
 						<div class="wizcampaign-section-tabs-pane" id="campaign-purchases-tabs">
 
-							<div class="wizcampaign-section inset wizcampagn-section-tab-content active" id="purchasesByPurchase">
-								<div class="tinyTableWrapper">
-									<?php
-									$byProductHeaders = [
-										'Product' => '40%',
-										'Division' => '15%',
-										'Location' => '30%',
-										'Revenue' => '10%',
-									];
-
-									$purchasesByProduct = generate_purchases_table_data($purchases);
-
-									generate_mini_table($byProductHeaders, $purchasesByProduct);
-
-									?>
-								</div>
+						<div class="wizcampaign-section inset wizcampagn-section-tab-content active" id="purchasesByPurchase">
+							<div class="tinyTableWrapper">
+								<?php if (empty($purchases)): ?>
+									No data available
+								<?php else: ?>
+									<table class="wizcampaign-tiny-table purchases-all-table">
+										<thead>
+											<tr>
+												<th width="38%">Product</th>
+												<th width="15%">Division</th>
+												<th width="28%">Location</th>
+												<th width="12%">Revenue</th>
+												<th width="7%"></th>
+											</tr>
+										</thead>
+										<tbody>
+											<?php foreach ($purchases as $purchase): ?>
+												<tr class="purchase-row" data-purchase="<?php echo esc_attr(wp_json_encode($purchase)); ?>">
+													<td><?php echo esc_html($purchase['shoppingCartItems_name']); ?></td>
+													<td><?php echo esc_html($purchase['shoppingCartItems_divisionName']); ?></td>
+													<td><?php echo esc_html($purchase['shoppingCartItems_locationName']); ?></td>
+													<td>$<?php echo number_format((float)$purchase['total'], 2); ?></td>
+													<td><button class="purchase-view-btn" title="View details"><i class="fa-solid fa-eye"></i></button></td>
+												</tr>
+											<?php endforeach; ?>
+										</tbody>
+									</table>
+								<?php endif; ?>
 							</div>
+						</div>
 
 							<div class="wizcampaign-section inset wizcampagn-section-tab-content" id="purchasesByProduct">
 								<div class="tinyTableWrapper">
@@ -696,5 +709,127 @@ $linkedExperimentIds = array_map(function ($id) {
 	</div>
 
 	</div>
+
+	<!-- Purchase Detail Modal -->
+	<div class="wiz-modal-container" id="purchaseDetailModal" style="display:none;" aria-modal="true" role="dialog">
+		<div class="wiz-modal purchase-detail-modal">
+			<div class="wiz-modal-content">
+				<div class="wiz-modal-header">
+					<h4 id="purchaseModalTitle">Purchase Details</h4>
+					<button class="wiz-modal-close" id="purchaseModalClose" aria-label="Close">
+						<i class="fa-solid fa-xmark"></i>
+					</button>
+				</div>
+				<div class="wiz-modal-body" id="purchaseModalBody"></div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+	(function () {
+		var modal    = document.getElementById('purchaseDetailModal');
+		var modalBody  = document.getElementById('purchaseModalBody');
+		var modalTitle = document.getElementById('purchaseModalTitle');
+		var closeBtn   = document.getElementById('purchaseModalClose');
+
+		function openModal(purchase) {
+			modalTitle.textContent = purchase.shoppingCartItems_name || 'Purchase Details';
+			modalBody.innerHTML    = buildModalHtml(purchase);
+			modal.style.display    = 'flex';
+			document.body.style.overflow = 'hidden';
+		}
+
+		function closeModal() {
+			modal.style.display          = 'none';
+			document.body.style.overflow = '';
+		}
+
+		closeBtn.addEventListener('click', closeModal);
+		modal.addEventListener('click', function (e) {
+			if (e.target === modal) closeModal();
+		});
+		document.addEventListener('keydown', function (e) {
+			if (e.key === 'Escape') closeModal();
+		});
+
+		document.addEventListener('click', function (e) {
+			var row = e.target.closest('.purchase-row');
+			if (!row) return;
+			try {
+				var data = JSON.parse(row.getAttribute('data-purchase'));
+				openModal(data);
+			} catch (err) {
+				console.error('Could not parse purchase data', err);
+			}
+		});
+
+		function fmt(val)         { return (val !== null && val !== undefined && val !== '') ? val : '&#8212;'; }
+		function fmtMoney(val)    { return (val !== null && val !== undefined && val !== '') ? '$' + parseFloat(val).toFixed(2) : '&#8212;'; }
+
+		function row(label, value) {
+			return '<tr><th>' + label + '</th><td>' + value + '</td></tr>';
+		}
+
+		function section(title, rows) {
+			if (!rows.length) return '';
+			return '<div class="pm-section">'
+				+ '<h5 class="pm-section-title">' + title + '</h5>'
+				+ '<table class="pm-table"><tbody>' + rows.join('') + '</tbody></table>'
+				+ '</div>';
+		}
+
+		function buildModalHtml(p) {
+			var imageHtml = p.shoppingCartItems_imageUrl
+				? '<div class="pm-image"><img src="' + p.shoppingCartItems_imageUrl + '" alt="' + (p.shoppingCartItems_name || '') + '"></div>'
+				: '';
+
+			var productUrl = p.shoppingCartItems_url
+				? '<a href="' + p.shoppingCartItems_url + '" target="_blank" rel="noopener noreferrer">' + p.shoppingCartItems_url + '</a>'
+				: '&#8212;';
+
+			var orderSection = section('Order Summary', [
+				row('Order ID',    fmt(p.orderId)),
+				row('Purchase ID', fmt(p.id)),
+				row('Date',        fmt(p.purchaseDate)),
+				row('Total',       fmtMoney(p.total)),
+				row('Account #',   fmt(p.accountNumber)),
+				row('User ID',     fmt(p.userId)),
+			]);
+
+			var productSection = section('Product', [
+				row('Name',         fmt(p.shoppingCartItems_name)),
+				row('Price',        fmtMoney(p.shoppingCartItems_price)),
+				row('Quantity',     fmt(p.shoppingCartItems_quantity)),
+				row('Division',     fmt(p.shoppingCartItems_divisionName)),
+				row('Location',     fmt(p.shoppingCartItems_locationName)),
+				row('Categories',   fmt(p.shoppingCartItems_categories)),
+				row('Subscription', fmt(p.shoppingCartItems_isSubscription)),
+				row('URL',          productUrl),
+			]);
+
+			var promoSection = section('Promo & Discount', [
+				row('Promo Code',      fmt(p.shoppingCartItems_discountCode)),
+				row('Discount Amount', fmtMoney(p.shoppingCartItems_discountAmount)),
+			]);
+
+			var utmSection = section('Attribution', [
+				row('UTM Source',   fmt(p.shoppingCartItems_utmSource)),
+				row('UTM Medium',   fmt(p.shoppingCartItems_utmMedium)),
+				row('UTM Campaign', fmt(p.shoppingCartItems_utmCampaign)),
+				row('UTM Term',     fmt(p.shoppingCartItems_utmTerm)),
+				row('UTM Contents', fmt(p.shoppingCartItems_utmContents)),
+			]);
+
+			return '<div class="pm-grid">'
+				+ imageHtml
+				+ orderSection
+				+ productSection
+				+ promoSection
+				+ utmSection
+				+ '</div>';
+		}
+	})();
+	</script>
+
 </article>
 <?php get_footer(); ?>
