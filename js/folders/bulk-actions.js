@@ -65,10 +65,11 @@ jQuery(document).ready(function ($) {
 
 		id_do_bulk_action(action, folderIds, templateIds);
 
-		// Reset the select so the same option can be re-chosen. Leave it
-		// enabled if rows are still checked (e.g. user cancelled the modal)
-		// so they can try again without having to re-tick everything.
-		$select.val("");
+		// Reset the select so the same option can be re-chosen, snapping
+		// back to the "Bulk Actions" placeholder. Leave it enabled if rows
+		// are still checked (e.g. user cancelled the modal) so they can
+		// try again without re-ticking everything.
+		this.selectedIndex = 0;
 		refreshBulkState();
 	});
 
