@@ -65,7 +65,11 @@ jQuery(document).ready(function ($) {
 
 		id_do_bulk_action(action, folderIds, templateIds);
 
-		$select.val("").prop("disabled", true);
+		// Reset the select so the same option can be re-chosen. Leave it
+		// enabled if rows are still checked (e.g. user cancelled the modal)
+		// so they can try again without having to re-tick everything.
+		$select.val("");
+		refreshBulkState();
 	});
 
 	function id_do_bulk_action(action, folderIds, templateIds) {
