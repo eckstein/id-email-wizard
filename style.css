@@ -2014,6 +2014,51 @@ textarea.custom-background-css-input {
 	font-weight: 600;
 }
 
+/* SweetAlert2 custom field labels + intro used in folder/template modals */
+.swal2-popup .swal2-field-intro {
+	width: calc(100% - 40px);
+	margin: 0 auto 8px auto;
+	color: #555;
+	font-size: 14px;
+	line-height: 1.4;
+	text-align: center;
+}
+.swal2-popup .swal2-field-label {
+	display: block;
+	width: calc(100% - 40px);
+	margin: 14px auto 4px auto;
+	text-align: left;
+	font-size: 13px;
+	font-weight: 600;
+	color: #555;
+}
+.swal2-popup .swal2-field-label:first-of-type {
+	margin-top: 4px;
+}
+.swal2-popup .swal2-input + .swal2-field-label,
+.swal2-popup .swal2-select + .swal2-field-label {
+	margin-top: 14px;
+}
+/* Align Select2 widget to match SweetAlert native inputs. */
+.swal2-popup .select2-container {
+	width: calc(100% - 40px) !important;
+	margin: 0 auto;
+	display: block;
+	text-align: left;
+}
+.swal2-popup .select2-container .select2-selection--single {
+	height: 2.625em;
+	border: 1px solid #d9d9d9;
+	border-radius: 0.1875em;
+}
+.swal2-popup .select2-container .select2-selection--single .select2-selection__rendered {
+	line-height: 2.625em;
+	padding-left: 0.75em;
+}
+.swal2-popup .select2-container .select2-selection--single .select2-selection__arrow {
+	height: 2.5em;
+}
+
 /* Sync column "+N more" pill */
 .templateTable .col-sync .sync-extra {
 	display: inline-block;

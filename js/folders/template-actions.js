@@ -93,17 +93,25 @@ function id_move_template(templateIDs) {
 	Swal.fire({
 		title: "Move " + confirmText,
 		html:
-			"Move " +
-			msgText +
-			' to:<br/><select id="moveToFolder" style="margin-top:10px;"><option value="">Select new location</option></select>',
+			'<p class="swal2-field-intro">Move ' + msgText + " to a new folder.</p>" +
+			'<label class="swal2-field-label" for="moveToFolder">Destination folder</label>' +
+			'<select id="moveToFolder" class="swal2-select"><option value="">Select new location</option></select>',
 		showCancelButton: true,
 		confirmButtonText: "Move " + confirmText,
+		focusConfirm: false,
 		preConfirm: function () {
-			return new Promise(function (resolve) {
+			return new Promise(function (resolve, reject) {
+				var moveInto = jQuery("#moveToFolder").val();
+				if (!moveInto) {
+					reject("Please select a destination folder");
+					return;
+				}
 				resolve({
 					this_template: templateIDs,
-					move_into: jQuery("#moveToFolder").val(),
+					move_into: moveInto,
 				});
+			}).catch(function (error) {
+				Swal.showValidationMessage(error);
 			});
 		},
 		didOpen: function () {

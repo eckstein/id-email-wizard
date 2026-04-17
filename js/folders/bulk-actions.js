@@ -109,15 +109,24 @@ function id_move_mixed(folderIDs, templateIDs) {
 	Swal.fire({
 		title: "Move " + total + " items",
 		html:
-			"Move selected folders and templates to:" +
-			'<br/><select id="moveToFolder" style="margin-top:10px;"><option value="">Select new location</option></select>',
+			'<p class="swal2-field-intro">Move ' + folderIDs.length + ' folder' + (folderIDs.length === 1 ? "" : "s") + ' and ' + templateIDs.length + ' template' + (templateIDs.length === 1 ? "" : "s") + ' to a new folder.</p>' +
+			'<label class="swal2-field-label" for="moveToFolder">Destination folder</label>' +
+			'<select id="moveToFolder" class="swal2-select"><option value="">Select new location</option></select>',
 		showCancelButton: true,
 		confirmButtonText: "Move Items",
+		focusConfirm: false,
 		preConfirm: function () {
-			return new Promise(function (resolve) {
+			return new Promise(function (resolve, reject) {
+				var moveInto = jQuery("#moveToFolder").val();
+				if (!moveInto) {
+					reject("Please select a destination folder");
+					return;
+				}
 				resolve({
-					move_into: jQuery("#moveToFolder").val(),
+					move_into: moveInto,
 				});
+			}).catch(function (error) {
+				Swal.showValidationMessage(error);
 			});
 		},
 		didOpen: function () {
@@ -127,6 +136,10 @@ function id_move_mixed(folderIDs, templateIDs) {
 				{},
 				function (response) {
 					jQuery("#moveToFolder").append(response.data.options);
+					jQuery("#moveToFolder").select2({
+						dropdownParent: jQuery(".swal2-container"),
+						width: "100%",
+					});
 				},
 				function (error) {
 					console.error("Error loading folders", error);

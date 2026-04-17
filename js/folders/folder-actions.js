@@ -12,16 +12,21 @@ jQuery(document).ready(function ($) {
 		Swal.fire({
 			title: "Create New Folder",
 			html:
-				'<input type="text" id="new-folder-name" placeholder="Enter folder name"><br/>' +
-				'<select id="parent-folder" style="margin-top:10px;"><option value="">Select parent folder</option></select>',
+				'<label class="swal2-field-label" for="new-folder-name">Folder name</label>' +
+				'<input type="text" id="new-folder-name" class="swal2-input" placeholder="e.g. Welcome Series" autocomplete="off" />' +
+				'<label class="swal2-field-label" for="parent-folder">Parent folder</label>' +
+				'<select id="parent-folder" class="swal2-select"><option value="">Select parent folder</option></select>',
 			showCancelButton: true,
 			confirmButtonText: "Create Folder",
+			focusConfirm: false,
 			preConfirm: function () {
 				return new Promise(function (resolve, reject) {
-					var newFolderName = $("#new-folder-name").val();
+					var newFolderName = $("#new-folder-name").val().trim();
 					var parentFolderId = $("#parent-folder").val();
 
-					if (!parentFolderId) {
+					if (!newFolderName) {
+						reject("Please enter a folder name");
+					} else if (!parentFolderId) {
 						reject("Please select a parent folder");
 					} else {
 						resolve({
@@ -34,12 +39,17 @@ jQuery(document).ready(function ($) {
 				});
 			},
 			didOpen: function () {
+				$("#new-folder-name").trigger("focus");
 				idemailwiz_do_ajax(
 					"id_generate_folders_select_ajax",
 					idAjax_folder_actions.nonce,
 					{},
 					function (response) {
 						$("#parent-folder").append(response.data.options);
+						$("#parent-folder").select2({
+							dropdownParent: $(".swal2-container"),
+							width: "100%",
+						});
 					},
 					function (error) {
 						console.log(error);
@@ -100,17 +110,25 @@ function id_move_folder(folderIDs) {
 	Swal.fire({
 		title: "Move " + confirmText,
 		html:
-			"Move " +
-			msgText +
-			' to:<br/><select id="moveToFolder" style="margin-top:10px;"><option value="">Select new location</option></select>',
+			'<p class="swal2-field-intro">Move ' + msgText + " to a new parent folder.</p>" +
+			'<label class="swal2-field-label" for="moveToFolder">Destination folder</label>' +
+			'<select id="moveToFolder" class="swal2-select"><option value="">Select new location</option></select>',
 		showCancelButton: true,
 		confirmButtonText: "Move " + confirmText,
+		focusConfirm: false,
 		preConfirm: function () {
-			return new Promise(function (resolve) {
+			return new Promise(function (resolve, reject) {
+				var moveInto = jQuery("#moveToFolder").val();
+				if (!moveInto) {
+					reject("Please select a destination folder");
+					return;
+				}
 				resolve({
 					this_folder: folderIDs,
-					move_into: jQuery("#moveToFolder").val(),
+					move_into: moveInto,
 				});
+			}).catch(function (error) {
+				Swal.showValidationMessage(error);
 			});
 		},
 		didOpen: function () {
@@ -120,6 +138,10 @@ function id_move_folder(folderIDs) {
 				{},
 				function (response) {
 					jQuery("#moveToFolder").append(response.data.options);
+					jQuery("#moveToFolder").select2({
+						dropdownParent: jQuery(".swal2-container"),
+						width: "100%",
+					});
 				},
 				function (error) {
 					console.log("Error: ", error);
@@ -161,15 +183,16 @@ async function id_delete_folders(folderIds) {
 	}
 
 	Swal.fire({
-		title: "Delete Folder",
+		title: "Delete " + confirmText,
 		html:
-			"Move templates and sub-folders in " +
-			msgText +
-			' to:<br/><select id="newCategoryId" style="margin-top:10px;"></select>',
+			'<p class="swal2-field-intro">Templates and sub-folders in ' + msgText + " need a new home before deletion.</p>" +
+			'<label class="swal2-field-label" for="newCategoryId">Move contents to</label>' +
+			'<select id="newCategoryId" class="swal2-select"><option value="">Select destination folder</option></select>',
 		icon: "warning",
 		showCancelButton: true,
 		confirmButtonText: "Delete " + confirmText + "!",
 		cancelButtonText: "Cancel",
+		focusConfirm: false,
 		allowEscapeKey: true,
 		allowOutsideClick: true,
 		didOpen: function () {
@@ -179,6 +202,10 @@ async function id_delete_folders(folderIds) {
 				{},
 				function (response) {
 					jQuery("#newCategoryId").append(response.data.options);
+					jQuery("#newCategoryId").select2({
+						dropdownParent: jQuery(".swal2-container"),
+						width: "100%",
+					});
 				},
 				function (error) {
 					console.log("Error: ", error);
@@ -188,6 +215,10 @@ async function id_delete_folders(folderIds) {
 		preConfirm: function () {
 			return new Promise(function (resolve, reject) {
 				var newCategoryId = jQuery("#newCategoryId").val();
+				if (!newCategoryId) {
+					reject("Please select a destination folder");
+					return;
+				}
 
 				idemailwiz_do_ajax(
 					"id_delete_folder",
@@ -210,6 +241,8 @@ async function id_delete_folders(folderIds) {
 						reject("An error occurred during folder deletion.");
 					}
 				);
+			}).catch(function (error) {
+				Swal.showValidationMessage(error);
 			});
 		},
 	}).then(function (result) {
