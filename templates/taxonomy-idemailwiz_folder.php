@@ -172,8 +172,27 @@ $search_home_url      = $is_search_view ? home_url('/templates/all/') : ( is_obj
 							$post_author
 						);
 
-						$itTemplateId     = get_post_meta(get_the_ID(), 'itTemplateId', true);
-						$templateCampaign = get_idwiz_campaigns(array('templateId' => (int) $itTemplateId));
+						$wizTemplateData  = function_exists('get_wiztemplate') ? get_wiztemplate(get_the_ID()) : array();
+						$iterableSync     = $wizTemplateData['template_options']['template_settings']['iterable-sync'] ?? array();
+						$itTemplateId     = $iterableSync['iterable_template_id'] ?? '';
+						$syncHistory      = $iterableSync['synced_templates_history'] ?? array();
+						$syncCount        = is_array($syncHistory) ? count($syncHistory) : 0;
+
+						$templateCampaign = $itTemplateId ? get_idwiz_campaigns(array('templateId' => (int) $itTemplateId)) : false;
+						if (!$templateCampaign && !empty($syncHistory)) {
+							// Fall back to any synced id that matches a campaign
+							foreach ($syncHistory as $entry) {
+								$entryId = isset($entry['template_id']) ? (int) $entry['template_id'] : 0;
+								if (!$entryId || $entryId === (int) $itTemplateId) {
+									continue;
+								}
+								$maybe = get_idwiz_campaigns(array('templateId' => $entryId));
+								if (!empty($maybe)) {
+									$templateCampaign = $maybe;
+									break;
+								}
+							}
+						}
 						$iterableStatus   = $templateCampaign ? '<a class="sentIndicator" href="https://app.iterable.com/campaigns/' . $templateCampaign[0]['id'] . '?view=Summary"> <i class="fa-regular fa-circle-check"></i> Sent</a>' : null;
 					?>
 						<tr id="template-<?php echo get_the_ID(); ?>" class="<?php echo esc_attr($rowClasses); ?>" data-foldertitle="<?php echo esc_attr(get_the_title()); ?>" data-objectid="<?php echo get_the_ID(); ?>" data-type="template">
@@ -207,10 +226,14 @@ $search_home_url      = $is_search_view ? home_url('/templates/all/') : ( is_obj
 							<td class="col-sync">
 								<?php
 								if (!$is_trash_view) {
-									if ($itTemplateId == true) {
-										echo 'T: <a href="https://app.iterable.com/templates/editor?templateId=' . $itTemplateId . '">' . $itTemplateId . '</a>';
+									if ($itTemplateId) {
+										$extraSyncs = max(0, $syncCount - 1);
+										echo 'T: <a href="https://app.iterable.com/templates/editor?templateId=' . esc_attr($itTemplateId) . '" target="_blank" rel="noopener">' . esc_html($itTemplateId) . '</a>';
+										if ($extraSyncs > 0) {
+											echo ' <span class="sync-extra" title="' . esc_attr($syncCount . ' synced template IDs total') . '">+' . (int) $extraSyncs . '</span>';
+										}
 										if ($templateCampaign) {
-											echo '<br/>C: <a href="https://app.iterable.com/campaigns/' . $templateCampaign[0]['id'] . '?view=Summary">' . $templateCampaign[0]['id'] . '</a>';
+											echo '<br/>C: <a href="https://app.iterable.com/campaigns/' . esc_attr($templateCampaign[0]['id']) . '?view=Summary" target="_blank" rel="noopener">' . esc_html($templateCampaign[0]['id']) . '</a>';
 										}
 									} else {
 										echo ' — ';
