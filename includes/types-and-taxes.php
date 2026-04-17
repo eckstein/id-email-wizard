@@ -250,39 +250,4 @@ function idwiz_register_custom_post_types()
 
 add_post_type_support('idwiz_initiative', 'thumbnail');
 
-
-
-//Register folder taxonomy
-add_action('init', 'idemailwiz_create_taxonomies', 10);
-function idemailwiz_create_taxonomies()
-{
-    $folderLabels = array(
-        'name' => 'Folders',
-        'singular_name' => 'Folder',
-        'public' => true,
-        'show_admin_column' => true,
-        // Add other labels as needed
-    );
-
-    $folderargs = array(
-        'labels' => $folderLabels,
-        'public' => true,
-        'hierarchical' => true,
-        'show_in_rest' => true,
-        // This is required if you want to use this taxonomy with Gutenberg
-
-        'default_term' => array(
-            'name' => 'All Templates',
-            'slug' => 'all',
-        ),
-        'has_archive' => true,
-        'rewrite' => array(
-            'slug' => 'templates',
-            'hierarchical' => true,
-            'with_front' => false,
-        ),
-        'query_var' => true,
-    );
-
-    register_taxonomy('idemailwiz_folder', 'idemailwiz_template', $folderargs);
-}
+// The idemailwiz_folder taxonomy is registered in includes/folders/taxonomy.php.

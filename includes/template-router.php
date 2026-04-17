@@ -51,6 +51,11 @@ function idemailwiz_template_chooser($template)
         return $template_dir . 'taxonomy-idemailwiz_folder.php';
     }
 
+    // Template search (/templates/search/{q}/) reuses the folder archive layout.
+    if (get_query_var('idwiz_q')) {
+        return $template_dir . 'taxonomy-idemailwiz_folder.php';
+    }
+
 
     // Custom URI-based templates
     $uri_templates = [

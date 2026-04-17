@@ -4,30 +4,21 @@ jQuery(document).ready(function ($) {
 		toggleOverlay(false);
 	});
 
-	//Function to reload an element in the template folder interface
+	// Reload an element in-place by re-fetching the current URL and swapping
+	// the matching subtree into the DOM. Feature-specific re-initialization
+	// (e.g. the folder sidebar and the template quick-search) hooks in via
+	// the custom `idwiz:uiRefreshed` event that this dispatches on document.
 	(function ($) {
 		$.refreshUIelement = function (selector) {
-			// Load the content into a container div
 			var container = $("<div>").load(location.href + " " + selector + " > *", function () {
-				// Replace the contents of the specified element with the new content
 				$(selector).html(container.contents());
-				//If folder list is visible, reset it to the proper view
-				if (jQuery(".folderList").length > 0) {
-					setupCategoriesView();
-				}
-				//Reinitialize select2 for template search
-				initialize_select2_for_template_search();
+				$(document).trigger("idwiz:uiRefreshed", [selector]);
 			});
 		};
 	})(jQuery);
 
 	//apply highlight to all <code> elements
 	hljs.highlightAll();
-
-	// Call setupCategoriesView on page load to show folder list correctly
-	if (jQuery(".folderList").length > 0) {
-		setupCategoriesView();
-	}
 
 
 	
@@ -378,62 +369,9 @@ function displayTemplateErrors(wrapperElement, templateId, message) {
 
 
 
-function initialize_select2_for_template_search() {
-	jQuery("#live-template-search")
-		.select2({
-			minimumInputLength: 3,
-			placeholder: "Search templates...",
-			allowClear: true,
-			ajax: {
-				delay: 250,
-				transport: function (params, success, failure) {
-					idemailwiz_do_ajax(
-						"idemailwiz_get_templates_for_select",
-						idAjax_id_general.nonce,
-						{
-							q: params.data.term,
-						},
-						function (data) {
-							success({ results: data });
-						},
-						function (error) {
-							console.error("Failed to fetch templates", error);
-							failure();
-						}
-					);
-				},
-			},
-		})
-		.on("select2:select", function (e) {
-			var data = e.params.data;
-			if (data.id) {
-				var postUrl = idAjax_id_general.site_url + "/?p=" + data.id;
-				window.location.href = postUrl;
-			}
-		});
-}
-
-function setupCategoriesView() {
-	
-		// Close all sub-categories initially
-		jQuery(".sub-categories").hide();
-
-		// Set the arrow icons for all categories to point down
-		jQuery(".showHideSubs").removeClass("fa-angle-up").addClass("fa-angle-down");
-
-		// Open the first top-level root folder by default
-		jQuery(".cat-item").first().addClass("open").children(".sub-categories").show();
-		jQuery(".cat-item.open").find("> .showHideSubs").removeClass("fa-angle-down").addClass("fa-angle-up");
-
-		// Set current-cat and its direct parent categories to be expanded
-		jQuery(".current-cat").parents(".cat-item").addClass("open").children(".sub-categories").show();
-		jQuery(".current-cat, .current-cat").parents(".cat-item").find("> .showHideSubs").removeClass("fa-angle-down").addClass("fa-angle-up");
-
-		// Show sub-categories of the current-cat if they exist
-		jQuery(".current-cat").children(".sub-categories").show();
-		jQuery(".current-cat").find("> .showHideSubs").removeClass("fa-angle-down").addClass("fa-angle-up");
-	
-}
+// setupCategoriesView() and initialize_template_live_search() moved
+// to js/folders/folder-ui.js; they live alongside the rest of the folder
+// feature and re-bind on the `idwiz:uiRefreshed` custom event.
 
 // A generalized Ajax call.
 // Params: action_name, nonce_value, array of passed data, success callback, error callback

@@ -15,7 +15,7 @@ jQuery(document).ready(function ($) {
 
 		const userFavoriteSuccess = function (response) {
 			if (response.success) {
-				$('.addRemoveFavorite[data-objectid="' + response.objectid + '"]').toggleClass("fa-regular fa-solid");
+				$('.addRemoveFavorite[data-objectid="' + response.objectid + '"]').toggleClass("is-favorite");
 				//console.log("Favorite " + response.action + "for object ID " + response.objectid);
 				if (refreshElement) {
 					const allRefreshes = refreshElement.split(",");

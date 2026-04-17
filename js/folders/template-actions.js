@@ -1,58 +1,52 @@
-jQuery(document).ready(function ($) {
-	// Select2 template search intitialize
-	$(document).ready(function () {
-		initialize_select2_for_template_search();
-	});
+/**
+ * Template CRUD: delete, restore, duplicate, move, create.
+ *
+ * Previously lived at builder-v2/js/template-actions.js, but its handlers are
+ * used everywhere the template row UI is shown (archive, search results,
+ * builder), so it now lives alongside the rest of the folder feature.
+ *
+ * Phase 1 fix: the restore-template handler was bound to `.templateTable`,
+ * which $.refreshUIelement() replaces wholesale. Delegated to document so
+ * it survives refreshes.
+ *
+ * The select2-powered quick-jump search init that used to live at the top
+ * of this file has moved into folder-ui.js so there is a single owner.
+ */
 
-	//Click event for deleting a single template
-	$(document).on('click', ".delete-template", async function (e) {
+jQuery(document).ready(function ($) {
+	$(document).on("click", ".delete-template", async function (e) {
 		const post_id = $(this).attr("data-postid");
 		id_delete_templates([post_id]);
 	});
 
-	//Event for restoring a single template from the trash
-	$(".templateTable").on("click", ".restore-template", async function (e) {
+	$(document).on("click", ".restore-template", async function (e) {
 		const post_id = $(this).attr("data-postid");
 		id_restore_templates([post_id]);
 	});
 
-	//Ajax duplicate a template
 	$(document).on("click", ".duplicate-template", function () {
 		var post_id = $(this).attr("data-postid");
-		var fromBase = $(this).attr("data-frombase");
-		if (fromBase) {
-			var swalTitle = 'New Template from Base';
-			var message = 'Create a new template from this base template?';
-			var confirmText = 'Create Template';
-		} else {
-			var swalTitle = 'Duplicate Template?';
-			var message = 'This will copy all template settings and fields, but it will not sync the new template to Iterable.';
-			var confirmText = 'Duplicate';
-		}
 		$("#iDoverlay, #iDspinner").show();
 		Swal.fire({
-			title: swalTitle,
-			text: message,
+			title: "Duplicate Template?",
+			text: "This will copy all template settings and fields, but it will not sync the new template to Iterable.",
 			icon: "info",
-			confirmButtonText: confirmText,
+			confirmButtonText: "Duplicate",
 			showCancelButton: true,
 			cancelButtonText: "Nevermind",
 		}).then((confirmDuplicate) => {
-			console.log(confirmDuplicate);
 			if (confirmDuplicate.isConfirmed) {
 				const templateDuplicateData = {
 					template_action: "duplicate",
 					post_id: post_id,
 				};
 				const templateDuplicateSuccess = function (response) {
-					console.log(response);
 					Swal.fire({
 						title: "Template duplicated!",
 						html: `Your new template is ready: <br><br><a href="${response.data.newURL}" style="color: #007cba; text-decoration: underline;">${response.data.newURL}</a>`,
 						icon: "success",
-						confirmButtonText: 'Continue',
+						confirmButtonText: "Continue",
 					}).then(() => {
-						// Always hide overlay and close SWAL when user clicks Continue
 						$("#iDoverlay, #iDspinner").hide();
 					});
 				};
@@ -62,28 +56,31 @@ jQuery(document).ready(function ($) {
 						icon: "error",
 					});
 				};
-				idemailwiz_do_ajax("id_ajax_template_actions", idAjax_template_actions.nonce, templateDuplicateData, templateDuplicateSuccess, templateDuplicateError);
-				
-
-				
+				idemailwiz_do_ajax(
+					"id_ajax_template_actions",
+					idAjax_template_actions.nonce,
+					templateDuplicateData,
+					templateDuplicateSuccess,
+					templateDuplicateError
+				);
 			} else {
 				$("#iDoverlay, #iDspinner").hide();
 			}
 		});
 	});
 
-	
-
-	//Move template to another folder
 	$(document).on("click", ".moveTemplate", function () {
 		const thisTemplate = $(this).attr("data-postid");
 		id_move_template([thisTemplate]);
 	});
+
+	$(document).on("click", ".show-new-template-ui", function () {
+		showCreateTemplateModal();
+	});
 });
 
-//Global scope functions
+// Global-scope functions — also dispatched to by bulk-actions.js.
 
-//Move a template to another folder
 function id_move_template(templateIDs) {
 	if (templateIDs.length > 1) {
 		var msgText = "these templates";
@@ -95,7 +92,10 @@ function id_move_template(templateIDs) {
 
 	Swal.fire({
 		title: "Move " + confirmText,
-		html: "Move " + msgText + ' to:<br/><select id="moveToFolder" style="margin-top:10px;"><option value="">Select new location</option></select>',
+		html:
+			"Move " +
+			msgText +
+			' to:<br/><select id="moveToFolder" style="margin-top:10px;"><option value="">Select new location</option></select>',
 		showCancelButton: true,
 		confirmButtonText: "Move " + confirmText,
 		preConfirm: function () {
@@ -107,26 +107,21 @@ function id_move_template(templateIDs) {
 			});
 		},
 		didOpen: function () {
-			// Generate a hierarchical list of all categories
 			const generateFoldersData = {
 				action: "id_generate_folders_select_ajax",
 			};
 
 			const generateFoldersSuccess = function (response) {
-				//console.log(JSON.stringify(response, null, 2));
-				// Append the options received from the AJAX response
 				jQuery("#moveToFolder").append(response.data.options);
-				// Initialize Select2 on the dropdown
 				jQuery("#moveToFolder").select2({
-					dropdownParent: jQuery('.swal2-container'), // Ensures dropdown is displayed above modal
-					width: '100%', // Ensures Select2 dropdown matches the parent width
-					// Additional Select2 options can be added here as needed
+					dropdownParent: jQuery(".swal2-container"),
+					width: "100%",
 				});
 			};
 
 			const generateFoldersError = function (response) {
 				console.error("Error generating folders", response);
-			}
+			};
 
 			idemailwiz_do_ajax(
 				"id_generate_folders_select_ajax",
@@ -137,9 +132,7 @@ function id_move_template(templateIDs) {
 			);
 		},
 	}).then(function (result) {
-		console.log(result);
 		if (result.isConfirmed) {
-			// Make an AJAX request to update the folder
 			const moveTemplateData = {
 				this_template: result.value.this_template,
 				move_into: result.value.move_into,
@@ -149,8 +142,7 @@ function id_move_template(templateIDs) {
 				Swal.fire({
 					title: "Template Moved!",
 					icon: "success",
-				}).then(function(result) {
-					//refresh the page
+				}).then(function () {
 					window.location.reload();
 				});
 			};
@@ -159,11 +151,10 @@ function id_move_template(templateIDs) {
 				Swal.fire({
 					title: "Error moving template",
 					icon: "error",
-				}).then(function() {
-					//refresh the page
+				}).then(function () {
 					window.location.reload();
 				});
-			}
+			};
 
 			idemailwiz_do_ajax(
 				"id_move_template",
@@ -176,7 +167,6 @@ function id_move_template(templateIDs) {
 	});
 }
 
-// Delete templates
 async function id_delete_templates(post_ids) {
 	if (post_ids.length > 1) {
 		var msgText = "these templates";
@@ -187,7 +177,8 @@ async function id_delete_templates(post_ids) {
 	}
 	const { isConfirmed } = await Swal.fire({
 		title: "Delete " + msgText + "?",
-		text: "Trashed templates can be restored later, but deleting will un-link the template from Iterable and remove the template for all user's favorites.",
+		text:
+			"Trashed templates can be restored later, but deleting will un-link the template from Iterable and remove the template for all user's favorites.",
 		icon: "warning",
 		showCancelButton: true,
 		iconColor: "#dc3545",
@@ -196,11 +187,11 @@ async function id_delete_templates(post_ids) {
 	if (isConfirmed) {
 		for (let i = 0; i < post_ids.length; i++) {
 			const response = await idemailwiz_do_ajax(
-				'id_ajax_template_actions',
+				"id_ajax_template_actions",
 				idAjax_template_actions.nonce,
 				{
-					template_action: 'delete',
-					post_id: post_ids[i]
+					template_action: "delete",
+					post_id: post_ids[i],
 				}
 			).catch((error) => {
 				console.error(`Error deleting post ID ${post_ids[i]}: ${error}`);
@@ -211,17 +202,17 @@ async function id_delete_templates(post_ids) {
 			}
 		}
 
-
 		Swal.fire({
 			icon: "success",
-			html: 'All done! Templates can be restored from the <a href="'+idAjax.site_url+'/templates/trash/">trash</a> for 30 days.',
+			html:
+				'All done! Templates can be restored from the <a href="' +
+				idAjax.site_url +
+				'/templates/trash/">trash</a> for 30 days.',
 		}).then(() => {
 			const isTemplatesArchive = window.location.href.indexOf("/templates/") > -1;
 			if (isTemplatesArchive) {
 				post_ids.forEach((post_id) => {
-					jQuery("#template-" + post_id)
-						.css("background-color", "red")
-						.fadeOut(1500);
+					jQuery("#template-" + post_id).css("background-color", "red").fadeOut(1500);
 				});
 				jQuery.refreshUIelement(".folderList");
 				jQuery.refreshUIelement("#bulkActionsSelect");
@@ -237,7 +228,6 @@ async function id_delete_templates(post_ids) {
 	}
 }
 
-//restore templates from the trash
 async function id_restore_templates(templateIDs) {
 	if (templateIDs.length > 1) {
 		var msgText = "these templates";
@@ -266,8 +256,8 @@ async function id_restore_templates(templateIDs) {
 				"id_ajax_template_actions",
 				idAjax_template_actions.nonce,
 				restoreTemplateData,
-				null, // No success callback specified
-				null // No error callback specified
+				null,
+				null
 			);
 
 			if (restoreTemplateResponse.error) {
@@ -285,11 +275,6 @@ async function id_restore_templates(templateIDs) {
 	}
 }
 
-// New template trigger
-jQuery(document).on("click", ".show-new-template-ui", function() {
-	showCreateTemplateModal();
-});
-
 function showCreateTemplateModal() {
 	Swal.fire({
 		title: "Create New Template",
@@ -306,30 +291,27 @@ function showCreateTemplateModal() {
 				return false;
 			}
 			return templateTitle.trim();
-		}
+		},
 	}).then((result) => {
 		if (result.isConfirmed && result.value) {
-			const templateTitle = result.value;
-			createTemplate(templateTitle);
+			createTemplate(result.value);
 		}
 	});
 }
 
 function createTemplate(templateTitle) {
 	idemailwiz_do_ajax(
-		"create_new_wiz_template", // This should be the action name for creating the template
+		"create_new_wiz_template",
 		idAjax_template_actions.nonce,
-		{ template_title: templateTitle }, // Data to be sent to the server
-		function(response) {
+		{ template_title: templateTitle },
+		function (response) {
 			if (response.success && response.data.newURL) {
-				window.location.href = response.data.newURL; // Redirect to the new template
+				window.location.href = response.data.newURL;
 			} else {
-				// Handle failure to create template
 				Swal.fire("Error", "Could not create template", "error");
 			}
 		},
-		function(error) {
-			// Handle AJAX request failure
+		function (error) {
 			Swal.fire("Error", "An error occurred while creating the template", "error");
 		}
 	);

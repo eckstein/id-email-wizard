@@ -263,11 +263,6 @@ jQuery(document).ready(function ($) {
 
 
 	
-	// Base template module
-	$(".attachBaseTemplate").on("click", function () {
-		$("#showAttachBaseTemplate").slideToggle();
-	});
-
 	//Date sort plugin
 	$.fn.dataTable.moment("x");
 

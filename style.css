@@ -173,6 +173,8 @@ a.wiz-button:hover {
 	cursor: pointer;
 	color: #cdcdcd;
 }
+.addRemoveFavorite.is-favorite,
+.addRemoveFavorite.is-favorite .fa-star,
 .addRemoveFavorite.fa-solid,
 .favItem .fa-folder-open.fa-solid,
 .favItem .fa-folder.fa-solid {
@@ -181,13 +183,6 @@ a.wiz-button:hover {
 .favItem .fa-folder-open.fa-regular,
 .favItem .fa-folder.fa-regular {
 	color: #cdcdcd;
-}
-
-.favItem .fa-regular.fa-star {
-	color: #cdcdcd;
-}
-.favItem .fa-solid.fa-star {
-	color: #fff;
 }
 
 /* Single Template Template*/
@@ -1844,123 +1839,189 @@ textarea.custom-background-css-input {
 
 /*Template Folders (cat archive and search results)*/
 .templateFolder {
-	display: flex;
-	justify-content: space-between;
+	display: block;
 	margin-bottom: 40px;
 	padding: 30px;
 }
-.templateFolder .folderList {
-	flex: 0 0 360px;
-	width: 360px;
-	border-right: 1px solid #222;
-	padding-right: 20px;
+
+/* ---------- Drawer folder tree ---------- */
+.folder-drawer .folderList {
 	position: relative;
+	overflow-x: hidden;
 }
-.templateFolder .folderList h5 {
+.folder-drawer .folderList h5 {
 	position: relative;
-	margin: 0 0 10px 0;
-	padding-bottom: 3px;
+	margin: 18px 0 8px 0;
+	padding-bottom: 4px;
 	border-bottom: 1px solid #eee;
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: #888;
+	font-weight: 600;
 }
-.templateFolder .folderList #addNewFolder {
+.folder-drawer .folderList #addNewFolder {
 	position: absolute;
-	top: 0px;
+	top: 14px;
 	right: 0px;
 }
-.templateFolder .folderList #addNewFolder i {
-	font-size: 1.3em;
-	color: #666;
+.folder-drawer .folderList #addNewFolder i {
+	font-size: 1.2em;
+	color: #888;
 	cursor: pointer;
 }
-.templateFolder .folderList #addNewFolder i:hover {
+.folder-drawer .folderList #addNewFolder i:hover {
 	color: #94c52a;
 }
 
-.clickToSelect .selected {
-	display: none;
-}
-
-.templateFolder .sub-categories.show {
+.folder-drawer .sub-categories.show {
 	display: block;
 }
-.templateFolder .has-sub-cats .showHideSubs {
-	margin-left: 15px;
+.folder-drawer .has-sub-cats .showHideSubs {
+	margin-left: auto;
 	position: relative;
-	top: 2px;
-	font-size: 1.1em;
+	font-size: 0.95em;
+	color: #aaa;
 	cursor: pointer;
+	padding: 2px 6px;
+}
+.folder-drawer .has-sub-cats .showHideSubs:hover {
+	color: #222;
 }
 
-.templateFolder .folderList ul {
+.folder-drawer .folderList ul {
 	margin: 0;
 	padding: 0;
 	list-style: none;
 	position: relative;
 }
-.templateFolder .folderList > ul {
-	margin-bottom: 20px;
+.folder-drawer .folderList > ul {
+	margin-bottom: 12px;
 }
-.templateFolder .folderList ul li {
+.folder-drawer .folderList ul li {
 	list-style: none;
 	font-size: 14px;
 	position: relative;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	padding: 3px 0;
+	min-width: 0;
 }
-
-.templateFolder .folderList ul li a {
+.folder-drawer .folderList ul li > .row-icon {
+	flex: 0 0 auto;
+	color: #efdb43;
+	font-size: 1.05em;
+	width: 18px;
+	text-align: center;
+}
+.folder-drawer .folderList ul li > .row-icon.fa-trash {
+	color: #ff8d4e;
+}
+.folder-drawer .folderList ul li > a {
+	flex: 1 1 0;
+	min-width: 0;
+	max-width: 100%;
 	text-decoration: none;
 	color: #222;
-	display: inline-block;
-	padding: 5px 0;
-}
-.templateFolder .folderList ul li a i.fa-folder,
-.templateFolder .folderList ul li a i.fa-folder-open {
-	color: #efdb43;
-	font-size: 1.2em;
-}
-.templateFolder .folderList ul li.current-cat > a {
-	font-weight: bold;
-}
-.templateFolder .folderList ul li ul {
-	border-left: 1px dotted #cdcdcd;
-}
-.templateFolder .folderList ul li ul li:not(.favItem) {
-	margin-left: 10px;
-}
-.favItem > a {
-	max-width: 80%;
+	display: block;
+	padding: 3px 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	border-radius: 3px;
 }
-.favItem a i.fa-folder,
-.favItem a i.fa-folder-open,
-.favItem a i.fa-file {
-	color: #94c52a !important;
+.folder-drawer .folderList ul li > a:hover {
+	color: #94c52a;
 }
-.favItem a i.fa-star {
-	color: #fff;
+.folder-drawer .folderList ul li.current-cat > a {
+	font-weight: 600;
+	color: #111;
 }
-.favItem .addRemoveFavorite {
-	display: none;
+.folder-drawer .folderList ul li ul {
+	border-left: 1px dotted #d6d6d6;
+	padding-left: 12px;
+	margin-left: 8px;
+	width: 100%;
+	flex-basis: 100%;
+}
+.folder-drawer .folderList .favItem {
+	padding-right: 4px;
+	flex-wrap: nowrap;
+}
+.folder-drawer .favItem .addRemoveFavorite {
+	flex: 0 0 auto;
+	visibility: hidden;
 	color: #cdcdcd;
 	cursor: pointer;
-	position: relative;
-	top: -12px;
+	font-size: 0.9em;
 }
-.favItem:hover i.addRemoveFavorite {
-	display: inline;
+.folder-drawer .favItem:hover .addRemoveFavorite {
+	visibility: visible;
 }
-.favItem:hover i.addRemoveFavorite:hover {
+.folder-drawer .favItem .addRemoveFavorite:hover {
 	color: red;
 }
-
-.templateFolder .folderList ul li .fa-trash {
-	color: #ff8d4e;
-}
-.templateTable .fa-folder,
-.templateTable .fa-folder-open {
+.templateTable .row-icon.fa-folder,
+.templateTable .row-icon.fa-folder-open {
 	color: #efdb43;
-	font-size: 1.2em;
+	font-size: 1.1em;
+}
+.templateTable .row-icon.fa-file {
+	color: #9aa3ad;
+	font-size: 1em;
+}
+.templateTable .row-icon {
+	display: inline-block;
+	width: 18px;
+	text-align: center;
+	margin-right: 8px;
+	vertical-align: middle;
+}
+.templateTable td.col-name .row-name-link {
+	vertical-align: middle;
+	color: #222;
+	text-decoration: none;
+	font-weight: 500;
+}
+.templateTable td.col-name .row-name-link:hover {
+	text-decoration: underline;
+	color: #111;
+}
+.templateTable tr.row-folder td.col-name .row-name-link {
+	font-weight: 600;
+}
+
+/* Breadcrumb (list-area location) */
+.folder-breadcrumb {
+	font-size: 13px;
+	color: #666;
+	margin-bottom: 14px;
+	line-height: 1.4;
+}
+.folder-breadcrumb a {
+	color: #666;
+	text-decoration: none;
+}
+.folder-breadcrumb a:hover {
+	color: #222;
+	text-decoration: underline;
+}
+.folder-breadcrumb > :last-child,
+.folder-breadcrumb .folder-hierarchy-current {
+	color: #222;
+	font-weight: 600;
+}
+
+/* Row checkboxes */
+.templateTable input.row-select,
+.templateTable #selectAllRows {
+	width: 16px;
+	height: 16px;
+	cursor: pointer;
+	margin: 0;
+	accent-color: #94c52a;
 }
 .templateToolbar {
 	display: flex;
@@ -1980,14 +2041,31 @@ textarea.custom-background-css-input {
 }
 .templateToolbar #search-templates input {
 	min-width: 300px;
+	padding: 6px 10px;
+	border-radius: 4px;
+	border: 1px solid #aaa;
+	font-size: 14px;
+}
+.templateToolbar #search-templates input:focus {
+	outline: 0;
+	border-color: #94c52a;
+	box-shadow: 0 0 0 3px rgba(148, 197, 42, 0.18);
+}
+.templateToolbar #search-templates-form {
+	margin: 0;
+}
+.templateTable-results {
+	transition: opacity 0.15s ease;
+}
+.templateTable-results.is-loading {
+	opacity: 0.55;
+	pointer-events: none;
 }
 .templateToolbar #templates-tools {
 	margin-left: auto;
 }
 
 .templateFolder .templateTable {
-	flex: 1 1 auto;
-	margin-left: 30px;
 	width: 100%;
 }
 .templateFolder .bulk-actions > td {
@@ -2056,7 +2134,174 @@ textarea.custom-background-css-input {
 	font-style: italic;
 }
 
+/* Column alignment + utility classes */
+.templateFolder .templateTable thead th,
+.templateFolder .templateTable tbody td {
+	vertical-align: middle;
+}
+.templateFolder .templateTable .col-select,
+.templateFolder .templateTable .col-actions,
+.templateFolder .templateTable .col-sync {
+	text-align: center;
+	white-space: nowrap;
+	width: 1%;
+}
+.templateFolder .templateTable .col-date {
+	white-space: nowrap;
+	color: #666;
+	font-size: 13px;
+	width: 1%;
+}
+.templateFolder .templateTable .col-date time {
+	cursor: help;
+	border-bottom: 1px dotted #bbb;
+}
+.templateFolder .templateTable .empty-message {
+	padding: 40px 10px;
+	text-align: center;
+	color: #888;
+}
+
+/* Folder action icons fade in on row hover (Iterable-style) */
+.templateFolder .templateTable tr.row-folder td.templateActions i,
+.templateFolder .templateTable tr.row-template td.templateActions i,
+.templateFolder .templateTable tr.row-folder td.templateActions span,
+.templateFolder .templateTable tr.row-template td.templateActions span {
+	opacity: 0;
+	transition: opacity 0.1s ease;
+}
+.templateFolder .templateTable tr:hover td.templateActions i,
+.templateFolder .templateTable tr:hover td.templateActions span,
+.templateFolder .templateTable tr.favorite td.templateActions i.addRemoveFavorite,
+.templateFolder .templateTable tr.selected td.templateActions i,
+.templateFolder .templateTable tr.selected td.templateActions span {
+	opacity: 1;
+}
+
+/* Folder slide-out drawer */
+.folder-drawer {
+	position: fixed;
+	top: 0;
+	left: 0;
+	height: 100vh;
+	width: 360px;
+	max-width: 85vw;
+	background: #fff;
+	box-shadow: 2px 0 14px rgba(0, 0, 0, 0.18);
+	transform: translateX(-100%);
+	transition: transform 0.22s ease, visibility 0s linear 0.22s;
+	z-index: 1000;
+	overflow-y: auto;
+	visibility: hidden;
+}
+.folder-drawer.is-open {
+	transform: translateX(0);
+	visibility: visible;
+	transition: transform 0.22s ease, visibility 0s linear 0s;
+}
+.folder-drawer-backdrop {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.35);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.22s ease;
+	z-index: 999;
+}
+.folder-drawer-backdrop.is-open {
+	opacity: 1;
+	pointer-events: auto;
+}
+.folder-drawer-inner {
+	padding: 20px 24px 40px 24px;
+}
+.folder-drawer-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 18px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid #eee;
+}
+.folder-drawer-header h3 {
+	margin: 0;
+	font-size: 18px;
+	font-weight: 600;
+	color: #222;
+}
+.folder-drawer-close {
+	background: transparent;
+	border: 0;
+	font-size: 20px;
+	cursor: pointer;
+	padding: 4px 10px;
+	color: #888;
+	border-radius: 4px;
+}
+.folder-drawer-close:hover {
+	color: #222;
+	background: #f0f0f0;
+}
+.folder-drawer .folderList {
+	padding-right: 0;
+	border-right: 0;
+}
+body.folder-drawer-open {
+	overflow: hidden;
+}
+#toggleFolderDrawer {
+	cursor: pointer;
+}
+
 /* Pagination */
+.templateTable-results .pagination {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 4px;
+	margin: 28px 0 10px 0;
+	padding: 14px 0 4px 0;
+	border-top: 1px solid #eee;
+	flex-wrap: wrap;
+}
+.templateTable-results .pagination .page-numbers {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 34px;
+	height: 34px;
+	padding: 0 10px;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	color: #444;
+	text-decoration: none;
+	font-size: 13px;
+	font-weight: 500;
+	background: #fff;
+	transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.templateTable-results .pagination a.page-numbers:hover {
+	background: #f5f7ee;
+	border-color: #94c52a;
+	color: #111;
+}
+.templateTable-results .pagination .page-numbers.current {
+	background: #94c52a;
+	border-color: #94c52a;
+	color: #fff;
+}
+.templateTable-results .pagination .page-numbers.dots {
+	border: 0;
+	background: transparent;
+	color: #999;
+	min-width: 0;
+	padding: 0 4px;
+}
+.templateTable-results .pagination .page-numbers.prev,
+.templateTable-results .pagination .page-numbers.next {
+	font-weight: 600;
+}
+
 .archive.category .pagination {
 	margin-top: 20px;
 	text-align: right;
@@ -3190,6 +3435,30 @@ div.dt-button-collection .dt-button:hover {
 .wizHeader .wizHeader-actions i.fa-solid.fa-star {
 	color: #94c52a;
 }
+
+/* Inline variant: title and actions share a single row. */
+.wizHeader.wizHeader--inline .wizHeaderInnerWrap {
+	align-items: center;
+	padding-top: 22px;
+	padding-bottom: 22px;
+}
+.wizHeader.wizHeader--inline .wizHeader-left {
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0;
+	margin: 0;
+	padding: 0;
+}
+.wizHeader.wizHeader--inline .wizHeader-left h1,
+.wizHeader.wizHeader--inline .wizHeader-left h2 {
+	margin: 0;
+	padding: 0;
+	max-width: none;
+	line-height: 1.2;
+}
+.wizHeader.wizHeader--inline .wizHeader-right {
+	justify-content: center;
+}
 .wizcampaign-single h3.single-wizcampaign-startAt {
 	text-align: center;
 }
@@ -4285,40 +4554,6 @@ h2.wizArticle-title {
 	font-size: 14px;
 	color: #333;
 	margin: 20px 0;
-}
-
-/* Base table styles */
-#showAttachBaseTemplate {
-	display: none;
-}
-#initTemplateTools {
-	text-align: center;
-}
-#initTemplateTools button {
-	margin: 0 auto;
-}
-#initTemplateTools .acf-form {
-	margin: 20px 0;
-}
-#initTemplateTools .acf-field {
-	padding: 10px 0 !important;
-	text-align: left;
-}
-#initTemplateTools #replaceBaseTemplate {
-	margin-top: 20px;
-}
-/* Base template Mockups */
-.init-template-mock-ups {
-	display: flex;
-	gap: 20px;
-	overflow-y: auto;
-	max-height: 300px;
-	margin-top: 20px;
-}
-
-.init-template-mock-ups .init-template-mock-up img {
-	max-width: 100%;
-	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* Table header styles */

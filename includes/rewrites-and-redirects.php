@@ -57,13 +57,32 @@ function idemailwiz_custom_rewrite_rule()
     // Custom ajax endpoint
     add_rewrite_rule('^idwiz-ajax/?$', 'index.php?idwiz_ajax_endpoint=1', 'top');
     add_rewrite_tag('%idwiz_ajax_endpoint%', '([0-9]+)');
+
+    // Pretty URL for template search: /templates/search/{query}/
+    add_rewrite_tag('%idwiz_q%', '([^/]+)');
+    add_rewrite_rule(
+        '^templates/search/([^/]+)/?$',
+        'index.php?post_type=idemailwiz_template&idwiz_q=$matches[1]',
+        'top'
+    );
 }
 
 add_action('init', 'idemailwiz_custom_rewrite_rule', 10);
 
+// Auto-flush rewrite rules when the template-search rule is first introduced
+// or when its version bumps, so users don't need to manually re-save permalinks.
+add_action('init', function () {
+    $current_version = '1';
+    if (get_option('idwiz_rewrite_version') !== $current_version) {
+        flush_rewrite_rules(false);
+        update_option('idwiz_rewrite_version', $current_version);
+    }
+}, 99);
+
 // Add query var for endpoint parameter
 add_filter('query_vars', function($vars) {
     $vars[] = 'endpoint';
+    $vars[] = 'idwiz_q';
     return $vars;
 });
 
