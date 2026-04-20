@@ -270,10 +270,16 @@ function generate_background_css($backgroundSettings, $prefix = '', $forMso = fa
                 $fallback_color = 'transparent';
             }
 
-            // Only include fallback color for mso clients
-            //if ($forMso) {
+            // If the user marked the image as transparent, skip the fallback color in
+            // non-MSO output so it doesn't bleed through transparent areas of the image.
+            // Outlook/MSO still gets the fallback since it can't reliably render CSS
+            // background-images anyway.
+            $transparentImage = $backgroundSettings[$prefix . 'background-image-transparent'] ?? false;
+            $isTransparentImage = ($transparentImage === true || $transparentImage === 'true' || $transparentImage === 'on' || $transparentImage === '1' || $transparentImage === 1);
+
+            if (!$isTransparentImage || $forMso) {
                 $css[] = "background-color: $fallback_color;";
-            //}
+            }
             if ($image_url) {
                 $css[] = "background-image: url($image_url);";
                 $css[] = "background-position: $position;";
@@ -320,12 +326,17 @@ function generate_background_css($backgroundSettings, $prefix = '', $forMso = fa
     $forceBackground = $backgroundSettings[$prefix . 'force-background'] ?? false;
 
     // If a background color is set and not transparent, force it using linear gradient
+    // (but skip this when the image is flagged as transparent, otherwise the gradient
+    // would still bleed through the transparent areas of the image).
+    $transparentImageForce = $backgroundSettings[$prefix . 'background-image-transparent'] ?? false;
+    $isTransparentImageForce = ($transparentImageForce === true || $transparentImageForce === 'true' || $transparentImageForce === 'on' || $transparentImageForce === '1' || $transparentImageForce === 1);
     if (
         $forceBackground == 'true'
         && $bg_type != 'none'
         && isset($backgroundSettings[$prefix . 'background-color'])
         && $backgroundSettings[$prefix . 'background-color'] != 'transparent'
         && ! $forMso
+        && ! ($bg_type === 'image' && $isTransparentImageForce)
     ) {
         $css[] = "background-image: linear-gradient({$backgroundSettings[$prefix . 'background-color']}, {$backgroundSettings[$prefix . 'background-color']});";
     }

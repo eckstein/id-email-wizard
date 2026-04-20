@@ -898,6 +898,7 @@ function generate_background_settings_module($backgroundSettings, $uniqueId = ''
     $chunkBackgroundType = $backgroundSettings[$uniqueId . 'background-type'] ?? 'none';
     $chunkBackgroundColor = $backgroundSettings[$uniqueId . 'background-color'] ?? '#ffffff';
     $forceBackground = isset($backgroundSettings[$uniqueId . 'force-background']) && $backgroundSettings[$uniqueId . 'force-background'] == true;
+    $transparentImage = isset($backgroundSettings[$uniqueId . 'background-image-transparent']) && $backgroundSettings[$uniqueId . 'background-image-transparent'] == true;
 
     // Background Type Options
     $backgroundOptions = [
@@ -1025,6 +1026,17 @@ function generate_background_settings_module($backgroundSettings, $uniqueId = ''
                                 <?php echo $opt['label']; ?>
                             </label>
                         <?php endforeach; ?>
+                    </div>
+                </div>
+
+                <div class="builder-field-wrapper chunk-background-image-transparent">
+                    <div class="wiz-checkbox-toggle">
+                        <input type="checkbox" class="wiz-check-toggle" id="<?php echo $uniqueId . 'background-image-transparent'; ?>" <?php echo $previewPartDataAttr; ?>
+                            name="<?php echo $uniqueId . 'background-image-transparent'; ?>" hidden <?php echo $transparentImage ? 'checked' : ''; ?>>
+                        <label for="<?php echo $uniqueId . 'background-image-transparent'; ?>"
+                            class="wiz-check-toggle-display <?php echo $transparentImage ? 'active' : ''; ?>"><i
+                                class="<?php echo $transparentImage ? 'fa-solid' : 'fa-regular'; ?> fa-2x fa-square-check"></i></label>
+                        <label class="checkbox-toggle-label">Transparent image<span class='wiz-tooltip-trigger' data-tooltip='Hides the fallback color on modern clients so transparent areas of the image stay transparent. Outlook still uses the fallback color since it cannot render background images reliably.' tabindex='0'>?</span></label>
                     </div>
                 </div>
 
