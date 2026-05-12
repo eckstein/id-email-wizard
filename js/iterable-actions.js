@@ -8,6 +8,196 @@ jQuery(document).ready(function ($) {
 	//var existingTemplateId = $('#templateUI').data('iterableid');
 	var existingTemplateId = $('#iterable_template_id').val();
 
+	// ============================================================
+	// Sync error viewer helpers
+	// ============================================================
+
+	// Track CodeMirror instances created inside the failure modal so we can
+	// dispose them cleanly when the modal closes (preventing memory leaks).
+	var __wizSyncCmInstances = [];
+
+	// Parses Iterable's "line: N col: M found: 'X'" error message.
+	// Returns { line, col, found } when parseable; null otherwise.
+	function extractMergeError(rawMsg) {
+		if (!rawMsg || typeof rawMsg !== 'string') return null;
+		var lc = rawMsg.match(/line:\s*(\d+)\s*col:\s*(\d+)/i);
+		if (!lc) return null;
+		var foundMatch = rawMsg.match(/found:\s*'([^']*)'/i);
+		return {
+			line: parseInt(lc[1], 10),
+			col:  parseInt(lc[2], 10),
+			found: foundMatch ? foundMatch[1] : null,
+		};
+	}
+
+	// Injects the CSS used by the sync error viewer once per page.
+	function ensureSyncErrorViewerStyles() {
+		if (document.getElementById('wiz-sync-error-viewer-styles')) return;
+		var css = ''
+			+ '.wiz-sync-error-popup { max-width: 95vw !important; }'
+			+ '.wiz-sync-error-popup .swal2-html-container { text-align: left; max-height: 75vh; overflow: hidden; }'
+			+ '.wiz-sync-error-summary { font-family: monospace; background: #2b2b2b; color: #f8f8f2; padding: 10px 12px; border-radius: 4px; white-space: pre-wrap; word-break: break-word; margin-bottom: 10px; font-size: 12px; }'
+			+ '.wiz-sync-error-summary .wiz-sync-error-loc { color: #ff7b72; font-weight: bold; }'
+			+ '.wiz-sync-error-toolbar { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }'
+			+ '.wiz-sync-error-toolbar button { font-size: 12px; padding: 4px 10px; cursor: pointer; }'
+			+ '.wiz-sync-error-cm-host { border: 1px solid #444; border-radius: 4px; }'
+			+ '.wiz-sync-error-cm-host .CodeMirror { height: 55vh; font-size: 12px; }'
+			+ '.wiz-cm-error-bg { background: rgba(255, 80, 80, 0.22) !important; }'
+			+ '.wiz-cm-error-line-mark { background: rgba(255, 0, 0, 0.35); border-bottom: 2px solid #ff5252; }'
+			+ '.wiz-cm-error-gutter { color: #ff5252; padding-left: 4px; font-weight: bold; }'
+			+ '.wiz-sync-error-failure { border: 1px solid #ddd; border-radius: 4px; margin-bottom: 8px; }'
+			+ '.wiz-sync-error-failure-header { padding: 8px 10px; background: #f7f7f7; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }'
+			+ '.wiz-sync-error-failure-header:hover { background: #efefef; }'
+			+ '.wiz-sync-error-failure-body { padding: 10px; display: none; }'
+			+ '.wiz-sync-error-failure.expanded .wiz-sync-error-failure-body { display: block; }'
+			+ '.wiz-sync-error-failure-msg { font-family: monospace; font-size: 12px; color: #b00; flex: 1; padding-right: 10px; word-break: break-word; }';
+		var style = document.createElement('style');
+		style.id = 'wiz-sync-error-viewer-styles';
+		style.appendChild(document.createTextNode(css));
+		document.head.appendChild(style);
+	}
+
+	// Mounts a read-only CodeMirror htmlmixed viewer into `container`, scrolls
+	// to the offending line, and highlights the line + column.
+	// Returns the CodeMirror instance, or null if CodeMirror is unavailable.
+	function renderSyncErrorViewer(container, opts) {
+		if (!container) return null;
+		var html = (opts && opts.html) || '';
+		var line = opts && opts.line ? parseInt(opts.line, 10) : null;
+		var col  = opts && opts.col  ? parseInt(opts.col,  10) : null;
+
+		if (typeof CodeMirror === 'undefined') {
+			// Fallback: plain pre with line numbers we generate ourselves.
+			var pre = document.createElement('pre');
+			pre.style.maxHeight = '55vh';
+			pre.style.overflow = 'auto';
+			pre.style.fontSize = '12px';
+			pre.style.background = '#2b2b2b';
+			pre.style.color = '#f8f8f2';
+			pre.style.padding = '10px';
+			pre.textContent = html;
+			container.appendChild(pre);
+			return null;
+		}
+
+		var cm = CodeMirror(container, {
+			value: html,
+			mode: 'htmlmixed',
+			lineNumbers: true,
+			readOnly: true,
+			lineWrapping: true,
+			gutters: ['CodeMirror-linenumbers', 'wiz-sync-error-gutter'],
+			theme: 'default',
+		});
+
+		__wizSyncCmInstances.push(cm);
+
+		// Defer so the editor lays out before we measure / scroll.
+		setTimeout(function() {
+			try {
+				cm.refresh();
+				if (line && line > 0) {
+					var lineIdx = line - 1;
+					var lastLine = cm.lastLine();
+					if (lineIdx > lastLine) lineIdx = lastLine;
+
+					cm.addLineClass(lineIdx, 'background', 'wiz-cm-error-bg');
+
+					var lineText = cm.getLine(lineIdx) || '';
+					var startCh = 0;
+					var endCh = lineText.length;
+					if (col && col > 0) {
+						startCh = Math.max(0, Math.min(col - 1, lineText.length));
+						endCh = Math.min(lineText.length, startCh + 1);
+						if (endCh <= startCh) endCh = startCh + 1;
+					}
+					cm.markText(
+						{ line: lineIdx, ch: startCh },
+						{ line: lineIdx, ch: endCh },
+						{ className: 'wiz-cm-error-line-mark' }
+					);
+
+					var marker = document.createElement('div');
+					marker.className = 'wiz-cm-error-gutter';
+					marker.textContent = '!';
+					cm.setGutterMarker(lineIdx, 'wiz-sync-error-gutter', marker);
+
+					var targetCh = col && col > 0 ? Math.min(col - 1, lineText.length) : 0;
+					cm.scrollIntoView({ line: lineIdx, ch: targetCh }, 200);
+					cm.setCursor({ line: lineIdx, ch: targetCh });
+				}
+			} catch (e) {
+				if (window.console) console.warn('Sync error viewer:', e);
+			}
+		}, 50);
+
+		return cm;
+	}
+
+	// Disposes any CodeMirror instances created for the sync error modal.
+	function disposeSyncErrorViewers() {
+		__wizSyncCmInstances = [];
+	}
+
+	// Copies text to clipboard with a small toast confirmation.
+	function copyToClipboard(text) {
+		var done = function(ok) {
+			if (typeof Swal === 'undefined' || !Swal.fire) return;
+			Swal.fire({
+				toast: true,
+				position: 'top-end',
+				icon: ok ? 'success' : 'error',
+				title: ok ? 'HTML copied to clipboard' : 'Copy failed',
+				showConfirmButton: false,
+				timer: 1800,
+			});
+		};
+		try {
+			if (navigator.clipboard && navigator.clipboard.writeText) {
+				navigator.clipboard.writeText(text).then(function() { done(true); }, function() { done(false); });
+				return;
+			}
+		} catch (e) {}
+		// Fallback for older browsers.
+		try {
+			var ta = document.createElement('textarea');
+			ta.value = text;
+			ta.style.position = 'fixed';
+			ta.style.left = '-9999px';
+			document.body.appendChild(ta);
+			ta.select();
+			var ok = document.execCommand('copy');
+			document.body.removeChild(ta);
+			done(ok);
+		} catch (e) {
+			done(false);
+		}
+	}
+
+	// Escapes a string for safe HTML insertion.
+	function escapeHtmlText(s) {
+		return String(s == null ? '' : s)
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#39;');
+	}
+
+	// Builds the HTML for the summary banner shown above the code viewer.
+	function buildSyncErrorSummaryHtml(err) {
+		var raw = escapeHtmlText(err && err.rawMsg ? err.rawMsg : (err && err.message ? err.message : 'Unknown error'));
+		if (err && err.line) {
+			var locText = 'line: ' + err.line + (err.col ? ' col: ' + err.col : '');
+			// Highlight the location pattern within the raw text.
+			raw = raw.replace(
+				new RegExp('line:\\s*' + err.line + '\\s*col:\\s*' + (err.col || '\\d+'), 'i'),
+				'<span class="wiz-sync-error-loc">' + escapeHtmlText(locText) + '</span>'
+			);
+		}
+		return '<div class="wiz-sync-error-summary">' + raw + '</div>';
+	}
+
 	// Handle channel type change
 	$(document).on('change', 'input[name=\"email_type\"]', function() {
 		// Ignore changes during initialization
@@ -339,7 +529,7 @@ jQuery(document).ready(function ($) {
 			const syncHistoryResponse = await updateSyncHistory(templateData.postId, successfulSyncs);
 			handleMultiSyncSuccess(successfulSyncs, failedSyncs, syncHistoryResponse);
 		} else {
-			handleTemplateUpdateFailure(failedSyncs.map(f => f.error).join('<br>'));
+			handleTemplateUpdateFailure(failedSyncs);
 		}
 	}
 	
@@ -356,7 +546,7 @@ jQuery(document).ready(function ($) {
 	// Handle success for multiple syncs
 	function handleMultiSyncSuccess(successfulSyncs, failedSyncs, syncHistoryData) {
 		let message = '<div class="sync-results">';
-		
+
 		if (successfulSyncs.length > 0) {
 			message += '<div class="sync-results-section"><strong>Successfully synced to:</strong><ul class="sync-results-list">';
 			successfulSyncs.forEach(id => {
@@ -364,29 +554,123 @@ jQuery(document).ready(function ($) {
 			});
 			message += '</ul></div>';
 		}
-		
+
+		var hasRichFailures = failedSyncs.some(function(f) {
+			return f && f.error && typeof f.error === 'object' && typeof f.error.html === 'string' && f.error.html.length > 0;
+		});
+
 		if (failedSyncs.length > 0) {
-			message += '<div class="sync-results-section sync-results-failed"><strong>Failed to sync:</strong><ul class="sync-results-list">';
-			failedSyncs.forEach(f => {
-				message += `<li>${f.id}: ${f.error}</li>`;
-			});
-			message += '</ul></div>';
+			if (hasRichFailures) {
+				ensureSyncErrorViewerStyles();
+				message += '<div class="sync-results-section sync-results-failed"><strong>Failed to sync:</strong>';
+				failedSyncs.forEach(function(f, idx) {
+					var err = f && f.error;
+					var rawMsg = (err && typeof err === 'object' ? (err.rawMsg || err.message) : err) || 'Unknown error';
+					var hasViewer = err && typeof err === 'object' && typeof err.html === 'string' && err.html.length > 0;
+					message += ''
+						+ '<div class="wiz-sync-error-failure" data-failure-idx="' + idx + '">'
+						+   '<div class="wiz-sync-error-failure-header">'
+						+     '<div><strong>' + escapeHtmlText(f.id) + '</strong>: <span class="wiz-sync-error-failure-msg">' + escapeHtmlText(rawMsg) + '</span></div>'
+						+     (hasViewer ? '<div><i class="fa-solid fa-chevron-down"></i></div>' : '')
+						+   '</div>'
+						+   (hasViewer
+							? '<div class="wiz-sync-error-failure-body">'
+								+ '<div class="wiz-sync-error-toolbar">'
+								+   '<button type="button" class="button wiz-sync-error-copy">Copy HTML</button>'
+								+   '<button type="button" class="button wiz-sync-error-download">Download HTML</button>'
+								+   (err.line ? '<button type="button" class="button wiz-sync-error-jump">Jump to error</button>' : '')
+								+ '</div>'
+								+ '<div class="wiz-sync-error-cm-host"></div>'
+							+ '</div>'
+							: '')
+						+ '</div>';
+				});
+				message += '</div>';
+			} else {
+				message += '<div class="sync-results-section sync-results-failed"><strong>Failed to sync:</strong><ul class="sync-results-list">';
+				failedSyncs.forEach(f => {
+					var errText = (f && f.error && typeof f.error === 'object' ? (f.error.message || f.error.rawMsg) : f.error) || 'Unknown error';
+					message += `<li>${escapeHtmlText(f.id)}: ${escapeHtmlText(errText)}</li>`;
+				});
+				message += '</ul></div>';
+			}
 		}
-		
+
 		message += '</div>';
-		
+
 		// Update the sync history UI without page reload
 		if (syncHistoryData) {
 			updateSyncHistoryUI(syncHistoryData.syncHistory, syncHistoryData.primaryTemplateId);
 		}
-		
+
 		Swal.fire({
 			title: "Sync Complete",
 			html: message,
 			icon: successfulSyncs.length > 0 ? 'success' : 'error',
 			showConfirmButton: true,
+			width: hasRichFailures ? '95vw' : undefined,
 			customClass: {
-				htmlContainer: 'sync-results-container'
+				htmlContainer: 'sync-results-container',
+				popup: hasRichFailures ? 'wiz-sync-error-popup' : undefined,
+			},
+			didOpen: function(popup) {
+				if (!hasRichFailures) return;
+
+				function wireToolbar(container, err, cm) {
+					var $c = jQuery(container);
+					$c.find('.wiz-sync-error-copy').off('click').on('click', function() {
+						copyToClipboard(err.html);
+					});
+					$c.find('.wiz-sync-error-download').off('click').on('click', function() {
+						try {
+							var blob = new Blob([err.html], { type: 'text/html;charset=utf-8' });
+							var url = URL.createObjectURL(blob);
+							var a = document.createElement('a');
+							a.href = url;
+							a.download = 'iterable-sync-error-' + (err.templateId || 'template') + '.html';
+							document.body.appendChild(a);
+							a.click();
+							document.body.removeChild(a);
+							setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+						} catch (e) {
+							if (window.console) console.warn('Download failed:', e);
+						}
+					});
+					$c.find('.wiz-sync-error-jump').off('click').on('click', function() {
+						if (!cm || !err.line) return;
+						var lineIdx = Math.max(0, err.line - 1);
+						var ch = err.col ? Math.max(0, err.col - 1) : 0;
+						cm.scrollIntoView({ line: lineIdx, ch: ch }, 200);
+						cm.setCursor({ line: lineIdx, ch: ch });
+						cm.focus();
+					});
+				}
+
+				jQuery(popup).find('.wiz-sync-error-failure').each(function() {
+					var $row = jQuery(this);
+					var idx = parseInt($row.attr('data-failure-idx'), 10);
+					var f = failedSyncs[idx];
+					if (!f || !f.error || typeof f.error !== 'object' || !f.error.html) return;
+					var $body = $row.find('.wiz-sync-error-failure-body');
+					var host = $body.find('.wiz-sync-error-cm-host')[0];
+					var cmInstance = null;
+
+					$row.find('.wiz-sync-error-failure-header').on('click', function() {
+						var wasExpanded = $row.hasClass('expanded');
+						$row.toggleClass('expanded');
+						if (!wasExpanded && !cmInstance && host) {
+							cmInstance = renderSyncErrorViewer(host, {
+								html: f.error.html,
+								line: f.error.line,
+								col:  f.error.col,
+							});
+							wireToolbar($body[0], f.error, cmInstance);
+						}
+					});
+				});
+			},
+			willClose: function() {
+				if (hasRichFailures) disposeSyncErrorViewers();
 			}
 		}).then(() => {
 			toggleOverlay(false);
@@ -509,12 +793,162 @@ jQuery(document).ready(function ($) {
 		});
 	}
 
-	// Function to handle failure of template update
+	// Function to handle failure of template update.
+	// Accepts:
+	//   - a string (legacy / non-HTML error)
+	//   - a single rich error object { message, rawMsg, html, line, col, templateId }
+	//   - an array of failure entries [{ id, error }] from processSyncs
 	function handleTemplateUpdateFailure(error) {
+		// Normalize input into an array of failure entries: [{ id, err }]
+		var entries = [];
+		if (Array.isArray(error)) {
+			entries = error.map(function(f) {
+				return { id: (f && f.id) || (f && f.error && f.error.templateId) || 'template', err: f && f.error };
+			});
+		} else if (error && typeof error === 'object') {
+			entries = [{ id: error.templateId || 'template', err: error }];
+		} else {
+			entries = [{ id: 'template', err: error }];
+		}
+
+		// Find rich entries that include the generated HTML so we can render the viewer.
+		var richEntries = entries.filter(function(e) {
+			return e.err && typeof e.err === 'object' && typeof e.err.html === 'string' && e.err.html.length > 0;
+		});
+
+		// If no rich entries, fall back to the simple message dialog (legacy behavior).
+		if (richEntries.length === 0) {
+			var msg = entries.map(function(e) {
+				if (e.err && typeof e.err === 'object') return e.err.message || e.err.rawMsg || 'Unknown error';
+				return e.err;
+			}).join('<br>');
+			Swal.fire({
+				title: "Sync failed!",
+				html: msg,
+				icon: "error",
+			}).then(() => {
+				var currentUrl = window.location.href;
+				window.location.href = currentUrl;
+			});
+			return;
+		}
+
+		ensureSyncErrorViewerStyles();
+
+		// Build the modal body. Single rich entry = inline viewer; multiple = expandable list.
+		var bodyHtml;
+		if (entries.length === 1) {
+			var only = entries[0];
+			bodyHtml = ''
+				+ buildSyncErrorSummaryHtml(only.err)
+				+ '<div class="wiz-sync-error-toolbar">'
+				+   '<button type="button" class="button wiz-sync-error-copy">Copy HTML</button>'
+				+   '<button type="button" class="button wiz-sync-error-download">Download HTML</button>'
+				+   (only.err.line ? '<button type="button" class="button wiz-sync-error-jump">Jump to error</button>' : '')
+				+ '</div>'
+				+ '<div class="wiz-sync-error-cm-host" data-failure-idx="0"></div>';
+		} else {
+			bodyHtml = '<div class="wiz-sync-error-summary">' + escapeHtmlText(richEntries.length + ' of ' + entries.length + ' sync attempt(s) failed. Click a row to view the generated HTML.') + '</div>';
+			entries.forEach(function(entry, idx) {
+				var err = entry.err || {};
+				var rawMsg = (typeof err === 'object' ? (err.rawMsg || err.message) : err) || 'Unknown error';
+				var hasViewer = typeof err === 'object' && typeof err.html === 'string' && err.html.length > 0;
+				bodyHtml += ''
+					+ '<div class="wiz-sync-error-failure" data-failure-idx="' + idx + '">'
+					+   '<div class="wiz-sync-error-failure-header">'
+					+     '<div><strong>' + escapeHtmlText(entry.id) + '</strong>: <span class="wiz-sync-error-failure-msg">' + escapeHtmlText(rawMsg) + '</span></div>'
+					+     (hasViewer ? '<div><i class="fa-solid fa-chevron-down"></i></div>' : '')
+					+   '</div>'
+					+   (hasViewer
+						? '<div class="wiz-sync-error-failure-body">'
+							+ '<div class="wiz-sync-error-toolbar">'
+							+   '<button type="button" class="button wiz-sync-error-copy">Copy HTML</button>'
+							+   '<button type="button" class="button wiz-sync-error-download">Download HTML</button>'
+							+   (err.line ? '<button type="button" class="button wiz-sync-error-jump">Jump to error</button>' : '')
+							+ '</div>'
+							+ '<div class="wiz-sync-error-cm-host"></div>'
+						+ '</div>'
+						: '')
+					+ '</div>';
+			});
+		}
+
 		Swal.fire({
-			title: "Sync failed!",
-			html: error,
-			icon: "error",
+			title: 'Sync failed!',
+			html: bodyHtml,
+			icon: 'error',
+			width: '95vw',
+			customClass: { popup: 'wiz-sync-error-popup' },
+			showConfirmButton: true,
+			confirmButtonText: 'Close',
+			didOpen: function(popup) {
+				var $popup = jQuery(popup);
+
+				// Helper that wires the toolbar buttons inside a given container.
+				function wireToolbar(container, err, cm) {
+					var $c = jQuery(container);
+					$c.find('.wiz-sync-error-copy').off('click').on('click', function() {
+						copyToClipboard(err.html);
+					});
+					$c.find('.wiz-sync-error-download').off('click').on('click', function() {
+						try {
+							var blob = new Blob([err.html], { type: 'text/html;charset=utf-8' });
+							var url = URL.createObjectURL(blob);
+							var a = document.createElement('a');
+							a.href = url;
+							a.download = 'iterable-sync-error-' + (err.templateId || 'template') + '.html';
+							document.body.appendChild(a);
+							a.click();
+							document.body.removeChild(a);
+							setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+						} catch (e) {
+							if (window.console) console.warn('Download failed:', e);
+						}
+					});
+					$c.find('.wiz-sync-error-jump').off('click').on('click', function() {
+						if (!cm || !err.line) return;
+						var lineIdx = Math.max(0, err.line - 1);
+						var ch = err.col ? Math.max(0, err.col - 1) : 0;
+						cm.scrollIntoView({ line: lineIdx, ch: ch }, 200);
+						cm.setCursor({ line: lineIdx, ch: ch });
+						cm.focus();
+					});
+				}
+
+				if (entries.length === 1) {
+					var only = entries[0];
+					var host = popup.querySelector('.wiz-sync-error-cm-host');
+					var cm = renderSyncErrorViewer(host, { html: only.err.html, line: only.err.line, col: only.err.col });
+					wireToolbar(popup, only.err, cm);
+				} else {
+					// Wire expandable failure rows. Render CodeMirror lazily on first expand.
+					$popup.find('.wiz-sync-error-failure').each(function() {
+						var $row = jQuery(this);
+						var idx = parseInt($row.attr('data-failure-idx'), 10);
+						var entry = entries[idx];
+						if (!entry || !entry.err || typeof entry.err !== 'object' || !entry.err.html) return;
+						var $body = $row.find('.wiz-sync-error-failure-body');
+						var host = $body.find('.wiz-sync-error-cm-host')[0];
+						var cmInstance = null;
+
+						$row.find('.wiz-sync-error-failure-header').on('click', function() {
+							var wasExpanded = $row.hasClass('expanded');
+							$row.toggleClass('expanded');
+							if (!wasExpanded && !cmInstance && host) {
+								cmInstance = renderSyncErrorViewer(host, {
+									html: entry.err.html,
+									line: entry.err.line,
+									col:  entry.err.col,
+								});
+								wireToolbar($body[0], entry.err, cmInstance);
+							}
+						});
+					});
+				}
+			},
+			willClose: function() {
+				disposeSyncErrorViewers();
+			},
 		}).then(() => {
 			var currentUrl = window.location.href;
 			window.location.href = currentUrl;
@@ -625,18 +1059,20 @@ jQuery(document).ready(function ($) {
 					resolve(existingTemplateId);
 				})
 				.fail(function(jqXHR) {
-					var errorResponse = JSON.parse(jqXHR.responseText);
+					let errorResponse = {};
+					try { errorResponse = JSON.parse(jqXHR.responseText); } catch (e) {}
+					const rawMsg = (errorResponse && errorResponse.msg) || "An unknown error occurred.";
+					const parsed = extractMergeError(rawMsg);
 
-					// Construct a detailed error message
-					var errorMessage = "Failed to update or create Iterable template. ";
-					if (errorResponse && errorResponse.msg) {
-						errorMessage += "Error: " + errorResponse.msg;
-					} else {
-						errorMessage += "An unknown error occurred.";
-					}
-
-					// Pass the detailed error message to the reject function
-					reject(errorMessage);
+					reject({
+						message: "Failed to update or create Iterable template. Error: " + rawMsg,
+						rawMsg: rawMsg,
+						html: templateHtml,
+						line: parsed ? parsed.line : null,
+						col:  parsed ? parsed.col  : null,
+						found: parsed ? parsed.found : null,
+						templateId: existingTemplateId || 'new',
+					});
 				});
 			});
 		});
