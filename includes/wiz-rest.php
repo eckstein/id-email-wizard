@@ -2712,9 +2712,16 @@ function idwiz_endpoint_handler($request) {
     
     // Location data source uses location_id, quiz_url uses courseRecUrl, others use account_number
     if ($base_data_source === 'location') {
-        $identifier = isset($params['location_id']) ? intval($params['location_id']) : 0;
+        if (isset($params['location_id'])) {
+            $identifier = intval($params['location_id']);
+        } elseif (isset($params['locationId'])) {
+            $identifier = intval($params['locationId']);
+        } else {
+            $identifier = 0;
+        }
         if (empty($identifier)) {
-            return new WP_REST_Response(['error' => 'location_id parameter is required for this endpoint'], 400);
+            $payload = generate_endpoint_payload($endpoint, [], [], $endpoint_config);
+            return new WP_REST_Response($payload, 200);
         }
         $cache_identifier = 'loc_' . $identifier;
     } else if ($base_data_source === 'quiz_url') {
