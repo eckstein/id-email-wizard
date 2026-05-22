@@ -446,6 +446,39 @@ jQuery(document).ready(function ($) {
 				});
 		}
 
+		function get_wiz_campaign_export_options() {
+			return {
+				columns: ":visible:not(.row-counter)",
+				orthogonal: "export",
+				stripHtml: true,
+				modifier: {
+					search: "applied",
+					order: "applied",
+				},
+			};
+		}
+
+		function get_wiz_campaign_export_buttons() {
+			var exportOptions = get_wiz_campaign_export_options();
+			return [
+				{ extend: "copy", exportOptions: exportOptions },
+				{ extend: "csv", exportOptions: exportOptions },
+				{ extend: "excel", exportOptions: exportOptions },
+			];
+		}
+
+		function get_link_column_export_text(html) {
+			if (!html) {
+				return "";
+			}
+			var parser = new DOMParser();
+			var doc = parser.parseFromString(html, "text/html");
+			var anchorTags = doc.querySelectorAll("a");
+			var uniqueNames = Array.from(new Set(Array.from(anchorTags).map((a) => a.innerText)));
+			var filteredNames = uniqueNames.filter((name) => name.trim() !== "");
+			return filteredNames.length > 0 ? filteredNames.join(", ") : "";
+		}
+
 		function get_wiz_campaign_columns() {
 			return [
 				{
@@ -453,6 +486,7 @@ jQuery(document).ready(function ($) {
 					title: "#",
 					name: "row-counter",
 					orderable: false,
+					exportable: false,
 					data: null,
 				},
 
@@ -482,6 +516,9 @@ jQuery(document).ready(function ($) {
 					name: "campaign_name",
 					title: "Campaign Name<div style='margin-right: 350px;'></div>",
 					render: function (data, type, row, meta) {
+						if (type === "export") {
+							return data;
+						}
 						var campaignId = row.campaign_id;
 						var url = idAjax.site_url + "/metrics/campaign/?id=" + campaignId;
 						return '<a href="' + url + '">' + data + "</i></a>";
@@ -537,6 +574,9 @@ jQuery(document).ready(function ($) {
 						}
 						if (type === "filter") {
 							return !data ? "False" : "True";
+						}
+						if (type === "export") {
+							return data ? "Yes" : "No";
 						}
 						return data;
 					},
@@ -728,20 +768,11 @@ jQuery(document).ready(function ($) {
 							return data || "";
 						}
 						if (type === "filter") {
-							// Extract the inner text (initiative names) for filtering in the SearchBuilder
-							if (data) {
-								var parser = new DOMParser();
-								var doc = parser.parseFromString(data, "text/html");
-								var anchorTags = doc.querySelectorAll("a");
-								var uniqueNames = Array.from(new Set(Array.from(anchorTags).map((a) => a.innerText)));
-
-								// Exclude blank or whitespace-only names
-								var filteredNames = uniqueNames.filter((name) => name.trim() !== "");
-
-								// If filteredNames is empty, return an empty string
-								return filteredNames.length > 0 ? filteredNames.join("~") : "";
-							}
-							return "";
+							var exportText = get_link_column_export_text(data);
+							return exportText ? exportText.replace(/, /g, "~") : "";
+						}
+						if (type === "export") {
+							return get_link_column_export_text(data);
 						}
 						return data;
 					},
@@ -757,20 +788,11 @@ jQuery(document).ready(function ($) {
 							return data || "";
 						}
 						if (type === "filter") {
-							// Extract the inner text (initiative names) for filtering in the SearchBuilder
-							if (data) {
-								var parser = new DOMParser();
-								var doc = parser.parseFromString(data, "text/html");
-								var anchorTags = doc.querySelectorAll("a");
-								var uniqueNames = Array.from(new Set(Array.from(anchorTags).map((a) => a.innerText)));
-
-								// Exclude blank or whitespace-only names
-								var filteredNames = uniqueNames.filter((name) => name.trim() !== "");
-
-								// If filteredNames is empty, return an empty string
-								return filteredNames.length > 0 ? filteredNames.join("~") : "";
-							}
-							return "";
+							var exportText = get_link_column_export_text(data);
+							return exportText ? exportText.replace(/, /g, "~") : "";
+						}
+						if (type === "export") {
+							return get_link_column_export_text(data);
 						}
 						return data;
 					},
@@ -969,7 +991,7 @@ jQuery(document).ready(function ($) {
 					},
 					align: "button-right",
 					autoClose: true,
-					buttons: ["copy", "csv", "excel"],
+					buttons: get_wiz_campaign_export_buttons(),
 					background: false,
 				},
 				{
