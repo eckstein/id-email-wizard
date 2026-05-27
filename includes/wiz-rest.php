@@ -1473,7 +1473,7 @@ function get_current_year_continuity_recs($student_data) {
     // Get the student's most recent in-person purchase in current fiscal year
     $current_purchase = $wpdb->get_row(
         $wpdb->prepare(
-            "SELECT p.*, uf.studentDOB, uf.StudentFirstName, p.shoppingCartItems_sessionStartDateNonOpl
+            "SELECT p.*, uf.studentDOB, uf.studentFirstName, p.shoppingCartItems_sessionStartDateNonOpl
             FROM {$wpdb->prefix}idemailwiz_purchases p
             JOIN {$wpdb->prefix}idemailwiz_userfeed uf ON p.shoppingCartItems_studentAccountNumber = uf.studentAccountNumber
             WHERE p.shoppingCartItems_studentAccountNumber = %s 
@@ -1518,8 +1518,11 @@ function get_current_year_continuity_recs($student_data) {
         );
     }
     
-    // Determine age-up logic - treat as if this was a FY24 purchase
-    $needs_age_up = determine_age_up_need($student_age, $student_age, $current_course);
+    // Age at purchase from DOB + purchase date (not current age twice)
+    $age_at_purchase = $current_purchase['studentDOB']
+        ? calculate_age_at_purchase($current_purchase['studentDOB'], $current_purchase['purchaseDate'])
+        : $student_age;
+    $needs_age_up = determine_age_up_need($student_age, $age_at_purchase, $current_course);
     
     // Get recommendations using FY24 mapping logic
     $division_key = ($current_purchase['shoppingCartItems_divisionId'] == 22) ? 'idta' : 'idtc';
@@ -1622,7 +1625,7 @@ function get_current_year_continuity_recs($student_data) {
     // Prepare response structure optimized for Iterable template
     return [
         'student_info' => [
-            'name' => $current_purchase['StudentFirstName'] ?? '',
+            'name' => $current_purchase['studentFirstName'] ?? '',
             'account_number' => $student_account_number,
             'age' => $student_age
         ],
