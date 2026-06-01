@@ -923,6 +923,11 @@ function get_available_presets() {
             'group' => 'Location Details',
             'description' => 'Returns session data organized by session weeks for a single location. Prioritizes student\'s previous location, falls back to lead location ID. Only returns future sessions for iDTC and iDTA divisions. Data is organized by session weeks rather than by courses.'
         ],
+        'location_courses_by_age' => [
+            'name' => 'Location Courses by Age Group',
+            'group' => 'Location Details',
+            'description' => 'Returns a location\'s available courses bucketed into age groups (7-9, 10-12, 13-17), each with course name, course URL, and total seats left across upcoming sessions. Courses with no seats left are skipped, and empty age groups are omitted. Ideal for building a simple "courses available by age" list. Works with Location, Parent, or Student data sources.'
+        ],
         'ipc_course_recs' => [
             'name' => 'IPC Course Recs',
             'group' => 'Course Recs',
@@ -996,6 +1001,8 @@ function process_preset_value($preset_name, $student_data) {
             return get_location_with_courses($student_data);
         case 'sessions_at_location_by_date':
             return get_sessions_at_location_by_date($student_data);
+        case 'location_courses_by_age':
+            return get_location_courses_by_age($student_data);
         case 'ipc_course_recs':
             return get_division_course_recommendations($student_data, 'ipc');
         case 'idtc_course_recs':
@@ -3978,6 +3985,7 @@ function get_compatible_presets($data_source = 'student') {
         'nearby_locations_from_base',
         'nearby_locations_with_course_recs',
         'sessions_at_location_by_date',
+        'location_courses_by_age',
         'ipc_course_recs',
         'idtc_course_recs',
         'idta_course_recs',
@@ -3986,18 +3994,20 @@ function get_compatible_presets($data_source = 'student') {
         'opl_course_recs',
         'current_year_continuity_recs'
     ];
-    
+
     // Presets that work with parent data
     $parent_presets = [
         'location_with_courses',
         'sessions_at_location_by_date',
+        'location_courses_by_age',
         'nearby_locations_from_base',
         'location_lead_data'
     ];
-    
+
     // Presets that work with location data (location_id parameter)
     $location_presets = [
-        'location_lead_data'
+        'location_lead_data',
+        'location_courses_by_age'
     ];
     
     // Presets that work with quiz URL data
@@ -4357,11 +4367,285 @@ function get_sessions_at_location_by_date($user_data) {
         ];
         
         return $result;
-        
+
     } catch (Exception $e) {
         return null;
     }
 }
 
+/**
+ * Get a location's available courses bucketed into age groups.
+ *
+ * Resolves a single location (location data source -> location_id/leadLocationId;
+ * parent -> leadLocationId; student -> previous location with parent lead fallback),
+ * then groups its active iDTC/iDTA courses into the standard age brackets
+ * (7-9, 10-12, 13-17). Seats left are summed across upcoming sessions whose age
+ * range overlaps the bracket. Courses with no seats left are skipped, and age
+ * groups with no available courses are omitted. The payload is shaped so a template
+ * can loop the age groups and, within each, loop the courses (name, url, seats_left).
+ *
+ * @param array $user_data Location, parent, or student data
+ * @return array|null Age-grouped course availability, or null if nothing found
+ */
+function get_location_courses_by_age($user_data) {
+    global $wpdb;
 
+    $location_id = null;
+    $location_source = 'unknown';
+
+    // Determine if we are working with a parent/lead account
+    $is_parent_account = isset($user_data['userId']) && !isset($user_data['studentAccountNumber']);
+
+    // First priority: explicit location_id (Location data source)
+    if (!empty($user_data['location_id']) && intval($user_data['location_id']) > 0) {
+        $location_id = intval($user_data['location_id']);
+        $location_source = 'location_id';
+    }
+    // Parent/lead account with a leadLocationId
+    else if ($is_parent_account && isset($user_data['leadLocationId']) && $user_data['leadLocationId'] > 0) {
+        $location_id = intval($user_data['leadLocationId']);
+        $location_source = 'parent_lead_location';
+    }
+    // Student's last location
+    else if (isset($user_data['studentAccountNumber']) || isset($user_data['StudentAccountNumber'])) {
+        $last_location = get_last_location($user_data);
+
+        if ($last_location && isset($last_location['id']) && $last_location['id'] > 0) {
+            $location_id = intval($last_location['id']);
+            $location_source = 'student_previous_location';
+        } else if (!empty($user_data['accountNumber'])) {
+            // Fall back to parent's leadLocationId if student has no previous location
+            $parent = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT leadLocationId FROM {$wpdb->prefix}idemailwiz_users WHERE accountNumber = %s LIMIT 1",
+                    $user_data['accountNumber']
+                ),
+                ARRAY_A
+            );
+
+            if ($parent && isset($parent['leadLocationId']) && $parent['leadLocationId'] > 0) {
+                $location_id = intval($parent['leadLocationId']);
+                $location_source = 'parent_lead_location';
+            }
+        }
+    }
+    // Fall back to leadLocationId if present (parent without userId flag, etc.)
+    else if (isset($user_data['leadLocationId']) && $user_data['leadLocationId'] > 0) {
+        $location_id = intval($user_data['leadLocationId']);
+        $location_source = 'parent_lead_location';
+    }
+
+    if (empty($location_id) || $location_id <= 0) {
+        return null;
+    }
+
+    // The standard age brackets used for course availability lists
+    $age_groups = [
+        ['key' => '7-9',   'label' => 'Ages 7-9',   'min_age' => 7,  'max_age' => 9],
+        ['key' => '10-12', 'label' => 'Ages 10-12', 'min_age' => 10, 'max_age' => 12],
+        ['key' => '13-17', 'label' => 'Ages 13-17', 'min_age' => 13, 'max_age' => 17],
+    ];
+
+    try {
+        // Get location details
+        $location = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id, name, abbreviation, locationStatus, locationUrl, courses
+                 FROM {$wpdb->prefix}idemailwiz_locations
+                 WHERE id = %d",
+                $location_id
+            ),
+            ARRAY_A
+        );
+
+        if (!$location) {
+            return null;
+        }
+
+        // Only active locations, never Online Campus (324)
+        if ($location['id'] == 324 || !in_array($location['locationStatus'], ['Open', 'Registration opens soon'])) {
+            return null;
+        }
+
+        // Safer unserialize function that returns the default on failure
+        $safe_unserialize = function($data, $default = null) {
+            if (empty($data)) return $default;
+            if (!is_string($data) || !preg_match('/^[aOs]:[0-9]+:/', $data)) {
+                return $data;
+            }
+            $result = @unserialize($data);
+            return ($result !== false) ? $result : $default;
+        };
+
+        $course_ids = $safe_unserialize($location['courses'], []);
+        $course_ids = is_array($course_ids) ? array_filter(array_map('intval', $course_ids), function($id) { return $id > 0; }) : [];
+
+        if (empty($course_ids)) {
+            return null;
+        }
+
+        // Get active in-person courses (iDTC = 25, iDTA = 22) for this location
+        $placeholders = implode(',', array_fill(0, count($course_ids), '%d'));
+        $courses_data = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, title, abbreviation, division_id, minAge, maxAge, courseUrl
+                 FROM {$wpdb->prefix}idemailwiz_courses
+                 WHERE id IN ($placeholders)
+                 AND division_id IN (22, 25)
+                 AND wizStatus = 'Active'",
+                $course_ids
+            ),
+            ARRAY_A
+        );
+
+        if (empty($courses_data)) {
+            return null;
+        }
+
+        // Map course id -> details for quick lookup
+        $course_details_map = [];
+        foreach ($courses_data as $course) {
+            $course_details_map[intval($course['id'])] = $course;
+        }
+
+        // Pull capacity (session) data for all courses at this location at once
+        $capacity_data = get_idwiz_course_capacity([
+            'locationID' => $location_id,
+            'productID' => array_keys($course_details_map),
+            'sortBy' => 'sessionStartDate',
+            'sort' => 'ASC'
+        ]);
+
+        if (empty($capacity_data) || !is_array($capacity_data)) {
+            return null;
+        }
+
+        // Only count sessions starting at least 2 days from now
+        $min_start_date_str = (new DateTime('today'))->setTime(0, 0, 0)->modify('+2 days')->format('Y-m-d');
+
+        // Accumulate seats left per age group, per course
+        // Structure: $buckets[$group_key][$course_id] = ['seats_left' => int, 'sessions' => int]
+        $buckets = [];
+        foreach ($age_groups as $group) {
+            $buckets[$group['key']] = [];
+        }
+
+        foreach ($capacity_data as $session) {
+            // Skip past/too-soon sessions
+            if (empty($session['sessionStartDate']) || $session['sessionStartDate'] < $min_start_date_str) {
+                continue;
+            }
+
+            $course_id = intval($session['productID']);
+            if (!isset($course_details_map[$course_id])) {
+                continue;
+            }
+
+            $seats_left = intval($session['courseSeatsLeft']);
+            if ($seats_left <= 0) {
+                continue; // No seats on this session
+            }
+
+            $course = $course_details_map[$course_id];
+
+            // Determine the session's age range, falling back to course-level ages
+            $session_min_age = isset($session['minimumAge']) && $session['minimumAge'] !== '' && $session['minimumAge'] !== null
+                ? intval($session['minimumAge'])
+                : intval($course['minAge']);
+            $session_max_age = isset($session['maximumAge']) && $session['maximumAge'] !== '' && $session['maximumAge'] !== null
+                ? intval($session['maximumAge'])
+                : intval($course['maxAge']);
+
+            // Add this session's seats to every age group its range overlaps
+            foreach ($age_groups as $group) {
+                $overlaps = ($session_min_age <= $group['max_age']) && ($session_max_age >= $group['min_age']);
+                if (!$overlaps) {
+                    continue;
+                }
+
+                if (!isset($buckets[$group['key']][$course_id])) {
+                    $buckets[$group['key']][$course_id] = [
+                        'seats_left' => 0,
+                        'sessions' => 0,
+                    ];
+                }
+                $buckets[$group['key']][$course_id]['seats_left'] += $seats_left;
+                $buckets[$group['key']][$course_id]['sessions'] += 1;
+            }
+        }
+
+        // Build the final age-group payload, skipping empty groups and zero-seat courses
+        $age_group_payload = [];
+        $total_courses = 0;
+
+        foreach ($age_groups as $group) {
+            $group_courses = [];
+
+            foreach ($buckets[$group['key']] as $course_id => $totals) {
+                if ($totals['seats_left'] <= 0) {
+                    continue; // Skip courses with no seats left
+                }
+
+                $course = $course_details_map[$course_id];
+                $group_courses[] = [
+                    'course_id' => $course_id,
+                    'course_name' => $course['title'],
+                    'course_abbreviation' => $course['abbreviation'] ?? null,
+                    'course_url' => !empty($course['courseUrl']) ? $course['courseUrl'] : null,
+                    'seats_left' => $totals['seats_left'],
+                    'sessions_available' => $totals['sessions'],
+                ];
+            }
+
+            if (empty($group_courses)) {
+                continue; // Omit age groups with no available courses
+            }
+
+            // Most-available courses first, then alphabetical for stable ordering
+            usort($group_courses, function($a, $b) {
+                if ($b['seats_left'] !== $a['seats_left']) {
+                    return $b['seats_left'] - $a['seats_left'];
+                }
+                return strcmp($a['course_name'], $b['course_name']);
+            });
+
+            $total_courses += count($group_courses);
+
+            $age_group_payload[] = [
+                'key' => $group['key'],
+                'label' => $group['label'],
+                'min_age' => $group['min_age'],
+                'max_age' => $group['max_age'],
+                'course_count' => count($group_courses),
+                'courses' => $group_courses,
+            ];
+        }
+
+        // Nothing available anywhere
+        if (empty($age_group_payload)) {
+            return null;
+        }
+
+        return [
+            'location' => [
+                'id' => intval($location['id']),
+                'name' => $location['name'],
+                'abbreviation' => $location['abbreviation'] ?? null,
+                'url' => !empty($location['locationUrl']) ? $location['locationUrl'] : null,
+            ],
+            'age_groups' => $age_group_payload,
+            'metadata' => [
+                'location_id' => intval($location['id']),
+                'location_source' => $location_source,
+                'total_courses' => $total_courses,
+                'age_groups_with_courses' => count($age_group_payload),
+                'future_sessions_only' => true,
+                'divisions_included' => ['iDTC', 'iDTA'],
+            ],
+        ];
+
+    } catch (Exception $e) {
+        return null;
+    }
+}
 
