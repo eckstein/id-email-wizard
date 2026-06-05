@@ -721,7 +721,20 @@ function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDa
             if (isset($map[$header])) {
                 return $map[$header];
             }
-        
+
+            // Case-insensitive match against the explicit map. Iterable changed the
+            // casing of its purchase export fields (~May 2025), e.g. orderId -> OrderId,
+            // accountNumber -> AccountNumber, shoppingCartItems.studentDob ->
+            // shoppingCartItems.StudentDOB. Those no longer matched the exact-case map
+            // above and were silently dropped at insert time. Map keys are unique when
+            // lowercased, so this is collision-free.
+            $headerLower = strtolower($header);
+            foreach ($map as $mapKey => $mapVal) {
+                if (strtolower($mapKey) === $headerLower) {
+                    return $mapVal;
+                }
+            }
+
             // Fallback for headers not explicitly mapped: replace '.' with '_'
             $processed_key = str_replace('.', '_', $header);
             
