@@ -1484,10 +1484,13 @@ function get_current_year_continuity_recs($student_data) {
     // Get the student's most recent in-person purchase in current fiscal year
     $current_purchase = $wpdb->get_row(
         $wpdb->prepare(
+            // LEFT JOIN (not INNER) so a current-year purchase still resolves when the
+            // student isn't in userfeed yet (userfeed lags behind purchases). studentDOB/
+            // studentFirstName may come back NULL and are handled with fallbacks below.
             "SELECT p.*, uf.studentDOB, uf.studentFirstName, p.shoppingCartItems_sessionStartDateNonOpl
             FROM {$wpdb->prefix}idemailwiz_purchases p
-            JOIN {$wpdb->prefix}idemailwiz_userfeed uf ON p.shoppingCartItems_studentAccountNumber = uf.studentAccountNumber
-            WHERE p.shoppingCartItems_studentAccountNumber = %s 
+            LEFT JOIN {$wpdb->prefix}idemailwiz_userfeed uf ON p.shoppingCartItems_studentAccountNumber = uf.studentAccountNumber
+            WHERE p.shoppingCartItems_studentAccountNumber = %s
             AND p.shoppingCartItems_divisionId IN (22, 25)
             AND p.purchaseDate BETWEEN %s AND %s
             ORDER BY p.purchaseDate DESC 
