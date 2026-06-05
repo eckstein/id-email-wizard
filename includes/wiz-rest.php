@@ -1463,7 +1463,11 @@ function get_current_year_continuity_recs($student_data) {
     // Get student account number
     $student_account_number = $student_data['studentAccountNumber'] ?? $student_data['StudentAccountNumber'] ?? null;
     if (!$student_account_number) {
-        return null;
+        return [
+            'status' => 'no_recommendations',
+            'reason' => 'missing_account_number',
+            'message' => 'No student account number was provided.'
+        ];
     }
     
     // Set minimum start date for sessions to be 2 days from now, ignoring time
@@ -1496,13 +1500,24 @@ function get_current_year_continuity_recs($student_data) {
     );
     
     if (!$current_purchase) {
-        return null; // No current fiscal year in-person purchase found
+        return [
+            'status' => 'no_recommendations',
+            'reason' => 'no_current_purchase',
+            'message' => 'No in-person (iDTC/iDTA) purchase was found in the current fiscal year.',
+            'student_info' => ['account_number' => $student_account_number],
+            'metadata' => ['fiscal_year' => 'fy' . substr($current_fy_year, -2)]
+        ];
     }
     
     // Get the current course details
     $current_course = get_course_details_by_id($current_purchase['shoppingCartItems_id']);
     if (is_wp_error($current_course) || !isset($current_course->course_recs)) {
-        return null;
+        return [
+            'status' => 'no_recommendations',
+            'reason' => 'no_course_mapping',
+            'message' => 'Course details or continuity mapping were not found for the most recent course (course #' . $current_purchase['shoppingCartItems_id'] . ').',
+            'student_info' => ['account_number' => $student_account_number]
+        ];
     }
     
     // Calculate student age
@@ -1534,7 +1549,43 @@ function get_current_year_continuity_recs($student_data) {
     // Get recommendations using FY24 mapping logic
     $division_key = ($current_purchase['shoppingCartItems_divisionId'] == 22) ? 'idta' : 'idtc';
     $recommendations = get_course_recommendations($current_course, $division_key, $needs_age_up);
-    
+
+    // No continuity recommendations are mapped for this course (or for its age-up bucket)
+    if (empty($recommendations)) {
+        return [
+            'status' => 'no_recommendations',
+            'reason' => $needs_age_up ? 'no_age_up_recs' : 'no_recs_for_course',
+            'message' => $needs_age_up
+                ? 'No age-up continuity recommendations are mapped for this course (course #' . $current_course->id . ').'
+                : 'No continuity recommendations are mapped for this course (course #' . $current_course->id . ').',
+            'student_info' => [
+                'account_number' => $student_account_number,
+                'name' => $current_purchase['studentFirstName'] ?? '',
+                'age' => $student_age
+            ],
+            'current_course' => ['id' => $current_course->id, 'name' => $current_course->title],
+            'metadata' => ['age_up' => $needs_age_up, 'fiscal_year' => 'fy' . substr($current_fy_year, -2)]
+        ];
+    }
+
+    // Recommendations exist, but we couldn't resolve an open location to show availability at
+    if (!$location_info) {
+        return [
+            'status' => 'no_recommendations',
+            'reason' => 'location_unavailable',
+            'message' => $location_name
+                ? "The student's most recent location ('" . $location_name . "') is not currently open for registration."
+                : "No location was found on the student's most recent purchase.",
+            'student_info' => [
+                'account_number' => $student_account_number,
+                'name' => $current_purchase['studentFirstName'] ?? '',
+                'age' => $student_age
+            ],
+            'current_course' => ['id' => $current_course->id, 'name' => $current_course->title],
+            'metadata' => ['age_up' => $needs_age_up, 'fiscal_year' => 'fy' . substr($current_fy_year, -2)]
+        ];
+    }
+
     // Get capacity data for current course (continuation)
     $current_course_capacity = [];
     if ($location_info) {
