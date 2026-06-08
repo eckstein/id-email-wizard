@@ -970,6 +970,11 @@ function idwiz_get_email_head($templateSettings, $templateStyles, $rows)
 		// Additional CSS block from snippets
 		echo get_chunk_css_for_head($rows);
 		?>
+		<?php
+		// Additional custom HTML added to the <head> via the code (</>) tab
+		if (!empty($templateStyles['custom-styles']['additional_head_html'])) {
+			echo $templateStyles['custom-styles']['additional_head_html'];
+		} ?>
 
 		<!--[if mso]>
 		<noscript>

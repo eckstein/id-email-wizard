@@ -483,6 +483,9 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 										class="builder-field"><?php echo $customStyles['additional_template_css'] ?? ''; ?></textarea>
 								</div>
 
+								<?php // Hidden source-of-truth for custom <head> HTML. Edited via the modal in the code (</>) tab. ?>
+								<textarea id="template_styles_additional_head_html" name="additional_head_html" hidden><?php echo $customStyles['additional_head_html'] ?? ''; ?></textarea>
+
 							</fieldset>
 
 						</form>
@@ -709,6 +712,8 @@ $messageSettings = $wizTemplate['template_options']['message_settings'] ?? [];
 							HTML</button>
 						<button id="viewMsoCode" class="wiz-button green" data-post-id="<?php echo $postId ?>"><i
 								class="fa-solid fa-code"></i>&nbsp;&nbsp;View MSO Code</button>
+						<button id="editHeadCode" class="wiz-button green" data-post-id="<?php echo $postId ?>"><i
+								class="fa-solid fa-pen-to-square"></i>&nbsp;&nbsp;Edit &lt;head&gt; Code</button>
 						<button id="viewJson" class="wiz-button green" data-post-id="<?php echo $postId ?>"><i
 								class="fa-solid fa-code"></i>&nbsp;&nbsp;View JSON</button>
 						<button id="exportJson" class="wiz-button green" data-post-id="<?php echo $postId ?>">

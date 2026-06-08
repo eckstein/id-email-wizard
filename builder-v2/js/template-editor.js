@@ -352,6 +352,58 @@ jQuery(document).ready(function($) {
 			import_wiztemplate_json();
 		});
 
+		// Edit custom <head> HTML in a popup
+		$('#editHeadCode').on('click', function () {
+			var $headField = $('#template_styles_additional_head_html');
+			var currentHtml = $headField.val() || '';
+
+			Swal.fire({
+				title: 'Edit &lt;head&gt; Code',
+				html: '<div class="field-description" style="text-align:left;margin-bottom:8px;">' +
+					'HTML added here is inserted into the &lt;head&gt; of the rendered email. ' +
+					'Use this for meta tags, &lt;style&gt; blocks, or other head-level markup.</div>' +
+					'<textarea id="edit-head-code-textarea" class="builder-field" spellcheck="false" ' +
+					'style="width:100%;height:320px;font-family:monospace;white-space:pre;"></textarea>',
+				width: '800px',
+				showCancelButton: true,
+				confirmButtonText: 'Save',
+				cancelButtonText: 'Cancel',
+				customClass: {
+					popup: 'edit-head-code-modal'
+				},
+				didOpen: () => {
+					var ta = document.getElementById('edit-head-code-textarea');
+					if (ta) {
+						ta.value = currentHtml;
+						ta.focus();
+					}
+				},
+				preConfirm: () => {
+					var ta = document.getElementById('edit-head-code-textarea');
+					return ta ? ta.value : '';
+				}
+			}).then((result) => {
+				if (!result.isConfirmed) {
+					return;
+				}
+
+				var newHtml = result.value || '';
+
+				// Update the hidden source-of-truth field so it's gathered/saved with the template
+				$headField.val(newHtml);
+
+				// Flag unsaved changes
+				sessionStorage.setItem('unsavedChanges', 'true');
+
+				// Update the preview's <head> region (also persists to session) and refresh
+				// the code tab display. Mirrors how the Additional CSS field updates the head.
+				update_template_preview_part($headField, 'email_head');
+				refresh_template_html();
+
+				do_wiz_notif({ message: '<head> code updated. Save the template to keep your changes.', duration: 4000 });
+			});
+		});
+
 	// View MSO code in popup
 	$("#viewMsoCode").on("click", function () {
 		var $button = $(this);
