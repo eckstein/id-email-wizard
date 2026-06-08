@@ -403,18 +403,148 @@ function idemailwiz_sync_templates($passedCampaigns = null)
 
 
 
+// Resolve the overall date range a purchase sync should cover.
+// Honors an explicitly-passed window; otherwise derives one from the passed
+// campaigns (mirroring the legacy fetch behavior) or falls back to the last 30 days.
+function idemailwiz_resolve_purchase_sync_range($campaignIds = null, $startDate = null, $endDate = null)
+{
+	$rangeStart = $startDate ?? date('Y-m-d', strtotime('-30 days'));
+	$rangeEnd = $endDate ?? date('Y-m-d', strtotime('+1 day'));
+
+	if (empty($campaignIds)) {
+		return [$rangeStart, $rangeEnd];
+	}
+
+	if (count($campaignIds) === 1) {
+		// Single campaign: start at the campaign's send date unless one was given.
+		if ($startDate === null) {
+			$wizCampaign = get_idwiz_campaign($campaignIds[0]);
+			if ($wizCampaign && isset($wizCampaign['startAt'])) {
+				$rangeStart = date('Y-m-d', (int)($wizCampaign['startAt'] / 1000));
+			}
+		}
+	} else {
+		// Multiple campaigns (e.g. a whole journey): estimate the range from the
+		// earliest/latest campaign send dates for any bound that wasn't supplied.
+		$wizCampaigns = get_idwiz_campaigns(['campaignIds' => $campaignIds]);
+		if (!empty($wizCampaigns)) {
+			$startAts = array_filter(array_column($wizCampaigns, 'startAt'));
+			if (!empty($startAts)) {
+				if ($startDate === null) {
+					$rangeStart = date('Y-m-d', (int)((min($startAts) / 1000) - DAY_IN_SECONDS));
+				}
+				if ($endDate === null) {
+					$rangeEnd = date('Y-m-d', (int)((max($startAts) / 1000) + MONTH_IN_SECONDS));
+				}
+			}
+		}
+	}
+
+	return [$rangeStart, $rangeEnd];
+}
+
+// Split a date range into contiguous windows of at most $maxDays each.
+// End dates are treated as exclusive so windows don't overlap. A range that
+// already fits in one window returns a single chunk with the exact dates.
+function idemailwiz_chunk_date_range($startDate, $endDate, $maxDays = 31)
+{
+	$start = strtotime($startDate);
+	$end = strtotime($endDate);
+
+	// If the dates are unusable, fall back to a single chunk so we still try.
+	if ($start === false || $end === false || $start >= $end) {
+		return [['start' => $startDate, 'end' => $endDate]];
+	}
+
+	$chunkSeconds = $maxDays * DAY_IN_SECONDS;
+	$chunks = [];
+	$cursor = $start;
+	while ($cursor < $end) {
+		$chunkEnd = min($cursor + $chunkSeconds, $end);
+		$chunks[] = [
+			'start' => date('Y-m-d', $cursor),
+			'end' => date('Y-m-d', $chunkEnd),
+		];
+		$cursor = $chunkEnd;
+	}
+
+	return $chunks;
+}
+
 function idemailwiz_sync_purchases($campaignIds = null, $startDate = null, $endDate = null)
 {
+	@set_time_limit(600);
 	wiz_log("Starting purchase sync process...");
-	
+
 	try {
-		$purchases = idemailwiz_fetch_purchases($campaignIds, $startDate, $endDate);
-		
-		if (empty($purchases)) {
+		// Determine the full window to sync, then break it into <=31-day chunks so a
+		// long-running journey's entire purchase history is never loaded into memory
+		// at once. Each chunk is fetched, processed, and freed before the next.
+		list($rangeStart, $rangeEnd) = idemailwiz_resolve_purchase_sync_range($campaignIds, $startDate, $endDate);
+		$chunks = idemailwiz_chunk_date_range($rangeStart, $rangeEnd, 31);
+
+		wiz_log("Purchase sync range: $rangeStart to $rangeEnd (" . count($chunks) . " chunk(s))");
+
+		$aggregate = [];
+		$totalProcessed = 0;
+
+		foreach ($chunks as $index => $chunk) {
+			if (count($chunks) > 1) {
+				wiz_log("Syncing purchase chunk " . ($index + 1) . "/" . count($chunks) . ": {$chunk['start']} to {$chunk['end']}");
+			}
+
+			$purchases = idemailwiz_fetch_purchases($campaignIds, $chunk['start'], $chunk['end']);
+
+			if (empty($purchases)) {
+				unset($purchases);
+				continue;
+			}
+
+			$totalProcessed += count($purchases);
+			$chunkResult = idemailwiz_process_purchase_records($purchases);
+
+			// Merge this chunk's success/error results into the aggregate response.
+			foreach (['insert', 'update', 'delete'] as $op) {
+				if (empty($chunkResult[$op])) {
+					continue;
+				}
+				if (!isset($aggregate[$op])) {
+					$aggregate[$op] = ['success' => [], 'errors' => []];
+				}
+				if (!empty($chunkResult[$op]['success'])) {
+					$aggregate[$op]['success'] = array_merge($aggregate[$op]['success'], $chunkResult[$op]['success']);
+				}
+				if (!empty($chunkResult[$op]['errors'])) {
+					$aggregate[$op]['errors'] = array_merge($aggregate[$op]['errors'], $chunkResult[$op]['errors']);
+				}
+			}
+
+			// Free the chunk's data before moving on to keep peak memory low.
+			unset($purchases, $chunkResult);
+		}
+
+		if ($totalProcessed === 0) {
 			wiz_log("No purchases found to sync");
 			return "No purchases found to sync.";
 		}
 
+		return $aggregate;
+	} catch (Exception $e) {
+		wiz_log("Error in purchase sync: " . $e->getMessage());
+		return "Error in purchase sync: " . $e->getMessage();
+	}
+}
+
+// Processes a single batch of fetched purchase records: determines inserts vs
+// updates, enriches each record, and persists/logs them. Split out of
+// idemailwiz_sync_purchases() so the sync can process one date chunk at a time.
+function idemailwiz_process_purchase_records($purchases)
+{
+	if (empty($purchases)) {
+		return [];
+	}
+
+	try {
 		global $wpdb;
 		$purchases_table = $wpdb->prefix . 'idemailwiz_purchases';
 
@@ -857,7 +987,12 @@ function idemailwiz_ajax_sync()
 
 	$campaignIds = isset($_POST['campaignIds']) ? json_decode(stripslashes($_POST['campaignIds']), true) : [];
 
-	$response =	idemailwiz_sync_non_triggered_metrics($campaignIds);
+	// Optional date window (e.g. the date range currently being viewed). When
+	// provided, the purchase sync honors it instead of syncing the full history.
+	$startDate = isset($_POST['startDate']) && $_POST['startDate'] !== '' ? sanitize_text_field($_POST['startDate']) : null;
+	$endDate = isset($_POST['endDate']) && $_POST['endDate'] !== '' ? sanitize_text_field($_POST['endDate']) : null;
+
+	$response =	idemailwiz_sync_non_triggered_metrics($campaignIds, null, $startDate, $endDate);
 
 	if ($response === false) {
 		wp_send_json_error('There was an error in the sync process!');
@@ -990,7 +1125,7 @@ function get_latest_triggered_startAt($campaignId)
 	}
 }
 
-function idemailwiz_sync_non_triggered_metrics($campaignIds = [], $sync_dbs = null)
+function idemailwiz_sync_non_triggered_metrics($campaignIds = [], $sync_dbs = null, $startDate = null, $endDate = null)
 {
 	@set_time_limit(600);
 
@@ -1016,8 +1151,15 @@ function idemailwiz_sync_non_triggered_metrics($campaignIds = [], $sync_dbs = nu
 		}
 		
 		try {
-			$result = call_user_func($function_name, $syncArgs);
-			
+			// Purchases accept an explicit date range so we can honor the user's
+			// selected window (and chunk it) instead of syncing an entire journey's
+			// purchase history, which can exhaust memory.
+			if ($db === 'purchases') {
+				$result = idemailwiz_sync_purchases(!empty($campaignIds) ? $campaignIds : null, $startDate, $endDate);
+			} else {
+				$result = call_user_func($function_name, $syncArgs);
+			}
+
 			if ($result === false) {
 				wiz_log("Error: Sync failed for " . $db);
 				$response[$db] = ['error' => 'Sync failed for ' . $db];

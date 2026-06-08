@@ -587,6 +587,7 @@ function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDa
 	];
 
 	// Define the start and end date time for the API call
+	$datesProvided = ($startDate !== null && $endDate !== null);
 	$startDateTime = $startDate ?? date('Y-m-d', strtotime('-30 days'));
 	$endDateTime = $endDate ?? date('Y-m-d', strtotime('+1 day'));
 
@@ -595,16 +596,22 @@ function idemailwiz_fetch_purchases($campaignIds = [], $startDate = null, $endDa
 		if (count($campaignIds) === 1) {
 			// If there's only one campaign ID, add it directly
 			$queryParams['campaignId'] = $campaignIds[0];
-			$wizCampaign = get_idwiz_campaign($campaignIds[0]);
 
-			if ($wizCampaign && isset($wizCampaign['startAt'])) {
-				$startDateTime = date('Y-m-d', (int)($wizCampaign['startAt'] / 1000));
+			// Only derive the date range from the campaign when the caller didn't
+			// supply an explicit window (e.g. when honoring a selected date range
+			// or a chunked sync). Otherwise we'd ignore the requested window.
+			if (!$datesProvided) {
+				$wizCampaign = get_idwiz_campaign($campaignIds[0]);
+
+				if ($wizCampaign && isset($wizCampaign['startAt'])) {
+					$startDateTime = date('Y-m-d', (int)($wizCampaign['startAt'] / 1000));
+				}
 			}
-		} else {
+		} else if (!$datesProvided) {
 			// If multiple campaign IDs, find the earliest date
 			// Iterable only allows one campaign ID per call to the export API, and only max of 4 per minute, so we estimate the earliest and latest dates and use those
 			$wizCampaigns = get_idwiz_campaigns(['campaignIds' => $campaignIds]);
-			
+
 			if (!empty($wizCampaigns)) {
 				$earliestDate = min(array_column($wizCampaigns, 'startAt'));
 				$latestDate = max(array_column($wizCampaigns, 'startAt'));

@@ -82,11 +82,20 @@ jQuery(document).ready(function ($) {
         const journeyIds = $button.data('journeyids');
         
         $button.prop('disabled', true).text('Syncing...');
-        
+
+        // Honor the date range currently being viewed so we don't sync the journey's
+        // entire purchase history (which can exhaust server memory). Fall back to the
+        // rollup wrapper's defaults if the date pickers aren't present on this view.
+        const $rollupWrapper = $('#journey-rollup-wrapper');
+        const startDate = $('#wizStartDate').val() || $rollupWrapper.attr('data-start-date') || '';
+        const endDate = $('#wizEndDate').val() || $rollupWrapper.attr('data-end-date') || '';
+
         const data = {
             action: 'idemailwiz_ajax_sync',
             security: idAjax.wizAjaxNonce,
-            campaignIds: journeyIds ? JSON.stringify(journeyIds) : JSON.stringify([])
+            campaignIds: journeyIds ? JSON.stringify(journeyIds) : JSON.stringify([]),
+            startDate: startDate,
+            endDate: endDate
         };
         
         $.post(idAjax.ajaxurl, data)
