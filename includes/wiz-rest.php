@@ -752,7 +752,16 @@ function get_location_lead_data($user_data) {
     if (isset($user_data['leadLocationId']) && $user_data['leadLocationId'] > 0) {
         $lead_location_id = intval($user_data['leadLocationId']);
     }
-    
+
+    // If the profile has no leadLocationId, fall back to the location of the
+    // user's most recent purchase (if one is available).
+    if (empty($lead_location_id)) {
+        $last_location = get_last_location($user_data);
+        if ($last_location && isset($last_location['id']) && $last_location['id'] > 0) {
+            $lead_location_id = intval($last_location['id']);
+        }
+    }
+
     if (empty($lead_location_id)) {
         return null;
     }
