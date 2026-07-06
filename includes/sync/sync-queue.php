@@ -183,8 +183,15 @@ function idemailwiz_process_campaign_export_batch($campaignBatches, $currentBatc
 			// Build syncType name to match database name
 			$syncType = $campaignType . '_' . strtolower($metricType) . 's'; // matches database name after $wpdb->prefix . 'idemailwiz_'
 
-			// Check if a queued job already exists for this campaign and metric type
-			$existingJob = $wpdb->get_row("SELECT * FROM $sync_jobs_table_name WHERE campaignId = $campaignId AND syncType = '$syncType'");
+			// Check if an ACTIVE job already exists for this campaign and metric type.
+			// Only pending/syncing/requeued jobs should block a new export - a
+			// 'finished' row lingers (deleteAfter) after its work is done, and
+			// skipping on it would prevent newer data from ever being pulled in.
+			$existingJob = $wpdb->get_row($wpdb->prepare(
+				"SELECT * FROM $sync_jobs_table_name WHERE campaignId = %d AND syncType = %s AND syncStatus IN ('pending', 'syncing', 'requeued')",
+				$campaignId,
+				$syncType
+			));
 			if ($existingJob) {
 				continue;
 			}
