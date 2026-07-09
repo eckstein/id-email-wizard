@@ -266,6 +266,11 @@ function builder_init_tinymce($optionalElement) {
         selector: selector,
         license_key: 'gpl',
         height: 250,
+        // Preserve merge tags (e.g. {{tag}}, {{{snippet "name" "var"}}}) in link/href fields.
+        // Disable URL conversion so braces/quotes are never percent-encoded or rebased.
+        convert_urls: false,
+        relative_urls: false,
+        remove_script_host: false,
         toolbar: [
             { name: 'code', items: [ 'code'] },
             { name: 'merge_tags_button', items: [ 'merge_tags_button'] },

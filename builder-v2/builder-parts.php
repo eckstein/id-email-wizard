@@ -600,14 +600,14 @@ function show_specific_chunk_settings($chunkData, $uniqueId, $settings, $chunkTy
                 case 'chunk_classes':
                     $chunkClasses = $chunkSettings['chunk_classes'] ?? '';
                     echo "<div class='builder-field-wrapper chunk-classes'><label for='{$uniqueId}-chunk-classes'>Chunk Classes</label>";
-                    echo "<input type='text' name='chunk_classes' id='{$uniqueId}-chunk-classes' value='{$chunkClasses}'>";
+                    echo "<input type='text' name='chunk_classes' id='{$uniqueId}-chunk-classes' value='" . esc_attr($chunkClasses) . "'>";
                     echo "</div>";
                     break;
                 case 'chunk_padding':
                     $defaultPadding = $chunkType === 'text' ? '20px' : '0';
                     $chunkPadding = $chunkSettings['chunk_padding'] ?? $defaultPadding;
                     echo "<div class='builder-field-wrapper chunk-padding small-input'><label for='{$uniqueId}-chunk-padding'>Chunk Padding<span class='wiz-tooltip-trigger' data-tooltip='CSS shorthand: one value (all sides), two values (top/bottom, left/right), three values (top, left/right, bottom), or four values (top, right, bottom, left).' tabindex='0'>?</span></label>";
-                    echo "<input type='text' name='chunk_padding' id='{$uniqueId}-chunk-padding' value='{$chunkPadding}'>";
+                    echo "<input type='text' name='chunk_padding' id='{$uniqueId}-chunk-padding' value='" . esc_attr($chunkPadding) . "'>";
                     echo "</div>";
                     break;
                 case 'p_padding':
@@ -656,19 +656,19 @@ function show_specific_chunk_settings($chunkData, $uniqueId, $settings, $chunkTy
                 case 'list_width':
                     $listWidth = $chunkSettings['list_width'] ?? '100%';
                     echo "<div class='builder-field-wrapper list-width'><label for='{$uniqueId}-list-width'>List Width</label>";
-                    echo "<input type='text' name='list_width' id='{$uniqueId}-list-width' value='{$listWidth}'>";
+                    echo "<input type='text' name='list_width' id='{$uniqueId}-list-width' value='" . esc_attr($listWidth) . "'>";
                     echo "</div>";
                     break;
                 case 'icon_width':
                     $iconWidth = $chunkSettings['icon_width'] ?? '100px';
                     echo "<div class='builder-field-wrapper icon-width'><label for='{$uniqueId}-icon-width'>Icon Width</label>";
-                    echo "<input type='text' name='icon_width' id='{$uniqueId}-icon-width' value='{$iconWidth}'>";
+                    echo "<input type='text' name='icon_width' id='{$uniqueId}-icon-width' value='" . esc_attr($iconWidth) . "'>";
                     echo "</div>";
                     break;
                 case 'content_padding':
                     $contentPadding = $chunkSettings['content_padding'] ?? '0';
                     echo "<div class='builder-field-wrapper content-padding small-input'><label for='{$uniqueId}-content-padding'>Content Padding<span class='wiz-tooltip-trigger' data-tooltip='Padding inside the content area next to the icon. CSS shorthand: one value (all sides), two values (top/bottom, left/right), or four values (top, right, bottom, left).' tabindex='0'>?</span></label>";
-                    echo "<input type='text' name='content_padding' id='{$uniqueId}-content-padding' value='{$contentPadding}'>";
+                    echo "<input type='text' name='content_padding' id='{$uniqueId}-content-padding' value='" . esc_attr($contentPadding) . "'>";
                     echo "</div>";
                     break;
                 case 'background_settings':
@@ -717,10 +717,10 @@ function render_chunk_fields($chunkType, $chunkData, $uniqueId)
             $imageAlt = $chunkData['fields']['image_alt'] ?? '';
 
             echo "<div class='builder-field-group flex'>";
-            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-image-url'>Image URL</label><input type='text' name='image_url' id='{$uniqueId}-image-url' value='{$imageUrl}' placeholder='https://'></div>";
-            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-dark-mode-image-url'>Dark Mode Image URL</label><input type='text' name='dark_mode_image_url' id='{$uniqueId}-dark-mode-image-url' value='{$darkModeImageUrl}' placeholder='https://'></div>";
-            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-image-link'>Image Link</label><input type='text' name='image_link' id='{$uniqueId}-image-link' value='{$imageLink}' placeholder='https://'></div>";
-            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-image-alt'>Image Alt</label><input type='text' name='image_alt' id='{$uniqueId}-image-alt' value='{$imageAlt}' placeholder='Describe the image or leave blank'></div>";
+            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-image-url'>Image URL</label><input type='text' name='image_url' id='{$uniqueId}-image-url' value='" . esc_attr($imageUrl) . "' placeholder='https://'></div>";
+            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-dark-mode-image-url'>Dark Mode Image URL</label><input type='text' name='dark_mode_image_url' id='{$uniqueId}-dark-mode-image-url' value='" . esc_attr($darkModeImageUrl) . "' placeholder='https://'></div>";
+            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-image-link'>Image Link</label><input type='text' name='image_link' id='{$uniqueId}-image-link' value='" . esc_attr($imageLink) . "' placeholder='https://'></div>";
+            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-image-alt'>Image Alt</label><input type='text' name='image_alt' id='{$uniqueId}-image-alt' value='" . esc_attr($imageAlt) . "' placeholder='Describe the image or leave blank'></div>";
             echo "</div>"; // close builder-field-group
 
             break;
@@ -731,10 +731,10 @@ function render_chunk_fields($chunkType, $chunkData, $uniqueId)
             $imageAlt = $chunkData['fields']['image_alt'] ?? '';
             echo "<div class='builder-field-group flex noWrap'>";
             echo "<div class='builder-field-group icon-list-image-fields'>";
-            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-image-url'>Image URL</label><input type='text' name='image_url' id='{$uniqueId}-image-url' value='{$imageUrl}' placeholder='https://'></div>";
-            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-dark-mode-image-url'>Dark Mode Image URL</label><input type='text' name='dark_mode_image_url' id='{$uniqueId}-dark-mode-image-url' value='{$darkModeImageUrl}' placeholder='https://'></div>";
-            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-image-link'>Image Link</label><input type='text' name='image_link' id='{$uniqueId}-image-link' value='{$imageLink}' placeholder='https://'></div>";
-            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-image-alt'>Image Alt</label><input type='text' name='image_alt' id='{$uniqueId}-image-alt' value='{$imageAlt}' placeholder='Describe the image or leave blank'></div>";
+            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-image-url'>Image URL</label><input type='text' name='image_url' id='{$uniqueId}-image-url' value='" . esc_attr($imageUrl) . "' placeholder='https://'></div>";
+            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-dark-mode-image-url'>Dark Mode Image URL</label><input type='text' name='dark_mode_image_url' id='{$uniqueId}-dark-mode-image-url' value='" . esc_attr($darkModeImageUrl) . "' placeholder='https://'></div>";
+            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-image-link'>Image Link</label><input type='text' name='image_link' id='{$uniqueId}-image-link' value='" . esc_attr($imageLink) . "' placeholder='https://'></div>";
+            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-image-alt'>Image Alt</label><input type='text' name='image_alt' id='{$uniqueId}-image-alt' value='" . esc_attr($imageAlt) . "' placeholder='Describe the image or leave blank'></div>";
             echo "</div>";
             echo "<div class='builder-field-group'>";
             $existingContent = isset($chunkData['fields']['plain_text_content']) ? $chunkData['fields']['plain_text_content'] : 'Enter your content here...';
@@ -754,7 +754,7 @@ function render_chunk_fields($chunkType, $chunkData, $uniqueId)
             $buttonAlign = $chunkData['fields']['button_align'] ?? 'center';
 
             $buttonLink = $chunkData['fields']['button_link'] ?? 'https://www.idtech.com';
-            $buttonCta = htmlspecialchars($chunkData['fields']['button_text'] ?? 'Click Here', ENT_QUOTES);
+            $buttonCta = $chunkData['fields']['button_text'] ?? 'Click Here';
 
             // Button Background Color
             echo "<div class='builder-field-group button-options-group flex'>";
@@ -769,12 +769,12 @@ function render_chunk_fields($chunkType, $chunkData, $uniqueId)
 
             // Button Padding
             echo "<div class='builder-field-wrapper button-padding small-input'><label for='{$uniqueId}-button-padding'>Btn Padding<span class='wiz-tooltip-trigger' data-tooltip='Inner spacing: one value (all sides), two values (top/bottom, left/right), or four values (top, right, bottom, left).' tabindex='0'>?</span></label>";
-            echo "<input type='text' name='button_padding' id='{$uniqueId}-button-padding' value='{$buttonPadding}'>";
+            echo "<input type='text' name='button_padding' id='{$uniqueId}-button-padding' value='" . esc_attr($buttonPadding) . "'>";
             echo "</div>";
 
             // Button Font Size
             echo "<div class='builder-field-wrapper button-font-size tiny-input'><label for='{$uniqueId}-button-font-size'>Font Size</label>";
-            echo "<input type='text' name='button_font_size' id='{$uniqueId}-button-font-size' value='{$buttonFontSize}'>";
+            echo "<input type='text' name='button_font_size' id='{$uniqueId}-button-font-size' value='" . esc_attr($buttonFontSize) . "'>";
             echo "</div>";
 
             // Alignment Options
@@ -810,20 +810,20 @@ function render_chunk_fields($chunkType, $chunkData, $uniqueId)
 
             // Button Border Size
             echo "<div class='builder-field-wrapper button-border-size tiny-input'><label for='{$uniqueId}-button-border-size'>Border</label>";
-            echo "<input type='text' name='button_border_size' id='{$uniqueId}-button-border-size' value='{$buttonBorderSize}'>";
+            echo "<input type='text' name='button_border_size' id='{$uniqueId}-button-border-size' value='" . esc_attr($buttonBorderSize) . "'>";
             echo "</div>";
 
             // Button Border Radius
             echo "<div class='builder-field-wrapper button-border-radius tiny-input'><label for='{$uniqueId}-button-border-radius'>Radius</label>";
-            echo "<input type='text' name='button_border_radius' id='{$uniqueId}-button-border-radius' value='{$buttonBorderRadius}'>";
+            echo "<input type='text' name='button_border_radius' id='{$uniqueId}-button-border-radius' value='" . esc_attr($buttonBorderRadius) . "'>";
             echo "</div>";
 
 
 
             echo "</div>";
             echo "<div class='builder-field-group flex'>";
-            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-button-text'>CTA Text</label><input type='text' name='button_text' id='{$uniqueId}-button-text' value='{$buttonCta}' placeholder='Click here now!'></div>";
-            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-button-link'>Button Link</label><input type='text' name='button_link' id='{$uniqueId}-button-link' value='{$buttonLink}' placeholder='https://'></div>";
+            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-button-text'>CTA Text</label><input type='text' name='button_text' id='{$uniqueId}-button-text' value='" . esc_attr($buttonCta) . "' placeholder='Click here now!'></div>";
+            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-button-link'>Button Link</label><input type='text' name='button_link' id='{$uniqueId}-button-link' value='" . esc_attr($buttonLink) . "' placeholder='https://'></div>";
             echo "</div>";
 
             break;
@@ -831,7 +831,7 @@ function render_chunk_fields($chunkType, $chunkData, $uniqueId)
             $spacerHeight = $chunkData['fields']['spacer_height'] ?? '60px';
 
             echo "<div class='builder-field-group'>";
-            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-spacer-height'>Spacer Height</label><input type='text' name='spacer_height' id='{$uniqueId}-spacer-height' value='{$spacerHeight}' placeholder='px, em, etc'></div>";
+            echo "<div class='builder-field-wrapper'><label for='{$uniqueId}-spacer-height'>Spacer Height</label><input type='text' name='spacer_height' id='{$uniqueId}-spacer-height' value='" . esc_attr($spacerHeight) . "' placeholder='px, em, etc'></div>";
             echo "</div>"; // Close builder-field-group
 
             break;

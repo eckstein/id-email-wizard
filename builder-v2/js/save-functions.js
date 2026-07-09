@@ -337,7 +337,9 @@ function collect_element_field_values($container, target) {
     // Iterate over all inputs within the current container, excluding .CodeMirror and .wiz-html-block
     $container.find('input, select, textarea, .builder-colorpicker, .wiz-wysiwyg').not('.CodeMirror *, .wiz-html-block').each(function() {
         var $field = jQuery(this);
-        var value = $field.is('input[type="text"]') ? $field.val().replace(/"/g, '&quot;') : get_wizfield_value($field);
+        // Store raw field values (including merge tags like {{tag}} or {{{snippet "name" "var"}}})
+        // without HTML-encoding quotes, so merge tags render cleanly and survive duplication.
+        var value = get_wizfield_value($field);
         var key = $field.attr('name');
 
         // Build the hierarchy of fieldsets for this field

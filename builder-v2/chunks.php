@@ -1,5 +1,25 @@
 <?php
 
+/**
+ * Decode HTML entities that live INSIDE merge-tag delimiters ({{ }} / {{{ }}}).
+ *
+ * TinyMCE and attribute-escaping keep WYSIWYG content HTML-valid by encoding
+ * quotes/ampersands (e.g. href="{{{snippet &quot;x&quot; &quot;y&quot;}}}").
+ * The ESP (Handlebars) processes the raw template text before it is parsed as
+ * HTML, so merge tags must contain literal quotes/braces in the final output.
+ * This restores them without touching the surrounding markup.
+ */
+function idwiz_decode_merge_tag_entities($html)
+{
+	if (!is_string($html) || strpos($html, '{{') === false) {
+		return $html;
+	}
+
+	return preg_replace_callback('/\{\{\{?.*?\}\}\}?/s', function ($matches) {
+		return html_entity_decode($matches[0], ENT_QUOTES | ENT_HTML5);
+	}, $html);
+}
+
 function idwiz_get_spacer_chunk($chunk, $templateOptions, $chunkIndex = null, $isEditor = false)
 {
 	//print_r($chunk);
@@ -359,6 +379,7 @@ function idwiz_get_icon_list_chunk($chunk, $templateOptions, $chunkIndex = null,
 
 	$textContent = $chunkFields['plain_text_content'] ?? '<p>Your content goes here!</p>';
 	$textContent = add_aria_label_to_links($textContent);
+	$textContent = idwiz_decode_merge_tag_entities($textContent);
 
 	$templateFontSize = $templateOptions['template_styles']['font-size']['template_font_size'] ?? '16px';
 
@@ -452,6 +473,7 @@ function idwiz_get_plain_text_chunk($chunk, $templateOptions, $chunkIndex = null
 	$textContent = $chunkFields['plain_text_content'] ?? '<p>Your content goes here!</p>';
 
 	$textContent = add_aria_label_to_links($textContent);
+	$textContent = idwiz_decode_merge_tag_entities($textContent);
 
 	$output = '';
 	$output .= '<div class="chunk id-plain-text ' . $chunkClasses . ' ' . $pPaddingClass . ' ' . $visibility['class'] . '" ' . $chunkDataAttr . ' style="' . $visibility['inlineStyle'] . ' ' . $backgroundColorCss . ' padding: ' . $chunkPadding . '; font-size: ' . $templateFontSize . ';">';
