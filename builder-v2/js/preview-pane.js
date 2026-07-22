@@ -203,3 +203,93 @@ jQuery("#previewFrame").on("load", function() {
 });
 
 
+// Export the full template preview as a PNG, entirely client-side (html2canvas).
+jQuery(document).on('click', '.export-preview-png', function () {
+    var button = jQuery(this);
+    if (button.hasClass('disabled')) {
+        return;
+    }
+    export_preview_to_png(button);
+});
+
+function export_preview_to_png(button) {
+    if (typeof html2canvas === 'undefined') {
+        do_wiz_notif({ message: 'Screenshot library failed to load. Please refresh and try again.', duration: 5000 });
+        return;
+    }
+
+    var iframe = jQuery('#previewFrame')[0];
+    var doc = iframe.contentDocument || iframe.contentWindow.document;
+    if (!doc || !doc.body) {
+        do_wiz_notif({ message: 'Preview is not ready yet. Please wait for it to load.', duration: 5000 });
+        return;
+    }
+
+    // Full scrollable dimensions of the template.
+    var rootEl = doc.documentElement;
+    var captureWidth = Math.max(rootEl.scrollWidth, doc.body.scrollWidth);
+    var captureHeight = Math.max(rootEl.scrollHeight, doc.body.scrollHeight);
+
+    // Preserve the template's own background; fall back to white where transparent.
+    var bodyBg = iframe.contentWindow.getComputedStyle(doc.body).backgroundColor;
+    var backgroundColor = (!bodyBg || bodyBg === 'transparent' || bodyBg === 'rgba(0, 0, 0, 0)') ? '#ffffff' : bodyBg;
+
+    button.addClass('disabled fa-spin');
+    jQuery('#templatePreview-status').fadeIn().text('Capturing preview...');
+
+    html2canvas(doc.body, {
+        backgroundColor: backgroundColor,
+        useCORS: true,
+        allowTaint: false,
+        scale: 1,
+        logging: false,
+        width: captureWidth,
+        height: captureHeight,
+        windowWidth: captureWidth,
+        windowHeight: captureHeight,
+        scrollX: 0,
+        scrollY: 0,
+        onclone: function (clonedDoc) {
+            // Strip editor-only highlights so the shot matches the delivered email.
+            clonedDoc.querySelectorAll('.active').forEach(function (el) {
+                el.classList.remove('active');
+            });
+        }
+    }).then(function (canvas) {
+        canvas.toBlob(function (blob) {
+            if (!blob) {
+                do_wiz_notif({ message: 'Could not generate the PNG. An external image may have blocked the export.', duration: 6000 });
+                cleanup();
+                return;
+            }
+            var url = URL.createObjectURL(blob);
+            var link = document.createElement('a');
+            link.href = url;
+            link.download = get_preview_export_filename();
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            cleanup();
+        }, 'image/png');
+    }).catch(function (error) {
+        console.error('html2canvas export failed:', error);
+        do_wiz_notif({ message: 'Screenshot failed. If the template uses external images, they may need to be uploaded to the media library first.', duration: 7000 });
+        cleanup();
+    });
+
+    function cleanup() {
+        button.removeClass('disabled fa-spin');
+        jQuery('#templatePreview-status').fadeOut();
+    }
+}
+
+function get_preview_export_filename() {
+    var title = (jQuery('#single-template-title').text() || 'template').trim();
+    var postId = jQuery('#templateUI').data('postid') || '';
+    // Slugify the title for a safe filename.
+    var slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'template';
+    return 'preview-' + slug + (postId ? '-' + postId : '') + '.png';
+}
+
+

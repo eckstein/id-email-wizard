@@ -158,6 +158,8 @@ function idemailwiz_enqueue_assets()
 
     wp_enqueue_script('crush', 'https://cdn.jsdelivr.net/npm/html-crush/dist/html-crush.umd.js', array(), null, true);
 
+    wp_enqueue_script('html2canvas', plugin_dir_url(__FILE__) . 'vendors/html2canvas/html2canvas.min.js', array(), '1.4.1', true);
+
 
     wp_enqueue_script('DataTables', plugin_dir_url(__FILE__) . 'vendors/DataTables/datatables.min.js', array());
     wp_enqueue_script('DataTablesScrollResize', plugin_dir_url(__FILE__) . 'vendors/DataTables/ScrollResize/dataTables.scrollResize.min.js', array());
@@ -244,7 +246,7 @@ function idemailwiz_enqueue_assets()
         'tiny-mce-editor' => array('/builder-v2/js/tiny-mce-editor.js', array('builder-functions')),
         'wiz-tooltips' => array('/builder-v2/js/wiz-tooltips.js', array('jquery')),
 
-        'preview-pane' => array('/builder-v2/js/preview-pane.js', array('builder-functions')),
+        'preview-pane' => array('/builder-v2/js/preview-pane.js', array('builder-functions', 'html2canvas')),
 
         'wizSnippets' => array('/js/wizSnippets.js', array('jquery', 'id-general', 'codemirror')),
         'interactives' => array('/builder-v2/interactives/interactives.js', array('jquery', 'id-general', 'codemirror')),

@@ -74,6 +74,8 @@ function get_template_actions_bar($postId)
                 </div>
                 <span class="templateActions-divider"></span>
                 <i title="Start link checker" class="fa-solid fa-link start-link-checker"></i>
+                <i title="Export preview as PNG" class="fa-solid fa-camera export-preview-png"
+                    data-frame="#previewFrame"></i>
             </div>
 
 
