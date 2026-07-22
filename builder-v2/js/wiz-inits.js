@@ -244,17 +244,23 @@ function initialize_wiz_sortable($container, itemsSelector, handleSelector, plac
             if (item.hasClass('builder-row')) {
                 update_template_preview();
             } else {
+                // Reindex the preview FIRST, before mapping builder -> preview. The
+                // builder ids were just reindexed above; if the preview indices are
+                // still stale (e.g. left non-canonical by an earlier move/dupe/remove),
+                // find_matching_preview_element() would resolve the new builder id
+                // against an old preview index and target the wrong node -- the
+                // click-to-go desync that accumulates over a long editing session.
+                reindexPreviewElements();
+
                 // Update the new wrapper
                 var $newWrapper = item.parents('.builder-row, .builder-columnset, .builder-column').first();
                 update_template_preview_part($newWrapper, find_matching_preview_element($newWrapper));
-        
+
                 // Update the previous wrapper if it exists
                 if (sender) {
                     var $previousWrapper = sender.parents('.builder-row, .builder-columnset, .builder-column').first();
                     update_template_preview_part($previousWrapper, find_matching_preview_element($previousWrapper));
                 }
-        
-                reindexPreviewElements();
             }
 
             sessionStorage.setItem('unsavedChanges', 'true');
