@@ -499,7 +499,7 @@ function generate_chunk_form_interface($chunkType, $chunkData, $uniqueId)
             'label' => 'Settings',
             'contentGenerator' => function ($chunkType, $chunkData, $uniqueId) {
                 echo "<form id='{$uniqueId}-chunk-settings' class='chunk-settings-form'>";
-                echo render_chunk_settings($chunkType, $chunkData, $uniqueId);
+                render_chunk_settings($chunkType, $chunkData, $uniqueId);
                 echo "</form>";
             }
         ),
@@ -902,6 +902,9 @@ function generate_background_settings_module($backgroundSettings, $uniqueId = ''
     $forceBackground = isset($backgroundSettings[$uniqueId . 'force-background']) && $backgroundSettings[$uniqueId . 'force-background'] == true;
     $transparentImage = isset($backgroundSettings[$uniqueId . 'background-image-transparent']) && $backgroundSettings[$uniqueId . 'background-image-transparent'] == true;
 
+    // Shared across all fields below; define once so it's set even if the options loop is empty.
+    $previewPartDataAttr = $previewPart ? 'data-preview-part="' . $previewPart . '"' : '';
+
     // Background Type Options
     $backgroundOptions = [
         ['id' => $uniqueTempId . 'bg-none', 'value' => 'none', 'label' => '<i class="fas fa-ban"></i> None', 'checked' => 'checked'],
@@ -926,8 +929,6 @@ function generate_background_settings_module($backgroundSettings, $uniqueId = ''
                         // Check if this option is selected
                         $isChecked = isset($chunkBackgroundType) && $chunkBackgroundType === $opt['value'] ? 'checked' : '';
                         $fieldID = $opt['id'];
-                        $previewPartDataAttr = $previewPart ? 'data-preview-part="' . $previewPart . '"' : '';
-
                         ?>
                         <input type='radio' id='<?php echo $fieldID; ?>' name='<?php echo $uniqueId . 'background-type'; ?>' <?php echo $previewPartDataAttr; ?>
                             value='<?php echo $opt['value']; ?>' hidden <?php echo $isChecked; ?>

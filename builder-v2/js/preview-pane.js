@@ -56,11 +56,19 @@ function update_template_preview(fromDatabase = false) {
             }
             const decodedHTML = decodeHTMLEntities(data.html);
 
+            // Re-capture scroll just before swapping content: the user may have
+            // scrolled during the ~1s debounce + AJAX, so the position grabbed at
+            // the top of update_template_preview() can be stale.
+            currentScrollPosition = {
+                x: iframe.contentWindow.pageXOffset,
+                y: iframe.contentWindow.pageYOffset
+            };
+
             // Update the preview with the decoded HTML
             preview.find('body').html(decodedHTML);
             jQuery('#templatePreview-status').fadeOut();
 
-            reinitIframeConstants(iframe); 
+            reinitIframeConstants(iframe);
 
         });
         
@@ -78,9 +86,36 @@ function update_template_preview(fromDatabase = false) {
   }, 1000); // Update debounce
 
     function reinitIframeConstants(iframe) {
-        // Sets scroll position back to where it was before refreshing
-        iframe.contentWindow.scrollTo(currentScrollPosition.x, currentScrollPosition.y);
-                
+        // Restore scroll to where it was before the refresh. The freshly-injected
+        // content loads its images/fonts asynchronously, so on the first pass the
+        // document isn't at its final height yet and scrollTo() gets clamped short
+        // (the classic "scroll is off until I refresh" symptom). Re-apply after the
+        // next paint and again once any still-loading images settle.
+        var win = iframe.contentWindow;
+        var target = currentScrollPosition;
+        var applyScroll = function () { win.scrollTo(target.x, target.y); };
+
+        applyScroll();
+        win.requestAnimationFrame(applyScroll);
+
+        var images = win.document.images;
+        var pending = 0;
+        var onImageSettled = function () {
+            this.removeEventListener('load', onImageSettled);
+            this.removeEventListener('error', onImageSettled);
+            pending--;
+            if (pending <= 0) {
+                applyScroll();
+            }
+        };
+        for (var i = 0; i < images.length; i++) {
+            if (!images[i].complete) {
+                pending++;
+                images[i].addEventListener('load', onImageSettled);
+                images[i].addEventListener('error', onImageSettled);
+            }
+        }
+
 
         // Re-apply active class
         var activeBuilderElement = jQuery('#builder .last-clicked');
