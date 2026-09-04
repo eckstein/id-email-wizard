@@ -1125,6 +1125,28 @@ function get_latest_triggered_startAt($campaignId)
 	}
 }
 
+/**
+ * The workflow (journey) ids behind a set of campaign ids.
+ *
+ * Campaign ids and journey ids are not interchangeable, and the journey sync
+ * filters on the latter. Returns null for an empty set, which the journey sync
+ * reads as "all of them" - the same thing the cron does when it passes nothing.
+ *
+ * @param array $campaignIds
+ * @return array|null
+ */
+function idemailwiz_workflow_ids_for_campaigns($campaignIds)
+{
+	if (empty($campaignIds)) {
+		return null;
+	}
+
+	$campaigns = get_idwiz_campaigns(['campaignIds' => $campaignIds, 'fields' => 'id,workflowId']);
+	$workflowIds = array_values(array_unique(array_filter(array_column($campaigns ?: [], 'workflowId'))));
+
+	return $workflowIds ?: null;
+}
+
 function idemailwiz_sync_non_triggered_metrics($campaignIds = [], $sync_dbs = null, $startDate = null, $endDate = null)
 {
 	@set_time_limit(600);
@@ -1156,6 +1178,17 @@ function idemailwiz_sync_non_triggered_metrics($campaignIds = [], $sync_dbs = nu
 			// purchase history, which can exhaust memory.
 			if ($db === 'purchases') {
 				$result = idemailwiz_sync_purchases(!empty($campaignIds) ? $campaignIds : null, $startDate, $endDate);
+			} elseif ($db === 'journeys') {
+				// idemailwiz_sync_journeys() filters the fetch by journey id, so
+				// handing it campaign ids matches nothing and throws away all ten
+				// pages it just pulled. Ask for the journeys those campaigns are in.
+				$journeyIds = idemailwiz_workflow_ids_for_campaigns($campaignIds);
+				if (!empty($campaignIds) && empty($journeyIds)) {
+					wiz_log("None of these campaigns belong to a journey, skipping journeys sync.");
+					$response[$db] = ['skipped' => 'No journeys associated with the given campaigns'];
+					continue;
+				}
+				$result = idemailwiz_sync_journeys($journeyIds);
 			} else {
 				$result = call_user_func($function_name, $syncArgs);
 			}

@@ -1,3 +1,88 @@
+// Shared DataTables export configuration, used by every wiz table that offers
+// "Export current view" (the campaigns table, the journey campaigns table).
+// Kept out of the ready() closures so each table can reuse the same rules
+// instead of restating them.
+(function ($) {
+	// Columns titled with an icon rather than words - "Has Experiment" is a
+	// flask glyph - strip to an empty string and land in the export as a blank
+	// column with a blank heading. Fall back to the readable name the column
+	// already carries for the column-visibility and search-builder menus.
+	function exportHeaderText(text, index) {
+		var stripped = $("<div>").html(text == null ? "" : text).text().trim();
+		if (stripped) {
+			return stripped;
+		}
+
+		// `index` is the column's absolute index. The header cell handed to this
+		// callback can belong to a cloned header table - one that carries the
+		// dataTable class but is not a registered instance - so walk the tables
+		// DataTables actually knows about and match the column on its title.
+		var tables = $.fn.dataTable.tables();
+		for (var i = 0; i < tables.length; i++) {
+			var settings;
+			try {
+				settings = $(tables[i]).DataTable().settings()[0];
+			} catch (e) {
+				continue;
+			}
+
+			var column = settings && settings.aoColumns ? settings.aoColumns[index] : null;
+			if (column && column.sTitle === text) {
+				return column.colvisName || column.searchBuilderTitle || column.sName || "";
+			}
+		}
+
+		return "";
+	}
+
+	// `overrides` is merged shallowly, so a caller can swap the column selector
+	// without restating orthogonal/stripHtml/modifier.
+	window.idwizExportOptions = function (overrides) {
+		return $.extend(
+			{
+				// The row-counter column is display furniture, never data.
+				columns: ":visible:not(.row-counter)",
+				orthogonal: "export",
+				stripHtml: true,
+				modifier: {
+					search: "applied",
+					order: "applied",
+				},
+				format: {
+					header: exportHeaderText,
+				},
+			},
+			overrides || {}
+		);
+	};
+
+	// Copy / CSV / Excel, all exporting exactly what the view currently shows.
+	window.idwizExportButtons = function (overrides) {
+		var exportOptions = window.idwizExportOptions(overrides);
+		return [
+			{ extend: "copy", exportOptions: exportOptions },
+			{ extend: "csv", exportOptions: exportOptions },
+			{ extend: "excel", exportOptions: exportOptions },
+		];
+	};
+
+	// The "Export current view" toolbar button, as a Buttons collection.
+	window.idwizExportCollection = function (overrides) {
+		return {
+			extend: "collection",
+			text: '<i class="fa-solid fa-file-arrow-down"></i>',
+			className: "wiz-dt-button",
+			attr: {
+				title: "Export current view",
+			},
+			align: "button-right",
+			autoClose: true,
+			buttons: window.idwizExportButtons(overrides),
+			background: false,
+		};
+	};
+})(jQuery);
+
 jQuery(document).ready(function ($) {
 	// Call toggleOverlay(false) once everything (including images, iframes, scripts, etc.) has finished loading
 	$(window).on("load", function () {

@@ -446,25 +446,9 @@ jQuery(document).ready(function ($) {
 				});
 		}
 
-		function get_wiz_campaign_export_options() {
-			return {
-				columns: ":visible:not(.row-counter)",
-				orthogonal: "export",
-				stripHtml: true,
-				modifier: {
-					search: "applied",
-					order: "applied",
-				},
-			};
-		}
-
 		function get_wiz_campaign_export_buttons() {
-			var exportOptions = get_wiz_campaign_export_options();
-			return [
-				{ extend: "copy", exportOptions: exportOptions },
-				{ extend: "csv", exportOptions: exportOptions },
-				{ extend: "excel", exportOptions: exportOptions },
-			];
+			// Shared with the journey campaigns table. See js/id-general.js.
+			return window.idwizExportButtons();
 		}
 
 		function get_link_column_export_text(html) {

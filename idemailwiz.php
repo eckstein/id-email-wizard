@@ -295,7 +295,13 @@ function idemailwiz_enqueue_assets()
     $iterableApiKey = $wizSettings['iterable_api_key'] ?? false;
 
     foreach ($scripts as $handle => $script) {
-        wp_enqueue_script($handle, plugins_url($script[0], __FILE__), $script[1], '1.0.0', true);
+        // Version each file by its own mtime rather than a fixed '1.0.0'. These
+        // scripts call into each other (data-tables.js uses the export helpers
+        // in id-general.js), so a browser holding a stale copy of one and a
+        // fresh copy of another breaks the page.
+        $scriptFile = plugin_dir_path(__FILE__) . ltrim($script[0], '/');
+        $scriptVersion = file_exists($scriptFile) ? filemtime($scriptFile) : '1.0.0';
+        wp_enqueue_script($handle, plugins_url($script[0], __FILE__), $script[1], $scriptVersion, true);
         $handle_underscore = str_replace('-', '_', $handle);
         wp_localize_script(
             $handle,

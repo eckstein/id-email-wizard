@@ -48,7 +48,7 @@ jQuery(document).ready(function ($) {
             return !$(row).hasClass('inactive-campaign');
         });
 
-        journeyCampaignsTable = $table.DataTable({
+        var tableOptions = {
             paging: false,
             searching: true, // Enable searching for the filter to work
             info: false,
@@ -62,7 +62,18 @@ jQuery(document).ready(function ($) {
             autoWidth: false,
             responsive: false,
             dom: 'lrtip' // Hide the search box but keep search functionality
-        });
+        };
+
+        // "Export current view": the same copy/CSV/Excel collection the campaigns
+        // table uses (js/id-general.js). Because it exports with the search
+        // modifier applied, the file matches what is on screen - the inactive
+        // campaign filter and the date range included.
+        if (typeof window.idwizExportCollection === 'function') {
+            tableOptions.dom = 'B' + tableOptions.dom;
+            tableOptions.buttons = [window.idwizExportCollection()];
+        }
+
+        journeyCampaignsTable = $table.DataTable(tableOptions);
     }
 
     // Handle show inactive campaigns checkbox
@@ -78,7 +89,7 @@ jQuery(document).ready(function ($) {
         e.preventDefault();
         
         const $button = $(this);
-        const originalText = $button.text();
+        const originalText = $button.html();
         const journeyIds = $button.data('journeyids');
         
         $button.prop('disabled', true).text('Syncing...');
@@ -90,29 +101,55 @@ jQuery(document).ready(function ($) {
         const startDate = $('#wizStartDate').val() || $rollupWrapper.attr('data-start-date') || '';
         const endDate = $('#wizEndDate').val() || $rollupWrapper.attr('data-end-date') || '';
 
-        const data = {
+        const campaignIds = journeyIds ? JSON.stringify(journeyIds) : JSON.stringify([]);
+
+        // Campaigns, templates, metrics, purchases, experiments, journeys. This
+        // does not touch the triggered tables the Sent/Delivered/Opens columns
+        // are read from.
+        const metricsSync = $.post(idAjax.ajaxurl, {
             action: 'idemailwiz_ajax_sync',
             security: idAjax.wizAjaxNonce,
-            campaignIds: journeyIds ? JSON.stringify(journeyIds) : JSON.stringify([]),
+            campaignIds: campaignIds,
             startDate: startDate,
             endDate: endDate
-        };
-        
-        $.post(idAjax.ajaxurl, data)
-            .done(function(response) {
-                if (response.success) {
-                    $button.text('Synced!').removeClass('green').addClass('blue');
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1000);
-                } else {
-                    alert('Sync failed: ' + (response.data || 'Unknown error'));
-                    $button.prop('disabled', false).text(originalText);
+        });
+
+        // Queues the Iterable engagement exports that do fill those columns.
+        const engagementSync = $.post(idAjax.ajaxurl, {
+            action: 'handle_journey_triggered_sync',
+            security: idAjax.wizAjaxNonce,
+            campaignIds: campaignIds,
+            startDate: startDate,
+            endDate: endDate
+        });
+
+        $.when(metricsSync, engagementSync)
+            .done(function(metricsResult, engagementResult) {
+                const metricsResponse = metricsResult[0];
+                const engagementResponse = engagementResult[0];
+
+                if (!metricsResponse.success) {
+                    alert('Sync failed: ' + (metricsResponse.data || 'Unknown error'));
+                    $button.prop('disabled', false).html(originalText);
+                    return;
                 }
+
+                // The engagement queue only drains while Engagement Data Sync is
+                // on, so pass that back rather than reporting a finished sync.
+                if (engagementResponse.success && engagementResponse.data && !engagementResponse.data.engagementSyncEnabled) {
+                    alert(engagementResponse.data.message);
+                } else if (!engagementResponse.success) {
+                    alert('Engagement sync failed: ' + (engagementResponse.data || 'Unknown error'));
+                }
+
+                $button.text('Synced!').removeClass('green').addClass('blue');
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
             })
             .fail(function(xhr, status, error) {
                 alert('Sync failed: Network error');
-                $button.prop('disabled', false).text(originalText);
+                $button.prop('disabled', false).html(originalText);
             });
     });
 

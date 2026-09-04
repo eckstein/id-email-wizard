@@ -29,6 +29,55 @@ function handle_single_triggered_sync()
 }
 
 
+// Ajax handler for the Sync Journey button on the single journey page.
+// The journey table's Sent/Delivered/Opens columns are read from the triggered
+// tables, and only the sync queue ever writes those, so syncing a journey has to
+// queue engagement exports as well as refreshing campaigns/metrics/purchases.
+add_action('wp_ajax_handle_journey_triggered_sync', 'handle_journey_triggered_sync');
+function handle_journey_triggered_sync()
+{
+	if (!check_ajax_referer('wizAjaxNonce', 'security', false)) {
+		wp_send_json_error('Invalid nonce');
+	}
+
+	$campaignIds = isset($_POST['campaignIds']) ? json_decode(stripslashes($_POST['campaignIds']), true) : [];
+	$campaignIds = is_array($campaignIds) ? array_values(array_filter(array_map('intval', $campaignIds))) : [];
+
+	if (empty($campaignIds)) {
+		wp_send_json_error('No campaigns to sync for this journey.');
+	}
+
+	$startAt = !empty($_POST['startDate']) ? sanitize_text_field($_POST['startDate']) : null;
+	$endAt = !empty($_POST['endDate']) ? sanitize_text_field($_POST['endDate']) : null;
+	$metricTypes = ['send', 'open', 'click', 'unSubscribe', 'complaint', 'bounce', 'sendSkip'];
+
+	// The export filters on when each event happened, but an open or a click can
+	// land weeks after its send and is counted against that send (see
+	// get_triggered_events_for_sends_in_window()). Exporting only up to the end of
+	// the window being viewed would leave those later events unsynced, so pull
+	// through today whenever the window has already closed.
+	$today = current_time('Y-m-d');
+	$exportEnd = $endAt ? max($endAt, $today) : $endAt;
+
+	maybe_add_to_sync_queue($campaignIds, $metricTypes, $startAt, $exportEnd, 100);
+
+	// Queued jobs are drained by the idemailwiz_sync_engagement_data cron, and
+	// idemailwiz_sync_engagement_data_callback() returns early when the setting is
+	// off. Say so, rather than reporting a sync that is never going to run.
+	$wizSettings = get_option('idemailwiz_settings');
+	$engSyncOn = ($wizSettings['iterable_engagement_data_sync_toggle'] ?? 'off') === 'on';
+
+	$count = count($campaignIds);
+	wp_send_json_success([
+		'campaigns' => $count,
+		'engagementSyncEnabled' => $engSyncOn,
+		'message' => $engSyncOn
+			? "Engagement sync queued for {$count} campaigns."
+			: "Engagement sync queued for {$count} campaigns, but Engagement Data Sync is off in Wiz Settings, so the queued exports will not be downloaded until it is turned on.",
+	]);
+}
+
+
 
 function maybe_add_to_sync_queue($campaignIds, $metricTypes, $startAt = null, $endAt = null, $priority = 1)
 {

@@ -345,6 +345,6 @@ if ($journeyId && get_idwiz_journey($journeyId)) {
 
 // Enqueue journeys styles and scripts
 wp_enqueue_style('journeys-archive', plugin_dir_url(__FILE__) . '../styles/journeys-archive.css', [], '1.0.0');
-wp_enqueue_script('journeys', plugin_dir_url(__FILE__) . '../js/journeys.js', ['jquery'], '1.0.0', true);
+wp_enqueue_script('journeys', plugin_dir_url(__FILE__) . '../js/journeys.js', ['jquery', 'id-general'], '1.2.0', true);
 
 get_footer(); ?>

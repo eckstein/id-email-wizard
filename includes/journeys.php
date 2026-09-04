@@ -457,9 +457,48 @@ add_action('wp_ajax_filter_journeys', function() {
 	]);
 });
 
+/**
+ * The most recent send per campaign, as millisecond timestamps keyed by campaign id.
+ *
+ * Journey campaigns are all Triggered, so their sends live in the triggered
+ * sends table. One grouped query rather than one per table row.
+ *
+ * @param array $campaignIds
+ * @return array campaignId => startAt in milliseconds
+ */
+function get_idwiz_last_send_by_campaign($campaignIds)
+{
+	global $wpdb;
+
+	if (empty($campaignIds)) {
+		return [];
+	}
+
+	$table = $wpdb->prefix . 'idemailwiz_triggered_sends';
+	$placeholders = implode(', ', array_fill(0, count($campaignIds), '%d'));
+
+	$rows = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT campaignId, MAX(startAt) AS lastSend FROM {$table}
+			 WHERE campaignId IN ({$placeholders})
+			 GROUP BY campaignId",
+			$campaignIds
+		),
+		ARRAY_A
+	);
+
+	$lastSends = [];
+	foreach ($rows ?: [] as $row) {
+		$lastSends[(int) $row['campaignId']] = (int) $row['lastSend'];
+	}
+
+	return $lastSends;
+}
+
 function display_workflow_campaigns_table($workflowId, $campaigns, $startDate = null, $endDate = null, $showAllWithFilter = false)
 {
 	//$workflow = get_workflow($workflowId);
+	$lastSendByCampaign = get_idwiz_last_send_by_campaign(array_column($campaigns, 'id'));
 ?>
 	<div class="workflow-campaigns">
 		<table class="idemailwiz_table journey_campaigns_table<?php echo $showAllWithFilter ? ' journey-campaigns-sortable' : ''; ?>" id="journey-campaigns-table-<?php echo $workflowId; ?>">
@@ -553,8 +592,11 @@ function display_workflow_campaigns_table($workflowId, $campaigns, $startDate = 
 						}
 					}
 					
-					// Calculate sortable timestamp
-					$campaignStartStamp = isset($campaign['startAt']) ? (int) ($campaign['startAt'] / 1000) : 0;
+					// Sortable timestamp for the Last Sent column. $campaign['startAt'] is
+					// when the campaign started, not when it last sent, so read the actual
+					// last send. Campaigns that have never sent get no date at all.
+					$lastSendMs = $lastSendByCampaign[(int) $campaign['id']] ?? 0;
+					$campaignStartStamp = $lastSendMs ? (int) ($lastSendMs / 1000) : 0;
 				?>
 						<tr class="campaign-row <?php echo !$isActive ? 'inactive-campaign' : ''; ?>" data-status="<?php echo esc_attr($campaignState); ?>">
 							<td>

@@ -825,7 +825,11 @@ function get_triggered_campaign_metrics_single($campaignId, $startDate, $endDate
 	}
 
 	
-	$metrics['uniqueEmailsDelivered'] = $metrics['uniqueEmailSends'] - $metrics['emailSendSkips'] - $metrics['emailBounces'];
+	// A send skip means no message went out, so a skipped user is not part of the
+	// send population and must not be subtracted from it. Skips and sends share no
+	// messageIds at all, and subtracting them is what drove delivered negative on
+	// campaigns that skipped more users than they sent to.
+	$metrics['uniqueEmailsDelivered'] = $metrics['uniqueEmailSends'] - $metrics['emailBounces'];
 
 
 	$metrics['wizDeliveryRate'] = $metrics['uniqueEmailsDelivered'] > 0 ? ($metrics['uniqueEmailsDelivered'] / $metrics['uniqueEmailSends']) * 100 : 0;
@@ -927,6 +931,58 @@ function get_triggered_campaign_metrics($campaignIds = [], $startDate = null, $e
 	return get_triggered_campaign_metrics_chunk($campaignIds, $startDate, $endDate);
 }
 
+/**
+ * Count engagement events belonging to sends that happened inside the window.
+ *
+ * An open or a click arrives after its send, sometimes days after, so counting
+ * both by their own timestamps lets a short window report more opens than sends:
+ * a campaign with no sends this month still shows last month's opens against a
+ * denominator of zero. Joining on messageId counts each event against the send
+ * that caused it, and picks up the late events a plain window filter drops.
+ *
+ * Send skips are deliberately not counted this way. A skip means no message was
+ * sent, so it has no send row to join to.
+ *
+ * @param string $database    Table name after the wpdb prefix, e.g. 'idemailwiz_triggered_opens'.
+ * @param array  $campaignIds Campaign ids, including connected campaigns.
+ * @param string $startDate   Y-m-d, inclusive.
+ * @param string $endDate     Y-m-d, inclusive.
+ * @return int Distinct messageIds with an event, among the sends in the window.
+ */
+function get_triggered_events_for_sends_in_window($database, $campaignIds, $startDate, $endDate)
+{
+	global $wpdb;
+
+	if (empty($campaignIds) || !$database) {
+		return 0;
+	}
+
+	$eventsTable = $wpdb->prefix . $database;
+	$sendsTable = $wpdb->prefix . 'idemailwiz_triggered_sends';
+
+	$placeholders = implode(', ', array_fill(0, count($campaignIds), '%d'));
+
+	// Same window arithmetic as get_idemailwiz_triggered_data(): the end date is
+	// inclusive, so the window runs to the end of that day.
+	$windowStart = strtotime($startDate) * 1000;
+	$windowEnd = (strtotime($endDate) + DAY_IN_SECONDS) * 1000;
+
+	$sql = $wpdb->prepare(
+		"SELECT COUNT(DISTINCT events.messageId)
+		 FROM {$eventsTable} AS events
+		 INNER JOIN (
+			SELECT DISTINCT messageId
+			FROM {$sendsTable}
+			WHERE campaignId IN ({$placeholders})
+			  AND startAt >= %d AND startAt <= %d
+		 ) AS sent ON sent.messageId = events.messageId
+		 WHERE events.campaignId IN ({$placeholders})",
+		array_merge($campaignIds, [$windowStart, $windowEnd], $campaignIds)
+	);
+
+	return (int) $wpdb->get_var($sql);
+}
+
 function get_triggered_campaign_metrics_chunk($campaignIds, $startDate, $endDate)
 {
 	// Get all campaigns and their connected campaigns in batch
@@ -962,21 +1018,22 @@ function get_triggered_campaign_metrics_chunk($campaignIds, $startDate, $endDate
 		'fields' => 'campaignId',
 	];
 
-	// Batch fetch all metrics data at once
-	$databases = [
+	// Counted by when the event itself happened. A send is the event; a send skip
+	// means no message went out, so it has no send row to be counted against.
+	$windowedDatabases = [
 		'uniqueEmailSends' => 'idemailwiz_triggered_sends',
+		'emailSendSkips' => 'idemailwiz_triggered_sendskips',
+	];
+
+	// Counted against the sends inside the window, however long after those sends
+	// the event arrived. See get_triggered_events_for_sends_in_window().
+	$sendLinkedDatabases = [
 		'uniqueEmailOpens' => 'idemailwiz_triggered_opens',
 		'uniqueEmailClicks' => 'idemailwiz_triggered_clicks',
 		'uniqueUnsubscribes' => 'idemailwiz_triggered_unsubscribes',
 		'totalComplaints' => 'idemailwiz_triggered_complaints',
-		'emailSendSkips' => 'idemailwiz_triggered_sendskips',
 		'emailBounces' => 'idemailwiz_triggered_bounces',
 	];
-
-	$batchedMetricsData = [];
-	foreach ($databases as $metricKey => $database) {
-		$batchedMetricsData[$metricKey] = get_idemailwiz_triggered_data($database, $campaignDataArgs) ?? [];
-	}
 
 	// Initialize combined metrics
 	$combinedMetrics = [
@@ -993,13 +1050,20 @@ function get_triggered_campaign_metrics_chunk($campaignIds, $startDate, $endDate
 		'gaRevenue' => 0,
 	];
 
-	// Count metrics from batched data
-	foreach ($databases as $metricKey => $database) {
-		$combinedMetrics[$metricKey] = count($batchedMetricsData[$metricKey]);
+	foreach ($windowedDatabases as $metricKey => $database) {
+		$combinedMetrics[$metricKey] = count(get_idemailwiz_triggered_data($database, $campaignDataArgs) ?? []);
+	}
+
+	foreach ($sendLinkedDatabases as $metricKey => $database) {
+		$combinedMetrics[$metricKey] = get_triggered_events_for_sends_in_window($database, $allCampaignIds, $startDate, $endDate);
 	}
 
 	// Calculate derived metrics
-	$combinedMetrics['uniqueEmailsDelivered'] = $combinedMetrics['uniqueEmailSends'] - $combinedMetrics['emailSendSkips'] - $combinedMetrics['emailBounces'];
+	// A send skip means no message went out, so a skipped user is not part of the
+	// send population and must not be subtracted from it. Skips and sends share no
+	// messageIds at all, and subtracting them is what drove delivered negative on
+	// campaigns that skipped more users than they sent to.
+	$combinedMetrics['uniqueEmailsDelivered'] = $combinedMetrics['uniqueEmailSends'] - $combinedMetrics['emailBounces'];
 	$combinedMetrics['uniquePurchases'] = count($allPurchases);
 	$combinedMetrics['revenue'] = array_sum(array_column($allPurchases, 'total'));
 	$combinedMetrics['gaRevenue'] = array_sum(array_column($allGaEmailPurchases, 'revenue'));
