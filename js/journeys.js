@@ -2,6 +2,7 @@ jQuery(document).ready(function ($) {
 
     var journeyCampaignsTable = null;
     var showInactiveCampaigns = false;
+    var excludeNoSendsCampaigns = false;
 
     // On page load
     if ($(".single-journey-article").length) {
@@ -31,21 +32,50 @@ jQuery(document).ready(function ($) {
             return;
         }
 
-        // Add custom filter for inactive campaigns BEFORE initializing DataTable
+        // Find the Sent column by its heading rather than assuming a position,
+        // since the table grows a GA Rev column when no date range is applied.
+        var sentColumnIndex = -1;
+        $table.find('thead th').each(function (index) {
+            if ($(this).text().trim().toLowerCase() === 'sent') {
+                sentColumnIndex = index;
+            }
+        });
+
+        // The Sent cell carries the unformatted count in data-order; its text is
+        // comma-grouped. Anything unreadable counts as a send so that a parsing
+        // problem cannot silently hide rows.
+        function getRowSendCount(row) {
+            if (sentColumnIndex < 0 || !row.cells[sentColumnIndex]) {
+                return 1;
+            }
+
+            var cell = row.cells[sentColumnIndex];
+            var order = cell.getAttribute('data-order');
+            var value = parseFloat(order !== null ? order : cell.textContent.replace(/[^0-9.-]/g, ''));
+
+            return isNaN(value) ? 1 : value;
+        }
+
+        // Add the toggle filters BEFORE initializing DataTable. Running them as
+        // search filters (rather than hiding rows in the DOM) is what lets the
+        // exports honor the toggles - they export with search "applied".
         $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
             // Only apply to our journey campaigns table
             if (settings.nTable.id.indexOf('journey-campaigns-table') === -1) {
                 return true;
             }
-            
-            // If showing inactive, return all rows
-            if (showInactiveCampaigns) {
-                return true;
-            }
-            
-            // Otherwise, check if row has inactive class
+
             var row = settings.aoData[dataIndex].nTr;
-            return !$(row).hasClass('inactive-campaign');
+
+            if (!showInactiveCampaigns && $(row).hasClass('inactive-campaign')) {
+                return false;
+            }
+
+            if (excludeNoSendsCampaigns && getRowSendCount(row) <= 0) {
+                return false;
+            }
+
+            return true;
         });
 
         var tableOptions = {
@@ -76,9 +106,17 @@ jQuery(document).ready(function ($) {
         journeyCampaignsTable = $table.DataTable(tableOptions);
     }
 
-    // Handle show inactive campaigns checkbox
+    // Handle the campaign filter checkboxes. Redrawing re-runs the search
+    // filters above, which the export buttons then read through.
     $('#show-inactive-campaigns').on('change', function() {
         showInactiveCampaigns = $(this).is(':checked');
+        if (journeyCampaignsTable) {
+            journeyCampaignsTable.draw();
+        }
+    });
+
+    $('#exclude-no-sends-campaigns').on('change', function() {
+        excludeNoSendsCampaigns = $(this).is(':checked');
         if (journeyCampaignsTable) {
             journeyCampaignsTable.draw();
         }

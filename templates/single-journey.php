@@ -132,9 +132,13 @@ if ($journeyId && get_idwiz_journey($journeyId)) {
 				</div>
 
 				<div class="journey-campaigns-controls">
-					<label class="show-inactive-toggle">
+					<label class="journey-campaigns-toggle show-inactive-toggle">
 						<input type="checkbox" id="show-inactive-campaigns" />
 						<span>Show inactive campaigns</span>
+					</label>
+					<label class="journey-campaigns-toggle">
+						<input type="checkbox" id="exclude-no-sends-campaigns" />
+						<span>Exclude campaigns with no sends</span>
 					</label>
 				</div>
 
@@ -343,8 +347,13 @@ if ($journeyId && get_idwiz_journey($journeyId)) {
 	echo '<div class="wizcampaign-section inset"><p>Invalid journey ID or journey not found! <a href="' . get_bloginfo('url') . '/metrics/journeys">View all journeys</a></p></div>';
 }
 
-// Enqueue journeys styles and scripts
-wp_enqueue_style('journeys-archive', plugin_dir_url(__FILE__) . '../styles/journeys-archive.css', [], '1.0.0');
-wp_enqueue_script('journeys', plugin_dir_url(__FILE__) . '../js/journeys.js', ['jquery', 'id-general'], '1.2.0', true);
+// Enqueue journeys styles and scripts, versioned by mtime so an edit to either
+// file busts its own cache. A hand-written version here is easy to forget, and
+// journeys.js depends on the export helpers in id-general.js.
+$journeysStyle = plugin_dir_path(__FILE__) . '../styles/journeys-archive.css';
+$journeysScript = plugin_dir_path(__FILE__) . '../js/journeys.js';
+
+wp_enqueue_style('journeys-archive', plugin_dir_url(__FILE__) . '../styles/journeys-archive.css', [], file_exists($journeysStyle) ? filemtime($journeysStyle) : '1.0.0');
+wp_enqueue_script('journeys', plugin_dir_url(__FILE__) . '../js/journeys.js', ['jquery', 'id-general'], file_exists($journeysScript) ? filemtime($journeysScript) : '1.0.0', true);
 
 get_footer(); ?>

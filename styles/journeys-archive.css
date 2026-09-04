@@ -254,9 +254,13 @@
 .journey-campaigns-controls {
 	margin-bottom: 15px;
 	padding: 10px 0;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 24px;
 }
 
-.show-inactive-toggle {
+.journey-campaigns-toggle {
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
@@ -266,13 +270,13 @@
 	user-select: none;
 }
 
-.show-inactive-toggle input[type="checkbox"] {
+.journey-campaigns-toggle input[type="checkbox"] {
 	width: 16px;
 	height: 16px;
 	cursor: pointer;
 }
 
-.show-inactive-toggle:hover {
+.journey-campaigns-toggle:hover {
 	color: #007cba;
 }
 
